@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.86 2005/01/30 17:11:04 dries Exp $ */
+/* $Id: issue.inc,v 1.87 2005/01/30 17:17:04 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -352,7 +352,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
     if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->pid))) {
-      $breadcrumb[] = array('path' => url('project/'. $term->name), 'title' => $term->name);
+      $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
     }
     $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
     $breadcrumb[] = array('path' => 'project/issues/'. $project->uri, 'title' => t('issues'));
