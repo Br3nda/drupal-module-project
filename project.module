@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.74 2003/06/12 02:11:57 weitzman Exp $
+// $Id: project.module,v 1.75 2003/06/13 14:16:15 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -91,7 +91,7 @@ function project_perm() {
 
 function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
 
-  if (strstr($node->title, "project/edit")) {
+  if (strstr($node->title, "project/update")) {
     $node->type = "project";
     $node->nid = substr($node->title, strrpos($node->title, "/") + 1);
     $current = node_load(array ("nid" => $node->nid));
@@ -663,9 +663,8 @@ function project_mail(&$node, $new = 0) {
   $links = project_parse_links($body);
   
   $body = wordwrap(strip_tags($body), 72);
-  $body .= "View: ". url("node/view/$node->nid") ."\n";
-  $body .= "Update: ". url("project/update/$node->nid") ."\n";
-  $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/edit/". $node->nid. "\n";
+  $body .= "Update: ". url("project/update/$node->nid#Content") ."\n";
+  $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
   $body .= "Update by mail help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
@@ -821,7 +820,9 @@ function project_form(&$node, &$help, &$error, &$form) {
   if ($developers) {
     $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
   }
+  $output .= "<a name=\"Content\"></a>";
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
+  
   //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
 
   return $output;
