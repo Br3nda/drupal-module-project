@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.38 2002/10/17 13:59:32 weitzman Exp $
+// $Id: project.module,v 1.39 2002/10/30 16:01:11 killes Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -490,28 +490,33 @@ function project_page() {
   }
 }
 
-function project_block() {
-  $result = db_query("SELECT p.pid,p.name,n.ptype,count(n.nid) AS active FROM projects p LEFT JOIN project n ON p.pid = n.pid WHERE n.pstatus = '1' OR n.pstatus = '2' GROUP BY n.ptype, p.pid, p.name");
-  $projects = array();
-  while ($project = db_fetch_object($result)) {
-    $projects[$project->name][pid] = $project->pid;
-    $projects[$project->name][$project->ptype] = $project->active;
+function project_block($op = "list", $delta = 0) {
+  if ($op == "list") {
+    $blocks[0]["info"] = t("Project information");
+    return $blocks;
   }
-  foreach ($projects as $name => $project) {
-    $output .= lm($name, array("mod" => "project", "pid" => $project["pid"])) ."<br />";
-    foreach ($project as $type => $active) {
-      if ($type != "pid") {
-        $output .= "&nbsp; ". lm(t(ucfirst($type . "s")), array("mod" => "project", "op" => "list", "pid" => $project["pid"], "type" => $type)) .": $active open<br />";
-      }
+  else {
+    $result = db_query("SELECT p.pid,p.name,n.ptype,count(n.nid) AS active FROM projects p LEFT JOIN project n ON p.pid = n.pid WHERE n.pstatus = '1' OR n.pstatus = '2' GROUP BY n.ptype, p.pid, p.name");
+    $projects = array();
+    while ($project = db_fetch_object($result)) {
+      $projects[$project->name][pid] = $project->pid;
+      $projects[$project->name][$project->ptype] = $project->active;
     }
-    $output .= "<br />";
+    foreach ($projects as $name => $project) {
+      $output .= lm($name, array("mod" => "project", "pid" => $project["pid"])) ."<br />";
+      foreach ($project as $type => $active) {
+        if ($type != "pid") {
+          $output .= "&nbsp; ". lm(t(ucfirst($type . "s")), array("mod" => "project", "op" => "list", "pid" => $project["pid"], "type" => $type)) .": $active open<br />";
+        }
+      }
+      $output .= "<br />";
+    }
+  
+    $block["subject"] = t("Project information");
+    $block["content"] = $output;
+    $block["link"] = "module.php?mod=project";
+    return $block;
   }
-
-  $block[0]["subject"] = t("Project information");
-  $block[0]["content"] = $output;
-  $block[0]["info"] = t("Project information");
-  $block[0]["link"] = "module.php?mod=project";
-  return $block;
 }
 
 // Misc support functions
