@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.6 2003/09/29 09:10:23 kjartan Exp $
+// $Id: mail.inc,v 1.7 2003/09/29 09:15:35 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -145,7 +145,7 @@ function project_mail_output(&$body) {
 
   //$body = check_output($body);
   $body = strip_tags($body);
-  //$body = strtr($body, $trans);
+  $body = strtr($body, $trans);
   $body = wordwrap($body, 72);
 }
 
@@ -155,17 +155,20 @@ function project_mail_summary($field, $value) {
       $project = node_load(array("nid" => $value, "type" => "project_project"));
       return $project->title;
     case "category":
-      return project_issue_category($value);
+      return $value ? project_issue_category($value) : t("<none>");
     case "priority":
-      return project_issue_priority($value);
+      return $value ? project_issue_priority($value) : t("<none>");
     case "rid":
-      $release = project_release_load($value);
-      return $release->version;
+      if ($value) {
+        $release = project_release_load($value);
+        return $release->version;
+      }
+      return t("<none>");
     case "assigned":
       $user = user_load(array("uid" => $value));
       return $user->name;
     case "state":
-      return project_issue_state($value);
+      return $value ? project_issue_state($value) : t("<none>");
     default:
       return $value;
   }
