@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.30 2003/11/15 17:00:09 ax Exp $
+// $Id: issue.inc,v 1.31 2003/11/15 17:16:22 ax Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -8,6 +8,8 @@ function project_issue_node($field) {
 }
 
 function project_issue_page($project) {
+  global $base_url;
+
   $arg = ($project->nid) ? 3 : 2;
 
   switch ($_POST["op"] ? $_POST["op"] : arg($arg)) {
@@ -30,7 +32,7 @@ function project_issue_page($project) {
       print $output;
       break;
     case "add":
-      drupal_goto("node/add/project_issue/$project->uri");
+      drupal_goto("$base_url/node/add/project_issue/$project->uri");
       break;
     case "user":
        $_POST["edit"]["users"] = $GLOBALS["user"]->uid;
