@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.138 2003/12/29 23:44:35 kjartan Exp $
+// $Id: project.module,v 1.139 2004/01/15 19:20:25 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -48,11 +48,6 @@ function project_node($field) {
   $info['name'] = t('project');
 
   return $info[$field];
-}
-
-function project_head() {
-  $style = "<style type=\"text/css\">\n@import url(modules/project/project.css);\n</style>";
-  return $style;
 }
 
 function project_perm() {
