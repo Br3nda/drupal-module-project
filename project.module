@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.154 2004/04/22 18:59:00 kjartan Exp $ */
+/* $Id: project.module,v 1.155 2004/05/04 21:12:10 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -241,8 +241,6 @@ function project_page() {
     drupal_goto(url());
   }
 
-  $project = project_project_retrieve(arg(2));
-
   switch (arg(1)) {
     case 'releases':
       project_release_page();
@@ -251,11 +249,11 @@ function project_page() {
       project_page_user(arg(2));
       break;
     case 'issues':
-      project_issue_page($node);
+      project_issue_page();
       break;
     case 'comments':
       if (user_access('access project issues')) {
-        project_comment_page($node);
+        project_comment_page();
         break;
       }
     default:
