@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.3 2003/09/28 20:13:45 kjartan Exp $
+// $Id: comment.inc,v 1.4 2003/09/28 23:06:02 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(3)) {
@@ -34,7 +34,7 @@ function project_comment_page($project) {
       theme("footer");
       break;
     case t("Preview"):
-      if (node_access($node, "update")) {
+      if (user_access("maintain project issues")) {
         $edit = array2object($_POST["edit"]);
         $edit->nid = $node->nid;
         $edit->type = "project_issue";
@@ -100,7 +100,7 @@ function project_comment_form(&$edit, &$error, &$param) {
   }
 
   $output .= form_submit(t("Preview"));
-  if ($error) {
+  if (!$error) {
     $output .= form_submit(t("Submit"));
   }
 
