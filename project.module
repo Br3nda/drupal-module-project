@@ -1,10 +1,10 @@
 <?php
-// $Id: project.module,v 1.10 2002/04/02 12:00:26 kjartan Exp $
+// $Id: project.module,v 1.11 2002/04/02 12:43:25 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
   if ($type == "node" && $node->type == "project") {
-    $links[] = "<a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update") ."</a>";
+    $links[] = "<a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a>";
     $links[] = t("project") .": <a href=\"module.php?mod=project&pid=$node->pid\">$node->project_name</a>";
     //$links[] = t("assigned") .": $node->assigned_formatted";
   }
@@ -133,7 +133,7 @@ function project_list($query, $pid = 0) {
   if (db_num_rows($result)) {
     $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
    
-    $headers = array("n.nid" => "ID", "n.title" => "Title", "p.pstatus" => "Status", "p.area" => "Area", "p.version" => "Version", "n.uid" => "Submitted", "p.assigned" => "Assigned");
+    $headers = array("n.nid" => "ID", "n.title" => "Title", "p.pstatus" => "Status", "n.changed" => "Last updated", "p.version" => "Version", "n.uid" => "Submitted by", "p.assigned" => "Assigned");
     $output .= "<tr style=\"text-align: left\">";
     foreach ($headers as $_field => $text) {
       $output .= "<th>". project_list_header($_field, $text, $pid, $type, $order) ."</th>";
@@ -156,8 +156,11 @@ function project_list($query, $pid = 0) {
       usort($nodes, "project_sort_assigned");
     }
 
+    //$status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
+    $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
+
     foreach ($nodes as $node) {
-      $output .= "<tr style=\"background: #f6f6f6\" valign=\"top\"><td>#$node->nid</td><td><a href=\"node.php?id=$node->nid\">$node->title</a></td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>$node->area</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td><td><a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a></td></tr>\n";
+      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\"><td>#$node->nid</td><td><a href=\"node.php?id=$node->nid\">$node->title</a></td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td><td><a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a></td></tr>\n";
     }
 
     $output .= "</table><br />\n";
@@ -181,6 +184,9 @@ function project_page() {
   switch ($op) {
     case "Search":
       global $edit;
+      
+      $query[] = "n.type = 'project'";
+      
       if ($edit["pid"]) {
         $query[] = "p.pid = '". check_input($edit["pid"]) ."'";
       }
@@ -197,7 +203,7 @@ function project_page() {
         $query[] = "(n.title LIKE '% ". check_input($edit["text"]) ." %' OR n.body LIKE '% ". check_input($edit["text"]) ." %' OR n.revisions LIKE '% ". check_input($edit["text"]) ." %')";
       }
       
-      $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY n.nid");
+      $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE ". @implode(" AND ", $query) ." ORDER BY n.nid");
 
       $output = project_list($query, $edit["pid"]);
 
@@ -375,7 +381,7 @@ function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
 
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
-  $from = "<". ($node->name ? $node->name : $user->name) ."> ". variable_get("site_mail", ini_get("sendmail_from"));
+  $from = '"'. ($node->name ? $node->name : $user->name) .'" '. variable_get("site_mail", ini_get("sendmail_from"));
 
   $body = "ID: $node->nid\n";
   $body = "Project: $project->name\n";
@@ -549,14 +555,14 @@ function project_view($node, $main = 0) {
       $revisions[]["node"] = $node;
       $node = $revisions[0]["node"];
     }
-    $body .= "<b>". format_date($node->changed, "custom", "Y-m-d") ." : ". format_name($node) ."</b>";
+    $body .= "<b>". format_date($node->changed, "custom", "Y-m-d H:i") ." : ". format_name($node) ."</b>";
     $body .= "<blockquote>". $node->body ."</blockquote><hr />";
     if (count($revisions)) {
 	    $body .= '<table border="0" cellpadding="0" cellspacing="2">';
       for($i = 1; $i < count($revisions); $i++){
         $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
 	      $body .= '<tr valign="top">';
-	      $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d") . (isset($diff->pstatus) ? "<br / >". t("Status") .": ". t(project_pstatus($diff->pstatus)) : "") . (isset($diff->assigned) ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted : "") ."</td>";
+	      $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i") . (isset($diff->pstatus) ? "<br / >". t("Status") .": ". t(project_pstatus($diff->pstatus)) : "") . (isset($diff->assigned) ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted : "") ."</td>";
 	      $body .= "<td>". trim($revisions[$i]["node"]->body) ."</td>";
 	      $body .= '</tr>';
 	      $body .= '<tr><td><br /></td></tr>';
