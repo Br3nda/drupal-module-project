@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.6 2002/03/11 21:40:04 kjartan Exp $
+// $Id: project.module,v 1.7 2002/04/02 10:57:02 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -525,6 +525,15 @@ function project_form(&$node, &$help, &$error, &$form) {
   return $output;
 }
 
+function project_diff(&$a, &$b) {
+  foreach ($b as $key => $value) {
+    if ($a->$key !== $value) {
+      $result->$key = $value;
+    }
+  }
+  return $result;
+}
+
 function project_view($node, $main = 0) {
   global $theme;
 
@@ -534,11 +543,28 @@ function project_view($node, $main = 0) {
     $node->teaser = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ." <b>". t("Area") .":</b> $node->area <b>". t("Priority") .":</b> $node->priority <b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />". (count($node->revisions) ? $node->revisions[0][node]->teaser : $node->teaser);
   }
   else {
-    $node->revisions[][node] = $node;
-    foreach ($node->revisions as $revision) {
-      $body .= "<b>". format_date($revision["node"]->changed, "small") ." : ". format_name($revision["node"]) ."</b>";
-      $body .= "<blockquote>". $revision["node"]->body ."</blockquote>";
+    if (count($node->revisions)) {
+      $revisions = $node->revisions;
+      unset($node->revisions);
+      $revisions[]["node"] = $node;
+      $node = $revisions[0]["node"];
     }
+    $body .= "<b>". format_date($node->changed, "custom", "Y-m-d") ." : ". format_name($node) ."</b>";
+    $body .= "<blockquote>". $node->body ."</blockquote><hr />";
+    if (count($revisions)) {
+	    $body .= "<table>";
+      for($i = 1; $i < count($revisions); $i++){
+        $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
+        debug_r($diff);
+	      $body .= '<tr valign="top">';
+	      $body .= "<td>". format_name($revisions[$i]["node"]) .'<br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d") . ($diff->pstatus ? "<br / >". t("Status") .": ". project_pstatus($diff->pstatus) : "") . ($diff->uid ? "<br / >". t("Assigned") .": ". format_name($diff) : "") ."</td>";
+	      $body .= "<td><blockquote>". $revisions[$i]["node"]->body ."</blockquote></td>";
+	      $body .= "</tr>";
+	    }
+	    $body .= "</table>";
+
+      $node = $revisions[$i - 1]["node"];
+	  }
 
     $node->body = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ."<br /><b>". t("Area") .":</b> $node->area<br /><b>". t("Priority") .":</b> $node->priority <br /><b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />$body";
   }

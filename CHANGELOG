@@ -1,5 +1,11 @@
+02. April 2002
+--------------
+project.module
+- made some changes to how the project nodes are displayed.
+
 11. March 2002
 --------------
+project.module
 - added sorting capabilities to list headers.
 - its no longer possible to submit project nodes that have an invalid $pid.
 
