@@ -1,3 +1,9 @@
+21. July 2003
+-------------
+project.module
+  - fixed bug in from: line of project emails
+  - reintroduced row coloring based on Status in list pages
+
 17. July 2003
 -------------
 project.module

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.87 2003/07/17 23:04:28 weitzman Exp $
+// $Id: project.module,v 1.88 2003/07/21 19:03:17 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -270,30 +270,36 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
     
     $i = 0;
     foreach ($nodes as $node) {
+      
+      // change background color only if status is not 'Active'
+      if ($node->pstatus != 1) {
+        $rowstyle = "background-color: ". $colours[$node->pstatus];
+      }  
+      
+      // conserve space by shortening username
       if (strpos($node->name, "@")) {
         $node->name = substr($node->name, 0, strpos($node->name, "@"));
       }
-      // $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
-      
-      $row[$i][] = l($node->title, "node/view/$node->nid");
-      $row[$i][] = str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus)));
-      $row[$i][] = project_priority($node->priority);
+            
+      $row[$i][] = array ("style" => $rowstyle, "data" => l($node->title, "node/view/$node->nid"));
+      $row[$i][] = array ("style" => $rowstyle, "data" => str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))));
+      $row[$i][] = array ("style" => $rowstyle, "data" => project_priority($node->priority));
       if ($project->areas) {
-        $row[$i][] = $node->area;
+        $row[$i][] = array ("style" => $rowstyle, "data" => $node->area);
       }
       if ($project->versions) {
-        $row[$i][] = $node->version;
+        $row[$i][] = array ("style" => $rowstyle, "data" => $node->version);
       }
-      $row[$i][] = format_date($node->changed, "small");
+      $row[$i][] = array ("style" => $rowstyle, "data" => format_date($node->changed, "small"));
       
-      // $output .= "<td>". format_name($node) ."</td>";
       if ($project->developers) {
-        $row[$i][] = $node->assigned_formatted;
+        $row[$i][] = array ("style" => $rowstyle, "data" => $node->assigned_formatted);
       }
       if (user_access("maintain bug reports")) {
-         $row[$i][] =  l(t("update $node->ptype"), "project/update/$node->nid");
+         $row[$i][] =  array ("style" => $rowstyle, "data" => l(t("update $node->ptype"), "project/update/$node->nid"));
       }
       $i++;
+      unset($rowstyle);
     }
     
     if ($pager = pager_display(NULL, 50)) {
@@ -697,7 +703,7 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : t(variable_get("anonymous", "Anonymous"))). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : t(variable_get("anonymous", "Anonymous"))). " <$from>". "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 
 }
