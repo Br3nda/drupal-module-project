@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.21 2003/12/22 01:56:42 ax Exp $
+// $Id: project.inc,v 1.22 2003/12/22 18:47:46 kjartan Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -11,7 +11,7 @@ function project_project_menu(&$node) {
   $categories = project_issue_category(0, 1);
   $uri = "project/$node->uri";
 
-  menu($uri, strtolower($node->title), 1);
+  menu($uri, strtolower($node->title), 'project_page', 3);
   if ($GLOBALS['user']->uid) {
     menu("$uri/issues/user", t('my issues'), 'project_page', 0);
     menu("$uri/issues/subscribe", t('subscribe'), 'project_page', 3);
