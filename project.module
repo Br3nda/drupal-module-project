@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.166 2004/09/15 17:50:26 kjartan Exp $ */
+/* $Id: project.module,v 1.167 2004/09/23 20:14:04 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -106,7 +106,7 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query('SELECT DISTINCT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n '. node_access_join_sql() .' WHERE n.status = 1 AND '. node_access_where_sql() .' AND p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
+  $result = db_query('SELECT DISTINCT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n USING(nid) '. node_access_join_sql() .' WHERE n.status = 1 AND '. node_access_where_sql() .' AND p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
       $comment->$var = $node->$var;
@@ -231,7 +231,7 @@ function project_page() {
         $result = db_queryd("SELECT DISTINCT(n.nid), n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title", $vid);
       }
       else {
-        $result = db_queryd("SELECT DISTINCT(n.nid), n.title FROM {node} n ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 ORDER BY title");
+        $result = db_queryd("SELECT DISTINCT(n.nid), n.title FROM {node} n USING(nid) ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 ORDER BY title");
       }
 
       $vocabulary = array(
