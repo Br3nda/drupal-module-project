@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.60 2004/02/22 00:05:41 kjartan Exp $
+// $Id: issue.inc,v 1.61 2004/02/27 12:41:33 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -468,6 +468,11 @@ function project_issue_query($project, $query) {
     form_select(t('Status'), 'states', ($query->states) ? $query->states : array(1, 2, 8), $states, '', 'size="5"', 1)
   );
   $rows[] = array(
+    array('data' => form_textfield(t('Submitted by'), 'submitted', $query->submitted, 20, 255)),
+    array('data' => form_textfield(t('Assigned'), 'assigned', $query->assigned, 20, 255)),
+    array('data' => form_textfield(t('Participant'), 'participated', $query->users, 20, 255))
+  );
+  $rows[] = array(
     array('data' => form_submit(t('Search')), 'colspan' => 3)
   );
 
@@ -599,19 +604,21 @@ function project_issue_query_parse($query = NULL) {
   return $query;
 }
 
-function project_issue_query_sql_field($field, $values, $like = 0, $operator = ' OR ') {
+function project_issue_query_sql_field($field, $values, $like = 0, $operator = ' OR ', $callback = 0) {
   $sql = array();
-  if (is_array($values)) {
-    foreach ($values as $value) {
-      $value = check_query($value);
-      $sql[] = $like ? "$field LIKE '%$value%'" : "$field = '$value'";
-    }
+  if (!is_array($values)) {
+    $values = array($values);
   }
-  else {
-    $value = check_query($values);
+  foreach ($values as $value) {
+    $value = check_query($value);
+    if ($callback) {
+      $value = $callback($value);
+    }
     $sql[] = $like ? "$field LIKE '%$value%'" : "$field = '$value'";
   }
-  return '('. implode($operator, $sql) .')';
+  if ($sql) {
+    return '('. implode($operator, $sql) .')';
+  }
 }
 
 function project_issue_query_pager($query) {
@@ -661,13 +668,26 @@ function project_issue_query_sql($query) {
         $sql[] = project_issue_query_sql_field('p.priority', $value);
         break;
       case 'users':
-        $sql[] = '('. project_issue_query_sql_field('n.uid', $value) .' OR '. project_issue_query_sql_field('p.assigned', $value) .')';
+        $_sql = array(
+          project_issue_query_sql_field('n.uid', $value, 0, ' OR ', 'project_issue_query_user'),
+          project_issue_query_sql_field('p.assigned', $value, 0, ' OR ', 'project_issue_query_user')
+        );
+        $sql[] = '('. implode(' OR ', $_sql) .')';
+        break;
+      case 'participated':
+        $comments = 1;
+        $_sql = array(
+          project_issue_query_sql_field('n.uid', $value, 0, ' OR ', 'project_issue_query_user'),
+          project_issue_query_sql_field('p.assigned', $value, 0, ' OR ', 'project_issue_query_user'),
+          project_issue_query_sql_field('c.uid', $value, 0, ' OR ', 'project_issue_query_user')
+        );
+        $sql[] = '('. implode(' OR ', $_sql) .')';
         break;
       case 'assigned':
-        $sql[] = project_issue_query_sql_field('p.assigned', $value);
+        $sql[] = project_issue_query_sql_field('p.assigned', $value, 0, ' OR ', 'project_issue_query_user');
         break;
       case 'submitted':
-        $sql[] = project_issue_query_sql_field('n.uid', $value);
+        $sql[] = project_issue_query_sql_field('n.uid', $value, 0, ' OR ', 'project_issue_query_user');
         break;
     }
   }
@@ -677,9 +697,22 @@ function project_issue_query_sql($query) {
   }
   else {
     return array(
-      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_issues} p INNER JOIN {project_comments} c ON c.nid = p.nid INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
-      'count' => 'SELECT COUNT(DISTINCT(n.nid)) FROM {project_comments} c INNER JOIN {project_issues} p ON c.nid = p.nid INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'
+      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
+      'count' => 'SELECT COUNT(DISTINCT(n.nid)) FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'
     );
+  }
+}
+
+function project_issue_query_user($value) {
+  if (is_numeric($value)) {
+    return $value;
+  }
+  else {
+    $uid = db_result(db_query("SELECT uid FROM {users} WHERE name = '%s'", $value));
+    if (!$uid) {
+      drupal_set_message(t("Username '%user' not found.", array('%user' => $value)), 'error');
+    }
+    return $uid;
   }
 }
 

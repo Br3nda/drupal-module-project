@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.27 2004/02/17 21:15:20 kjartan Exp $
+// $Id: project.inc,v 1.28 2004/02/27 12:41:33 kjartan Exp $
 
 function project_project_node_name() {
   return t('project');
@@ -100,7 +100,7 @@ function project_project_validate(&$node) {
     }
 
     // Make sure uri isn't already in use, or reserved
-    if (in_array($node->uri, array('issues', 'releases')) || db_num_rows(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
+    if (in_array($node->uri, array('user', 'issues', 'releases')) || db_num_rows(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
       $error['uri'] .= t('This project name is already in use.');
     }
   }

@@ -1,3 +1,13 @@
+27. February 2004
+-----------------
+- Added issue search interface for (Kartan):
+   * submitted by <user>
+   * assigned by <user>
+   * participated in by <user>
+- Added my projects page (Kjartan):
+   * http://example.com/project/user/<uid>
+   * http.//example.com/project/user/<name>
+
 27. December 2003
 -----------------
 - Added file uploads to issues (Kjartan).
