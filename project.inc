@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.5 2003/09/29 21:20:43 kjartan Exp $
+// $Id: project.inc,v 1.6 2003/09/30 09:13:56 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -97,7 +97,9 @@ function project_project_validate(&$node) {
     $error["mail_copy"] = $data;
   }
 
-  $node->mail_copy_filter = array_filter($node->mail_copy_filter, "project_project_cleanup");
+  if (is_array($node->mail_copy_filter)) {
+    $node->mail_copy_filter = array_filter($node->mail_copy_filter, "project_project_cleanup");
+  }
 
   // Make sure all URL fields actually contain URLs.
   foreach (array("homepage", "changelog", "cvs", "demo") as $uri) {

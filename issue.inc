@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.10 2003/09/29 21:20:43 kjartan Exp $
+// $Id: issue.inc,v 1.11 2003/09/30 09:13:56 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -117,6 +117,7 @@ function project_issue_validate(&$node) {
 
   empty($node->priority) and $node->priority = 2;
   empty($node->category) and $node->category = $_GET["category"];
+  empty($node->state) and $node->state = 1;
   empty($node->rid) and $node->rid = db_result(db_query("SELECT version FROM {project_projects} WHERE nid = %d", $node->pid), 0);
   empty($node->rid) and $error["rid"] = t("Required.");
   empty($node->pid) and $error["pid"] = t("Required.");
