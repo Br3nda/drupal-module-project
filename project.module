@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.49 2003/02/22 14:46:18 ax Exp $
+// $Id: project.module,v 1.50 2003/02/26 16:35:54 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -633,8 +633,6 @@ function project_mail(&$node, $new = 0) {
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
   $body .= "\n\nLinks:\n". implode("\n", $links);
-  print $body;
-  die();
   user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
   
 }
