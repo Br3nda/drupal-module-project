@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.11 2002/04/02 12:43:25 kjartan Exp $
+// $Id: project.module,v 1.12 2002/04/02 13:09:04 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -381,7 +381,7 @@ function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
 
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
-  $from = '"'. ($node->name ? $node->name : $user->name) .'" '. variable_get("site_mail", ini_get("sendmail_from"));
+  $from = variable_get("site_mail", ini_get("sendmail_from"));
 
   $body = "ID: $node->nid\n";
   $body = "Project: $project->name\n";
@@ -419,7 +419,7 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: $from\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) .'" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
 }
 
 // Node support functions
