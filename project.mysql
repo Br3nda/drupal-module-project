@@ -23,5 +23,5 @@ CREATE TABLE `projects` (
   PRIMARY KEY  (`pid`)
 ) TYPE=MyISAM;
 
-ALTER TABLE projects ADD version_default NOT NULL;
+ALTER TABLE projects ADD version_default varchar(255) NOT NULL;
 ALTER TABLE projects MODIFY areas text;

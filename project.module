@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.20 2002/06/10 18:46:27 kjartan Exp $
+// $Id: project.module,v 1.21 2002/06/10 19:32:34 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -14,11 +14,16 @@ function project_link($type, $node = 0, $main = 0) {
     $links[] = lm(t("projects"), array("mod" => "project"));
   }
 
-  if (($type == "menu" || $type == "menu.view") && user_access("access projects")) {
+  if ($type == "menu.view" && user_access("access projects")) {
     global $user;
     if (db_num_rows(db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid))) {
       $links[] = lm(t("view your projects"), array("mod" => "project", "op" => "user"));
     }
+  }
+
+  if ($type == "menu.create" && user_access("post content")) {
+    $links[] = lm(t("create bug report"), array("mod" => "project", "op" => "add", "type" => "bug"));
+    $links[] = lm(t("create feature request"), array("mod" => "project", "op" => "add", "type" => "feature"));
   }
 
   if ($type == "admin" && user_access("administer projects")) {
@@ -325,10 +330,10 @@ function project_page() {
       $theme->footer();
       break;
     case t("Submit"):
-      global $type, $edit;
+      global $edit;
       $theme->header();
       $edit["revision"] = 1;
-      $theme->box(t("Project") ." : ". t($type), node_submit($edit));
+      $theme->box(t("Project") ." : ". t($edit["ptype"]), node_submit($edit));
       $theme->footer();
       break;
     default:
