@@ -1,11 +1,17 @@
 <?php
-/* $Id: issue.inc,v 1.66 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: issue.inc,v 1.63.2.1 2004/05/25 19:47:51 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
 }
 
-function project_issue_page() {
+function project_issue_page($project) {
+  $project = project_project_retrieve(arg(3));
+
+  if (is_string(project_issue_category(arg(3)))) {
+    $_GET['categories'] = arg(3);
+  }
+
   $breadcrumb = array(
     l(t('Home'), NULL),
     l(t('Projects'), 'project')
@@ -17,26 +23,21 @@ function project_issue_page() {
 
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
-      $project = project_project_retrieve(arg(3));
       print theme('page', project_issue_query($project, $query), NULL, $breadcrumbs);
       break;
     case 'rss':
-      $project = project_project_retrieve(arg(3));
       $output = project_issue_query_result($project, 'rss');
       header('Content-Type: text/xml');
       print $output;
       break;
     case 'add':
-      $project = project_project_retrieve(arg(3));
       drupal_goto("node/add/project_issue/$project->uri");
       break;
     case 'statistics':
-      $project = project_project_retrieve(arg(3));
       print theme('page', project_issue_statistics($project));
       break;
     case t('Subscribe'):
     case 'subscribe':
-      $project = project_project_retrieve(arg(3));
       if ($GLOBALS['user']->uid) {
         print theme('page', project_issue_subscribe($project));
         break;
@@ -44,7 +45,6 @@ function project_issue_page() {
     case 'user':
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
-      $project = project_project_retrieve(arg(2));
       $output = project_issue_query_result($project);
       print theme('page', $output, NULL, $breadcrumbs);
   }
@@ -60,7 +60,7 @@ function project_issue_statistics($project) {
       $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
     }
     $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
-    drupal_set_breadcrumb($breadcrumb);
+    drupal_set_breadcrumbs($node);
     $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
   }
 
@@ -523,7 +523,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
     $query->projects = $project->nid;
     $links = array(
       l(t('submit'), "node/add/project_issue/$project->uri"),
-      l(t('statistics'), "project/issues/statistics/$project->uri"),
+      l(t('statistics'), "project/issues/$project->uri/statistics"),
     );
   }
   else {
@@ -560,19 +560,13 @@ function project_issue_query_result($project = 0, $format = 'html') {
   $form = theme('item_list', $links);
 
   // Make quick search form:
-  if (is_array($query->states)) {
-    $query->states = array_shift($query->states);
-  }
-  if (is_array($query->projects)) {
-    $query->projects = array_shift($query->projects);
-  }
   $rows = array(array(
-    form_select(t('Project'), 'projects', $query->projects, $projects),
+    form_select(t('Project'), 'projects', $project->nid, $projects),
     form_select(t('Status'), 'states', $query->states, $states),
     form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
     form_select(t('Category'), 'categories', $query->categories, $categories),
     form_submit(t('Search')),
-    l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
+    l(t('advanced search'), "project/issues/$project->uri/search")
   ));
   $form .= form(theme('table', '', $rows));
   $rows = array();

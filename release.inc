@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.33 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: release.inc,v 1.30.2.1 2004/05/25 19:47:51 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -37,20 +37,10 @@ function project_release_scan_parse($path = NULL) {
     $file = basename($path);
     ereg('(.+)-(.+)\.tar\.gz', $file, $matches);
     list($filename, $name, $version) = $matches;
-
     if (!$projects[$name]) {
-      if ($project = db_fetch_object(db_query("SELECT n.nid, n.type, n.moderate FROM {node} n INNER JOIN {project_projects} p USING (nid) WHERE p.uri = '%s'", $name))) {
-        if ($releases = project_release_load($project, 0)) {
-          $project->releases = array_flip($releases);
-        }
-        // Unmoderate nodes that have gotten releases
-        if (variable_get('project_release_unmoderate', 0) && $project->moderate) {
-          db_query("UPDATE {node} SET moderate = 0, status = 1 WHERE nid = %d", $project->nid);
-        }
-      }
-      else {
-        // No project found for this id.
-        return;
+      $project = db_fetch_object(db_query("SELECT nid, 'project_project' AS type FROM {project_projects} WHERE uri = '%s'", $name));
+      if ($releases = project_release_load($project, 0)) {
+        $project->releases = array_flip($releases);
       }
       $projects[$name] = & $project;
     }
@@ -134,6 +124,7 @@ function project_release_page() {
       $edit = array2object($_POST['edit']);
       $node = node_load(array('nid' => $edit->nid));
       if (node_access('update', $node)) {
+        //$edit->rid = arg(3);
         $error = project_release_validate($edit);
         $output = project_release_view($edit);
         $output .= form(project_release_form($edit, $error, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
@@ -145,6 +136,7 @@ function project_release_page() {
       $edit = array2object($_POST['edit']);
       $node = node_load(array('nid' => $edit->nid));
       if (node_access('update', $node)) {
+        //$edit->rid = arg(3);
         $error = project_release_validate($edit);
         if ($error) {
           $output = project_release_form($edit, $error, $param);
