@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.140 2004/01/15 19:27:00 kjartan Exp $
+// $Id: project.module,v 1.141 2004/01/26 20:52:48 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -33,7 +33,7 @@ function project_help($section) {
               "Whatever I type here will be the body of the node.\n".
               '</pre>'.
               "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n";
-     return $help;
+      return $help;
   }
 }
 
@@ -46,6 +46,7 @@ function project_system($field) {
 
 function project_node($field) {
   $info['name'] = t('project');
+  $info['description'] = t('Create a project.');
 
   return $info[$field];
 }
@@ -381,15 +382,15 @@ function project_invoke(&$node, $function, $arg1 = 1, $arg2 = 0) {
   return $info[$field];
 }*/
 
-function project_form(&$node, &$help, &$error, &$param) {
+function project_form(&$node, &$error, &$param) {
   // TODO: add type selector
   switch ($node->type) {
     case 'project_project':
       $node->type = 'project_project';
-      return project_project_form($node, $help, $error, $param);
+      return project_project_form($node, $error, $param);
     default:
       $node->type = 'project_issue';
-      return project_issue_form($node, $help, $error, $param);
+      return project_issue_form($node, $error, $param);
   }
 }
 

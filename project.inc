@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.23 2003/12/27 19:12:00 kjartan Exp $
+// $Id: project.inc,v 1.24 2004/01/26 20:52:48 kjartan Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -24,7 +24,7 @@ function project_project_menu(&$node) {
   menu("$uri/issues/search", t('search'), 'project_page', 5);
 }
 
-function project_project_form(&$node, &$help, &$error) {
+function project_project_form(&$node, &$error) {
   if (count($node->components)) {
     $node->components = implode("\n", $node->components);
   }

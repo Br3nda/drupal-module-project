@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.49 2004/01/15 19:27:00 kjartan Exp $
+// $Id: issue.inc,v 1.50 2004/01/26 20:52:48 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -135,7 +135,7 @@ function project_issue_subscribe($project) {
   return $output;
 }
 
-function project_issue_form(&$node, &$help, &$error, &$param) {
+function project_issue_form(&$node, &$error, &$param) {
   global $user;
 
   // Set form parameters so we can accept file uploads.
