@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.183 2005/03/05 09:17:20 dries Exp $
+// $Id: project.module,v 1.184 2005/03/05 09:26:41 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -146,7 +146,7 @@ function project_menu($may_cache) {
 
     $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
-    if (module_exist('taxonomy') && $vocabulary = current(taxonomy_get_vocabularies('project'))) {
+    if (module_exist('taxonomy') && $vocabulary = current(taxonomy_get_vocabularies('project_project'))) {
       $terms = taxonomy_get_tree($vocabulary->vid);
 
       foreach ($terms as $i => $term) {
