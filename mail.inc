@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.10 2003/10/01 09:09:19 kjartan Exp $
+// $Id: mail.inc,v 1.11 2003/10/01 13:00:38 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -178,6 +178,7 @@ function project_mail_notify($node) {
   if (defined("PROJECT_NOMAIL")) {
     return;
   }
+  $node = node_load(array("nid" => $node->nid, "type" => "project_issue"));
   $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
   $fields = array(
     "pid" => t("Project"),
@@ -190,7 +191,6 @@ function project_mail_notify($node) {
     "updator" => t("Updated by"),
     "state" => t("Status")
   );
-
 
   // Create complete history of the bug report
   $history = array($node);
@@ -257,9 +257,6 @@ function project_mail_notify($node) {
   $footer  = "-- \n";
   $footer .= t("Edit: %link", array("%link" => url("project/$project->uri/comment/add/$node->nid")));
 
-  // Clean up line endings
-  $body = str_replace(array("\r", "\n"), array("", "\r\n"), "$summary\n$body\n$footer\n");
-
   // Create mail header
   $sender->name = ($pos = strpos($node->updator, "@")) ? substr($node->updator, 0, $pos) : $node->updator;
   $sender->mail = $project->mail;
@@ -295,13 +292,13 @@ function project_mail_notify($node) {
 
   project_mail_output($node->title);
   while ($recipient = db_fetch_object($result)) {
-    user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\r\n", $header));
+    user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\n", $header));
   }
 
   var_dump($project->mail_copy_filter);
   if ($project->mail_copy && (empty($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
     var_dump("Mailed.");
-    //user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\r\n", $header));
+    //user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
   }
 }
 
@@ -330,10 +327,7 @@ function project_mail_reminder() {
           "List-Archive: <". url("project") .">",
         );
 
-        // Standardize line endings
-        $body = str_replace(array("\r", "\n"), array("", "\r\n"), $body);
-
-        user_mail($mail, t("Your submitted bugs for %date", array("%date" => date("F d, Y", time()))), $body, implode("\r\n", $header));
+        user_mail($mail, t("Your submitted bugs for %date", array("%date" => date("F d, Y", time()))), $body, implode("\n", $header));
 
         $body = "";
       }
@@ -391,10 +385,7 @@ function project_mail_digest() {
     $header["from"] = "From: $mailto";
     $header["return-path"] = "Return-Path: <$mailto>";
 
-    // Standardize line endings
-    $text = str_replace(array("\r", "\n"), array("", "\r\n"), $text);
-
-    user_mail($mailto, t("Release critical bugs for %date", array("%date" => date("F d, Y", time()))), $text, implode("\r\n", $header));
+    user_mail($mailto, t("Release critical bugs for %date", array("%date" => date("F d, Y", time()))), $text, implode("\n", $header));
   }
 }
 
