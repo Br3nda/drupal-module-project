@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.38 2004/09/28 20:19:19 kjartan Exp $ */
+/* $Id: comment.inc,v 1.39 2004/11/21 08:48:37 dries Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -176,7 +176,7 @@ function project_comment_save($edit) {
       }
     }
 
-    watchdog('special', "project: added comment '$edit->title'", l('view post', "node/$node->nid"));
+    watchdog('special', "project: added comment '$edit->title'", l('view', "node/$node->nid"));
     db_query("INSERT INTO {project_comments} (cid, nid, uid, created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->filepath, $file->filemime, $file->filesize);
 
     // Update node_comment_statistics so the tracker page lists the number of comments

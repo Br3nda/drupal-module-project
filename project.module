@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.174 2004/10/01 00:08:34 uwe Exp $
+// $Id: project.module,v 1.175 2004/11/21 08:48:37 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -88,7 +88,7 @@ function project_settings() {
 }
 
 function project_cron() {
-  if (variable_get('project_release_directory', '') && time() - variable_get('project_release_directory_last', 0) > variable_get('project_release_directory_interval', 24 * 60 * 60)) {
+  if (variable_get('project_release_directory', '') && time() - variable_get('project_release_directory_last', 0) > variable_get('project_release_directory_interval', 6 * 60 * 60)) {
     variable_set('project_release_directory_last', time());
     project_release_cron();
   }
@@ -346,6 +346,7 @@ function project_page_user($arg = 0) {
   print theme('page', $output);
 }
 
+/*
 function project_search($keys) {
   $find = array();
   $result = db_query_range("SELECT DISTINCT(n.nid), n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) WHERE n.status = 1 AND n.body LIKE '%%%s%%' ORDER BY n.changed DESC", $keys, 0, 100);
@@ -354,6 +355,7 @@ function project_search($keys) {
   }
   return array(t('Project issues'), $find);
 }
+*/
 
 // Special project stuff
 function project_types() {

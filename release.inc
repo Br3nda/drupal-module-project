@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.39 2004/09/29 20:28:06 kjartan Exp $ */
+/* $Id: release.inc,v 1.40 2004/11/21 08:48:37 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -329,7 +329,7 @@ function project_release_save($release) {
   $file = check_file('file');
   */
   if (empty($release->rid)) {
-    watchdog('special', "project: added release '$release->version' to $node->title", l('view post', "node/$release->nid"));
+    watchdog('special', "project: added release '$release->version' to $node->title", l('view', "node/$release->nid"));
     $release->rid = db_next_id('project_rid');
     if (!variable_get('project_release_directory', '') && $file->filename) {
       $release->fid = drupal_file_save($file);
@@ -351,7 +351,7 @@ function project_release_save($release) {
     db_query('INSERT INTO {project_releases} ('. implode(', ', $k) .') VALUES('. implode(', ', $s) .')', $v);
   }
   else {
-    watchdog('special', "project: updated release '$node->title $release->version'", l('view post', "node/$release->nid"));
+    watchdog('special', "project: updated release '$node->title $release->version'", l('view', "node/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get('project_release_directory', '') && $file->filename) {
@@ -381,7 +381,7 @@ function project_release_save($release) {
 }
 
 function project_release_delete($rid) {
-  watchdog('special', "project: deleted release '$release->version'", l('view post', "node/$release->nid"));
+  watchdog('special', "project: deleted release '$release->version'", l('view', "node/$release->nid"));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 
