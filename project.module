@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.18 2002/05/31 23:38:05 kjartan Exp $
+// $Id: project.module,v 1.19 2002/06/10 10:43:54 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -50,15 +50,29 @@ function project_admin_list() {
   $result = db_query("SELECT pid,name,versions,developers,areas,mail FROM projects ORDER BY name");
 
   $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"1\">\n";
-  $output .= "<tr><th>project</th><th>versions</th><th>mail</th><th>developers</th><th>areas</th><th>operations</th></tr>\n";
+  $output .= "<tr>";
+  $output .= "<th>project</th>";
+  $output .= "<th>versions</th>";
+  $output .= "<th>mail</th>";
+  $output .= "<th>developers</th>";
+  //$output .= "<th>areas</th>";
+  $output .= "<th>operations</th>";
+  $output .= "</tr>\n";
   while ($project = db_fetch_object($result)) {
     unset($developers);
     foreach (split(",", $project->developers) as $developer) {
       if ($user = user_load(array("uid" => trim($developer)))) {
-        $developers[] = $user->name;
+        $developers[] = format_name($user);
       }
     }
-    $output .= "<tr><td>$project->name</td><td>$project->versions</td><td>$project->mail</td><td>". @implode(",", $developers) ."</td><td>$project->areas</td><td>". la(t("edit project"), array("mod" => "project", "op" => "edit", "pid" => $project->pid)) ."</td></tr>\n";
+    $output .= "<tr>";
+    $output .= "<td>$project->name</td>";
+    $output .= "<td>$project->versions</td>";
+    $output .= "<td>$project->mail</td>";
+    $output .= "<td>". (count($developers) ? implode(", ", $developers) : t("None defined.")) ."</td>";
+    //$output .= "<td>$project->areas</td>";
+    $output .= "<td>". la(t("edit project"), array("mod" => "project", "op" => "edit", "pid" => $project->pid)) ."</td>";
+    $output .= "</tr>\n";
   }
   $output .= "</table>\n";
   print $output;
@@ -101,6 +115,9 @@ function project_admin() {
         if ($user = user_load(array("name" => $developer))) {
           $ids[] = $user->uid;
         }
+        else {
+          print status(t("Unable to find developer: %s", array("%s" => $developer)));
+        }
       }
       if ($edit["pid"]) {
         db_query("UPDATE projects SET name = '%s', versions = '%s', developers = '%s', areas = '%s', mail = '%s' WHERE pid = '%d'", $edit["name"], $edit["versions"], implode(",", $ids), $edit["areas"], $edit["mail"], $edit["pid"]);
@@ -115,9 +132,9 @@ function project_admin() {
   }
 }
 
-function project_list_header($field, $text, $pid, $type, $order) {
+function project_list_header($text, $pid, $type, $order) {
   global $op;
-  return lm(t($text), array("mod" => "project", "pid" => $pid, "op" => $op, "type" => $type, "field" => $field, "order" => ($order == "asc" ? "desc" : "asc")));
+  return lm(t($text), array("mod" => "project", "pid" => $pid, "op" => $op, "type" => $type, "field" => $text, "order" => ($order == "asc" ? "desc" : "asc")));
 }
 
 function project_sort_submitted($a, $b) {
@@ -132,15 +149,15 @@ function project_sort_assigned($a, $b) {
 
 function project_list($query, $pid = 0) {
   global $theme, $type, $order, $field;
-  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($field ? $field : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
+  $headers = array("ID" => "n.nid", "Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Version" => "p.version", "Submitted by" => "n.uid", "Assigned" => "p.assigned");
+  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
 
   if (db_num_rows($result)) {
     $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
 
-    $headers = array("n.nid" => "ID", "n.title" => "Title", "p.pstatus" => "Status", "n.changed" => "Last updated", "p.version" => "Version", "n.uid" => "Submitted by", "p.assigned" => "Assigned");
     $output .= "<tr style=\"text-align: left\">";
-    foreach ($headers as $_field => $text) {
-      $output .= "<th>". project_list_header($_field, $text, $pid, $type, $order) ."</th>";
+    foreach ($headers as $text => $i) {
+      $output .= "<th>". project_list_header($text, $pid, $type, $order) ."</th>";
     }
     $output .= "</tr>";
 
@@ -164,7 +181,14 @@ function project_list($query, $pid = 0) {
     $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
 
     foreach ($nodes as $node) {
-      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\"><td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td>". (user_access("post content") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "") ."</tr>\n";
+      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
+      $output .= "<td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td>";
+      $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
+      $output .= "<td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td>";
+      $output .= "<td>$node->version</td>";
+      $output .= "<td>". format_name($node) ."</td>";
+      $output .= "<td>". $node->assigned_formatted ."</td>". (user_access("post content") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "");
+      $output .= "</tr>\n";
     }
 
     $output .= "</table><br />\n";
@@ -180,7 +204,6 @@ function project_list($query, $pid = 0) {
 
   return $output;
 }
-
 
 function project_page() {
   global $op, $theme;
@@ -225,7 +248,7 @@ function project_page() {
       }
 
       $filter = form_select("Project", "pid", $pid, $projects);
-      $filter .= form_select("Type", "type", $type, array("All", "bug" => "Bug", "feature" => "Feature"));
+      $filter .= form_select("Type", "type", $type, array_merge(array(0 => t("All")), project_type()));
       $filter .= form_select("Status", "status", 1, array_merge(array("All"), project_pstatus()));
       $filter .= form_textfield("Assigned to", "assigned", "", 30, 128);
       $filter .= form_textfield("Text", "text", "", 30, 128);
@@ -263,10 +286,10 @@ function project_page() {
       global $id, $user;
       if (user_access("post content")) {
         $node = node_load(array("nid" => $id));
-  
+
         $theme->header("Updating:". $node->title);
         node_view($node, 0);
-  
+
         // Clean up for follow up
         unset($node->body);
         unset($node->teaser);
@@ -311,7 +334,7 @@ function project_page() {
       $theme->header();
       while ($project = db_fetch_object($result)) {
         $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
-        foreach (array("bug" => "Bugs", "feature" => "Features") as $type => $name) {
+        foreach (project_type(2) as $type => $name) {
           $active = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE (pstatus = '1' OR pstatus = '2') AND ptype = '$type' AND pid = '$project->pid'"));
           $total = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE ptype = '$type' AND pid = '$project->pid'"));
           if (user_access("access content")) {
@@ -366,6 +389,15 @@ function uid_to_name($uids) {
     }
   }
   return $names;
+}
+
+function project_type($count = 1) {
+  if ($count == 1) {
+		return array("bug" => t("Bug"), "feature" => t("Feature"));
+  }
+  else {
+		return array("bug" => t("Bugs"), "feature" => t("Features"));
+  }
 }
 
 function project_pstatus($pstatus = 0) {
@@ -427,11 +459,10 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) ."\" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
+  user_mail($project->mail ? $project->mail : $form, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) ."\" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
 }
 
 // Node support functions
-/* Using Drupal nodes, but with too many extensions to use the standard methods
 
 function project_node($field) {
   global $user;
@@ -440,7 +471,7 @@ function project_node($field) {
   $info["description"] = t("Add information related to projects. This can be bug reports, feature requests, patches, etc.");
 
   return $info[$field];
-}*/
+}
 
 function project_save($op, &$node) {
 
@@ -506,34 +537,59 @@ function project_delete(&$node) {
 function project_form(&$node, &$help, &$error, &$form) {
   global $user;
 
-  $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
+  // TODO: implement file uploads correctly
+  // $form["options"] = 'enctype="multipart/form-data"';
+
+  // Remove teaser, its not really used so let it be auto generated.
+  unset($node->teaser);
+  
+  // Validate data.
+  if ($node->priority) {
+    if (!$node->pid) {
+      $error["pid"] = "<div style=\"color: red;\">". t("Project not specified.") ."</div>";
+    }
+    if (!$node->type) {
+      $error["type"] = "<div style=\"color: red;\">". t("Type not specified.") ."</div>";
+    }
+    if (!$node->area) {
+      $error["area"] = "<div style=\"color: red;\">". t("Area not specified.") ."</div>";
+    }
+    if (!$node->version) {
+      $error["version"] = "<div style=\"color: red;\">". t("Version not specified.") ."</div>";
+    }
+  }
+
+  // Initialize project variables.
+  $projects = array(0 => "<none>");
+  $result = db_query("SELECT * FROM projects ORDER BY name");
+  while ($p = db_fetch_object($result)) {
+    $projects[$p->pid] = $p->name;
+    if ($p->pid == $node->pid) {
+      $project = $p;
+    }
+  }
+
+  // Deconstruct project details if available.
   if ($project->pid) {
-    // TODO: implement file uploads correctly
-    // $form["options"] = 'enctype="multipart/form-data"';
+    $developers = array(0 => t("Unassigned")) + uid_to_name($project->developers);
+    $areas = array(0 => t("Not specified")) + project_array($project->areas);
+    $versions = array(0 => t("Not specified")) + project_array($project->versions);
+  }
 
-    unset($node->teaser);
-    $developers = uid_to_name($project->developers);
-    $developers[0] = "Unassigned";
-
-    $output .= form_hidden("pid", $project->pid);
-    $output .= form_hidden("ptype", $node->ptype);
-    if ($node->nid) {
-      $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
-    }
-    else {
-      $output .= form_hidden("pstatus", 1);
-    }
-    $output .= form_select(t("Area"), "area", $node->area, project_array($project->areas));
-    $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
-    $output .= form_select(t("Version"), "version", $node->version, project_array($project->versions));
-    $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
-    $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
-    //$output .= form_file(t("File upload"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
-    //debug_r($node);
+  $output = form_select(t("Project"), "pid", $node->pid, $projects, $error["pid"]);
+  $output .= form_select(t("Type"), "ptype", $node->ptype, project_type(), $error["ptype"]);
+  if ($node->nid) {
+    $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
   }
   else {
-    $error["title"] = t("Error. Try again.");
+    $output .= form_hidden("pstatus", 1);
   }
+  $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
+  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
+  $output .= form_select(t("Version"), "version", $node->version, $versions, $error["version"]);
+  $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
+  $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
+  //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
 
   return $output;
 }
@@ -541,7 +597,7 @@ function project_form(&$node, &$help, &$error, &$form) {
 function project_diff(&$a, &$b) {
   foreach ($b as $key => $value) {
     if ($a->$key !== $value) {
-      $result->$key = $value;
+      $result->$key = array($a->$key, $b->$key);
     }
   }
   return $result;
@@ -550,7 +606,16 @@ function project_diff(&$a, &$b) {
 function project_view($node, $main = 0) {
   global $theme;
 
-  $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
+  // Initialize project variables.
+  $projects = array(0 => "<none>");
+  $result = db_query("SELECT * FROM projects ORDER BY name");
+  while ($p = db_fetch_object($result)) {
+    $projects[$p->pid] = $p->name;
+    if ($p->pid == $node->pid) {
+      $project = $p;
+    }
+  }
+  $types = project_type();
 
   if ($main) {
     $node->teaser = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ." <b>". t("Area") .":</b> $node->area <b>". t("Priority") .":</b> $node->priority <b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />". (count($node->revisions) ? $node->revisions[0][node]->teaser : $node->teaser);
@@ -569,7 +634,13 @@ function project_view($node, $main = 0) {
       for($i = 1; $i < count($revisions); $i++) {
         $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
         $body .= '<tr valign="top">';
-        $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i") . (isset($diff->pstatus) ? "<br / >". t("Status") .": ". t(project_pstatus($diff->pstatus)) : "") . (isset($diff->assigned) ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted : "") ."</td>";
+        $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
+        $body .= format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i");
+        $body .= (count($diff->pid) ? "<br / >". t("Project") .": ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
+        $body .= (count($diff->ptype) ? "<br / >". t("Type") .": ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
+        $body .= (count($diff->pstatus) ? "<br / >". t("Status") .": ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
+        $body .= (count($diff->assigned) ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted[0] ." -> ". $diff->assigned_formatted[1] : "");
+        $body .= "</td>";
         $body .= "<td>". trim($revisions[$i]["node"]->body) ."</td>";
         $body .= '</tr>';
         $body .= '<tr><td><br /></td></tr>';

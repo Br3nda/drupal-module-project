@@ -1,3 +1,14 @@
+10. June 2002
+-------------
+project.module
+- change the admin pages around a bit.
+- warnings when you add developers that can't be found.
+- changed sort headings to be more failsafe.
+- modified form so entries can be moved between projects and type can be
+  changed (bug <-> feature).
+- half a dozen other mini tweaks just to make things easier to modify in the
+  future.
+
 02. May 2002
 ------------
 project.module
