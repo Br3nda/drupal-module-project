@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.17 2003/10/05 20:40:51 kjartan Exp $
+// $Id: mail.inc,v 1.18 2003/10/06 06:34:49 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -301,11 +301,11 @@ function project_mail_notify($node) {
   project_mail_output($node->title, 0);
   $node->title = t("[$node->category]") ." $node->title";
   while ($recipient = db_fetch_object($result)) {
-    user_mail($recipient->mail, $subject, $body, implode("\n", $header));
+    user_mail($recipient->mail, $node->title, $body, implode("\n", $header));
   }
 
   if ($project->mail_copy && (!count($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
-    user_mail($project->mail_copy, $subject, $body, implode("\n", $header));
+    user_mail($project->mail_copy, $node->title, $body, implode("\n", $header));
   }
 }
 
