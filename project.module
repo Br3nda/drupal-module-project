@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.34 2002/09/27 19:36:56 kjartan Exp $
+// $Id: project.module,v 1.35 2002/10/06 15:52:55 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -47,7 +47,7 @@ function project_perm() {
   return array("access projects", "administer projects");
 }
 
-function project_mailhandler($node, $stream, $msg_number, $mailbox) {
+function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
   /*
   ** we usually don't want our titles overwritten by the mailhandler,
   ** since we prefix our email subjects with "bug #112 another bug" for example.
@@ -60,7 +60,6 @@ function project_mailhandler($node, $stream, $msg_number, $mailbox) {
       $node->title = $current->title;
     }
   }
-  return $node;
 }
 
 function project_admin_form($edit = 0) {
@@ -537,7 +536,6 @@ function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
   
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
-
   if (!$project->mail) {
     return;
   }
@@ -584,6 +582,7 @@ function project_mail(&$node, $new = 0) {
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
   user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  
 }
 
 // Node support functions
@@ -644,12 +643,16 @@ function project_load(&$node) {
 
 function project_insert(&$node) {
   db_query("INSERT INTO project (nid, pid, ptype, pstatus, area, priority, version, assigned, file) VALUES ('$node->nid', '$node->pid', '$node->ptype', '$node->pstatus', '$node->area', '$node->priority', '$node->version', '$node->assigned', '". base64_encode($node->file) ."')");
-  project_mail($node, 1);
+  project_mail($node, 1);  
 }
 
 function project_update(&$node) {
   db_query("UPDATE project SET nid = '$node->nid', pid = '$node->pid', ptype = '$node->ptype', pstatus = '$node->pstatus', area = '$node->area', priority = '$node->priority', version = '$node->version', assigned = '$node->assigned', file = '". base64_encode($node->file) ."' WHERE nid = '$node->nid'");
-  project_mail($node);
+  
+  // only send mail if author wrote a comment. less spam.
+  if ($node->body) {  
+    project_mail($node);
+  }
 }
 
 function project_delete(&$node) {
@@ -792,14 +795,17 @@ function project_view($node, $main = 0) {
       for($i = 1; $i < count($revisions); $i++) {
         $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
         $body .= '<tr valign="top">';
-        $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
+        $body .= '<td><a name="'. $i .'"></a><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
         $body .= format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i");
         $body .= (count($diff->pid) ? "<br / ><b>". t("Project") ."</b>: ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
         $body .= (count($diff->ptype) ? "<br / ><b>". t("Type") ."</b>: ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
         $body .= (count($diff->pstatus) ? "<br / ><b>". t("Status") ."</b>: ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
+        $body .= (count($diff->priority) ? "<br / ><b>". t("Priority") ."</b>: ". t($diff->priority[0]) ." -> ". t($diff->priority[1]) : "");
         $body .= (count($diff->assigned) ? "<br / ><b>". t("Assigned") ."</b>: ". $diff->assigned_formatted[0] ." -> ". $diff->assigned_formatted[1] : "");
         $body .= (count($diff->area) ? "<br / ><b>". t("Area") ."</b>: ". $diff->area[0] ." -> ". $diff->area[1] : "");
         $body .= (count($diff->version) ? "<br / ><b>". t("Version") ."</b>: ". $diff->version[0] ." -> ". $diff->version[1] : "");
+        // TODO: next line not working right. please fix it.        
+        $body .= (count($diff->title) ? "<br / ><b>". t("Title") ."</b>: ". $projects[$diff->title[0]] ." -> ". $projects[$diff->title[1]] : "");
         $body .= "</td>";
         $body .= "<td>". trim($revisions[$i]["node"]->body) ."</td>";
         $body .= '</tr>';
