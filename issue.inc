@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.71 2004/09/13 18:34:51 kjartan Exp $ */
+/* $Id: issue.inc,v 1.72 2004/09/14 13:06:57 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -322,6 +322,8 @@ function project_issue_content($node, $teaser = false) {
 }
 
 function project_issue_view(&$node, $teaser = false, $page = false) {
+  $node = project_issue_content($node, $teaser);
+
   if (!$teaser) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
@@ -363,8 +365,6 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
 
     $node->body .= project_comment_view($node);
   }
-
-  $node = project_issue_content($node, $teaser);
 }
 
 function project_issue_load($node) {
@@ -563,8 +563,8 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
     foreach ($fields as $field) {
       if (is_array($query->$field)) {
         $option = array();
-  
-  
+
+
         foreach ($query->$field as $value) {
           $option[] = ${$field}[$value];
         }
@@ -572,7 +572,7 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
         ${$field}[$query->$field] = implode(',', $option);
       }
     }
-    
+
     // Make quick search form:
     $rows = array(array(
       form_select(t('Project'), 'projects', $query->projects, $projects),
