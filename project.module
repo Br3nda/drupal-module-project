@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.24 2002/06/12 16:45:59 kjartan Exp $
+// $Id: project.module,v 1.25 2002/06/14 10:58:04 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -163,6 +163,21 @@ function project_sort_assigned($a, $b) {
 function project_list($query, $pid = 0) {
   global $theme, $type, $order, $field;
   $headers = array("ID" => "n.nid", "Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Submitted by" => "n.uid", "Assigned" => "p.assigned");
+  if ($pid) {
+    $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
+    if (!$project->areas) {
+      unset($headers["Area"]);
+    }
+    if (!$project->areas) {
+      unset($headers["Area"]);
+    }
+    if (!$project->versions) {
+      unset($headers["Version"]);
+    }
+    if (!$project->developers) {
+      unset($headers["Assigned"]);
+    }
+  }
   $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
 
   if (db_num_rows($result)) {
@@ -199,10 +214,17 @@ function project_list($query, $pid = 0) {
       $output .= "<td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
       $output .= "<td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td>";
-      $output .= "<td>$node->area</td>";
-      $output .= "<td>$node->version</td>";
+      if ($project->areas) {
+        $output .= "<td>$node->area</td>";
+      }
+      if ($project->versions) {
+        $output .= "<td>$node->version</td>";
+      }
       $output .= "<td>". format_name($node) ."</td>";
-      $output .= "<td>". $node->assigned_formatted ."</td>". (user_access("post content") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "");
+      if ($project->developers) {
+        $output .= "<td>". $node->assigned_formatted ."</td>";
+      }
+      $output .= (user_access("post content") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "");
       $output .= "</tr>\n";
     }
 
@@ -241,8 +263,12 @@ function project_page_filter($edit) {
 
   $filter .= "<td>". form_select(t("Type"), "type", $edit["type"], array_merge(array(0 => t("All")), project_type())) ."</td>";
   if ($edit["pid"]) {
-    $filter .= "<td>". form_select(t("Area"), "area", $edit["area"], array(t("All")) + project_array($project->areas)) ."</td>";
-    $filter .= "<td>". form_select(t("Assigned to"), "assigned", $edit["assigned"], array(-1 => t("All"), 0 => t("Unassigned")) + uid_to_name($project->developers)) ."</td>";
+    if ($project->areas) {
+      $filter .= "<td>". form_select(t("Area"), "area", $edit["area"], array(t("All")) + project_array($project->areas)) ."</td>";
+    }
+    if ($project->developers) {
+      $filter .= "<td>". form_select(t("Assigned to"), "assigned", $edit["assigned"], array(-1 => t("All"), 0 => t("Unassigned")) + uid_to_name($project->developers)) ."</td>";
+    }
   }
   else {
     $filter .= "<td>". form_textfield(t("Assigned to"), "assigned", $edit["assigned"], 30, 128) ."</td>";
@@ -367,7 +393,8 @@ function project_page() {
       global $pid, $type, $user;
       $theme->header();
       if (user_access("post content")) {
-        $theme->box(t("Project") ." : ". t($type), node_form(array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1)));
+        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1);
+        $theme->box(t("Project") ." : ". t($type), node_form($node));
       }
       else {
         $theme->box(t("Access denied"), message_access());
@@ -447,7 +474,7 @@ function uid_to_name($uids) {
       $names[$user->uid] = $user->name;
     }
   }
-  return $names;
+  return $names ? $names : array();
 }
 
 function project_type($count = 1) {
@@ -473,11 +500,15 @@ function project_array($values) {
     $return[$value] = $value;
   }
 
-  return $return;
+  return $return ? $return : array();
 }
 
 function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
+  
+  if (!$project->mail) {
+    return;
+  }
 
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   $from = variable_get("site_mail", ini_get("sendmail_from"));
@@ -497,7 +528,7 @@ function project_mail(&$node, $new = 0) {
     $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
-    $mid = "Message-ID: <$node->nid@$HTTP_HOST>";
+    $mid = "Message-ID: <$node->nid@". str_replace("www.", "", request_uri()) .">";
   }
   else {
     $node->revisions = unserialize($node->revisions);
@@ -508,8 +539,8 @@ function project_mail(&$node, $new = 0) {
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
     }
-    $mid = "Message-ID: <$node->nid.". count($node->revisions) ."@$HTTP_HOST>\n";
-    $mid .= "In-Reply-To: <$node->nid@$HTTP_HOST>";
+    $mid = "Message-ID: <$node->nid.". count($node->revisions) ."@". str_replace("www.", "", request_uri()) .">\n";
+    $mid .= "In-Reply-To: <$node->nid@". str_replace("www.", "", request_uri()) .">";
   }
 
   $body = wordwrap(strip_tags($body), 72);
@@ -518,11 +549,10 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail ? $project->mail : $form, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) ."\" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) ."\" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
 }
 
 // Node support functions
-
 function project_node($field) {
   global $user;
 
@@ -592,6 +622,30 @@ function project_delete(&$node) {
   db_query("DELETE FROM project WHERE nid = '$node->nid'");
 }
 
+function project_validate(&$node, &$error) {
+  if ($node->pid) {
+    $result = db_query("SELECT * FROM projects WHERE pid = '%d'", $node->pid);
+    $project = db_fetch_object($result);
+  }
+
+  if ($node->priority) {
+    if (!$node->pid) {
+      $error["pid"] = "<div style=\"color: red;\">". t("Project not specified.") ."</div>";
+    }
+    if (!$node->type) {
+      $error["type"] = "<div style=\"color: red;\">". t("Type not specified.") ."</div>";
+    }
+    if (!$node->area && $project->areas) {
+      $error["area"] = "<div style=\"color: red;\">". t("Area not specified.") ."</div>";
+    }
+    if (!$node->version && $project->version) {
+      $error["version"] = "<div style=\"color: red;\">". t("Version not specified.") ."</div>";
+    }
+  }
+   
+  return $node;
+}
+
 // Node output functions
 function project_form(&$node, &$help, &$error, &$form) {
   global $user;
@@ -602,22 +656,6 @@ function project_form(&$node, &$help, &$error, &$form) {
   // Remove teaser, its not really used so let it be auto generated.
   unset($node->teaser);
   
-  // Validate data.
-  if ($node->priority) {
-    if (!$node->pid) {
-      $error["pid"] = "<div style=\"color: red;\">". t("Project not specified.") ."</div>";
-    }
-    if (!$node->type) {
-      $error["type"] = "<div style=\"color: red;\">". t("Type not specified.") ."</div>";
-    }
-    if (!$node->area) {
-      $error["area"] = "<div style=\"color: red;\">". t("Area not specified.") ."</div>";
-    }
-    if (!$node->version) {
-      $error["version"] = "<div style=\"color: red;\">". t("Version not specified.") ."</div>";
-    }
-  }
-
   // Initialize project variables.
   $result = db_query("SELECT * FROM projects ORDER BY name");
   if (db_num_rows($result) != 1) {
@@ -636,9 +674,15 @@ function project_form(&$node, &$help, &$error, &$form) {
 
   // Deconstruct project details if available.
   if ($project->pid) {
-    $developers = array(0 => t("Unassigned")) + uid_to_name($project->developers);
-    $areas = array(0 => t("Not specified")) + project_array($project->areas);
-    $versions = array(0 => t("Not specified")) + project_array($project->versions);
+    if ($project->developers) {
+      $developers = array(0 => t("Unassigned")) + uid_to_name($project->developers);
+    }
+    if ($project->areas) {
+      $areas = array(0 => t("Not specified")) + project_array($project->areas);
+    }
+    if ($project->versions) {
+      $versions = array(0 => t("Not specified")) + project_array($project->versions);
+    }
   }
 
   // Construct form.
@@ -658,10 +702,16 @@ function project_form(&$node, &$help, &$error, &$form) {
   if (function_exists("taxonomy_node_form")) {
     $output .= implode("", taxonomy_node_form("project", $node));
   }
-  $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
+  if ($areas) {
+    $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
+  }
   $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
-  $output .= form_select(t("Version"), "version", $node->version ? $node->version : $project->version_default, $versions, $error["version"]);
-  $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
+  if ($versions) {
+    $output .= form_select(t("Version"), "version", $node->version ? $node->version : $project->version_default, $versions, $error["version"]);
+  }
+  if ($developers) {
+    $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
+  }
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
   //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
 
@@ -702,18 +752,20 @@ function project_view($node, $main = 0) {
       $node = $revisions[0]["node"];
     }
     $body .= "<b>". format_date($node->changed, "custom", "Y-m-d H:i") ." : ". format_name($node) ."</b>";
-    $body .= "<blockquote>". $node->body ."</blockquote><hr />";
-    if (count($revisions)) {
-      $body .= '<table border="0" cellpadding="0" cellspacing="2">';
+    $body .= "<blockquote>". $node->body ."</blockquote>";
+    if (count($revisions) > 1) {
+      $body .= '<hr /><table border="0" cellpadding="0" cellspacing="2">';
       for($i = 1; $i < count($revisions); $i++) {
         $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
         $body .= '<tr valign="top">';
         $body .= '<td><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
         $body .= format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i");
-        $body .= (count($diff->pid) ? "<br / >". t("Project") .": ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
-        $body .= (count($diff->ptype) ? "<br / >". t("Type") .": ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
-        $body .= (count($diff->pstatus) ? "<br / >". t("Status") .": ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
-        $body .= (count($diff->assigned) ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted[0] ." -> ". $diff->assigned_formatted[1] : "");
+        $body .= (count($diff->pid) ? "<br / ><b>". t("Project") ."</b>: ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
+        $body .= (count($diff->ptype) ? "<br / ><b>". t("Type") ."</b>: ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
+        $body .= (count($diff->pstatus) ? "<br / ><b>". t("Status") ."</b>: ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
+        $body .= (count($diff->assigned) ? "<br / ><b>". t("Assigned") ."</b>: ". $diff->assigned_formatted[0] ." -> ". $diff->assigned_formatted[1] : "");
+        $body .= (count($diff->area) ? "<br / ><b>". t("Area") ."</b>: ". $diff->area[0] ." -> ". $diff->area[1] : "");
+        $body .= (count($diff->version) ? "<br / ><b>". t("Version") ."</b>: ". $diff->version[0] ." -> ". $diff->version[1] : "");
         $body .= "</td>";
         $body .= "<td>". trim($revisions[$i]["node"]->body) ."</td>";
         $body .= '</tr>';

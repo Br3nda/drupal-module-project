@@ -1,3 +1,12 @@
+14. June 2002
+-------------
+project.module
+- fixed it so version, area and developer fields are hidden if none are
+  defined. Might have missed some places so let me know.
+- added more diff's to project_view. It now shows when the area, version,
+  developer, project, type (bug/feature) have been changed.
+- fixed some filtering options defaulting to incorrect values.
+
 12. June 2002
 -------------
 project.module
