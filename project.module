@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.46 2003/02/17 21:33:53 weitzman Exp $
+// $Id: project.module,v 1.47 2003/02/19 19:14:16 ax Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -9,7 +9,7 @@ function project_system($field) {
 
 function project_link($type, $node = 0, $main = 0) {
   if ($type == "node" && $node->type == "project") {
-    if (user_access("post bug reports")) {
+    if (user_access("maintain bug reports")) {
       $links[] = l(t("update $node->ptype"), "project/update/$node->nid");
     }
     $links[] = t("project") .": ". l($node->project_name, "project/pid/$node->pid");
@@ -26,7 +26,7 @@ function project_link($type, $node = 0, $main = 0) {
     }
   }
 
-  if ($type == "menu.create" && user_access("post bug reports")) {
+  if ($type == "menu.create" && user_access("maintain bug reports")) {
     $links[] = l(t("create bug report"), "project/add/bug");
     $links[] = l(t("create feature request"), "project/add/feature");
   }
@@ -47,7 +47,7 @@ function project_settings () {
 }  
 
 function project_perm() {
-  return array("access projects", "post bug reports", "administer projects");
+  return array("access projects", "administer projects", "maintain bug reports");
 }
 
 function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
@@ -259,22 +259,18 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       if ($project->developers) {
         $output .= "<td>". $node->assigned_formatted ."</td>";
       }
-      $output .= (user_access("post bug reports") ? "<td>". l(t("update $node->ptype"), "project/update/$node->nid") ."</td>" : "");
+      $output .= (user_access("maintain bug reports") ? "<td>". l(t("update $node->ptype"), "project/update/$node->nid") ."</td>" : "");
       $output .= "</tr>\n";
     }
 
     $output .= "</table><br />\n";
-
-    if (user_access("post bug reports") && $type && $pid) {
-      $links[] = l(t("submit new $type"), "project/add/$pid/$type");
-    }
-    if (user_access("search content")) {
-      $links[] = l(t("search"), "project/search/$pid/$type");
-    }
-    $output .= theme("links", $links);
   }
   else {
-    $output .= t("No matches found.");
+    $output .= "<p>". t("No matches found.") ."</p>";
+  }
+  if (user_access("maintain bug reports") && $type && $pid) {
+    $links[] = l(t("submit new $type"), "project/add/$pid/$type");
+    $output .= theme("links", $links);
   }
 
   return $output;
@@ -419,7 +415,7 @@ function project_page() {
       break;
     case "update":
       global $user;
-      if (user_access("post bug reports")) {
+      if (user_access("maintain bug reports")) {
         $node = node_load(array("nid" => arg(2)));
 
         theme("header", "Updating:". $node->title);
@@ -442,7 +438,7 @@ function project_page() {
     case "add":
       global $user;
       theme("header");
-      if (user_access("post bug reports")) {
+      if (user_access("maintain bug reports")) {
         $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => arg(2), "ptype" => arg(3), "revision" => 1);
         theme("box", t("Project") ." : ". t(arg(3)), node_form($node));
       }
@@ -478,7 +474,7 @@ function project_page() {
           else {
             $output .= "<tr><td><b>". t($name) ."</b></td><td>($total->total)</td>";
           }
-          if (user_access("post bug reports")) {
+          if (user_access("maintain bug reports")) {
             $output .= "<td>". l(t("submit"), "project/add/$project->pid/$type") ."</td>";
           }
           if (user_access("search content")) {
@@ -658,7 +654,7 @@ function project_access($op, $node) {
   }
 
   if  ($op == "create") {
-    return 1;
+    return user_access("maintain bug reports") && $user->uid;
   }
 
   if ($op == "decline") {
@@ -666,7 +662,7 @@ function project_access($op, $node) {
   }
 
   if ($op == "update") {
-    return 1;
+    return user_access("maintain bug reports") && $user->uid;
   }
 }
 
