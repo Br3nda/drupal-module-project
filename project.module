@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.77 2003/06/18 15:08:52 almaw Exp $
+// $Id: project.module,v 1.78 2003/06/18 15:38:15 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -93,6 +93,7 @@ function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
 
   if (strstr($node->title, "project/update")) {
     $node->type = "project";
+    $node->project_wrap = -1;
     $node->nid = substr($node->title, strrpos($node->title, "/") + 1);
     $current = node_load(array ("nid" => $node->nid));
     $node = array2object(array_merge($current, $node)); //overwrite the current node with the params which were sent in this email
@@ -566,7 +567,7 @@ function project_block($op = "list", $delta = 0) {
 
     $block["subject"] = t("Project information");
     $block["content"] = $output;
-    $block["link"] = "module.php?mod=project";
+    // $block["link"] = "module.php?mod=project";
     return $block;
   }
 }
@@ -646,7 +647,8 @@ function project_mail(&$node, $new = 0) {
   $from = $project->mail;
   $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));  
   if ($new) {
-    $body .= format_date(time(), "small") ." : ". ($node->name ? $node->name : $user->name) ."\n";
+    $author = $node->name ? $node->name : $user->name;
+    $body .= format_date(time(), "small") ." : $author\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
     $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
@@ -656,6 +658,9 @@ function project_mail(&$node, $new = 0) {
     $node->revisions[][node] = $node;
     $node->revisions = array_reverse($node->revisions);
     foreach ($node->revisions as $revision) {
+      if (!$author) {
+        $author = implode("", uid_to_name($revision["node"]->uid));
+      }
       $body .= format_date($revision["node"]->changed, "small") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : "") ."\n";
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
@@ -673,14 +678,17 @@ function project_mail(&$node, $new = 0) {
   */
   $links = project_parse_links($body);
   
-  $body = wordwrap(strip_tags($body), 72);
-  $body .= "Update-by-www: ". url("project/update/$node->nid#Content") ."\n";
+  $body = strip_tags($body);
+  if ($node->wrap <> -1) {
+    $body = wordwrap($body, 72);
+  }
+  $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
   $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
   $body .= "Update-by-mail help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : $user->name). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 }
 
@@ -831,7 +839,7 @@ function project_form(&$node, &$help, &$error, &$form) {
   if ($developers) {
     $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
   }
-  $output .= "<a name=\"Content\"></a>";
+  $output .= "<a name=\"content\"></a>";
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
   
   //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
