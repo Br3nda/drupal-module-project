@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.148 2004/02/27 12:41:33 kjartan Exp $
+// $Id: project.module,v 1.149 2004/02/27 12:54:16 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -17,7 +17,7 @@ if (file_exists('modules/project/project.inc')) {
 
 function project_help($section) {
   switch ($section) {
-    case 'admin/system/modules':
+    case 'admin/system/modules#description':
       return t('Enables teams to track outstanding items which need resolution.');
     case 'admin/help#project':
       $help = '<h3>Mailhandler support</h3>'.
