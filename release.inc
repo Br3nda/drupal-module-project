@@ -1,12 +1,13 @@
 <?php
-// $Id: release.inc,v 1.11 2003/10/04 22:46:35 kjartan Exp $
+// $Id: release.inc,v 1.12 2003/11/02 01:42:08 kjartan Exp $
 
 function project_release_cron() {
+  // TODO: should be able to optimize this to use less file system calls.
   if ($dir = variable_get("project_release_directory", "")) {
     $result = db_query("SELECT nid, 'project_project' AS type, release_directory FROM {project_projects} WHERE release_directory <> ''");
     while ($project = db_fetch_object($result)) {
       if ($handle = opendir($dir)) {
-        $releases = project_release_load($project);
+        $releases = project_release_load($project, 1);
         while ($version = readdir($handle)) {
           if (is_dir("$dir/$version") && !in_array($version, array(".", "..", "CVS"))) {
             if (file_exists(getcwd() ."/$dir/$version/$project->release_directory-$version.tar.gz")) {
@@ -28,7 +29,7 @@ function project_release_cron() {
         }
       }
       else {
-        watchdog("error", "project releases: Failed to open $dir");
+        watchdog("error", "project: releases cron failed to open $dir");
       }
     }
   }
@@ -62,8 +63,15 @@ function project_release_page($node) {
       }
       break;
     case "delete":
-      theme("header", "TODO");
-      theme("box", "TODO", "This feature hasn't been implemented yet due to security considerations.");
+      if (node_access("update", $node)) {
+        if (($release = project_release_load(arg(4))) && $release->nid == $node->nid) {
+          project_release_delete(arg(4));
+          drupal_goto(url("node/view/$node->nid"));
+          break;
+        }
+      }
+      theme("header");
+      theme("box", "", message_access());
       theme("footer");
       break;
     case t("Preview"):
@@ -99,6 +107,7 @@ function project_release_page($node) {
             unset($edit->version);
           }
 
+          $edit->status = 1;
           project_release_save($edit);
           drupal_goto(url("node/view/$node->nid"));
         }
@@ -137,7 +146,7 @@ function project_release_overview() {
       $rows = array();
     }
     $releases = array();
-    $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND path <> '' ORDER BY created DESC", $node->nid);
+    $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' ORDER BY created DESC", $node->nid);
     if (db_num_rows($result2)) {
       while ($release = db_fetch_object($result2)) {
         $releases[] = l($release->version, $release->path, array("class" => count($releases) ? "project-old" : "project-recent"));
@@ -173,20 +182,15 @@ function project_release_form(&$release, &$error, &$param) {
   $param["options"] = array("enctype" => "multipart/form-data");
   */
 
+  $output = form_textfield(t("Version"), "version", $release->version, 40, 255, theme_error($error["version"]));
+  $output .= form_textarea(t("Changes"), "changes", $release->changes, 40, 10, theme_error($error["changes"]));
   if (!variable_get("project_release_directory", "")) {
-    $output = form_textfield(t("Version"), "version", $release->version, 40, 255, $error["version"]);
-    $output .= form_textarea(t("Changes"), "changes", $release->changes, 40, 10, $error["changes"]);
-    /* TODO: pending final fileapi
-    $output .= form_file(t("File"), "file", 40, ($release->fid) ? t("A file already exists, if you upload another file the current file will be replaced.") : "" . $error["file"], $release->fid);
-    */
-    if ($release->rid) {
-      $output .= form_hidden("rid", $release->rid);
-    }
+  /* TODO: pending final fileapi
+  $output .= form_file(t("File"), "file", 40, ($release->fid) ? t("A file already exists, if you upload another file the current file will be replaced.") : "" . $error["file"], $release->fid);
+  */
   }
-  else {
-    $output = form_item(t("Version"), $release->version);
-    $output .= form_hidden("version", $release->version);
-    $output .= form_textarea(t("Changes"), "changes", $release->changes, 60, 20, $error["changes"]);
+  if ($release->rid) {
+    $output .= form_hidden("rid", $release->rid);
   }
 
   $output .= form_submit(t("Preview"));
@@ -205,11 +209,24 @@ function project_release_validate(&$edit) {
   }
 
   if (empty($edit->version)) {
-    $error["version"] = theme_error("Required.");
+    $error["version"] = t("Required.");
+  }
+  else {
+    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d AND version = '%s'", $edit->nid, trim($edit->version));
+    if ($release = db_fetch_object($result)) {
+      if ($edit->rid != $release->rid) {
+        if ($release->status) {
+          $error["version"] = t("This version already exists for this project.");
+        }
+        else {
+          $edit->rid = $release->rid;
+        }
+      }
+    }
   }
 
   if (empty($edit->changes)) {
-    $error["changes"] = theme_error("Required.");
+    $error["changes"] = t("Required.");
   }
 
   /* TODO: pending final fileapi
@@ -228,6 +245,7 @@ function project_release_validate(&$edit) {
 
 function project_release_view($project, $main = 0) {
   if ($project->changes) {
+    $release = $project;
     $project = node_load(array("nid" => $project->nid));
     $links = array();
     if (node_access($project, "update")) {
@@ -241,13 +259,13 @@ function project_release_view($project, $main = 0) {
     $breadcrumb[] = l($project->title, "node/view/$project->nid");
 
     theme("breadcrumb", $breadcrumb);
-    theme("box", "$project->title $project->version", check_output($project->changes));
+    theme("box", "$project->title $release->version", check_output($release->changes));
     if ($links) {
       print "<p>". theme("links", $links) ."</p>";
     }
   }
   else {
-    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d ORDER BY created DESC", $project->nid);
+    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC", $project->nid);
     if (db_num_rows($result)) {
       $header = array(t("version"), t("released"), t("changes"));
       if (node_access($project, "update") || node_access($project, "delete")) {
@@ -271,7 +289,7 @@ function project_release_view($project, $main = 0) {
         if (node_access($project, "update")) {
           $row[] = l("edit", "project/$project->uri/releases/edit/$release->rid");
         }
-        if (!variable_get("project_release_directory", "") && node_access($project, "delete")) {
+        if (node_access($project, "delete")) {
           $row[] = l("delete", "project/$project->uri/releases/delete/$release->rid");
         }
         $rows[] = $row;
@@ -286,9 +304,10 @@ function project_release_view($project, $main = 0) {
   }
 }
 
-function project_release_load($rid) {
+function project_release_load($rid, $status = 1) {
   if ($rid->type == "project_project") {
-    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d ORDER BY created DESC", $rid->nid);
+    $status = $status ? "AND status = 1" : "";
+    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d $status ORDER BY created DESC", $rid->nid);
     $releases = array();
     while ($release = db_fetch_object($result)) {
       $releases[$release->rid] = $release->version;
@@ -301,13 +320,14 @@ function project_release_load($rid) {
 }
 
 function project_release_save($release) {
-  $fields = array("rid", "nid", "fid", "path", "created", "changed", "version", "changes");
+  $fields = array("rid", "nid", "fid", "path", "created", "changed", "version", "changes", "status");
+  $node = node_load(array("nid" => $release->nid));
 
   /* TODO: pending final fileapi
   $file = check_file("file");
   */
   if (empty($release->rid)) {
-    watchdog("special", "project release: added '$release->version'", l("view post", "node/view/$release->nid"));
+    watchdog("special", "project: added release '$release->version' to $node->title", l("view post", "node/view/$release->nid"));
     $release->rid = db_next_id("project_rid");
     if (!variable_get("project_release_directory", "") && $file->filename) {
       $release->fid = drupal_file_save($file);
@@ -329,7 +349,7 @@ function project_release_save($release) {
     db_query("INSERT INTO {project_releases} (". implode(", ", $k) .") VALUES(". implode(", ", $s) .")", $v);
   }
   else {
-    watchdog("special", "project release: updated '$release->version'", l("view post", "node/view/$release->nid"));
+    watchdog("special", "project: updated release '$node->title $release->version'", l("view post", "node/view/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get("project_release_directory", "") && $file->filename) {
@@ -357,12 +377,8 @@ function project_release_save($release) {
 }
 
 function project_release_delete($rid) {
-  watchdog("special", "project release: deleted '$release->version'", l("view post", "node/view/$release->nid"));
-  db_query("DELETE FROM {project_releases} WHERE rid = %d", $rid);
-}
-
-function project_release_latest($nid) {
-  return db_fetch_object(db_query("SELECT * FROM {project_releases} WHERE nid = %d ORDER BY rid DESC LIMIT 1", $nid));
+  watchdog("special", "project: deleted release '$release->version'", l("view post", "node/view/$release->nid"));
+  db_query("UPDATE {project_releases} SET status = 0 WHERE rid = %d", $rid);
 }
 
 ?>
