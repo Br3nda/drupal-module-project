@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.80 2003/06/18 22:39:05 weitzman Exp $
+// $Id: project.module,v 1.81 2003/06/19 11:48:55 weitzman Exp $
 
 
 // Drupal hooks
@@ -557,18 +557,18 @@ function project_block($op = "list", $delta = 0) {
       $projects[$project->name][$project->ptype] = $project->active;
     }
     foreach ($projects as $name => $project) {
-      $output .= l($name, "project/$project[pid]") ."<br />";
+      $title = l($name, "project/$project[pid]");
       foreach ($project as $type => $active) {
         if ($type != "pid") {
-          $output .= "&nbsp; ". l(t(ucfirst($type . "s")), "project/list/$project[pid]/$type") .": $active open<br />";
+          $items[] = l(t(ucfirst($type . "s")), "project/list/$project[pid]/$type") .": $active open";
         }
       }
-      $output .= "<br />";
+      $output .= theme_item_list($items, $title);
+      unset($items);
     }
 
     $block["subject"] = t("Project information");
     $block["content"] = $output;
-    // $block["link"] = "module.php?mod=project";
     return $block;
   }
 }
