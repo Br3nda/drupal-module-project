@@ -59,13 +59,14 @@ div.php code {
 }
 
 .project .downloads td {
-  border-bottom: 1px solid #999;
+  border-bottom: 1px solid #eee;
 }
 .project .downloads ul {
   margin: 0px;
 }
 .project .downloads li {
-  list-style-type: circle;
+  list-style-type: none;
+  margin: 0px;
 }
 .project .project-name {
   width: 125px;

@@ -1,8 +1,8 @@
 <?php
-// $Id: issue.inc,v 1.38 2003/12/06 15:41:41 kjartan Exp $
+// $Id: issue.inc,v 1.39 2003/12/06 17:06:24 kjartan Exp $
 
 function project_issue_node($field) {
-  $info['name'] = t('Issue');
+  $info['name'] = t('issue');
 
   return $info[$field];
 }
@@ -138,7 +138,9 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
   if ($node->pid) {
     // Load the project and initialize some support arrays.
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
-    drupal_set_message($project->help);
+    if (trim($project->help)) {
+      drupal_set_message($project->help);
+    }
     if ($releases = project_release_load($project)) {
       $releases = array(t('<none>')) + $releases;
     }

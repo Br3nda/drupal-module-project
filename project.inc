@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.17 2003/12/06 15:41:41 kjartan Exp $
+// $Id: project.inc,v 1.18 2003/12/06 17:06:24 kjartan Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -31,12 +31,11 @@ function project_project_form(&$node, &$help, &$error) {
     $project .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme_error($error['release_directory']));
   }
   $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme_error($error['mail']));
-
-  $link .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme_error($error['homepage']));
-  $link .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme_error($error['screenshots']));
-  $link .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme_error($error['changelog']));
-  $link .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme_error($error['cvs']));
-  $link .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, theme_error($error['demo']));
+  $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme_error($error['homepage']));
+  $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme_error($error['screenshots']));
+  $project .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme_error($error['changelog']));
+  $project .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme_error($error['cvs']));
+  $project .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, t('Link to a live demo.'). theme_error($error['demo']));
 
   $issue .= form_item(t('Issue tracker'), form_checkbox(t('Enable issue tracker'), 'issues', 1, $node->issues, t('Let users submit bug requests, patches, feature requests, support requests, etc.')));
   $issue .= form_select(t('Default version'), 'version', $node->version, project_release_load($node), t('Default version for issues.'));
@@ -57,7 +56,6 @@ function project_project_form(&$node, &$help, &$error) {
   }
   $output .= '<div class="project">';
   $output .= form_group(t('Project information'), $project);
-  $output .= form_group(t('More information'), $link);
   $output .= form_group(t('Issue information'), $issue);
   $output .= form_group(t('E-mail options'), $email);
   $output .= '</div>';

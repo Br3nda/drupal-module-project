@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.18 2003/12/02 14:54:46 kjartan Exp $
+// $Id: release.inc,v 1.19 2003/12/06 17:06:24 kjartan Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -153,7 +153,7 @@ function project_release_overview() {
     }
     $releases = array();
     if (arg(2)) {
-      $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version = '%s' ORDER BY created DESC", $node->nid, arg(2));
+      $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, arg(2));
     }
     else {
       $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid);
