@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.68 2004/09/07 20:47:41 kjartan Exp $ */
+/* $Id: issue.inc,v 1.69 2004/09/10 21:00:04 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -324,7 +324,7 @@ function project_issue_content($node, $teaser = false) {
 }
 
 function project_issue_view(&$node, $teaser = false, $page = false) {
-  if ($page) {
+  if (!$teaser) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
     $assigned = user_load(array('uid' => $node->assigned));
@@ -379,7 +379,7 @@ function project_issue_insert($node) {
     $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
   }
 
-  db_query("INSERT INTO {project_issues} (nid, pid, category, component, priority, rid, assigned, state, file_path, file_mime, file_size) VALUES (%d, %d, '%s', '%s', %d, %d, %d, %d, '%s', '%s', %d)", $node->nid, $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->path, $file->mime, $file->size);
+  db_query("INSERT INTO {project_issues} (nid, pid, category, component, priority, rid, assigned, state, file_path, file_mime, file_size) VALUES (%d, %d, '%s', '%s', %d, %d, %d, %d, '%s', '%s', %d)", $node->nid, $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->filepath, $file->filemime, $file->filesize);
   project_mail_notify($node);
 }
 
@@ -388,7 +388,7 @@ function project_issue_update($node) {
     // Remove old file.
     file_delete(db_result(db_query('SELECT file_path FROM {project_issues} WHERE nid = %d', $node->nid)));
     $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
-    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d, file_path = '%s', file_mime = '%s', file_size = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->path, $file->mime, $file->size, $node->nid);
+    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d, file_path = '%s', file_mime = '%s', file_size = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->filepath, $file->filemime, $file->filesize, $node->nid);
   }
   else {
     db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
@@ -500,7 +500,7 @@ function project_issue_query($project, $query) {
   return $output;
 }
 
-function project_issue_query_result($project = 0, $format = 'html') {
+function project_issue_query_result($project = 0, $format = 'html', $query = NULL, $search = true) {
   $query = project_issue_query_parse($query);
 
   $categories = array(0 => t('<all>')) + project_issue_category();
@@ -556,34 +556,37 @@ function project_issue_query_result($project = 0, $format = 'html') {
     $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
   }
 
-  // Action links:
-  $form = theme('item_list', $links);
+  if ($search) {
+    // Action links:
+    $form = theme('item_list', $links);
 
-  // Convert array fields to single select form items. Some magic happens here.
-  $fields = array('projects', 'states', 'priorities', 'categories');
-  foreach ($fields as $field) {
-    if (is_array($query->$field)) {
-      $option = array();
-
-
-      foreach ($query->$field as $value) {
-        $option[] = ${$field}[$value];
-      }
-      $query->$field = implode(',', $query->$field);
-      ${$field}[$query->$field] = implode(',', $option);
-    }
-  }
+    // Convert array fields to single select form items. Some magic happens here.
+    $fields = array('projects', 'states', 'priorities', 'categories');
+    foreach ($fields as $field) {
+      if (is_array($query->$field)) {
+        $option = array();
   
-  // Make quick search form:
-  $rows = array(array(
-    form_select(t('Project'), 'projects', $query->projects, $projects),
-    form_select(t('Status'), 'states', $query->states, $states),
-    form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
-    form_select(t('Category'), 'categories', $query->categories, $categories),
-    form_submit(t('Search')),
-    l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
-  ));
-  $form .= form(theme('table', '', $rows));
+  
+        foreach ($query->$field as $value) {
+          $option[] = ${$field}[$value];
+        }
+        $query->$field = implode(',', $query->$field);
+        ${$field}[$query->$field] = implode(',', $option);
+      }
+    }
+    
+    // Make quick search form:
+    $rows = array(array(
+      form_select(t('Project'), 'projects', $query->projects, $projects),
+      form_select(t('Status'), 'states', $query->states, $states),
+      form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
+      form_select(t('Category'), 'categories', $query->categories, $categories),
+      form_submit(t('Search')),
+      l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
+    ));
+    $form .= form(theme('table', '', $rows));
+  }
+
   $rows = array();
 
   if ($format == 'rss') {

@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.32 2004/09/07 20:47:41 kjartan Exp $ */
+/* $Id: comment.inc,v 1.33 2004/09/10 20:59:15 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -181,7 +181,7 @@ function project_comment_save($edit) {
     }
 
     watchdog('special', "project: added comment '$edit->title'", l('view post', "node/$node->nid"));
-    db_query("INSERT INTO {project_comments} (cid, nid, uid,  created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->path, $file->mime, $file->size);
+    db_query("INSERT INTO {project_comments} (cid, nid, uid,  created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->filepath, $file->filemime, $file->filesize);
     node_save($node);
   }
 
