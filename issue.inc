@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.59 2004/02/21 23:25:40 kjartan Exp $
+// $Id: issue.inc,v 1.60 2004/02/22 00:05:41 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -139,7 +139,7 @@ function project_issue_subscribe($project = 0) {
 
     foreach ($_POST['edit'] as $nid => $level) {
       if ($_level !== 0 && $level !== 0) {
-        db_queryd('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
+        db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
       }
     }
     drupal_set_message(t('Subscription settings saved.'));
@@ -147,7 +147,7 @@ function project_issue_subscribe($project = 0) {
 
   if ($project) {
     $level = db_result(db_query('SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $user->uid));
-  
+
     $output = '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>';
 
     $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "][$project->nid", $level, $levels);
