@@ -1,0 +1,233 @@
+<?php
+// $Id: projects.module,v 1.1 2003/08/10 17:57:57 kjartan Exp $
+
+function projects_node($field) {
+  global $user;
+
+  $info["name"] = t("projects");
+  $info["description"] = t("");
+
+  return $info[$field];
+}
+
+function projects_link($type, $node = 0, $main) {
+  $links = array();
+  switch ($type) {
+    case "node":
+      if ($main) {
+        $links[] = l(t("releases"), "projects/$node->uri#releases");
+      }
+      foreach (array("homepage" => t("homepage"), "changelog" => t("changelog"), "cvs" => t("cvs tree"), "demo" => t("demo site")) as $uri => $name) {
+        if (!empty($node->$uri)) {
+          $links[] = sprintf("<a href=\"%s\">%s</a>", $node->$uri, $name);
+        }
+      }
+      break;
+    case "menu.create":
+      if (user_access("maintain project")) {
+        $links[] = l(t("create new project"), "node/add/projects", array("title" => t("Add a new project.")));
+      }
+      break;
+  }
+
+  return $links;
+}
+
+function projects_perm() {
+  return array("maintain project");
+}
+
+function projects_form(&$node, &$help, &$error) {
+
+  if (function_exists("taxonomy_node_form")) {
+    $output = implode("", taxonomy_node_form("projects", $node));
+  }
+  $output .= form_textfield("Full project name", "title", $node->title, 40, 255, "This is the publicly visible project name.". theme_error($error["title"]));
+  $output .= form_textfield("Short project name", "uri", $node->uri, 40, 50, "This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.". theme_error($error["uri"]));
+  $output .= form_textarea("Full description", "body", $node->body, 40, 10, theme_error($error["body"]));
+  $output .= form_textfield("Homepage", "homepage", $node->homepage, 40, 255, "Link to project homepage". theme_error($error["homepage"]));
+  $output .= form_textfield("Changelog", "changelog", $node->changelog, 40, 255, "Link to changelog.". theme_error($error["changelog"]));
+  $output .= form_textfield("CVS tree", "cvs", $node->cvs, 40, 255, "Link to webcvs/viewcvs.". theme_error($error["cvs"]));
+  $output .= form_textfield("Demo site", "demo", $node->demo, 40, 255, theme_error($error["demo"]));
+  return $output;
+}
+
+function projects_validate(&$node) {
+  if (empty($node->uri)) {
+    $error["uri"] = t("Required.");
+  }
+
+  if ($node->uri && db_num_rows(db_query("SELECT nid FROM {projects_info} WHERE uri = '%s'", $node->uri))) {
+    $error["uri"] = t("This project name is already in use.");
+  }
+
+  if (empty($node->body)) {
+    $error["body"] = t("Required.");
+  }
+
+  foreach (array("homepage", "changelog", "cvs", "demo") as $uri) {
+    if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
+      $error[$uri] = t("Invalid URL.");
+    }
+  }
+
+  return $error;
+}
+
+function projects_view($node, $main = 0) {
+  if ($main) {
+    theme("node", $node, $main);
+  }
+  else {
+    theme("node", $node, $main);
+    theme("box", "<a name=\"Releases\">". t("Releases") ."</a>", projects_releases($node));
+  }
+}
+
+function projects_load($node) {
+  return db_fetch_object(db_query("SELECT * FROM {projects_info} WHERE nid = %d", $node->nid));
+}
+
+function projects_insert($node) {
+  db_query("INSERT INTO {projects_info} (nid, uri, homepage, changelog, cvs, demo) VALUES (%d, '%s', '%s', '%s', '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo);
+}
+
+function projects_update($node) {
+  db_query("UPDATE {projects_info} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s') WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->nid);
+}
+
+function projects_delete($node) {
+  db_query("DELETE FROM {projects_info} WHERE nid = %d", $node->nid);
+}
+
+function projects_access($op, $node) {
+  global $user;
+
+  if ($op == "view") {
+    return $node->status;
+  }
+
+  if ($op == "create") {
+    return user_access("maintain project") && $user->uid;
+  }
+
+  if ($op == "update" || $op = "delete") {
+    return (user_access("maintain project") && $user->uid == $node->uid) || user_access("administer nodes");
+  }
+
+}
+function projects_releases($node) {
+  global $user;
+
+  $result = db_query("SELECT * FROM {projects_releases} WHERE nid = %d ORDER BY timestamp DESC", $node->nid);
+  if (db_num_rows($result)) {
+    $header = array(t("version"), t("changes"), t("date"));
+    while ($release = db_fetch_object($result)) {
+      $file = drupal_file_load($release->fid);
+      $row = array();
+      $row[] = array("data" => l($release->version, "projects/$node->uri/download/$release->rid", array("title" => t("Download: %size", array("%size" => format_size($file->size))))), "style" => "vertical-align: top; align: center;");
+      $row[] = check_output($release->changes);
+      $row[] = array("data" => format_date($release->timestamp), "style" => "vertical-align: top;");
+      if (node_access($access, "update")) {
+        $row[] = array("data" => l("edit", "projects/$node->uri/edit/$release->rid"), "style" => "vertical-align: top;");
+      }
+      if (node_access($access, "delete")) {
+        $row[] = array("data" => l("delete", "projects/$node->uri/delete/$release->rid"), "style" => "vertical-align: top;");
+      }
+      $rows[] = $row;
+    }
+    $output = table($header, $rows);
+  }
+
+  if (node_access($node, "update")) {
+    $output .= "<br /><p>". l(t("Add new release"), "projects/$node->uri/add") ."</p>";
+  }
+  return $output;
+}
+
+function projects_release_form($node, $release = 0) {
+  $output = form_textfield(t("Version"), "version", $release->version, 40, 255);
+  $output .= form_textarea(t("Changes"), "changes", $release->changes, 40, 10);
+  $output .= form_file(t("File"), "file", 40, ($release->fid) ? t("A file already exists, if you upload another file the current file will be replaced.") : "");
+  $output .= form_submit(t("Save"));
+
+  return form($output, "post", 0, "enctype=\"multipart/form-data\"");
+}
+
+function projects_release_save($release) {
+  $file = check_file("file");
+  if (empty($release->rid)) {
+    watchdog("special", "projects: added '$release->version'", l("view post", node_url($release)));
+    $release->rid = db_next_id("projects_rid");
+    $release->fid = drupal_file_save($file);
+    db_query("INSERT INTO {projects_releases} SET rid = %d, nid = %d, fid = %d, timestamp = %d, version = '%s', changes = '%s'", $release->rid, $release->nid, $release->fid, time(), $release->version, $release->changes);
+  }
+  else {
+    watchdog("special", "projects: updated '$release->version'", l("view post", node_url($release)));
+    // Replace current file if new file upload exists.
+    if ($file->name) {
+      $file->fid = $release->fid;
+      drupal_file_save($file);
+    }
+    db_query("UPDATE {projects_releases} SET timestamp = %d, version = '%s', changes = '%s' WHERE rid = %d", time(), $release->version, $release->changes, $release->rid);
+  }
+}
+
+function projects_release_load($rid) {
+  return db_fetch_object(db_query("SELECT * FROM {projects_releases} WHERE rid = %d ORDER BY timestamp DESC", $rid));
+}
+
+function projects_page() {
+  global $user;
+  $node = node_load(array("nid" => db_result(db_query("SELECT nid FROM {projects_info} WHERE uri = '%s'", arg(1)), 0)));
+
+  switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
+    case "add":
+      if (node_access($node, "update")) {
+        theme("header", "Add release to $node->title");
+        theme("box", "Add release", projects_release_form($node));
+        theme("footer");
+      }
+      break;
+    case "edit":
+      if (node_access($node, "update") && ($release = projects_release_load(arg(3))) && $node->nid == $release->nid) {
+        theme("header", "Edit release $release->version for $node->title");
+        theme("box", "Edit release", projects_release_form($node, $release));
+        theme("footer");
+      }
+      break;
+    case "delete":
+      theme("header", "TODO");
+      theme("box", "TODO", "This feature hasn't been implemented yet due to security considerations.");
+      theme("footer");
+      break;
+    case t("Save"):
+      if (node_access($node, "update") && ($release = projects_release_load(arg(3))) && $node->nid == $release->nid) {
+        // Do some voodoo to validate the input. Wouldn't want to change the wrong release, would we? ;-)
+        $edit = array2object($_POST["edit"]);
+        $edit->nid = $node->nid;
+        $edit->rid = $release->rid;
+        $edit->fid = $release->fid;
+
+        // Save the release and re-direct to the overview page for the project
+        projects_release_save($edit);
+        drupal_goto(url("projects/". arg(1)));
+      }
+      break;
+    case "download":
+      $release = projects_release_load(arg(3));
+      if ($release->rid && ($file = drupal_file_load($release->fid, 1))) {
+        header("Content-type: $file->type");
+        header("Content-length: $file->size");
+        header("Content-Disposition: inline; filename=$file->name");
+        print $file->data;
+        break;
+      }
+    default:
+      theme("header", $node->title);
+      node_view($node);
+      theme("footer");
+  }
+}
+
+?>
