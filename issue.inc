@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.74 2004/09/15 17:54:38 kjartan Exp $ */
+/* $Id: issue.inc,v 1.75 2004/09/16 19:48:25 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -328,7 +328,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
   if (!$teaser) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
-    $assigned = user_load(array('uid' => $node->assigned));
+    $assigned = ($node->assigned && ($account = user_load(array('uid' => $node->assigned))) ? $account->name : t('Unassigned'));
 
     $output = '<div class="project">';
     $rows = array();
@@ -339,7 +339,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     $rows[] = array(t('Component:'),  drupal_specialchars($node->component));
     $rows[] = array(t('Category:'), drupal_specialchars($node->category));
     $rows[] = array(t('Priority:'), project_issue_priority($node->priority));
-    $rows[] = array(t('Assigned:'), $assigned->name);
+    $rows[] = array(t('Assigned:'), $assigned);
     $rows[] = array(t('Status:'), project_issue_state($node->state));
     if ($node->file_path && file_exists($node->file_path)) {
       $rows[] = array(t('Attachment:'), '<a href="'. file_create_url($node->file_path). '">'. basename($node->file_path) .'</a> ('. format_size($node->file_size) .')');
