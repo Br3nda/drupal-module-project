@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.157 2004/05/13 19:59:52 kjartan Exp $ */
+/* $Id: project.module,v 1.158 2004/05/25 19:42:39 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -129,7 +129,7 @@ function project_link($type, $node = 0, $main = 0) {
         if (!user_access('administer nodes') && node_access('update', $node)) {
           $links[] = l(t('edit'), "node/edit/$node->nid");
         }
-        if (node_access($node, 'update')) {
+        if (node_access('update', $node)) {
           $links = array(l(t('add new release'), "project/releases/add/$node->nid"));
         }
         if ($node->issues && user_access('access project issues')) {
@@ -286,14 +286,15 @@ function project_page_overview() {
         $rows[] = array(array('data' => $term->description, 'colspan' => 4));
       }
 
-      $result = db_query("SELECT n.nid, n.title, n.changed FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
+      $result = db_query("SELECT n.nid, n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
       while ($node = db_fetch_object($result)) {
-        $rows[] = array(
-          l($node->title, "node/view/$node->nid") . $node->rid,
-          l(t('issues'), "project/issues/$node->nid"),
-          l(t('search'), "project/issues/$node->nid/search"),
-          l(t('submit'), "node/add/project_issue/$node->nid")
-        );
+        $row = array(l($node->title, "node/view/$node->nid") . $node->rid);
+        if ($node->issues) {
+          $row[] = l(t('issues'), "project/issues/$node->nid");
+          $row[] = l(t('search'), "project/issues/$node->nid/search");
+          $row[] = l(t('submit'), "node/add/project_issue/$node->nid");
+        }
+        $rows[] = $row;
       }
     }
 
@@ -322,16 +323,19 @@ function project_page_overview() {
         array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
       );
 
-      $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
+      $result = db_query("SELECT n.nid, n.title, n.changed, p.issues, COUNT(i.nid) AS count FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} i ON n.nid = i.pid AND i.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
       while ($node = db_fetch_object($result)) {
-        $rows[] = array(
+        $row = array(
           l($node->title, "node/view/$node->nid") . $node->rid,
-          array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
-          array('data' => "$node->count open", 'align' => 'right'),
-          l(t('view'), "project/issues/$node->nid"),
-          l(t('search'), "project/issues/$node->nid/search"),
-          l(t('submit'), "node/add/project_issue/$node->nid")
+          array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right')
         );
+        if ($node->issues) {
+          $row[] = array('data' => "$node->count open", 'align' => 'right');
+          $row[] = l(t('view'), "project/issues/$node->nid");
+          $row[] = l(t('search'), "project/issues/$node->nid/search");
+          $row[] = l(t('submit'), "node/add/project_issue/$node->nid");
+        }
+        $rows[] = $row;
       }
 
       $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';

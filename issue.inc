@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.65 2004/05/13 19:59:52 kjartan Exp $ */
+/* $Id: issue.inc,v 1.66 2004/05/25 19:42:39 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -315,6 +315,9 @@ function project_issue_validate(&$node) {
 
 function project_issue_view($node, $main = 0, $page = 0) {
   if ($main) {
+    $node->body = check_output($node->body);
+    $node->teaser = check_output($node->teaser);
+
     return theme('node', $node, $main, $page);
   }
   else {

@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.33 2004/05/04 18:25:16 kjartan Exp $ */
+/* $Id: mail.inc,v 1.34 2004/05/25 19:42:39 kjartan Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -381,6 +381,7 @@ function project_mail_reminder() {
 }
 
 function project_mail_digest() {
+  $body = array();
   $header = array(
     'Date: '. date('r'),
     'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
