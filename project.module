@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.60 2003/03/11 14:04:40 kjartan Exp $
+// $Id: project.module,v 1.61 2003/03/11 14:13:24 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -574,7 +574,7 @@ function project_mail(&$node, $new = 0) {
     return;
   }
 
-  $from = variable_get("site_mail", ini_get("sendmail_from"));
+  $from = $project->mail;
 
   $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));
   $body = str_repeat("-", 72). "\n";
@@ -617,7 +617,7 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 }
 
@@ -683,16 +683,16 @@ function project_validate(&$node) {
 
   if ($node->priority) {
     if (!$node->pid) {
-      $error["pid"] = "<div style=\"color: red; class=\"error\">". t("Project not specified.") ."</div>";
+      $error["pid"] = theme_error(t("Project not specified."));
     }
     if (!$node->type) {
-      $error["type"] = "<div style=\"color: red; class=\"error\">". t("Type not specified.") ."</div>";
+      $error["type"] = theme_error(t("Type not specified."));
     }
     if (!$node->area && $project->areas) {
-      $error["area"] = "<div style=\"color: red; class=\"error\">". t("Area not specified.") ."</div>";
+      $error["area"] = theme_error(t("Area not specified."));
     }
     if (!$node->version && $project->version) {
-      $error["version"] = "<div style=\"color: red; class=\"error\">". t("Version not specified.") ."</div>";
+      $error["version"] = theme_error(t("Version not specified."));
     }
   }
 
