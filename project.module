@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.32 2002/07/10 23:26:36 weitzman Exp $
+// $Id: project.module,v 1.33 2002/09/19 20:09:24 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -231,7 +231,9 @@ function project_list($query, $pid = 0) {
     $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
 
     foreach ($nodes as $node) {
-      $node->name = substr($node->name, 0, strpos($node->name, "@"));
+      if (strpos($node->name, "@")) {
+        $node->name = substr($node->name, 0, strpos($node->name, "@"));
+      }
       $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
       $output .= "<td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
@@ -473,6 +475,7 @@ function project_page() {
 
 function project_block() {
   $result = db_query("SELECT p.pid,p.name,n.ptype,count(n.nid) AS active FROM projects p LEFT JOIN project n ON p.pid = n.pid WHERE n.pstatus = '1' OR n.pstatus = '2' GROUP BY n.ptype, p.pid, p.name");
+  $projects = array();
   while ($project = db_fetch_object($result)) {
     $projects[$project->name][pid] = $project->pid;
     $projects[$project->name][$project->ptype] = $project->active;
