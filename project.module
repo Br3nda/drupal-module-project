@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.84 2003/06/23 21:45:12 weitzman Exp $
+// $Id: project.module,v 1.85 2003/06/23 22:16:32 weitzman Exp $
 
 
 // Drupal hooks
@@ -676,9 +676,16 @@ function project_mail(&$node, $new = 0) {
   
   /*
   the intent here is to preserve the links before they get removed by strip_tags()
-  then display the links at the bottom of the email.
+  remove duplicates and then display the links at the bottom of the email.
   */
   $links = project_parse_links($body);
+  
+  $unique_links = array();
+  foreach ($links as $link) {
+    if (!in_array($link, $unique_links)) {
+      $unique_links[] = $link;
+    }
+  }
   
   $body = strip_tags($body);
   if ($node->project_wrap <> -1) {
@@ -687,7 +694,7 @@ function project_mail(&$node, $new = 0) {
   
   // now list the links which were parsed above
   if ($links) {
-    $body .= "Links:\n". implode("\n", array_unique($links)). "\n\n";
+    $body .= "Links:\n". implode("\n", $unique_links). "\n\n";
   }  
   
   $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
