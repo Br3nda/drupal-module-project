@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.29 2003/11/13 19:55:44 dries Exp $
+// $Id: issue.inc,v 1.30 2003/11/15 17:00:09 ax Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -319,7 +319,7 @@ function project_issue_query($project, $query) {
   );
 
   $output = "<div class=\"project\">";
-  $output .= form(table(NULL, $rows), "post", url($project->uri ? "project/$project->uri/issues" : "project/issues"));
+  $output .= form(theme("table", NULL, $rows), "post", url($project->uri ? "project/$project->uri/issues" : "project/issues"));
   $output .= "</div>";
 
   return $output;
