@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.72 2004/09/14 13:06:57 kjartan Exp $ */
+/* $Id: issue.inc,v 1.73 2004/09/15 17:50:26 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -231,6 +231,7 @@ function project_issue_form(&$node, &$param) {
     $categories = array_merge(t('<none>'), project_issue_category(0, 0));
     $priorities = project_issue_priority();
     $states = project_issue_state();
+
     if ($user->uid == $node->assigned) {
       $assigned = array(0 => t('Unassign'), $user->uid => $user->name);
     }
@@ -300,9 +301,9 @@ function project_issue_validate(&$node) {
       empty($node->priority) and $node->priority = 2;
       empty($node->category) and $node->category = arg(4);
       empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
-      empty($node->state) and $node->state = 1;
+      empty($node->state) and $node->state = 2;
       empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
-  
+
       $file = file_check_upload('file_issue');
       $node->file = file_save_upload($file);
     }
@@ -502,7 +503,7 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
   $query = project_issue_query_parse($query);
 
   $categories = array(0 => t('<all>')) + project_issue_category();
-  $states = array(0 => t('<all>')) + project_issue_state();
+  $states = array(implode(',', array_keys(project_issue_state())) => t('<all>')) + project_issue_state();
   $priorities = array(0 => t('<all>')) + project_issue_priority();
 
   $projects = array(0 => t('<all>'));
@@ -564,7 +565,6 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
       if (is_array($query->$field)) {
         $option = array();
 
-
         foreach ($query->$field as $value) {
           $option[] = ${$field}[$value];
         }
@@ -613,7 +613,7 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
     }
     $query = project_issue_query_pager($query);
 
-    $rss = l('<img align="right" src="misc/xml.gif" />', 'project/issues/rss', array('title' => t('RSS feed for these issues.')), project_issue_query_url($query));
+    $rss = theme('xml_icon', url('project/issues/rss', project_issue_query_url($query)));
     $link = l(t('#'), 'project/issues', array('title' => t('Permalink to search query.')), project_issue_query_url($query));
 
     if ($pager = theme("pager", NULL, 20, 0, $query + tablesort_pager())) {

@@ -19,6 +19,10 @@
   width: auto;
 }
 
+.project table tr {
+  border: 0;
+}
+
 .project td.state_light_1 {
   background-color: #eee;
 }

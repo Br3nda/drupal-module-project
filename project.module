@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.165 2004/09/13 15:35:40 unconed Exp $ */
+/* $Id: project.module,v 1.166 2004/09/15 17:50:26 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -106,7 +106,7 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query('SELECT DISTICT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n '. node_access_join_sql() .' WHERE n.status = 1 AND '. node_access_where_sql() .' AND p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
+  $result = db_query('SELECT DISTINCT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n '. node_access_join_sql() .' WHERE n.status = 1 AND '. node_access_where_sql() .' AND p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
       $comment->$var = $node->$var;
@@ -237,7 +237,7 @@ function project_page() {
       $vocabulary = array(
         'nodes' => array('project_project'),
         'name' => 'Projects',
-        'hierarchy' => 1       
+        'hierarchy' => 1
       );
       #$vocabulary = taxonomy_save_vocabulary($vocabulary);
       $vocabulary['vid'] = 5;
@@ -357,7 +357,7 @@ function project_page_user($arg) {
     array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
   );
 
-  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 ". node_access_join_sql() ." WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d AND ". node_access_where_sql() ." GROUP BY n.nid %s", $user->uid, tablesort_sql($header));
+  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) ". node_access_join_sql() ." WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d AND ". node_access_where_sql() ." GROUP BY n.nid %s", $user->uid, tablesort_sql($header));
 
   while ($node = db_fetch_object($result)) {
     $rows[] = array(
@@ -368,10 +368,29 @@ function project_page_user($arg) {
       l(t('search'), "project/issues/$node->nid/search"),
       l(t('submit'), "node/add/project_issue/$node->nid")
     );
+    $query->projects[] = $node->nid;
   }
 
   $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
   $output .= l('#', "project/user/$user->name");
+
+  $output .= theme('box', t('issues'), project_issue_query_result(NULL, 'html', $query, false));
+
+  /*$rows = array();
+
+  $result = db_query_range("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.nid AND p.state IN (1,2,8) ". node_access_join_sql() ." WHERE n.status = 1 AND ". node_access_where_sql() ." ORDER BY n.changed DESC", 0, 10);
+
+  while ($node = db_fetch_object($result)) {
+    $node = node_load($node);
+    $rows[] = array(
+      l($node->title, "node/$node->nid"),
+      array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
+      l(t('view'), "node/$node->nid"),
+    );
+  }
+
+  $output .= '<div class="project">'. theme('table', $header, $rows) .'</div>';
+  $output .= l('#', "project/user/$user->name");*/
 
   print theme('page', $output);
 }
