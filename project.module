@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.55 2003/03/09 15:08:22 kjartan Exp $
+// $Id: project.module,v 1.56 2003/03/09 15:12:05 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -821,7 +821,7 @@ function project_view($node, $main = 0) {
       if (count($diff->priority)) { $rows[] = array(array("data" => t("Priority:"), "style" => "font-size: x-small", "valign" => "top"), t($diff->priority[1])); }
       if (count($diff->assigned)) { $rows[] = array(array("data" => t("Assigned:"), "style" => "font-size: x-small", "valign" => "top"), $diff->assigned_formatted[1]); }
       if (count($diff->area)) { $rows[] = array(array("data" => t("Area:"), "style" => "font-size: x-small", "valign" => "top"), $diff->area[1]); }
-      if (count($diff->version)) { $rows[] = array(array("data" => t("Versio:n"), "style" => "font-size: x-small", "valign" => "top"), $diff->version_formatted[1]); }
+      if (count($diff->version)) { $rows[] = array(array("data" => t("Version:"), "style" => "font-size: x-small", "valign" => "top"), $diff->version[1]); }
       if (trim($revisions[$i]["node"]->body)) { $rows[] = array(array("data" => t("Comment:"), "style" => "font-size: x-small", "valign" => "top"), trim($revisions[$i]["node"]->body)); }
       $rows[] = array(array("data" => "<br />", "colspan" => 2));
     }
