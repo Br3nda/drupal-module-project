@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.30 2002/06/27 09:51:03 kjartan Exp $
+// $Id: project.module,v 1.31 2002/06/27 15:48:31 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -59,8 +59,8 @@ function project_mailhandler($node, $header, $origbody, $mailbox) {
     if (strstr($node->title, $current->title)) {
       $node->title = $current->title;
     }
-    return $node;
-  }  
+  }
+  return $node;
 }
 
 function project_admin_form($edit = 0) {
