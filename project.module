@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.178 2005/01/30 18:31:13 unconed Exp $
+// $Id: project.module,v 1.179 2005/02/06 11:40:41 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -215,10 +215,6 @@ function project_menu($may_cache) {
 function project_page() {
   global $user;
 
-  if (!user_access('access projects')) {
-    drupal_goto(url());
-  }
-
   switch (arg(1)) {
     default:
       project_page_overview();
@@ -232,32 +228,33 @@ function project_page() {
       }
 
       $vocabulary = array(
-        'nodes' => array('project_project'),
-        'name' => 'Projects',
-        'hierarchy' => 1
-      );
-      #$vocabulary = taxonomy_save_vocabulary($vocabulary);
+          'nodes' => array('project_project'),
+          'name' => 'Projects',
+          'hierarchy' => 1
+          );
+#$vocabulary = taxonomy_save_vocabulary($vocabulary);
       $vocabulary['vid'] = 5;
       while ($project = db_fetch_object($result)) {
         if ($project->name != $last) {
           print "$project->name<br />";
           $last = $project->name;
           $term = array(
-            'name' => $last,
-            'weight' => $project->weight,
-            'vid' => $vocabulary['vid']
-          );
-          #$parent = taxonomy_save_term($term)
+              'name' => $last,
+              'weight' => $project->weight,
+              'vid' => $vocabulary['vid']
+              );
+#$parent = taxonomy_save_term($term)
           ++$parent['tid'];
         }
         $term = array(
-          'name' => $project->title,
-          'parent' => $parent['tid'],
-          'vid' => $vocabulary['vid']
-        );
+            'name' => $project->title,
+            'parent' => $parent['tid'],
+            'vid' => $vocabulary['vid']
+            );
         var_dump($term);
       }
   }
+}
 }
 
 function project_page_overview() {
