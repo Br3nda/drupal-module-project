@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.65 2003/03/31 11:24:34 kjartan Exp $
+// $Id: project.module,v 1.66 2003/04/13 18:37:50 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -475,7 +475,7 @@ function project_page() {
       }
       theme("footer");
       break;
-    case "Preview":
+    case t("Preview"):
       global $edit;
       theme("header");
       theme("box", t("Project") ." : ". t($edit["ptype"]), node_preview($edit));
