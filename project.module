@@ -1,7 +1,19 @@
 <?php
-// $Id: project.module,v 1.86.2.2 2003/07/21 18:56:37 weitzman Exp $
+// $Id: project.module,v 1.86.2.3 2003/07/21 19:37:46 weitzman Exp $
 
 // Drupal hooks
+function project_head() {
+  if (arg(0) == "node" && arg(1) == "view") {
+    $style[] = "
+      <style>
+        #project tr.light { background-color: #fff; }
+        #project tr.dark { background-color: #fff; }
+        #project td { vertical-align: top; }
+      </style>";
+    return $style;
+  }
+}
+
 function project_system($field) {
   $system["description"] = t("Enables a team to track outstanding items which need resolution.");
   return $system[$field];
