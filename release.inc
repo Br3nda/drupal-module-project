@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.15 2003/11/10 18:46:08 kjartan Exp $
+// $Id: release.inc,v 1.16 2003/11/13 19:55:44 dries Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -140,7 +140,7 @@ function project_release_overview() {
       if (count($rows)) {
         $output .= "<h2>$term->name</h2>";
         $output .= "<p style=\"color: #888;\"><small>$term->description</small></p>";
-        $output .= table($header, $rows);
+        $output .= theme("table", $header, $rows);
       }
       $term = taxonomy_get_term($tid);
       $rows = array();
@@ -161,7 +161,7 @@ function project_release_overview() {
   if (count($rows)) {
     $output .= "<h2>$term->name</h2>";
     $output .= "<p style=\"color: #888;\"><small>$term->description</small></p>";
-    $output .= table($header, $rows);
+    $output .= theme("table", $header, $rows);
   }
 
   $output .= "</div>";
@@ -296,7 +296,7 @@ function project_release_view($project, $main = 0) {
       }
 
       $output = "<div class=\"project\">\n";
-      $output .= table($header, $rows);
+      $output .= theme("table", $header, $rows);
       $output .= "</div>\n";
 
       return $output;

@@ -73,7 +73,7 @@ project.module
 17. July 2003
 -------------
 project.module
-- Now using table() to render all lists, better themeability.
+- Now using theme("table", ) to render all lists, better themeability.
 - Added pager support.
 
 18. June 2003

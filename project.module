@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.119 2003/11/10 18:46:08 kjartan Exp $
+// $Id: project.module,v 1.120 2003/11/13 19:55:44 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -70,7 +70,7 @@ function project_settings() {
     $rows[] = array_merge(array(module_invoke($name, "node", "name")), $cols);
   }
 
-  $output .= form_item(t("Settings"), table($header, $rows));
+  $output .= form_item(t("Settings"), theme("table", $header, $rows));
   return $output;
 }
 
@@ -318,7 +318,7 @@ function project_page_overview() {
       }
 
       $output = "<div class=\"project\">";
-      $output .= table($header, $rows);
+      $output .= theme("table", $header, $rows);
       $output .= "</div>";
       print theme("box", t("All projects"), $output);
     }
@@ -354,7 +354,7 @@ function project_page_user() {
         );
       }
 
-      $output = table($header, $rows);
+      $output = theme("table", $header, $rows);
       $output .= form_submit(t("Save"));
 
       print theme("header", t("User project settings"));

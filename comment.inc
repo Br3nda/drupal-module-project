@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.16 2003/11/10 18:46:08 kjartan Exp $
+// $Id: comment.inc,v 1.17 2003/11/13 19:55:44 dries Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -47,7 +47,7 @@ function project_comment_page($project) {
           $rows[] = array(l(t("download attachment"), "project/$node->pid/comment/download/$edit->cid"));
         }
         $output .= "<div class=\"project\">";
-        $output .= table(NULL, $rows);
+        $output .= theme("table", NULL, $rows);
         $output .= "</div>";
         */
         $output = project_comment_form($edit, $error, $param);
@@ -171,7 +171,7 @@ function project_comment_view($node, $main = 0) {
         $rows[] = array(
           array("class" => "header", "data" => t("%count submitted by %user on %date", array("%count" => "<a name=\"comment". ++$i. "\" href=\"". url("node/view/$node->nid") ."#$i\">#$i</a>", "%user" => format_name($comment), "%date" => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : "")));
         if ($summary) {
-          $rows[] = array(array("class" => "summary", "data" => table(NULL, $summary)));
+          $rows[] = array(array("class" => "summary", "data" => theme("table", NULL, $summary)));
         }
         if ($comment->body) {
           $rows[] = array(array("class" => "content", "data" => "<p>". check_output($comment->body) ."</p>"));
@@ -182,7 +182,7 @@ function project_comment_view($node, $main = 0) {
       }
     }
     $output = "<div class=\"project\">";
-    $output .= table(NULL, $rows);
+    $output .= theme("table", NULL, $rows);
     $output .= "</div>";
 
     if (user_access("maintain project issues")) {
