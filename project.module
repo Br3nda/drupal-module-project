@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.144 2004/01/30 12:06:00 kjartan Exp $
+// $Id: project.module,v 1.145 2004/02/07 15:58:14 unconed Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -211,13 +211,40 @@ function project_nodeapi(&$node, $op, $arg = 0) {
 }
 
 function project_filter_highlight($text) {
-  $text = trim(stripslashes($text));
+  // Note, pay attention to odd preg_replace-with-/e behaviour on slashes
+  $text = strtr(trim(str_replace('\"', '"', $text)), array_flip(get_html_translation_table(HTML_ENTITIES)));
   return '<div class="php">'. highlight_string("<?php\n$text\n?>", 1) .'</div>';
 }
 
-function project_filter($text) {
-  $text = preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "project_filter_highlight('$3')", $text);
-  return $text;
+function project_filter_escape($text) {
+  // Note, pay attention to odd preg_replace-with-/e behaviour on slashes
+  return drupal_specialchars(str_replace('\"', '"', $text));
+}
+
+function project_filter($op, $text = "") {
+  switch ($op) {
+    case 'name':
+      return t("PHP code colorizer");
+    case 'settings':
+      $form .= form_checkbox(t('Enabled'), 'project_filter', 1, variable_get("project_filter", 1), "When enabled, all PHP code between [?php ?] tags will be colorized automatically.");
+      return form_group(t("PHP code colorizer"), $form);
+    case 'prepare':
+      if (variable_get("project_filter", 1)) {
+        // Escape all important HTML characters in a [?php ?] tags
+        return preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "'[?php'. project_filter_escape('\\3') .'?]'", $text);
+      }
+      else {
+        return $text;
+      }
+    case 'process':
+      if (variable_get("project_filter", 1)) {
+        // Colorize anything in a [?php ?] tag
+        return preg_replace('@\[\?php(.+?)\?\]@se', "project_filter_highlight('$1')", $text);
+      }
+      else {
+        return $text;
+      }
+  }
 }
 
 function project_page() {
