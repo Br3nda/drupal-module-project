@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.109 2003/10/03 11:15:15 kjartan Exp $
+// $Id: project.module,v 1.110 2003/10/03 11:17:27 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -238,7 +238,7 @@ function project_page_overview() {
     if (user_access("access project issues")) {
       $issues[] = l(t("search"), "project/issues/search");
       foreach (project_issue_category() as $category => $name) {
-        $issues[] = l($name, "project/issues", NULL, "categories=$name");
+        $issues[] = l($name, "project/issues", NULL, "categories=$category");
       }
     }
     if (user_access("maintain project issues")) {
