@@ -43,6 +43,7 @@ Issues (bug reports, etc)
  + Monthly mail to remind users to follow up on their open issues.
  + Users can subscribe to get no mail, mails for issues they are
    involved with or all issues per project.
+ + Added non-project specific issue pages.
 
 21. July 2003
 -------------
@@ -89,7 +90,7 @@ project.module
 30. October 2002
 ----------------
 project.module
-- updated block 
+- updated block
 
 14. June 2002
 -------------

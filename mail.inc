@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.9 2003/09/30 18:24:47 kjartan Exp $
+// $Id: mail.inc,v 1.10 2003/10/01 09:09:19 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -266,7 +266,6 @@ function project_mail_notify($node) {
   $domain = preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]);
   $header = array(
     "Return-Path: <$sender->mail>",
-    "Content-Type: text/plain; charset=utf-8",
     "Date: ". date("r"),
     "From: $sender->name <$sender->mail>",
     "X-Mailer: Drupal Project module (http://drupal.org/)",
@@ -299,8 +298,10 @@ function project_mail_notify($node) {
     user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\r\n", $header));
   }
 
+  var_dump($project->mail_copy_filter);
   if ($project->mail_copy && (empty($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
-    user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\r\n", $header));
+    var_dump("Mailed.");
+    //user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\r\n", $header));
   }
 }
 
@@ -322,7 +323,6 @@ function project_mail_reminder() {
       if ($body && $mail && ((!$node) || ($mail != $node->mail))) {
         $header = array(
           "Return-Path: <$sender->mail;>",
-          "Content-Type: text/plain; charset=utf-8",
           "Date: ". date("r"),
           "From: $sender->name <$sender->mail>",
           "X-Mailer: Drupal Project module (http://drupal.org/)",
@@ -361,7 +361,6 @@ function project_mail_reminder() {
 
 function project_mail_digest() {
   $header = array(
-    "Content-Type: text/plain; charset=utf-8",
     "Date: ". date("r"),
     "X-Mailer: Drupal Project module (http://drupal.org/)",
     "List-Id: $project->title <". preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]) ."-project-issues-digest>",
