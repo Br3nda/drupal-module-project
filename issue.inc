@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.42 2003/12/10 13:43:20 kjartan Exp $
+// $Id: issue.inc,v 1.43 2003/12/10 14:01:38 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -32,7 +32,6 @@ function project_issue_page($project) {
       */
       break;
     case 'search':
-      //drupal_set_title(t('Search %project', array('%project' => $project->title)));
       print theme('page', project_issue_query($project, $query));
       break;
     case 'rss':
@@ -44,7 +43,7 @@ function project_issue_page($project) {
       drupal_goto(url("node/add/project_issue/$project->uri"));
       break;
     case 'statistics':
-      print theme('page', project_issue_statistics($project));
+      print theme('page', project_issue_statistics($project), t('Statistics'));
       break;
     case 'subscribe':
       if ($project->issues && $GLOBALS['user']->uid) {
@@ -54,7 +53,6 @@ function project_issue_page($project) {
     case 'user':
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
-      //drupal_set_title(l(t('Issues'), $project->nid ? "project/$project->uri/issues' : 'project/issues", NULL, project_issue_query_url()));
       $output = project_issue_query_result($project);
       print theme('page', $output);
   }
