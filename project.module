@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.43 2003/02/12 17:34:13 kjartan Exp $
+// $Id: project.module,v 1.44 2003/02/15 12:36:08 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -194,7 +194,7 @@ function project_sort_assigned($a, $b) {
 }
 
 function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
-  global $theme;
+
   $headers = array("ID" => "n.nid", "Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Submitted by" => "n.uid", "Assigned" => "p.assigned");
   if ($pid) {
     $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
@@ -271,7 +271,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
     if (user_access("search content")) {
       $links[] = l(t("search"), "project/search/$pid/$type");
     }
-    $output .= $theme->links($links);
+    $output .= theme("links", $links);
   }
   else {
     $output .= t("No matches found.");
@@ -358,7 +358,7 @@ function project_page_filter_apply($edit) {
 }
 
 function project_page() {
-  global $op, $theme;
+  global $op;
 
   if (empty($op)) {
     $op = arg(1);
@@ -366,35 +366,35 @@ function project_page() {
 
   switch ($op) {
     case "mail_help":
-      $theme->header();
-      $theme->box(t("Project Mail Help"), project_mail_help());
-      $theme->footer();
+      theme("header");
+      theme("box", t("Project Mail Help"), project_mail_help());
+      theme("footer");
       break;
     case t("Search"):
       global $edit;
-      $theme->header(t("Project search results"));
-      $theme->box(t("Search results"), project_page_filter_apply($edit));
-      $theme->box(t("Search"), project_page_filter($edit));
-      $theme->footer();
+      theme("header", t("Project search results"));
+      theme("box", t("Search results"), project_page_filter_apply($edit));
+      theme("box", t("Search"), project_page_filter($edit));
+      theme("footer");
       break;
     case "search":
-      $theme->header(t("Project search"));
+      theme("header", t("Project search"));
       $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
-      $theme->box(t("Search"), project_page_filter($edit));
-      $theme->footer();
+      theme("box", t("Search"), project_page_filter($edit));
+      theme("footer");
       break;
     case "user":
       global $user;
       $result = db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid);
-      $theme->header(strtr("%u's projects", array("%u" => $user->name)));
+      theme("header", strtr("%u's projects", array("%u" => $user->name)));
 
       while ($project = db_fetch_object($result)) {
         if ($output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = $project->pid", "p.assigned = '$user->uid'"), $project->pid, 0, arg(4), arg(5))) {
-          $theme->box($project->name, $output);
+          theme("box", $project->name, $output);
         }
       }
 
-      $theme->footer();
+      theme("footer");
       break;
     case "list":
       global $edit;
@@ -409,20 +409,20 @@ function project_page() {
       }
       $output = project_list($filter, arg(2), arg(3), arg(4), arg(5));
 
-      $theme->header("$project->name ${type}s");
-      $theme->box($project->name ." : ". t((arg(3) ? arg(3) : "all")), $output);
+      theme("header", "$project->name ${type}s");
+      theme("box", $project->name ." : ". t((arg(3) ? arg(3) : "all")), $output);
       if (!count($edit)) {
         $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
       }
-      $theme->box(t("Search"), project_page_filter($edit));
-      $theme->footer();
+      theme("box", t("Search"), project_page_filter($edit));
+      theme("footer");
       break;
     case "update":
       global $user;
       if (user_access("post bug reports")) {
         $node = node_load(array("nid" => arg(2)));
 
-        $theme->header("Updating:". $node->title);
+        theme("header", "Updating:". $node->title);
         node_view($node, 0);
 
         // Clean up for follow up
@@ -431,42 +431,42 @@ function project_page() {
         $node->revision = 1;
         $node->uid = $user->uid;
         $node->name = $user->name;
-        $theme->box("$node->project_name : ". t($node->ptype), node_form($node));
+        theme("box", "$node->project_name : ". t($node->ptype), node_form($node));
       }
       else {
-        $theme->header();
+        theme("header");
         print message_access();
       }
-      $theme->footer();
+      theme("footer");
       break;
     case "add":
       global $user;
-      $theme->header();
+      theme("header");
       if (user_access("post bug reports")) {
         $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => arg(2), "ptype" => arg(3), "revision" => 1);
-        $theme->box(t("Project") ." : ". t(arg(3)), node_form($node));
+        theme("box", t("Project") ." : ". t(arg(3)), node_form($node));
       }
       else {
-        $theme->box(t("Access denied"), message_access());
+        theme("box", t("Access denied"), message_access());
       }
-      $theme->footer();
+      theme("footer");
       break;
     case "Preview":
       global $edit;
-      $theme->header();
-      $theme->box(t("Project") ." : ". t($edit["ptype"]), node_preview($edit));
-      $theme->footer();
+      theme("header");
+      theme("box", t("Project") ." : ". t($edit["ptype"]), node_preview($edit));
+      theme("footer");
       break;
     case t("Submit"):
       global $edit;
-      $theme->header();
+      theme("header");
       $edit["revision"] = 1;
-      $theme->box(t("Project") ." : ". t($edit["ptype"]), node_submit($edit));
-      $theme->footer();
+      theme("box", t("Project") ." : ". t($edit["ptype"]), node_submit($edit));
+      theme("footer");
       break;
     default:
       $result = db_query("SELECT pid,name FROM projects". ((int) arg(1) ? " WHERE pid = ". arg(1) : "") ." ORDER BY name");
-      $theme->header();
+      theme("header");
       while ($project = db_fetch_object($result)) {
         $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
         foreach (project_type(2) as $type => $name) {
@@ -487,9 +487,9 @@ function project_page() {
           $output .= "<td>($active->total ". t("open") .")</td>";
         }
         $output .= "</table>\n";
-        $theme->box($project->name, $output);
+        theme("box", $project->name, $output);
       }
-      $theme->footer();
+      theme("footer");
   }
 }
 
@@ -799,7 +799,7 @@ function project_diff(&$a, &$b) {
 }
 
 function project_view($node, $main = 0) {
-  global $theme;
+
 
   // Initialize project variables.
   $projects = array(0 => "<none>");
@@ -856,7 +856,7 @@ function project_view($node, $main = 0) {
     $node->uid = $node->revisions[0][node]->uid;
     $node->name = $node->revisions[0][node]->name;
   }
-  $theme->node($node, $main);
+  theme("node", $node, $main);
 }
 
 function project_mail_help() {
