@@ -1,20 +1,11 @@
 <?php
-/* $Id: issue.inc,v 1.77 2004/09/26 16:15:55 kjartan Exp $ */
+/* $Id: issue.inc,v 1.78 2004/09/28 19:32:00 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
 }
 
 function project_issue_page() {
-  $breadcrumb = array(
-    l(t('Home'), NULL),
-    l(t('Projects'), 'project')
-  );
-  if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
-    $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
-  }
-  $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
-
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
       $project = project_project_retrieve(arg(3));
@@ -57,7 +48,7 @@ function project_issue_statistics($project) {
       l(t('Projects'), 'project')
     );
     if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
-      $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
+      $breadcrumb[] = l($term->name, 'project/'. $term->name);
     }
     $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
     drupal_set_breadcrumb($breadcrumb);
@@ -67,7 +58,7 @@ function project_issue_statistics($project) {
   $output = '<div class="project">';
 
   // Issue lifetime
-  $header = array(t('category'), t('overall'), t('last month'));
+  $header = array(t('Category'), t('Overall'), t('Last month'));
   $rows = array();
   $duration = time() - 30 * 24 * 60 * 60;
   $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category', $filter);
@@ -85,7 +76,7 @@ function project_issue_statistics($project) {
   $output .= '<h2>'. t('Average lifetime') .'</h2>';
   $output .= theme('table', $header, $rows);
 
-  $header = array(t('status'), t('overall'), '%', t('last month'));
+  $header = array(t('Status'), t('Overall'), '%', t('Last month'));
   $rows = array();
   // Activity overall
   $total = db_result(db_query('SELECT COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s', $filter));
@@ -105,7 +96,7 @@ function project_issue_statistics($project) {
 
   // Project overview
   if (!$project->nid) {
-    $header = array_merge(array(t('project')), project_issue_state(), array(t('total')));
+    $header = array_merge(array(t('Project')), project_issue_state(), array(t('Total')));
     $rows = array();
     $result = db_query("SELECT n.nid, n.title, p.state, COUNT(p.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state");
 
@@ -135,7 +126,7 @@ function project_issue_statistics($project) {
 function project_issue_subscribe($project = 0) {
   global $user;
 
-  $levels = array(0 => t('none'), 1 => t('own issues'), 2 => t('all issues'));
+  $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
 
   if (is_array($_POST['edit'])) {
     // Remove previous subscriptions for user.
@@ -166,7 +157,7 @@ function project_issue_subscribe($project = 0) {
     $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "][$project->nid", $level, $levels);
   }
   else {
-    $headers = array_merge(t('project'), $levels);
+    $headers = array_merge(t('Project'), $levels);
 
     $row = array(t('All projects'));
     foreach ($levels as $key => $level) {
@@ -265,6 +256,7 @@ function project_issue_form(&$node, &$param) {
     }
 
     $output .= form_textarea('Description', 'body', $node->body, 60, 20, NULL, NULL, !$node->comment);
+    $output .= filter_form('format', $node->format);
     $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')));
   }
   else {
@@ -355,7 +347,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
     if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->pid))) {
-      $breadcrumb[] = array('path' => url('project', 'tid='.$term->tid), 'title' => $term->name);
+      $breadcrumb[] = array('path' => url('project/'. $term->name), 'title' => $term->name);
     }
     $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
     $breadcrumb[] = array('path' => 'project/issues/'. $project->uri, 'title' => t('issues'));
@@ -532,17 +524,17 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
 
   $header = array();
   if (!$project->nid) {
-    $header[] = array('data' => t('project'), 'field' => 'p.pid');
+    $header[] = array('data' => t('Project'), 'field' => 'p.pid');
   }
-  $header[] = array('data' => t('summary'), 'field' => 'n.title');
-  $header[] = array('data' => t('status'), 'field' => 'p.state');
-  $header[] = array('data' => t('pri'), 'field' => 'p.priority');
-  $header[] = array('data' => t('category'), 'field' => 'p.category');
+  $header[] = array('data' => t('Summary'), 'field' => 'n.title');
+  $header[] = array('data' => t('Status'), 'field' => 'p.state');
+  $header[] = array('data' => t('Pri'), 'field' => 'p.priority');
+  $header[] = array('data' => t('Category'), 'field' => 'p.category');
   if (count($releases)) {
-    $header[] = array('data' => t('version'), 'field' => 'p.rid');
+    $header[] = array('data' => t('Version'), 'field' => 'p.rid');
   }
-  $header[] = array('data' => t('last updated'), 'field' => 'n.changed', 'sort' => 'desc');
-  $header[] = array('data' => t('assigned to'), 'field' => 'u.name');
+  $header[] = array('data' => t('Last updated'), 'field' => 'n.changed', 'sort' => 'desc');
+  $header[] = array('data' => t('Assigned to'), 'field' => 'u.name');
   #$header[] = array('data' => t('submitted by'), 'field' => 'n.uid');
 
   if ($query) {

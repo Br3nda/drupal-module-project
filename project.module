@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.170 2004/09/27 20:13:02 kjartan Exp $ */
+/* $Id: project.module,v 1.171 2004/09/28 19:32:00 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -38,6 +38,8 @@ function project_help($section) {
       return t('A project enables teams to track outstanding items which need resolution');
     case 'node/add#project_issue':
       return t('Add a new issue (bug report, feature request, etc) to an existing project.');
+    case 'node/add/project_project':
+      return variable_get('project_help_node_add', '');
   }
 }
 
@@ -113,6 +115,7 @@ function project_cron() {
 
 function project_link($type, $node = 0, $main = 0) {
   $links = array();
+
   switch ($type) {
     case 'page':
       if (user_access('access projects')) {
@@ -120,14 +123,6 @@ function project_link($type, $node = 0, $main = 0) {
       }
       break;
     case 'node':
-      if ($node->type == 'project_project') {
-        if (!user_access('administer nodes') && node_access('update', $node)) {
-          $links[] = l(t('edit'), "node/$node->nid/edit");
-        }
-        if ($node->issues && user_access('access project issues')) {
-          $links[] = l(t('issues'), "project/issues/$node->uri");
-        }
-      }
       if ($node->type == 'project_issue') {
         if (user_access('create project issues')) {
           $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
@@ -185,7 +180,7 @@ function project_menu($may_cache) {
 
 
     // Comments
-    $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_CALLBACK);
 
     // Releases
     if (variable_get('project_release_directory', '')) {
@@ -197,18 +192,18 @@ function project_menu($may_cache) {
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(array('nid' => arg(1)));
       if ($node->type == 'project_project') {
-        $items[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('releases'), 'callback' => 'project_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_LOCAL_TASK);
+        $items[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('releases'), 'callback' => 'project_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
 
         if (node_access('update', $node)) {
-          $items[] = array('path' => 'node/'. arg(1) .'/release/overview', 'title' => t('overview'), 'callback' => 'project_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_DEFAULT_LOCAL_TASK);
+          $items[] = array('path' => 'node/'. arg(1) .'/release/overview', 'title' => t('overview'), 'callback' => 'project_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
         }
 
         if (!variable_get('project_release_directory', '')) {
-          $items[] = array('path' => 'node/'. arg(1) .'/release/add', 'title' => t('add'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_LOCAL_TASK);
+          $items[] = array('path' => 'node/'. arg(1) .'/release/add', 'title' => t('add'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_CALLBACK);
         }
         if (arg(2) == 'release' && is_numeric(arg(4))) {
-          $items[] = array('path' => 'node/'. arg(1) .'/release/edit/'. arg(4), 'title' => t('edit'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_LOCAL_TASK);
-          $items[] = array('path' => 'node/'. arg(1) .'/release/delete/'. arg(4), 'title' => t('edit'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_LOCAL_TASK);
+          $items[] = array('path' => 'node/'. arg(1) .'/release/edit/'. arg(4), 'title' => t('edit'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_CALLBACK);
+          $items[] = array('path' => 'node/'. arg(1) .'/release/delete/'. arg(4), 'title' => t('edit'), 'callback' => 'project_release_submit', 'access' => node_access('update', $node), 'weight' => 1, 'type' => MENU_CALLBACK);
         }
       }
     }
@@ -270,8 +265,8 @@ function project_page_overview($tid = 0) {
     $vocabulary = reset($vocabularies);
 
     $header = array(
-      array('data' => t('project')),
-      array('data' => t('issues'), 'colspan' => 3)
+      array('data' => t('Project')),
+      array('data' => t('Issues'), 'colspan' => 3)
     );
 
     if ($tid && is_numeric($tid)) {
@@ -318,9 +313,9 @@ function project_page_overview($tid = 0) {
     }
     else { // Show table form
       $header = array(
-        array('data' => t('project'), 'field' => 'n.title', 'sort' => 'asc'),
-        array('data' => t('updated'), 'field' => 'n.changed'),
-        array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
+        array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
+        array('data' => t('Updated'), 'field' => 'n.changed'),
+        array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
       );
 
       $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues, COUNT(i.nid) AS count FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} i ON n.nid = i.pid AND i.state < 3 ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
@@ -358,9 +353,9 @@ function project_page_user($arg = 0) {
   }
 
   $header = array(
-    array('data' => t('project'), 'field' => 'n.title', 'sort' => 'asc'),
-    array('data' => t('updated'), 'field' => 'n.changed'),
-    array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
+    array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
+    array('data' => t('Updated'), 'field' => 'n.changed'),
+    array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
   );
 
   $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) ". node_access_join_sql() ." WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d AND ". node_access_where_sql() ." GROUP BY n.nid %s", $user->uid, tablesort_sql($header));
@@ -381,22 +376,6 @@ function project_page_user($arg = 0) {
   $output .= l('#', "project/user/$user->name");
 
   $output .= theme('box', t('issues'), project_issue_query_result(NULL, 'html', $query, false));
-
-  /*$rows = array();
-
-  $result = db_query_range("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.nid AND p.state IN (1,2,8) ". node_access_join_sql() ." WHERE n.status = 1 AND ". node_access_where_sql() ." ORDER BY n.changed DESC", 0, 10);
-
-  while ($node = db_fetch_object($result)) {
-    $node = node_load($node);
-    $rows[] = array(
-      l($node->title, "node/$node->nid"),
-      array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
-      l(t('view'), "node/$node->nid"),
-    );
-  }
-
-  $output .= '<div class="project">'. theme('table', $header, $rows) .'</div>';
-  $output .= l('#', "project/user/$user->name");*/
 
   print theme('page', $output);
 }

@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.37 2004/09/27 20:13:03 kjartan Exp $ */
+/* $Id: release.inc,v 1.38 2004/09/28 19:32:00 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -156,7 +156,7 @@ function project_release_overview($arg = 0) {
   $output = '<div class="project">';
   $output .= '<div class="downloads">';
 
-  $header = array(t('project'), t('downloads'), t('description'));
+  $header = array(t('Project'), t('Downloads'), t('Description'));
 
   $result = db_query("SELECT DISTINCT(n.nid), n.title, n.teaser, r.tid FROM {node} n LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
 
@@ -295,9 +295,9 @@ function project_release_view($release, $project = 0) {
 function project_release_list($project, $main = 0) {
   $result = db_query('SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC', $project->nid);
   if (db_num_rows($result)) {
-    $header = array(t('version'), t('released'), t('changes'));
+    $header = array(t('Version'), t('Released'), t('Changes'));
     if (node_access('update', $project) || node_access('delete', $project)) {
-      $header[] = array('data' => t('operations'), 'colspan' => 2);
+      $header[] = array('data' => t('Operations'), 'colspan' => 2);
     }
     while ($release = db_fetch_object($result)) {
       $output .= theme('box', l(t('%project %version', array('%project' => $project->title, '%version' => $release->version)), 'node/'. $project->nid .'/release', array('id' => 'version-'. $release->version), NULL, $release->version), project_release_view($release, $project));
@@ -309,7 +309,7 @@ function project_release_list($project, $main = 0) {
 function project_release_load($rid, $status = 1) {
   if ($rid->type == 'project_project') {
     $status = $status ? 'AND status = 1' : '';
-    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d $status ORDER BY created DESC", $rid->nid);
+    $result = db_query("SELECT rid,version FROM {project_releases} WHERE nid = %d $status ORDER BY created DESC", $rid->nid);
     $releases = array();
     while ($release = db_fetch_object($result)) {
       $releases[$release->rid] = $release->version;

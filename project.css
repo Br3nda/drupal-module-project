@@ -24,10 +24,10 @@
 }
 
 .project td.state_light_1 {
-  background-color: #eee;
+  background-color: #fff;
 }
 .project td.state_dark_1 {
-  background-color: #ddd;
+  background-color: #f6f6f6;
 }
 
 .project td.state_light_2,
@@ -43,6 +43,11 @@
 .project td.state_light_7,
 .project td.state_dark_7 {
   background-color: #ffc0c0;
+}
+
+.project td.state_light_8,
+.project td.state_dark_8 {
+  background-color: #ffff99;
 }
 
 .project .header {

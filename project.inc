@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.38 2004/09/26 21:25:46 kjartan Exp $ */
+/* $Id: project.inc,v 1.39 2004/09/28 19:32:00 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -7,7 +7,7 @@ function project_project_node_name() {
   return $info[$field];
 }
 
-function project_project_form(&$node, &$error) {
+function project_project_form(&$node) {
   if (count($node->components)) {
     $node->components = implode("\n", $node->components);
   }
@@ -24,40 +24,42 @@ function project_project_form(&$node, &$error) {
     }
   }
 
-  //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'). theme('error', $error['title']));
-  $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme('error', $error['body']));
-  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme('error', $error['uri']));
-  $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme('error', $error['mail']));
-  $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme('error', $error['homepage']));
-  $project .= form_textfield(t('Documentation'), 'documentation', $node->documentation, 40, 255, t('Link to project documentation.'). theme('error', $error['documentation']));
-  $project .= form_textfield(t('License'), 'license', $node->license, 40, 255, t('Link to project license.'). theme('error', $error['license']));
-  $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme('error', $error['screenshots']));
-  $project .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme('error', $error['changelog']));
-  $project .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme('error', $error['cvs']));
-  $project .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, t('Link to a live demo.'). theme('error', $error['demo']));
+  //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'));
+  $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, null, null, true);
+  $project .= filter_form('format', $node->format);
+  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'), null, true);
+  $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'), null, true);
+  $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'));
+  $project .= form_textfield(t('Documentation'), 'documentation', $node->documentation, 40, 255, t('Link to project documentation.'));
+  $project .= form_textfield(t('License'), 'license', $node->license, 40, 255, t('Link to project license.'));
+  $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'));
+  $project .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'));
+  $project .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'));
+  $project .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, t('Link to a live demo.'));
 
   $issue .= form_item(t('Issue tracker'), form_checkbox(t('Enable issue tracker'), 'issues', 1, $node->issues, t('Let users submit bug requests, patches, feature requests, support requests, etc.')));
-  $issue .= form_select(t('Default version'), 'version', $node->version, project_release_load($node), t('Default version for issues.'));
+  if ($releases = project_release_load($node)) {
+    $issue .= form_select(t('Default version'), 'version', $node->version, $releases, t('Default version for issues.'));
+  }
   $issue .= form_textarea(t('Components'), 'components', $node->components, 20, 5);
   $issue .= form_textarea(t('Submission guidelines'), 'help', $node->help, 20, 5);
 
-  $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme('error', $error['mail_digest']));
-  $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme('error', $error['mail_copy']));
-
-  $options = project_issue_category();
-  foreach ($options as $key => $choice) {
-    $data .= form_checkbox($choice, "mail_copy_filter][$key", $key, ($key == $node->mail_copy_filter[$key]));
+  $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.'));
+  $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.'));
+  if (user_access('administer projects')) {
+    $options = project_issue_category();
+    foreach ($options as $key => $choice) {
+      $data .= form_checkbox($choice, "mail_copy_filter][$key", $key, ($key == $node->mail_copy_filter[$key]));
+    }
+    $email .= form_item(t('Categories'), $data, t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
+    $options = project_issue_state();
+    $filter_state = '';
+    foreach ($options as $key => $choice) {
+      $filter_state .= form_checkbox($choice, "mail_copy_filter_state][$key", $key, ($key == $node->mail_copy_filter_state[$key]));
+    }
+    $email .= form_item(t('States'), $filter_state, t('Which issue states to e-mail. If none are checked all states will be posted.'));
+    $email .= form_item(t('Monthly reminder'), form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.')));
   }
-  $email .= form_item(t('Categories'), $data, t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
-
-  $options = project_issue_state();
-  $filter_state = '';
-  foreach ($options as $key => $choice) {
-    $filter_state .= form_checkbox($choice, "mail_copy_filter_state][$key", $key, ($key == $node->mail_copy_filter_state[$key]));
-  }
-  $email .= form_item(t('States'), $filter_state, t('Which issue states to e-mail. If none are checked all states will be posted.'));
-
-  $email .= form_item(t('Monthly reminder'), form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.')));
 
   if (function_exists('taxonomy_node_form')) {
     $output = implode('', taxonomy_node_form($node->type, $node));
@@ -75,24 +77,29 @@ function project_project_cleanup($input) {
 }
 
 function project_project_validate(&$node) {
+  // Bail if user hasn't done a preview yet.
+  if (!isset($node->title)) {
+    return $node;
+  }
+
   // Make sure title isn't already in use
   if (db_num_rows(db_query("SELECT nid FROM {node} WHERE type = '%s' AND status = 1 AND title = '%s' AND nid <> %d", $node->type, $node->title, $node->nid))) {
-    $error['title'] .= t('This project name is already in use.');
+    form_set_error('title', t('This project name is already in use.'));
   }
 
   // Validate uri.
   if (empty($node->uri)) {
-    $error['uri'] = t('Required.');
+    form_set_error('uri', t('A short project name is required.'));
   }
   else {
     // Make sure uri only includes valid characters
     if (!preg_match('/^[a-zA-Z0-9_]+$/', $node->uri)) {
-      $error['uri'] = t('Please only use alphanumerical characters.');
+      form_set_error('uri', t('Please only use alphanumerical characters for the project name.'));
     }
 
     // Make sure uri isn't already in use, or reserved
     if (in_array($node->uri, array('user', 'issues', 'releases')) || db_num_rows(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
-      $error['uri'] .= t('This project name is already in use.');
+      form_set_error('uri', t('This project name is already in use.'));
     }
   }
   if (!$error['uri']) {
@@ -101,23 +108,23 @@ function project_project_validate(&$node) {
 
   // We need a description.
   if (empty($node->body)) {
-    $error['body'] = t('Required.');
+    form_set_error('body', t('You must add a project description.'));
   }
 
   // Validate emails
   if (empty($node->mail)) {
-    $error['mail'] = t('Required.');
+    form_set_error('mail', t('You must specify a project e-mail.'));
   }
   elseif ($data = user_validate_mail($node->mail)) {
-    $error['mail'] = $data;
+    form_set_error('mail', $data);
   }
 
   if (!empty($node->mail_digest) && ($data = user_validate_mail($node->mail_digest))) {
-    $error['mail_digest'] = $data;
+    form_set_error('mail_digest', $data);
   }
 
   if (!empty($node->mail_copy) && ($data = user_validate_mail($node->mail_copy))) {
-    $error['mail_copy'] = $data;
+    form_set_error('mail_copy', $data);
   }
 
   if (is_array($node->mail_copy_filter)) {
@@ -131,7 +138,7 @@ function project_project_validate(&$node) {
   // Make sure all URL fields actually contain URLs.
   foreach (array('homepage', 'changelog', 'cvs', 'demo') as $uri) {
     if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
-      $error[$uri] = t('Invalid URL.');
+      form_set_error($uri, t('%field is not a valid URL.', array('%field' => t(ucfirst($uri)))));
     }
   }
 
@@ -145,7 +152,7 @@ function project_project_validate(&$node) {
     }
   }
 
-  return $error;
+  return $node;
 }
 
 /**
@@ -160,20 +167,94 @@ function project_project_set_location(&$node, $extra = array()) {
 
   $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
   if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
-    $breadcrumb[] = array('path' => url('project', 'tid='. $term->tid), 'title' => $term->name);
+    $breadcrumb[] = array('path' => url('project/'. $term->name), 'title' => $term->name);
   }
-  $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
   $breadcrumb = array_merge($breadcrumb, $extra);
 
   return $breadcrumb;
 }
 
 function project_project_view(&$node, $teaser = false, $page = false) {
+  $node = project_project_content($node, $teaser);
+
   if ($page) {
     // Breadcrumb navigation
-    $breadcrumb = project_project_set_location($node);
+    $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
+    $breadcrumb = project_project_set_location($node, $breadcrumb);
     menu_set_location($breadcrumb);
+    
+    if ($releases = project_release_load($node)) {
+      list($rid, $version) = each($releases);
+      $release = project_release_load($rid);
 
+      // Download section
+      $links = array();
+      
+      $output .= "<h2>Download</h2>\n";
+      $output .= '<h3">'. l(t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small'))), $release->path) ."</h3>\n";
+      if ($release->changes) {
+        $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
+      }
+      if (count($releases) > 1) {
+        $links[] = l(t('View older releases'), 'node/'. $node->nid .'/release');
+      }
+      if (node_access('update', $node)) {
+        $links[] = l(t('Add new releases'), 'node/'. $node->nid .'/release/add');
+      }
+      if ($links) {
+        $output .= theme('item_list', $links);
+      }
+
+      // Misc section
+      $links = array();
+
+      foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
+        if (!empty($node->$uri)) {
+          $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
+        }
+      }
+
+      if ($links) {
+        $output .= theme('item_list', $links, t('Resources'));
+      }
+
+      // Support section
+      $links = array();
+
+      $links[] = l(t('Support forum'), variable_get('project_support_forum', 'forum/18'). $node->uri, null, 'categories=bug&states=1', null);
+
+      if ($node->issues) {
+        #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
+        $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug&states=1', null);
+        $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature&states=1', null);
+        $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
+        $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
+      }
+
+      if ($links) {
+        $output .= theme('item_list', $links, t('Support'));
+      }
+
+      // Developer section
+      $links = array();
+
+      if ($node->cvs) {
+        $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
+      }
+      if ($node->issues) {
+        #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
+        $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
+        $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
+      }
+
+      if ($links) {
+        $output .= theme('item_list', $links, t('Development'));
+      }
+   }
+
+    $node->body .= $output;
+
+    /*
     if ($node->issues && user_access('access project issues')) {
       $links[] = l(t('issues'), "project/issues/$node->uri");
     }
@@ -185,7 +266,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($links) {
-      $node->body .= theme('item_list', $links, t('Links'));
+      #$node->body .= theme('item_list', $links, t('Links'));
     }
 
     if ($releases = project_release_load($node)) {
@@ -194,16 +275,15 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $node->body .= '<h2>'. t('%project %version', array('%project' => $node->title, '%version' => $version)) .'</h2>';
       $node->body .= project_release_view(project_release_load($rid));
     }
-
+    */
   }
-
-  $node = project_project_content($node, $teaser);
 }
 
 function project_project_releases() {
   $node = node_load(array('nid' => arg(1)));
 
   // Breadcrumb navigation
+  $breadcrumb[] = array('path' => 'node/'. $node->nid .'/', 'title' => $node->title);
   $breadcrumb[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('Releases'));
   $breadcrumb = project_project_set_location($node, $breadcrumb);
 
