@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.31 2004/05/13 19:59:52 kjartan Exp $ */
+/* $Id: release.inc,v 1.32 2004/05/19 13:02:40 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -8,7 +8,6 @@ function project_release_scan() {
 
 function project_release_scan_directory($project = NULL) {
   if ($dir = file_create_path(variable_get('project_release_directory', ''))) {
-    $project = 'drupal';
     if ($project) {
       $regexp = "($project)" .'-(.+)\.tar\.gz';
     }
