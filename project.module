@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.123 2003/11/17 15:01:40 kjartan Exp $
+// $Id: project.module,v 1.124 2003/12/02 14:54:46 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -13,10 +13,25 @@ require_once 'issue.inc';
 require_once 'comment.inc';
 require_once 'mail.inc';
 
-function project_help($section = 'admin/path/help') {
+function project_help($section) {
   switch ($section) {
     case 'admin/system/modules':
       return t('Enables teams to track outstanding items which need resolution.');
+    case 'admin/help#project':
+      $help = '<h3>Mailhandler support</h3>'.
+              '<p>Basic mail format:</p>'.
+              '<pre>'.
+              "Type: project\n".
+              "Project: chatbox\n".
+              "Category: bug report\n".
+              "Version: cvs\n".
+              "Priority: normal\n".
+              "Status: active\n".
+              "Component: code\n\n".
+              "Whatever I type here will be the body of the node.\n".
+              '</pre>'.
+              "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n";
+     return $help;
   }
 }
 
@@ -140,16 +155,16 @@ function project_link($type, $node = 0, $main = 0) {
       break;
     case 'system':
       if (arg(0) == 'project' && user_access('access projects')) {
-        menu('project', t('projects'), 'page', 1);
-        menu('project/releases', t('releases'), 'page', 0);
+        menu('project', t('projects'), 'project_page', 1);
+        menu('project/releases', t('releases'), 'project_page', 0);
         $result = db_query_range("SELECT version FROM {project_releases} WHERE status = 1 AND path <> '' GROUP BY version ORDER BY created DESC", 0, 5);
         while ($version = db_fetch_object($result)) {
-          menu("project/releases/$version->version", $version->version, 'page', 0);
+          menu("project/releases/$version->version", $version->version, 'project_page', 0);
         }
       }
 
       if (user_access('maintain projects')) {
-        menu('node/add/project_project', t('project'), 'page');
+        menu('node/add/project_project', t('project'), 'node_page');
       }
 
       if (user_access('access project issues')) {
@@ -166,38 +181,39 @@ function project_link($type, $node = 0, $main = 0) {
         // If we have a project make some specific menu items for easy navigation.
         if ($project) {
           $uri = "project/$project->uri";
-          menu("$uri/issues", "$project->title issues", 'page', 1);
-          menu("$uri/issues/search", t('search'), 'page', 1);
+          menu("$uri/issues", "$project->title issues", 'project_page', 1);
+          menu("$uri/issues/search", t('search'), 'project_page', 1);
           if ($GLOBALS['user']->uid) {
-            menu("$uri/issues/user", t('my issues'), 'page', 0);
-            menu("$uri/issues/subscribe", t('subscribe'), 'page', 3);
+            menu("$uri/issues/user", t('my issues'), 'project_page', 0);
+            menu("$uri/issues/subscribe", t('subscribe'), 'project_page', 3);
           }
           foreach ($categories as $cat => $category) {
-            menu("$uri/issues/$cat", $category, 'page', 2);
+            menu("$uri/issues/$cat", $category, 'project_page', 2);
           }
-          menu("$uri/issues/add", t('submit'), 'page', 3);
-          menu("$uri/issues/statistics", t('statistics'), 'page', 4);
+          menu("$uri/issues/add", t('submit'), 'project_page', 3);
+          menu("$uri/issues/statistics", t('statistics'), 'project_page', 4);
         }
 
         // Create all project issues menu.
-        menu('project/issues', t('issues'), 'page', 2);
+        menu('project/issues', t('issues'), 'project_page', 2);
         if ($GLOBALS['user']->uid) {
-          menu('project/issues/user', t('my issues'), 'page', 0);
+          menu('project/issues/user', t('my issues'), 'project_page', 0);
         }
-        menu('project/issues/search', t('search'), 'page', 1);
+        menu('project/issues/search', t('search'), 'project_page', 1);
         foreach ($categories as $cat => $category) {
-          menu("project/issues/$cat", $category, 'page', 2);
+          menu("project/issues/$cat", $category, 'project_page', 2);
         }
-        menu('project/issues/add', t('submit'), 'page', 3);
-        menu("project/issues/statistics", t('statistics'), 'page', 4);
+        menu('project/issues/add', t('submit'), 'project_page', 3);
+        menu('project/issues/statistics', t('statistics'), 'project_page', 4);
       }
 
       // Populate the node/add menu
       if (user_access('maintain project issues')) {
         $categories = project_issue_category(0, 0);
         foreach ($categories as $cat => $category) {
-          menu("node/add/project_issue/$cat", $category, 'page', 1);
+          menu("node/add/project_issue/$cat", $category, 'node_page', 1);
         }
+        menu('node/add/project_issue', 'issue', 'node_page', 0, 0);
       }
       break;
   }
@@ -236,13 +252,7 @@ function project_page() {
   }
   switch (arg(1)) {
     case 'releases':
-      $breadcrumb[] = l(t('Home'), NULL);
-      $breadcrumb[] = l(t('Projects'), 'project');
-
-      print theme('header');
-      print theme('breadcrumb', $breadcrumb);
-      print theme('box', t('Project downloads'), project_release_overview());
-      print theme('footer');
+      print theme('page', project_release_overview());
       break;
     case 'issues':
       project_issue_page($node);
@@ -271,9 +281,8 @@ function project_page() {
                 break;
               }
             default:
-              print theme('header', $node->title);
-              node_view($node);
-              print theme('footer');
+              //drupal_set_title($node->title);
+              print theme('page', node_view($node));
           }
         }
       }
@@ -296,44 +305,29 @@ function project_page_overview() {
       while ($node = db_fetch_object($result)) {
         $items[] = l($node->title, "node/view/$node->nid");
       }
-      $output .= theme('item_list', $items, $term->name);
     }
 
-    /*if (variable_get('project_release_directory', '')) {
-      $browse = array(l(t('All projects'), 'project', NULL, 'tid=0'));
-      $browse[] = l(t('All downloads'), 'project/releases');
-    }*/
+    $output .= '<div style="float: left; padding-right: 5em;">';
+    $output .= theme('item_list', $items, $term->name);
+    $output .= '</div>';
+    $output .= '<div style="float: left;">';
+    $output .= theme('item_list', $browse, t('Details'));
+    $output .= '</div>';
 
-    print theme('header', t('Projects'));
-
-    print '<div style="float: left; padding-right: 5em;">';
-    print theme('box', NULL, $output);
-    print '</div>';
-
-    print theme('box', NULL, theme('item_list', $browse, t('Details')));
-
-    print theme('footer');
+    print theme('page', $output);
   }
   else {
     if (is_numeric($_GET['tid']) && $_GET['tid']) {
       $term = taxonomy_get_term($_GET['tid']);
     }
 
-    $breadcrumb[] = l(t('Home'), NULL);
-    $breadcrumb[] = l(t('Projects'), 'project');
-    if ($term) {
-      $breadcrumb[] = $term->name;
-    }
-
-    print theme('header', t('Projects'));
-    print theme('breadcrumb', $breadcrumb);
     if ($term) { // Paged full view
       $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
       while ($node = db_fetch_object($result)) {
-        node_view(node_load($node), 1);
+        $output .= node_view(node_load($node), 1);
       }
       if ($pager = pager_display(NULL, variable_get('project_overview', 10), 0, 'default', array('tid' => $_GET['tid']))) {
-        print $pager;
+        $output .= $pager;
       }
     }
     else { // Show table form
@@ -354,58 +348,10 @@ function project_page_overview() {
         );
       }
 
-      $output = '<div class="project">';
-      $output .= theme('table', $header, $rows);
-      $output .= '</div>';
-      print theme('box', t('All projects'), $output);
+      $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
     }
 
-    print theme('footer');
-  }
-}
-
-function project_page_user() {
-  global $user;
-
-  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
-    case t('Save'):
-      foreach ($_POST['edit'] as $nid => $settings) {
-        if (($project = node_load(array('nid' => $nid, 'type' => 'project_project')))) {
-          db_query('DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $nid, $user->uid);
-          db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $settings['subscription']);
-        }
-        $status = status(t('Settings saved'));
-      }
-    case 'settings':
-      $header = array(t('project'), t('issues notification'));
-      $result = db_query('SELECT * FROM {project_subscriptions} WHERE uid = %d', $user->uid);
-      while ($subscription = db_fetch_object($result)) {
-        $subscriptions[$subscription->nid] = $subscription->level;
-      }
-
-      $result = db_query("SELECT nid, title FROM {node} WHERE status = 1 AND type = 'project_project' ORDER BY title");
-      while ($project = db_fetch_object($result)) {
-        $rows[] = array(
-          $project->title,
-          form_select('', "$project->nid][subscription", $subscriptions[$project->nid], array(0 => t("Don't notify when issues are submitted."), 1 =>t('Only notify on my submitted issues.'), 2 => t('Notify me of all issues that are submitted.')))
-        );
-      }
-
-      $output = theme('table', $header, $rows);
-      $output .= form_submit(t('Save'));
-
-      print theme('header', t('User project settings'));
-      print $status;
-      print theme('box', t('User project settings'), form($output));
-      print theme('footer');
-      break;
-    default:
-      $_POST['edit']= array('users' => $user->uid);
-      $output = project_issue_query_result();
-
-      print theme('header');
-      print theme('box', l(t('Your issues'), 'project/user/issues'), $output);
-      print theme('footer');
+    print theme('page', $output);
   }
 }
 

@@ -1,3 +1,7 @@
+2. December 2003
+----------------
+- Updated to new theme system (Kjartan).
+
 16. November 2003
 -----------------
 - Moved several operations to the menu (Kjartan).
@@ -7,7 +11,7 @@
 + Added per project customizable submission guidelines for issues (Kjartan).
   Requires database update:
     ALTER TABLE project_projects ADD help text;
-+ Added basic issue statistics.
++ Added basic issue statistics (Kjartan).
 
 10. November 2003
 -----------------
