@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.34 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: mail.inc,v 1.35 2004/09/07 09:41:15 kjartan Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -251,7 +251,7 @@ function project_mail_notify($node) {
   $hr = str_repeat('-', 72);
 
   // Create mail header
-  $sender->name = user_mail_encode(($pos = strpos($node->updator, '@')) ? substr($node->updator, 0, $pos) : $node->updator);
+  $sender->name = mime_header_encode(($pos = strpos($node->updator, '@')) ? substr($node->updator, 0, $pos) : $node->updator);
   $sender->mail = $project->mail;
   $domain = preg_replace('|.+://([a-zA-Z0-9\._-]+).*|', '\1', $GLOBALS['base_url']);
   $header = array(

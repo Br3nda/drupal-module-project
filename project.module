@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.160 2004/06/27 15:14:18 kjartan Exp $ */
+/* $Id: project.module,v 1.161 2004/09/07 09:41:15 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -192,7 +192,7 @@ function project_menu() {
 
   // Create issues
   $access = user_access('maintain project issues');
-  $items[] = array('path' => 'node/add/project_project', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+  $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
 
   if (variable_get('project_release_directory', '')) {
     $access = user_access('administer projects');

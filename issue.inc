@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.66 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: issue.inc,v 1.67 2004/09/07 09:41:15 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -200,7 +200,7 @@ function project_issue_subscribe($project = 0) {
   return form($output);
 }
 
-function project_issue_form(&$node, &$error, &$param) {
+function project_issue_form(&$node, &$param) {
   global $user;
 
   // Set form parameters so we can accept file uploads.
@@ -241,13 +241,13 @@ function project_issue_form(&$node, &$error, &$param) {
       );
     }
 
-    $group1 = form_select(t('Project'), 'pid', $node->pid, $projects, theme('error', $error['pid']));
+    $group1 = form_select(t('Project'), 'pid', $node->pid, $projects, NULL, 0, FALSE, TRUE);
     if ($releases) {
-      $group1 .= form_select(t('Version'), 'rid', $node->rid, $releases, theme('error', $error['rid']));
+      $group1 .= form_select(t('Version'), 'rid', $node->rid, $releases, NULL, 0, FALSE, TRUE);
     }
-    $group1 .= form_select(t('Component'), 'component', $node->component, $components, theme('error', $error['component']));
+    $group1 .= form_select(t('Component'), 'component', $node->component, $components, NULL, 0, FALSE, TRUE);
 
-    $group2 = form_select(t('Category'), 'category', $node->category, $categories, theme('error', $error['category']));
+    $group2 = form_select(t('Category'), 'category', $node->category, $categories, NULL, 0, FALSE, TRUE);
     $group2 .= form_select(t('Priority'), 'priority', $node->priority, $priorities);
     $group2 .= form_select(t('Assigned'), 'assigned', $node->assigned, $assigned);
     if ($node->state || $node->nid) {
@@ -265,17 +265,18 @@ function project_issue_form(&$node, &$error, &$param) {
       $output .= implode('', taxonomy_node_form($node->type, $node));
     }
 
-    $output .= form_textarea('Description', 'body', $node->body, 60, 20, theme('error', $error['body']));
-    $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')) . theme('error', $error['file_issue']));
+    $output .= form_textarea('Description', 'body', $node->body, 60, 20, NULL, NULL, TRUE);
+    $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')));
   }
   else {
-    $output = form_select(t('Project'), 'pid', $node->pid, $projects, theme('error', $error['pid']));
+    $output = form_select(t('Project'), 'pid', $node->pid, $projects);
   }
 
   return $output;
 }
 
 function project_issue_validate(&$node) {
+var_dump(debug_backtrace());
   // Try to find the active project
   if (empty($node->pid) && $arg = arg(3)) {
     if (is_numeric($arg)) {
@@ -287,27 +288,30 @@ function project_issue_validate(&$node) {
   }
 
   // Validate the rest of the form when we have a project.
-  if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
-    if ($releases = project_release_load($project)) {
-      if (!$node->rid || !$releases[$node->rid]) {
-        $node->rid = $project->version;
+  if (isset($node->body)) {
+    if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
+      if ($releases = project_release_load($project)) {
+        if (!$node->rid || !$releases[$node->rid]) {
+          $node->rid = $project->version;
+        }
+        empty($node->rid) and form_set_error('rid', t('You have to specify a valid version.'));
       }
-      empty($node->rid) and $error['rid'] = t('Required.');
+      if ($node->component && !in_array($node->component, $project->components)) {
+        $node->component = 0;
+      }
+      empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
+      empty($node->priority) and $node->priority = 2;
+      empty($node->category) and $node->category = arg(4);
+      empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
+      empty($node->state) and $node->state = 1;
+      empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
+  
+      $file = file_check_upload('file_issue');
+      $node->file = file_save_upload($file);
     }
-    if ($node->component && !in_array($node->component, $project->components)) {
-      $node->component = 0;
+    else {
+      form_set_error('pid', t('You have to specify a valid project.'));
     }
-    empty($node->component) and $error['component'] = t('Required.');
-    empty($node->priority) and $node->priority = 2;
-    empty($node->category) and $node->category = arg(4);
-    empty($node->category) and $error['category'] = t('Required.');
-    empty($node->state) and $node->state = 1;
-    empty($node->body) and $error['body'] = t('Required.');
-
-    $node->file = file_save_upload('file_issue');
-  }
-  else {
-    $error['pid'] = t('Required.');
   }
 
   return $error;
@@ -559,13 +563,22 @@ function project_issue_query_result($project = 0, $format = 'html') {
   // Action links:
   $form = theme('item_list', $links);
 
+  // Convert array fields to single select form items. Some magic happens here.
+  $fields = array('projects', 'states', 'priorities', 'categories');
+  foreach ($fields as $field) {
+    if (is_array($query->$field)) {
+      $option = array();
+
+
+      foreach ($query->$field as $value) {
+        $option[] = ${$field}[$value];
+      }
+      $query->$field = implode(',', $query->$field);
+      ${$field}[$query->$field] = implode(',', $option);
+    }
+  }
+  
   // Make quick search form:
-  if (is_array($query->states)) {
-    $query->states = array_shift($query->states);
-  }
-  if (is_array($query->projects)) {
-    $query->projects = array_shift($query->projects);
-  }
   $rows = array(array(
     form_select(t('Project'), 'projects', $query->projects, $projects),
     form_select(t('Status'), 'states', $query->states, $states),

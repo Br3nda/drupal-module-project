@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.30 2004/05/05 01:16:00 kjartan Exp $ */
+/* $Id: comment.inc,v 1.31 2004/09/07 09:41:15 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -11,8 +11,8 @@ function project_comment_page() {
           $comment->$var = $node->$var;
         }
 
-        $error = project_comment_validate($comment);
-        $output .= form(project_comment_form($comment, $error, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+        $comment = project_comment_validate($comment);
+        $output .= form(project_comment_form($comment, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
         $output .= node_view($node);
 
         $breadcrumb = drupal_get_breadcrumb();
@@ -51,11 +51,11 @@ function project_comment_page() {
   }
 }
 
-function project_comment_form(&$edit, &$error, &$param) {
+function project_comment_form(&$edit, &$param) {
   $output = '<div class="node-form">';
   $output .= '<div class="standard">';
-  $output .= form_textfield(t('Title'), 'title', $edit->title, 60, 128, $error['title']);
-  $output .= project_issue_form($edit, $error, $param);
+  $output .= form_textfield(t('Title'), 'title', $edit->title, 60, 128, NULL, NULL, TRUE);
+  $output .= project_issue_form($edit, $param);
   $output .= '</div></div>';
 
   if ($edit->cid) {
@@ -64,14 +64,14 @@ function project_comment_form(&$edit, &$error, &$param) {
 
   $output .= form_submit(t('Preview'));
 
-  if (!$error) {
+  if (!form_get_errors()) {
     $output .= form_submit(t('Submit'));
   }
 
   return $output;
 }
 
-function project_comment_validate(&$edit) {
+function project_comment_validate($edit) {
   global $user;
 
   $edit->uid = $user->uid;
@@ -83,10 +83,12 @@ function project_comment_validate(&$edit) {
     $edit->fid = $comment->fid;
   }
 
-  $error = project_issue_validate($edit);
-  unset($error['body']);
+  $edit->comment = TRUE;
 
-  return $error ? $error : array();
+  $edit = project_issue_validate($edit);
+  $edit->validated = TRUE;
+
+  return $edit;
 }
 
 function project_comment_view($node, $main = 0) {
