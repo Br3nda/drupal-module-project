@@ -1,10 +1,8 @@
 <?php
-// $Id: issue.inc,v 1.50 2004/01/26 20:52:48 kjartan Exp $
+// $Id: issue.inc,v 1.51 2004/01/28 13:14:10 kjartan Exp $
 
-function project_issue_node($field) {
-  $info['name'] = t('issue');
-
-  return $info[$field];
+function project_issue_node_name() {
+  return t('issue');
 }
 
 function project_issue_page($project) {
@@ -63,13 +61,13 @@ function project_issue_statistics($project) {
   while ($stat = db_fetch_object($result)) {
     $i++;
     $rows[$i][0] = project_issue_category($stat->category);;
-    $rows[$i][1] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+    $rows[$i][1] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
   }
 
   $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $j++;
-    $rows[$j][2] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+    $rows[$j][2] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
   }
   $output = '<h2>'. t('Average lifetime') .'</h2>';
   $output .= theme('table', $header, $rows);
@@ -478,7 +476,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
       if (count($releases)) {
         $row[] = array('data' => $releases[$node->rid], 'class' => $class);
       }
-      $row[] = array('data' => project_interval(time() - $node->changed, 2), 'align' => 'right', 'class' => $class);
+      $row[] = array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right', 'class' => $class);
       $row[] = array('data' => ($node->assigned) ? format_name(user_load(array('uid' => $node->assigned))) : '', 'class' => $class);
 
       $rows[] = $row;

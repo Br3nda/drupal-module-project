@@ -1,8 +1,8 @@
 <?php
-// $Id: project.inc,v 1.24 2004/01/26 20:52:48 kjartan Exp $
+// $Id: project.inc,v 1.25 2004/01/28 13:14:10 kjartan Exp $
 
-function project_project_node($field) {
-  $info['name'] = t('project');
+function project_project_node_name() {
+  return t('project');
 
   return $info[$field];
 }

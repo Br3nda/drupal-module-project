@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.141 2004/01/26 20:52:48 kjartan Exp $
+// $Id: project.module,v 1.142 2004/01/28 13:14:10 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -34,21 +34,19 @@ function project_help($section) {
               '</pre>'.
               "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n";
       return $help;
+    case 'node/add#project_project':
+      return t('A project enables teams to track outstanding items which need resolution');
+    case 'node/add#project_issue':
+      return t('Add a new issue (bug report, feature request, etc) to an existing project.');
   }
 }
 
-function project_system($field) {
-  $info = array(
-    'description' => project_help('admin/system/modules')
-  );
-  return $info[$field];
+function project_node_name($field) {
+  return t('project');
 }
 
-function project_node($field) {
-  $info['name'] = t('project');
-  $info['description'] = t('Create a project.');
-
-  return $info[$field];
+function project_node_types($field) {
+  return array('project_project', 'project_issue');
 }
 
 function project_perm() {
@@ -336,7 +334,7 @@ function project_page_overview() {
       while ($node = db_fetch_object($result)) {
         $rows[] = array(
           l($node->title, "node/view/$node->nid"),
-          array('data' => project_interval(time() - $node->changed, 2), 'align' => 'right'),
+          array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
           array('data' => "$node->count open", 'align' => 'right'),
           l(t('view'), "project/$node->nid/issues"),
           l(t('search'), "project/$node->nid/issues/search"),
@@ -363,86 +361,6 @@ function project_search($keys) {
 // Special project stuff
 function project_types() {
   return array('project_project', 'project_issue');
-}
-
-function project_invoke(&$node, $function, $arg1 = 1, $arg2 = 0) {
-  if (in_array($node->type, project_types())) {
-    $function = 'project_'. $node->type .'_'. $function;
-    return $function($node, $arg1, $arg2);
-  }
-}
-
-// Node functions
-/*function project_node($field) {
-  global $user;
-
-  $info['name'] = t('project');
-  $info['description'] = t('All and everything related to creating and maintaining projects.');
-
-  return $info[$field];
-}*/
-
-function project_form(&$node, &$error, &$param) {
-  // TODO: add type selector
-  switch ($node->type) {
-    case 'project_project':
-      $node->type = 'project_project';
-      return project_project_form($node, $error, $param);
-    default:
-      $node->type = 'project_issue';
-      return project_issue_form($node, $error, $param);
-  }
-}
-
-function project_validate(&$node) {
-  if (!in_array($node->type, project_types())) {
-    return $error['type'] = t('System error: invalid project type.');
-  }
-  return project_invoke($node, 'validate');
-}
-
-function project_view($node, $main = 0) {
-  return project_invoke($node, 'view', $main);
-}
-
-function project_load($node) {
-  return project_invoke($node, 'load');
-}
-
-function project_insert($node) {
-  return project_invoke($node, 'insert');
-}
-
-function project_update($node) {
-  return project_invoke($node, 'update');
-}
-
-function project_delete($node) {
-  return project_invoke($node, 'delete');
-}
-
-function project_access($op, $node) {
-  switch ($node->type) {
-    case 'project_project':
-      return project_project_access($op, $node);
-    case 'project_issue':
-      return project_issue_access($op, $node);
-  }
-}
-
-function project_interval($timestamp, $max = 0) {
-  $units = array('1 year|%count years' => 31536000, '1 week|%count weeks' => 604800, '1 day|%count days' => 86400, '1 hour|%count hours' => 3600, '1 min|%count min' => 60, '1 sec|%count sec' => 1);
-  foreach ($units as $key => $value) {
-    $key = explode('|', $key);
-    if ($timestamp >= $value) {
-      $output .= ($output ? ' ' : '') . format_plural(floor($timestamp / $value), $key[0], $key[1]);
-      $timestamp %= $value;
-      if (++$level == $max) {
-        break;
-      }
-    }
-  }
-  return ($output) ? $output : t('0 sec');
 }
 
 function project_file_download($file) {
