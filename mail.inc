@@ -1,9 +1,9 @@
 <?php
-/* $Id: mail.inc,v 1.35 2004/09/07 09:41:15 kjartan Exp $ */
+/* $Id: mail.inc,v 1.36 2004/09/07 20:47:41 kjartan Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
-    if (user_access('maintain project issues')) {
+    if (user_access('create project issues')) {
       $node->nid = preg_replace('/@.+/', '', $node->nid);
 
       if ($node->nid) {
@@ -261,8 +261,8 @@ function project_mail_notify($node) {
     'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
     "List-Id: $project->title <$project->uri-issues-$domain>",
     'List-Archive: <'. url("project/issues/$project->uri", NULL, NULL, 1) .'>',
-    'List-Subscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>',
-    'List-Unsubscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>'
+    'List-Subscribe: <'. url("node/$project->uri", NULL, NULL, 1) .'>',
+    'List-Unsubscribe: <'. url("node/$project->uri", NULL, NULL, 1) .'>'
   );
   if ($replyto = variable_get('project_reply_to', '')) {
     $header[] = "Reply-To: $project->title <$replyto>";
@@ -297,7 +297,7 @@ function project_mail_notify($node) {
 
   // Create the footer
   $footer  = "-- \n";
-  $footer .= t('View: %link', array('%link' => url("node/view/$node->nid", NULL, NULL, 1))) ."\n";
+  $footer .= t('View: %link', array('%link' => url("node/$node->nid", NULL, NULL, 1))) ."\n";
   $footer .= t('Edit: %link', array('%link' => url("project/comments/add/$node->nid", NULL, NULL, 1))) ."\n";
 
   $body = "$summary\n$body\n$footer\n";
@@ -373,7 +373,7 @@ function project_mail_reminder() {
         }
         $body .= '  state: '. project_issue_state($node->state) ."\n";
         $body .= '  age: '. format_interval(time() - $node->created) ."\n";
-        $body .= '  url: '. url("node/view/$node->nid", NULL, NULL, 1) ."\n";
+        $body .= '  url: '. url("node/$node->nid", NULL, NULL, 1) ."\n";
         $body .= "\n";
       }
     }
@@ -404,7 +404,7 @@ function project_mail_digest() {
         $body[$project->mail_digest] .= '  assigned: '. $assigned->name ."\n";
       }
       $body[$project->mail_digest] .= '  age: '. format_interval(time() - $node->created) ."\n";
-      $body[$project->mail_digest] .= '  url: '. url("node/view/$node->nid", NULL, NULL, 1) ."\n";
+      $body[$project->mail_digest] .= '  url: '. url("node/$node->nid", NULL, NULL, 1) ."\n";
       $body[$project->mail_digest] .= "\n";
     }
   }

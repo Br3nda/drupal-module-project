@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.33 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: release.inc,v 1.34 2004/09/07 20:47:41 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -87,7 +87,7 @@ function project_release_page() {
         if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
           $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
         }
-        $breadcrumb[] = l($node->title, "node/view/$node->nid");
+        $breadcrumb[] = l($node->title, "node/$node->nid");
 
         $error = 1;
         $release->nid = $node->nid;
@@ -123,7 +123,7 @@ function project_release_page() {
       if (node_access('update', $node)) {
         if (($release = project_release_load(arg(3))) && $release->nid == $node->nid) {
           project_release_delete(arg(3));
-          drupal_goto(url("node/view/$release->nid"));
+          drupal_goto(url("node/$release->nid"));
         }
       }
       else {
@@ -159,7 +159,7 @@ function project_release_page() {
 
           $edit->status = 1;
           project_release_save($edit);
-          drupal_goto(url("node/view/$node->nid"));
+          drupal_goto(url("node/$node->nid"));
         }
       }
       else {
@@ -210,7 +210,7 @@ function project_release_overview($arg = 0) {
         $releases[] = l($release->version, $release->path, array('class' => count($releases) ? 'project-old' : 'project-recent')) . ($release->changed > time() - 14 * 24 * 60 * 60 ? theme('mark') : '');
       }
       $rows[] = array(
-        array('class' => 'project-name', 'data' => l($node->title, "node/view/$node->nid")),
+        array('class' => 'project-name', 'data' => l($node->title, "node/$node->nid")),
         array('class' => 'project-download', 'data' => theme('item_list', $releases)),
         array('class' => 'project-teaser', 'data' => check_output($node->teaser)),
       );
@@ -320,7 +320,7 @@ function project_release_view($project, $main = 0) {
     if ($term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
     }
-    $breadcrumb[] = l($project->title, "node/view/$project->nid");
+    $breadcrumb[] = l($project->title, "node/$project->nid");
 
     drupal_set_breadcrumb($breadcrumb);
 
@@ -390,7 +390,7 @@ function project_release_save($release) {
   $file = check_file('file');
   */
   if (empty($release->rid)) {
-    watchdog('special', "project: added release '$release->version' to $node->title", l('view post', "node/view/$release->nid"));
+    watchdog('special', "project: added release '$release->version' to $node->title", l('view post', "node/$release->nid"));
     $release->rid = db_next_id('project_rid');
     if (!variable_get('project_release_directory', '') && $file->filename) {
       $release->fid = drupal_file_save($file);
@@ -412,7 +412,7 @@ function project_release_save($release) {
     db_query('INSERT INTO {project_releases} ('. implode(', ', $k) .') VALUES('. implode(', ', $s) .')', $v);
   }
   else {
-    watchdog('special', "project: updated release '$node->title $release->version'", l('view post', "node/view/$release->nid"));
+    watchdog('special', "project: updated release '$node->title $release->version'", l('view post', "node/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get('project_release_directory', '') && $file->filename) {
@@ -442,7 +442,7 @@ function project_release_save($release) {
 }
 
 function project_release_delete($rid) {
-  watchdog('special', "project: deleted release '$release->version'", l('view post', "node/view/$release->nid"));
+  watchdog('special', "project: deleted release '$release->version'", l('view post', "node/$release->nid"));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 

@@ -1,10 +1,10 @@
 <?php
-/* $Id: comment.inc,v 1.31 2004/09/07 09:41:15 kjartan Exp $ */
+/* $Id: comment.inc,v 1.32 2004/09/07 20:47:41 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'add':
-      if (user_access('maintain project issues')) {
+      if (user_access('create project issues')) {
         $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
         foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
@@ -16,25 +16,25 @@ function project_comment_page() {
         $output .= node_view($node);
 
         $breadcrumb = drupal_get_breadcrumb();
-        $breadcrumb[] = l($node->title, "node/view/$node->nid");
+        $breadcrumb[] = l($node->title, "node/$node->nid");
         drupal_set_breadcrumb($breadcrumb);
         drupal_set_title(t('New comment'));
         print theme('page', $output);
       }
       break;
     case t('Preview'):
-      if (user_access('maintain project issues')) {
+      if (user_access('create project issues')) {
         $edit = array2object($_POST['edit']);
         $edit->type = 'project_issue';
-        $error = project_comment_validate($edit);
+        $edit = project_comment_validate($edit);
 
         print theme('page', node_preview($edit, $error));
       }
       break;
     case t('Submit'):
-      if (user_access('maintain project issues')) {
+      if (user_access('create project issues')) {
         $edit = array2object($_POST['edit']);
-        $error = project_comment_validate($edit);
+        $edit = project_comment_validate($edit);
         if ($error) {
           $edit->type = 'project_issue';
           print theme('page', node_preview($edit, $error));
@@ -44,7 +44,7 @@ function project_comment_page() {
           $edit->nid = $node->nid;
 
           project_comment_save($edit);
-          drupal_goto(url("node/view/$node->nid"));
+          drupal_goto(url("node/$node->nid"));
         }
       }
       break;
@@ -83,10 +83,10 @@ function project_comment_validate($edit) {
     $edit->fid = $comment->fid;
   }
 
-  $edit->comment = TRUE;
+  $edit->comment = true;
 
   $edit = project_issue_validate($edit);
-  $edit->validated = TRUE;
+  $edit->validated = true;
 
   return $edit;
 }
@@ -128,7 +128,7 @@ function project_comment_view($node, $main = 0) {
       }
 
       if ($summary || $comment->body) {
-        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/view/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
+        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
         if ($summary) {
           $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
         }
@@ -144,7 +144,7 @@ function project_comment_view($node, $main = 0) {
     $output .= theme('table', NULL, $rows);
     $output .= '</div>';
 
-    if (user_access('maintain project issues')) {
+    if (user_access('create project issues')) {
       $links[] = '<p>'. l(t('follow up'), "project/comments/add/$node->nid") .'</p>';
     }
     $output .= theme('links', $links);
@@ -180,7 +180,7 @@ function project_comment_save($edit) {
       }
     }
 
-    watchdog('special', "project: added comment '$edit->title'", l('view post', "node/view/$node->nid"));
+    watchdog('special', "project: added comment '$edit->title'", l('view post', "node/$node->nid"));
     db_query("INSERT INTO {project_comments} (cid, nid, uid,  created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->path, $file->mime, $file->size);
     node_save($node);
   }

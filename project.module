@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.161 2004/09/07 09:41:15 kjartan Exp $ */
+/* $Id: project.module,v 1.162 2004/09/07 20:47:41 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -54,7 +54,7 @@ function project_perm() {
     'administer projects',
     'maintain projects',
     'access projects',
-    'maintain project issues',
+    'create project issues',
     'access project issues'
   );
 }
@@ -106,7 +106,7 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query('SELECT * FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
+  $result = db_query('SELECT DISTICT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n '. node_access_join_sql() .' WHERE n.status = 1 AND '. node_access_where_sql() .' AND p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
       $comment->$var = $node->$var;
@@ -127,7 +127,7 @@ function project_link($type, $node = 0, $main = 0) {
     case 'node':
       if ($node->type == 'project_project') {
         if (!user_access('administer nodes') && node_access('update', $node)) {
-          $links[] = l(t('edit'), "node/edit/$node->nid");
+          $links[] = l(t('edit'), "node/$node->nid/edit");
         }
         if (node_access('update', $node)) {
           $links = array(l(t('add new release'), "project/releases/add/$node->nid"));
@@ -137,7 +137,7 @@ function project_link($type, $node = 0, $main = 0) {
         }
       }
       if ($node->type == 'project_issue') {
-        if (user_access('maintain project issues')) {
+        if (user_access('create project issues')) {
           $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
           $links[] = l(t('follow up'), "project/comments/add/$node->nid");
         }
@@ -191,7 +191,7 @@ function project_menu() {
   $items[] = array('path' => 'project/issues/search', 'title' => t('search'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
   // Create issues
-  $access = user_access('maintain project issues');
+  $access = user_access('create project issues');
   $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
 
   if (variable_get('project_release_directory', '')) {
@@ -200,49 +200,6 @@ function project_menu() {
   }
 
   return $items;
-}
-
-function project_nodeapi(&$node, $op, $arg = 0) {
-  if ($op == 'form post' && $node->type == 'project_issue' && $node->pid) {
-    return form_item(t('Posting PHP code'), t('Wrap your PHP code inside <code>[?php ?]</code> tags and it will be colorised automatically.'));
-  }
-}
-
-function project_filter_highlight($text) {
-  // Note, pay attention to odd preg_replace-with-/e behaviour on slashes
-  $text = strtr(trim(str_replace('\"', '"', $text)), array_flip(get_html_translation_table(HTML_ENTITIES)));
-  return '<div class="php">'. highlight_string("<?php\n$text\n?>", 1) .'</div>';
-}
-
-function project_filter_escape($text) {
-  // Note, pay attention to odd preg_replace-with-/e behaviour on slashes
-  return drupal_specialchars(str_replace('\"', '"', $text));
-}
-
-function project_filter($op, $text = "") {
-  switch ($op) {
-    case 'name':
-      return t("PHP code colorizer");
-    case 'settings':
-      $form .= form_checkbox(t('Enabled'), 'project_filter', 1, variable_get("project_filter", 1), "When enabled, all PHP code between [?php ?] tags will be colorized automatically.");
-      return form_group(t("PHP code colorizer"), $form);
-    case 'prepare':
-      if (variable_get("project_filter", 1)) {
-        // Escape all important HTML characters in a [?php ?] tags
-        return preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "'[?php'. project_filter_escape('\\3') .'?]'", $text);
-      }
-      else {
-        return $text;
-      }
-    case 'process':
-      if (variable_get("project_filter", 1)) {
-        // Colorize anything in a [?php ?] tag
-        return preg_replace('@\[\?php(.+?)\?\]@se', "project_filter_highlight('$1')", $text);
-      }
-      else {
-        return $text;
-      }
-  }
 }
 
 function project_page() {
@@ -271,10 +228,10 @@ function project_page() {
       project_page_overview(); break;
 
       if ($vid = db_result(db_query_range("SELECT vid FROM vocabulary WHERE INSTR(nodes, 'project_project') ORDER BY weight DESC", 0, 1))) {
-        $result = db_queryd("SELECT n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid WHERE t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title", $vid);
+        $result = db_queryd("SELECT DISTINCT(n.nid), n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title", $vid);
       }
       else {
-        $result = db_queryd("SELECT title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
+        $result = db_queryd("SELECT DISTINCT(n.nid), n.title FROM {node} n ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 ORDER BY title");
       }
 
       $vocabulary = array(
@@ -323,9 +280,9 @@ function project_page_overview() {
         $rows[] = array(array('data' => $term->description, 'colspan' => 4));
       }
 
-      $result = db_query("SELECT n.nid, n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
+      $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid ". node_access_join_sql() ." LEFT JOIN {term_node} r ON n.nid = r.nid WHERE ". node_access_where_sql() ." AND n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
       while ($node = db_fetch_object($result)) {
-        $row = array(l($node->title, "node/view/$node->nid") . $node->rid);
+        $row = array(l($node->title, "node/$node->nid") . $node->rid);
         if ($node->issues) {
           $row[] = l(t('issues'), "project/issues/$node->nid");
           $row[] = l(t('search'), "project/issues/$node->nid/search");
@@ -345,7 +302,7 @@ function project_page_overview() {
     }
 
     if ($term) { // Paged full view
-      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
+      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ."n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
       while ($node = db_fetch_object($result)) {
         $output .= node_view(node_load($node), 1);
       }
@@ -360,10 +317,10 @@ function project_page_overview() {
         array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
       );
 
-      $result = db_query("SELECT n.nid, n.title, n.changed, p.issues, COUNT(i.nid) AS count FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} i ON n.nid = i.pid AND i.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
+      $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues, COUNT(i.nid) AS count FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} i ON n.nid = i.pid AND i.state < 3 ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
       while ($node = db_fetch_object($result)) {
         $row = array(
-          l($node->title, "node/view/$node->nid") . $node->rid,
+          l($node->title, "node/$node->nid") . $node->rid,
           array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right')
         );
         if ($node->issues) {
@@ -400,11 +357,11 @@ function project_page_user($arg) {
     array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
   );
 
-  $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid %s", $user->uid, tablesort_sql($header));
+  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 ". node_access_join_sql() ." WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d AND ". node_access_where_sql() ." GROUP BY n.nid %s", $user->uid, tablesort_sql($header));
 
   while ($node = db_fetch_object($result)) {
     $rows[] = array(
-      l($node->title, "node/view/$node->nid"),
+      l($node->title, "node/$node->nid"),
       array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
       array('data' => "$node->count open", 'align' => 'right'),
       l(t('view'), "project/issues/$node->nid"),
@@ -421,9 +378,9 @@ function project_page_user($arg) {
 
 function project_search($keys) {
   $find = array();
-  $result = db_query_range("SELECT n.nid, n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) WHERE n.body LIKE '%%%s%%' ORDER BY n.changed DESC", $keys, 0, 100);
+  $result = db_query_range("SELECT DISTINCT(n.nid), n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) ". node_access_join_sql() ." WHERE n.status = 1 n.body LIKE '%%%s%%' AND ". node_access_where_sql() ." ORDER BY n.changed DESC", $keys, 0, 100);
   while ($node = db_fetch_object($result)) {
-    $find[] = array("title" => $node->title, "link" => url("node/view/$node->nid"), "user" => format_name($node), 'date' => $node->created);
+    $find[] = array("title" => $node->title, "link" => url("node/$node->nid"), "user" => format_name($node), 'date' => $node->created);
   }
   return array(t('Project issues'), $find);
 }

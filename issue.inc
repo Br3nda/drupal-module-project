@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.67 2004/09/07 09:41:15 kjartan Exp $ */
+/* $Id: issue.inc,v 1.68 2004/09/07 20:47:41 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -13,7 +13,7 @@ function project_issue_page() {
   if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
     $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
   }
-  $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
+  $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
 
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
@@ -59,7 +59,7 @@ function project_issue_statistics($project) {
     if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
     }
-    $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
+    $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
     drupal_set_breadcrumb($breadcrumb);
     $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
   }
@@ -118,7 +118,7 @@ function project_issue_statistics($project) {
     while ($stat = db_fetch_object($result)) {
       if (!$rows[$stat->nid]['project']) {
         $rows[$stat->nid] = $orig;
-        $rows[$stat->nid]['project']['data'] = l($stat->title, "node/view/$stat->nid");
+        $rows[$stat->nid]['project']['data'] = l($stat->title, "node/$stat->nid");
       }
       $rows[$stat->nid]['total']['data'] += $stat->total;
       $rows[$stat->nid][$stat->state]['data'] = $stat->total;
@@ -276,7 +276,6 @@ function project_issue_form(&$node, &$param) {
 }
 
 function project_issue_validate(&$node) {
-var_dump(debug_backtrace());
   // Try to find the active project
   if (empty($node->pid) && $arg = arg(3)) {
     if (is_numeric($arg)) {
@@ -314,17 +313,18 @@ var_dump(debug_backtrace());
     }
   }
 
-  return $error;
+  return $node;
 }
 
-function project_issue_view($node, $main = 0, $page = 0) {
-  if ($main) {
-    $node->body = check_output($node->body);
-    $node->teaser = check_output($node->teaser);
+/**
+ * Implementation of hook_content().
+ */
+function project_issue_content($node, $teaser = false) {
+  return node_prepare($node, $teaser);
+}
 
-    return theme('node', $node, $main, $page);
-  }
-  else {
+function project_issue_view(&$node, $teaser = false, $page = false) {
+  if ($page) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
     $assigned = user_load(array('uid' => $node->assigned));
@@ -345,12 +345,8 @@ function project_issue_view($node, $main = 0, $page = 0) {
     }
     $output .= '<div class="summary">'. theme('table', NULL, $rows) .'</div>';
 
-    if ($node->body) {
-      $rows = array();
-      $rows[] = array(array('data' => t('Description'), 'colspan' => 2, 'class' => 'banner'));
-      $rows[] = array(array('data' => check_output($node->body), 'colspan' => 2, 'class' => 'content'));
-      $output .= theme('table', NULL, $rows);
-    }
+    $output .= '<p>'. t('Description') .'</p>';
+    $output .= '<p>'. check_output($node->body) .'</p>';
     $output .= '</div>';
 
     $node->body = $output;
@@ -360,17 +356,17 @@ function project_issue_view($node, $main = 0, $page = 0) {
     if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
     }
-    $breadcrumb[] = l($project->title, "node/view/$project->nid");
+    $breadcrumb[] = l($project->title, "node/$project->nid");
     $breadcrumb[] = l(t('Issues'), "project/issues/$project->uri");
 
     drupal_set_breadcrumb($breadcrumb);
 
-    menu_set_active_item('project/issues');
+    #menu_set_active_item('project/issues');
 
-    $output = theme('node', $node, $main, $page);
-    $output .= project_comment_view($node);
-    return $output;
+    $node->body .= project_comment_view($node);
   }
+
+  $node = project_issue_content($node, $teaser);
 }
 
 function project_issue_load($node) {
@@ -408,9 +404,9 @@ function project_issue_delete($node) {
 function project_issue_access($op, $node) {
   switch ($op) {
     case 'view':
-      return $node->status && user_access('access project issues');
+      return user_access('access project issues');
     case 'create':
-      return user_access('maintain project issues');
+      return user_access('create project issues');
     case 'update':
     case 'delete':
       return user_access('administer projects');
@@ -602,7 +598,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
       if (!$project->nid) {
         $row[] = array('data' => l($projects[$node->pid], "project/issues/$node->pid"), 'class' => $class);
       }
-      $row[] = array('data' => l(substr($node->title, 0, 50), "node/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() .' ' : ''), 'class' => $class);
+      $row[] = array('data' => l(substr($node->title, 0, 50), "node/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() .' ' : ''), 'class' => $class);
       $row[] = array('data' => $states[$node->state], 'class' => $class);
       $row[] = array('data' => $priorities[$node->priority], 'class' => $class);
       $row[] = array('data' => t($node->category), 'class' => $class);
@@ -798,11 +794,11 @@ function project_issue_query_rss($projects, $result) {
 
       $items .= format_rss_item(
         $node->title,
-        url("node/view/$node->nid", NULL, NULL, true),
+        url("node/$node->nid", NULL, NULL, true),
         $body,
         array(
           'pubDate' => date('r', ($node->updated > $node->created) ? $node->updated : $node->created),
-          'comments' => url("node/view/$node->nid", NULL, NULL, true),
+          'comments' => url("node/$node->nid", NULL, NULL, true),
           'category' => $projects[$node->pid]
         )
       );
