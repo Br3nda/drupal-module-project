@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.38 2004/09/28 19:32:00 kjartan Exp $ */
+/* $Id: release.inc,v 1.39 2004/09/29 20:28:06 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -35,7 +35,7 @@ function project_release_scan_parse($path = NULL) {
   else {
     $dir = dirname($path);
     $file = basename($path);
-    ereg('(.+)-(.+)\.tar\.gz', $file, $matches);
+    preg_match('/^(.+?)-([0-9.]+(?:-.*)|[^-]+)\.tar\.gz$/', $file, $matches);
     list($filename, $name, $version) = $matches;
 
     if (!$projects[$name]) {

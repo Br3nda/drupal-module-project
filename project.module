@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.172 2004/09/28 20:19:19 kjartan Exp $ */
+/* $Id: project.module,v 1.173 2004/09/29 20:28:06 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -144,16 +144,16 @@ function project_menu($may_cache) {
     // User pages:
     $access = user_access('access projects');
 
-    $vocabularies = taxonomy_get_vocabularies('project');
-    $vocabulary = reset($vocabularies);
-    $terms = taxonomy_get_tree($vocabulary->vid);
+    $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
-    $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'callback arguments' => array($terms[0]->tid), 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-
-    foreach ($terms as $i => $term) {
-      $items[] = array('path' => 'project/'. $term->name, 'title' => $term->name, 'callback' => 'project_page_overview', 'callback arguments' => array($term->tid), 'access' => $access, 'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK, 'weight' => $term->weight);
+    if ($vocabulary = current(taxonomy_get_vocabularies('project'))) {
+      $terms = taxonomy_get_tree($vocabulary->vid);
+  
+      foreach ($terms as $i => $term) {
+        $items[] = array('path' => 'project/'. $term->name, 'title' => $term->name, 'callback' => 'project_page_overview', 'access' => $access, 'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK, 'weight' => $term->weight);
+      }
     }
-
+  
     $items[] = array('path' => 'project/releases', 'title' => t('releases'), 'callback' => 'project_release_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
     $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
@@ -260,84 +260,50 @@ function project_page() {
   }
 }
 
-function project_page_overview($tid = 0) {
-  if (!is_numeric($_GET['tid']) && function_exists('taxonomy_get_vocabularies') && count($vocabularies = taxonomy_get_vocabularies('project'))) { // Show an overview of vocabularies
-    $vocabulary = reset($vocabularies);
-
-    $header = array(
-      array('data' => t('Project')),
-      array('data' => t('Issues'), 'colspan' => 3)
-    );
-
-    if ($tid && is_numeric($tid)) {
-      $terms = array(taxonomy_get_term($tid));
+function project_page_overview() {
+  if (function_exists('taxonomy_get_vocabularies')) {
+    $vocabulary = current(taxonomy_get_vocabularies('project'));
+    $terms = taxonomy_get_tree($vocabulary->vid);
+    
+    if (arg(1)) {
+      foreach ($terms as $term) {
+        if ($term->name == arg(1)) {
+          break;
+        }
+      }
     }
     else {
-      $terms = taxonomy_get_tree($vocabulary->vid);
-    }
-    foreach ($terms as $term) {
-      $rows[] = array(array('data' => l($term->name, "project?tid=$term->tid"), 'class' => 'title', 'colspan' => 4));
-      if ($term->description) {
-        $rows[] = array(array('data' => $term->description, 'colspan' => 4));
-      }
-
-      $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid ". node_access_join_sql() ." LEFT JOIN {term_node} r ON n.nid = r.nid WHERE ". node_access_where_sql() ." AND n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
-      while ($node = db_fetch_object($result)) {
-        $row = array(l($node->title, "node/$node->nid") . $node->rid);
-        if ($node->issues) {
-          $row[] = l(t('issues'), "project/issues/$node->nid");
-          $row[] = l(t('search'), "project/issues/$node->nid/search");
-          $row[] = l(t('submit'), "node/add/project_issue/$node->nid");
-        }
-        $rows[] = $row;
-      }
+      $term = current($terms);
     }
 
-    $output = '<div class="project">'. theme('table', NULL, $rows) .'</div>';
-
-    print theme('page', $output);
+    if ($term->description) {
+      $output .= $term->description;
+    }
+    $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid ". node_access_join_sql() ." LEFT JOIN {term_node} r ON n.nid = r.nid WHERE ". node_access_where_sql() ." AND n.status = 1 AND r.tid = %d ORDER BY n.title ASC", $term->tid);
   }
   else {
-    if (is_numeric($_GET['tid']) && $_GET['tid']) {
-      $term = taxonomy_get_term($_GET['tid']);
-    }
-
-    if ($term) { // Paged full view
-      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
-      while ($node = db_fetch_object($result)) {
-        $output .= node_view(node_load($node), 1);
-      }
-      if ($pager = theme("pager", NULL, variable_get('project_overview', 10), 0, array('tid' => $_GET['tid']))) {
-        $output .= $pager;
-      }
-    }
-    else { // Show table form
-      $header = array(
-        array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
-        array('data' => t('Updated'), 'field' => 'n.changed'),
-        array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
-      );
-
-      $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues, COUNT(i.nid) AS count FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid LEFT JOIN {project_issues} i ON n.nid = i.pid AND i.state < 3 ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
-      while ($node = db_fetch_object($result)) {
-        $row = array(
-          l($node->title, "node/$node->nid") . $node->rid,
-          array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right')
-        );
-        if ($node->issues) {
-          $row[] = array('data' => "$node->count open", 'align' => 'right');
-          $row[] = l(t('view'), "project/issues/$node->nid");
-          $row[] = l(t('search'), "project/issues/$node->nid/search");
-          $row[] = l(t('submit'), "node/add/project_issue/$node->nid");
-        }
-        $rows[] = $row;
-      }
-
-      $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
-    }
-
-    print theme('page', $output);
+    $result = db_query("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.status = 1 ORDER BY n.title ASC");
   }
+
+  $header = array(
+    array('data' => t('Project')),
+    array('data' => t('Issues'), 'colspan' => 3)
+  );
+
+  $rows = array();
+  while ($node = db_fetch_object($result)) {
+    $row = array(l($node->title, "node/$node->nid") . $node->rid);
+    if ($node->issues) {
+      $row[] = l(t('issues'), "project/issues/$node->nid");
+      $row[] = l(t('search'), "project/issues/$node->nid/search");
+      $row[] = l(t('submit'), "node/add/project_issue/$node->nid");
+    }
+    $rows[] = $row;
+  }
+
+  $output .= '<div class="project">'. theme('table', NULL, $rows) .'</div>';
+
+  print theme('page', $output);
 }
 
 function project_page_user($arg = 0) {
