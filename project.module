@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.73 2003/06/06 21:47:54 dries Exp $
+// $Id: project.module,v 1.74 2003/06/12 02:11:57 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -72,14 +72,14 @@ function project_settings () {
 
   $output = "<h4>". t("Individual e-mails") ."</h4>";
   
-  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
+  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address used in the <b>Update by mail</b> link in project emails. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
   $output .= form_select(t("Mail criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
 
   $output .= "<h4>". t("E-mail digests") ."</h4>";
   
-  $output .= form_select(t("Mail overview reports"), "project_digest", variable_get("project_digest", 0), array(t("Disabled"), t("Enabled")), t("Enable or disable the automated mails that summerizes the bug reports."));
+  $output .= form_select(t("Mail overview reports"), "project_digest", variable_get("project_digest", 0), array(t("Disabled"), t("Enabled")), t("Enable or disable the automated mails that summarizes the bug reports."));
     
-  $output .= form_textfield("Recepients", "project_digest_recipient", variable_get("project_digest_recipient", "root@localhost"), 55, 128, "The e-mail address to mail the overviews to.  Multiple recipients can be specified by putting a comma between each address.");
+  $output .= form_textfield("Recipients", "project_digest_recipient", variable_get("project_digest_recipient", "root@localhost"), 55, 128, "The e-mail address to mail the overviews to.  Multiple recipients can be specified by putting a comma between each address.");
   $output .= form_select("Digest interval", "project_digest_interval" , variable_get("project_digest_interval", 86400), $period, "The time interval at which digests are mailed out.  Requires crontab.");
         
   return $output;
@@ -91,8 +91,9 @@ function project_perm() {
 
 function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
 
-  if ($node->type == "project" && $node->nid) {
-
+  if (strstr($node->title, "project/edit")) {
+    $node->type = "project";
+    $node->nid = substr($node->title, strrpos($node->title, "/") + 1);
     $current = node_load(array ("nid" => $node->nid));
     $node = array2object(array_merge($current, $node)); //overwrite the current node with the params which were sent in this email
 
@@ -101,11 +102,10 @@ function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
     ** since we prefix our email subjects with "bug #112 another bug" for example.
     ** if we don't reset the title here, the node's title will soon look like "RE: bug #112: another bug".
     */
-    if (strstr($current->title, $node->title)) {
-      $node->title = $current->title;
-    }
+    $node->title = $current->title;
+    
 
-    // map human readable pstatus to the equivalent integer. enables users to enter text values when replying via email.
+    // map human readable pstatus to the equivalent integer. enables users to enter text values when updating via email.
     if (!is_numeric($node->pstatus)) {
       $node->pstatus = project_pstatus($node->pstatus);
     }
@@ -621,11 +621,7 @@ function project_mail(&$node, $new = 0) {
     return;
   }
 
-  $from = $project->mail;
-
-  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));
-  $body = str_repeat("-", 72). "\n";
-  // $body .= "ID: $node->nid\n"; // don't want users altering this in replies. it was not displaying anyway
+  $body .= "ID: $node->nid\n";
   $body .= "Project: $project->name\n";
   $body .= "Area: $node->area\n";
   $body .= "Version: $node->version\n";
@@ -635,7 +631,9 @@ function project_mail(&$node, $new = 0) {
     $body .= "Assigned: ". @implode("", uid_to_name($node->assigned)) ."\n";
   }
   $body .= "\n";
-
+  
+  $from = $project->mail;
+  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));  
   if ($new) {
     $body .= format_date(time(), "small") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
@@ -656,15 +654,23 @@ function project_mail(&$node, $new = 0) {
     $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
     $mid .= $revcount-1 ."&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
   }
+  
+  /*
+  the intent here is to preserve the links before they get removed by strip_tags()
+  then display the links at the bottom of the email. Alas, the display part of this function was
+  removed for unknown reasons (maybe a mistake?).
+  */
   $links = project_parse_links($body);
+  
   $body = wordwrap(strip_tags($body), 72);
   $body .= "View: ". url("node/view/$node->nid") ."\n";
   $body .= "Update: ". url("project/update/$node->nid") ."\n";
-  $body .= "Email help: ". url("project/mail_help") ."\n";
+  $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/edit/". $node->nid. "\n";
+  $body .= "Update by mail help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 }
 
@@ -938,7 +944,8 @@ function project_mail_help() {
   $sn = "<i>". variable_get("site_name", "Drupal"). "</i>";
   $output = <<<EOD
   <p>You are welcome to contribute to projects at $sn by
-  replying to a Project email. Here is the body of a sample reply:
+  clicking on the <i>Update by Mail</i> link in Project emails. The following
+  is a detailed example of all that is possible in these emails.
   <pre>
   PStatus: Closed
   Assigned: Killes
@@ -947,22 +954,9 @@ function project_mail_help() {
 
   this feature is implemented in latest CVS.
   I am closing this item.
-  -----------------------------
-  > Project: features
-  > Area: Code
-  > Version: cvs
-  > Pstatus: Active
-  > Priority: 4
-  >
-  > 2002-06-13 17:29 : weitzmanmeorg
-  > if i knew it, i'd fix it.
   </pre>
-  Just type your reply above any quoted text from the Project email. If you wish to change any item parameters,
-  copy that parameter to the top of the email, removing any quoting characters such as <i>&gt;</i>. Then change the parameter value,
-  and add a blank line below your <i>command</i>. See the first line of the above email for an example.</p>
-  <p>If you want to change the title of the item, replace the email's
-  <i>Subject</i> with your desired title.</p>
-
+  Note that you may change project item parameters using the syntax shown at the top of the email above.
+  Include a a blank line between your last <i>command</i>, and above the body of your message.
   <p>As usual, you must submit your reply from an email address which is registered at $sn.</p>
 EOD;
   return $output;

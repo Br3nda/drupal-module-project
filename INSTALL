@@ -17,6 +17,8 @@ Installation
 
 4. Use the administration pages to setup projects.
 
+5. Optional. Use mailhandler.module to make your projects editable via email.
+
 Author
 ------
 
