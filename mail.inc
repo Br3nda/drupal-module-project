@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.43 2005/02/08 19:53:35 dries Exp $ */
+/* $Id: mail.inc,v 1.44 2005/04/06 05:09:07 unconed Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -148,7 +148,8 @@ function project_mail_output(&$body, $html = 1, $format = FILTER_FORMAT_DEFAULT)
     $body = preg_replace('!</?blockquote>!i', '"', $body);
     $body = preg_replace('!</?(em|i)>!i', '/', $body);
     $body = preg_replace('!</?(b|strong)>!i', '*', $body);
-    $body = preg_replace("@(</p>|<br />)(?!\n)@i", "\n", $body);
+    $body = preg_replace("@<br />(?!\n)@i", "\n", $body);
+    $body = preg_replace("@</p>(?!\n\n)@i", "\n\n", $body);
     $body = strip_tags($body);
     $body = decode_entities($body);
     $body = wordwrap($body, 72);
