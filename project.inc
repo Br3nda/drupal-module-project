@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.7 2003/10/01 09:26:20 kjartan Exp $
+// $Id: project.inc,v 1.8 2003/10/01 20:54:23 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -126,8 +126,11 @@ function project_project_view($node, $main = 0) {
     theme("node", $node, $main);
   }
   else {
-    $node->breadcrumb[] = l(t("Home"), NULL);
-    $node->breadcrumb[] = l(t("Projects"), "project");
+    $breadcrumb[] = l(t("Home"), NULL);
+    $breadcrumb[] = l(t("Projects"), "project");
+    if ($term = reset(taxonomy_node_get_terms($node->nid))) {
+      $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
+    }
 
     if ($output = project_release_view($node)) {
       $node->body .= "<h2>". t("Releases") ."</h2>";
@@ -156,7 +159,7 @@ function project_project_view($node, $main = 0) {
       }
     }
 
-    theme("breadcrumb", $node->breadcrumb);
+    theme("breadcrumb", $breadcrumb);
     theme("node", $node, $main);
     theme("box", NULL, $output);
   }
@@ -199,7 +202,7 @@ function project_project_access($op, $node) {
       return user_access("maintain project") && $user->uid;
     case "update":
     case "delete":
-      return $user->uid == $node->uid || user_access("administer projects");
+      return $user->uid && ($user->uid == $node->uid || user_access("administer projects"));
   }
 }
 

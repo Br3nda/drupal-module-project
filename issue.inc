@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.13 2003/09/30 18:24:47 kjartan Exp $
+// $Id: issue.inc,v 1.14 2003/10/01 20:54:23 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -37,6 +37,9 @@ function project_issue_page($project) {
       theme("header");
       $breadcrumb[] = l(t("Home"), NULL);
       $breadcrumb[] = l(t("Projects"), "project");
+      if ($term = reset(taxonomy_node_get_terms($project->nid))) {
+        $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
+      }
       $breadcrumb[] = l($project->title, "project/$project->uri");
 
       theme("breadcrumb", $breadcrumb);
@@ -167,12 +170,15 @@ function project_issue_view($node, $main = 0) {
 
     $node->body = $output;
 
-    $node->breadcrumb[] = l(t("Home"), NULL);
-    $node->breadcrumb[] = l(t("Projects"), "project");
-    $node->breadcrumb[] = l($project->title, "project/$project->uri");
-    $node->breadcrumb[] = l(t("Issues"), "project/$project->uri/issues");
+    $breadcrumb[] = l(t("Home"), NULL);
+    $breadcrumb[] = l(t("Projects"), "project");
+    if ($term = reset(taxonomy_node_get_terms($project->nid))) {
+      $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
+    }
+    $breadcrumb[] = l($project->title, "project/$project->uri");
+    $breadcrumb[] = l(t("Issues"), "project/$project->uri/issues");
 
-    theme("breadcrumb", $node->breadcrumb);
+    theme("breadcrumb", $breadcrumb);
     theme("node", $node, $main);
     project_comment_view($node);
   }
@@ -343,9 +349,8 @@ function project_issue_query_result($project = 0) {
       if (count($releases)) {
         $row[] = array("data" => $releases[$node->rid], "class" => $class);
       }
-      $row[] = array("data" => format_date($node->changed, "small"), "class" => $class);
+      $row[] = array("data" => project_interval(time() - $node->changed, 2), "align" => "right", "class" => $class);
       $row[] = array("data" => ($node->assigned) ? format_name(user_load(array("uid" => $node->assigned))) : "", "class" => $class);
-      #$row[] = array("data" => format_name(user_load(array("uid" => $node->uid))), "class" => $class);
 
       $rows[] = $row;
     }
@@ -476,29 +481,6 @@ function project_issue_query_rss($projects, $result) {
       if ($node->created > $pubdate) {
         $pubdate = $node->created;
       }
-
-
-      /*
-      if (!$project) {
-        $row[] = array("data" => l($projects[$node->pid], "project/$node->pid"), "class" => $class);
-      }
-      $row[] = array("data" => l(substr($node->title, 0, 50), "project/issues/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() ." " : ""), "class" => $class);
-      $row[] = array("data" => $states[$node->state], "class" => $class);
-      $row[] = array("data" => $priorities[$node->priority], "class" => $class);
-      $row[] = array("data" => t($node->category), "class" => $class);
-      if (count($releases)) {
-        $row[] = array("data" => $releases[$node->rid], "class" => $class);
-      }
-      $row[] = array("data" => format_date($node->changed, "small"), "class" => $class);
-      $row[] = array("data" => ($node->assigned) ? format_name(user_load(array("uid" => $node->assigned))) : "", "class" => $class);
-      #$row[] = array("data" => format_name(user_load(array("uid" => $node->uid))), "class" => $class);
-
-      $rows[] = $row;
-
-    }
-    if ($pager = pager_display(NULL, 20, 0, "default", project_issue_query_pager($pids, $query) + tablesort_pager())) {
-      $rows[] = array(array("data" => $pager, "colspan" => 8));
-      */
     }
   }
   else {

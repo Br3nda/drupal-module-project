@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.5 2003/09/30 18:24:47 kjartan Exp $
+// $Id: comment.inc,v 1.6 2003/10/01 20:54:23 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(3)) {
@@ -162,7 +162,7 @@ function project_comment_view($node, $main = 0) {
       $data = unserialize($comment->data);
       $summary = array();
       foreach ($fields as $field => $text) {
-        if (isset($data["new"]->$field)) {
+        if (isset($data["old"]->$field) && isset($data["new"]->$field)) {
           $summary[] = array(
             t($text) .":",
             project_mail_summary($field, $data["old"]->$field),

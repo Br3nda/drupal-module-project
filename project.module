@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.106 2003/10/01 09:26:20 kjartan Exp $
+// $Id: project.module,v 1.107 2003/10/01 20:54:23 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -235,24 +235,20 @@ function project_page_overview() {
 
       $items = array();
       foreach ($terms as $term) {
-        $items[] = l($term->name, "project", NULL, "tid=$term->tid") ." (". taxonomy_term_count_nodes($term->tid) .")";
+        $count[] = taxonomy_term_count_nodes($term->tid);
+        $items[] = l($term->name, "project", NULL, "tid=$term->tid") ." (". end($count) .")";
       }
-
+      $items[] = l(t("All projects"), "project", NULL, "tid=0") ." (". array_sum($count) .")";
+      if (variable_get("project_release_directory", "")) {
+        $items[] = l(t("All downloads"), "project/releases");
+      }
       theme("box", $vocabulary->name, theme("theme_item_list", $items));
-    }
-    print "<p>". l(t("Show all projects"), "project", NULL, "tid=0") ."<p>";
-    if (variable_get("project_release_directory", "")) {
-      print "<p>". l(t("Show downloads"), "project/releases") ."<p>";
     }
     theme("footer");
   }
   else {
     if (is_numeric($_GET["tid"]) && $_GET["tid"]) {
       $term = taxonomy_get_term($_GET["tid"]);
-      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid = $_GET[tid] AND n.status = 1 ORDER BY title", variable_get("default_nodes_main", 10));
-    }
-    else {
-      $result = pager_query("SELECT nid FROM {node} WHERE status = 1 AND type = 'project_project' ORDER BY title", variable_get("default_nodes_main", 10));
     }
 
     $breadcrumb[] = l(t("Home"), NULL);
@@ -263,11 +259,37 @@ function project_page_overview() {
 
     theme("header", t("Projects"));
     theme("breadcrumb", $breadcrumb);
-    while ($node = db_fetch_object($result)) {
-      node_view(node_load($node), 1);
+    if ($term) { // Paged full view
+      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid = $_GET[tid] AND n.status = 1 ORDER BY title", variable_get("project_overview", 10));
+      while ($node = db_fetch_object($result)) {
+        node_view(node_load($node), 1);
+      }
+      if ($pager = pager_display(NULL, variable_get("default_nodes_main", 10), 0, "default", array("tid" => $_GET["tid"]))) {
+        print $pager;
+      }
     }
-    if ($pager = pager_display(NULL, variable_get("default_nodes_main", 10), 0, "default", array("tid" => $_GET["tid"]))) {
-      print $pager;
+    else { // Show table form
+      $header = array(
+        array("data" => t("project"), "field" => "n.title", "sort" => "asc"),
+        array("data" => t("updated"), "field" => "n.changed"),
+        array("data" => t("issues"), "colspan" => 4, "field" => "count")
+      );
+      $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
+      while ($node = db_fetch_object($result)) {
+        $rows[] = array(
+          l($node->title, "project/$node->nid"),
+          array("data" => project_interval(time() - $node->changed, 2), "align" => "right"),
+          array("data" => "$node->count open", "align" => "right"),
+          l(t("view"), "project/$node->nid/issues"),
+          l(t("search"), "project/$node->nid/issues/search"),
+          l(t("submit"), "node/add/project_issue", NULL, "project=$node->nid")
+        );
+      }
+
+      $output = "<div class=\"project\">";
+      $output .= table($header, $rows);
+      $output .= "</div>";
+      theme("box", t("All projects"), $output);
     }
 
     theme("footer");
@@ -424,6 +446,21 @@ function project_access($op, $node) {
     case "project_issue":
       return project_issue_access($op, $node);
   }
+}
+
+function project_interval($timestamp, $max = 0) {
+  $units = array("1 year|%count years" => 31536000, "1 week|%count weeks" => 604800, "1 day|%count days" => 86400, "1 hour|%count hours" => 3600, "1 min|%count min" => 60, "1 sec|%count sec" => 1);
+  foreach ($units as $key => $value) {
+    $key = explode("|", $key);
+    if ($timestamp >= $value) {
+      $output .= ($output ? " " : "") . format_plural(floor($timestamp / $value), $key[0], $key[1]);
+      $timestamp %= $value;
+      if (++$level == $max) {
+        break;
+      }
+    }
+  }
+  return ($output) ? $output : t("0 sec");
 }
 
 ?>

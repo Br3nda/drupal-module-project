@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.3 2003/09/28 19:34:17 kjartan Exp $
+// $Id: release.inc,v 1.4 2003/10/01 20:54:23 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -239,8 +239,10 @@ function project_release_view($node, $main = 0) {
     }
     $breadcrumb[] = l(t("Home"), NULL);
     $breadcrumb[] = l(t("Projects"), "project");
+    if ($term = reset(taxonomy_node_get_terms($project->nid))) {
+      $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
+    }
     $breadcrumb[] = l($project->title, "project/$project->uri");
-
 
     theme("breadcrumb", $breadcrumb);
     theme("box", "$project->title $node->version", check_output($node->changes));

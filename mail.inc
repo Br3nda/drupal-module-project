@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.12 2003/10/01 13:08:57 kjartan Exp $
+// $Id: mail.inc,v 1.13 2003/10/01 20:54:23 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -255,7 +255,10 @@ function project_mail_notify($node) {
 
   // Create the footer
   $footer  = "-- \n";
+  $footer .= t("View: %link", array("%link" => url("node/view/$node->nid")));
   $footer .= t("Edit: %link", array("%link" => url("project/$project->uri/comment/add/$node->nid")));
+  
+  $body = "$summary\n$body\n$footer\n";
 
   // Create mail header
   $sender->name = ($pos = strpos($node->updator, "@")) ? substr($node->updator, 0, $pos) : $node->updator;
