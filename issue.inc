@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.23 2003/10/25 18:45:32 kjartan Exp $
+// $Id: issue.inc,v 1.24 2003/10/27 22:00:45 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -225,6 +225,7 @@ function project_issue_update($node) {
   }
   */
   db_query("UPDATE {project_issues} SET pid = %d, fid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $file->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
+  project_mail_notify($node);
 }
 
 function project_issue_delete($node) {
