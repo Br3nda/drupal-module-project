@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.64 2004/05/04 21:12:10 kjartan Exp $ */
+/* $Id: issue.inc,v 1.65 2004/05/13 19:59:52 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -560,8 +560,11 @@ function project_issue_query_result($project = 0, $format = 'html') {
   if (is_array($query->states)) {
     $query->states = array_shift($query->states);
   }
+  if (is_array($query->projects)) {
+    $query->projects = array_shift($query->projects);
+  }
   $rows = array(array(
-    form_select(t('Project'), 'projects', $project->nid, $projects),
+    form_select(t('Project'), 'projects', $query->projects, $projects),
     form_select(t('Status'), 'states', $query->states, $states),
     form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
     form_select(t('Category'), 'categories', $query->categories, $categories),

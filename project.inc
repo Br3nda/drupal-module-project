@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.32 2004/05/04 18:17:23 kjartan Exp $ */
+/* $Id: project.inc,v 1.33 2004/05/13 19:59:52 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -27,10 +27,6 @@ function project_project_form(&$node, &$error) {
   //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'). theme('error', $error['title']));
   $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme('error', $error['body']));
   $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme('error', $error['uri']));
-  /* TODO: Remove $node->release_directory permanently.
-  if (variable_get('project_release_directory', '') && user_access('maintain projects')) {
-    $project .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme('error', $error['release_directory']));
-  }*/
   $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme('error', $error['mail']));
   $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme('error', $error['homepage']));
   $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme('error', $error['screenshots']));

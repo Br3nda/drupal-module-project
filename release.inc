@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.30 2004/04/22 18:59:00 kjartan Exp $ */
+/* $Id: release.inc,v 1.31 2004/05/13 19:59:52 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -8,6 +8,7 @@ function project_release_scan() {
 
 function project_release_scan_directory($project = NULL) {
   if ($dir = file_create_path(variable_get('project_release_directory', ''))) {
+    $project = 'drupal';
     if ($project) {
       $regexp = "($project)" .'-(.+)\.tar\.gz';
     }
@@ -29,7 +30,7 @@ function project_release_scan_directory($project = NULL) {
 function project_release_scan_parse($path = NULL) {
   static $projects = array();
 
-  if (is_null($dir)) {
+  if (is_null($path)) {
     return $projects;
   }
   else {
@@ -37,10 +38,20 @@ function project_release_scan_parse($path = NULL) {
     $file = basename($path);
     ereg('(.+)-(.+)\.tar\.gz', $file, $matches);
     list($filename, $name, $version) = $matches;
+
     if (!$projects[$name]) {
-      $project = db_fetch_object(db_query("SELECT nid, 'project_project' AS type FROM {project_projects} WHERE uri = '%s'", $name));
-      if ($releases = project_release_load($project, 0)) {
-        $project->releases = array_flip($releases);
+      if ($project = db_fetch_object(db_query("SELECT n.nid, n.type, n.moderate FROM {node} n INNER JOIN {project_projects} p USING (nid) WHERE p.uri = '%s'", $name))) {
+        if ($releases = project_release_load($project, 0)) {
+          $project->releases = array_flip($releases);
+        }
+        // Unmoderate nodes that have gotten releases
+        if (variable_get('project_release_unmoderate', 0) && $project->moderate) {
+          db_query("UPDATE {node} SET moderate = 0, status = 1 WHERE nid = %d", $project->nid);
+        }
+      }
+      else {
+        // No project found for this id.
+        return;
       }
       $projects[$name] = & $project;
     }
