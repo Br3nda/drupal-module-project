@@ -1,5 +1,14 @@
-11 June 2002
+12. June 2002
 -------------
+project.module
+- added search / filter to bug/feature lists.
+- improved search capabilities.
+- added area to list.
+- some minor cosmetic changes.
+
+11. June 2002
+-------------
+project.module
 - added _system() hook
 
 10. June 2002
