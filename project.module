@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.129 2003/12/06 17:26:36 kjartan Exp $
+// $Id: project.module,v 1.130 2003/12/08 08:32:04 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -251,7 +251,7 @@ function project_page() {
   }
   switch (arg(1)) {
     case 'releases':
-      print theme('page', project_release_overview());
+      print theme('page', project_release_overview(arg(2)));
       break;
     case 'issues':
       project_issue_page($node);
