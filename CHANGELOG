@@ -1,3 +1,14 @@
+8. March 2003
+-------------
+project.module
+  - removed _save():
+      * Moved code into _validate hook.
+  - changed *_validate() to the new system:
+      * No $error for second parameter.
+      * Return $error instead of $node.
+      * $node passed by reference.
+  - fixed Submit button not showing up.
+
 12. Feburary 2003
 -----------------
 project.module

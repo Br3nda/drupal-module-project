@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.50 2003/02/26 16:35:54 weitzman Exp $
+// $Id: project.module,v 1.51 2003/03/08 19:31:16 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -41,7 +41,7 @@ function project_link($type, $node = 0, $main = 0) {
 }
 
 function project_settings () {
-  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
+  $output = form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
   $output .= form_select(t("Mail Criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
   return $output;
 }  
@@ -118,17 +118,8 @@ function project_delete_project($pid) {
 
 function project_admin_list() {
   $result = db_query("SELECT pid,name,versions,version_default,developers,areas,mail FROM projects ORDER BY name");
-
-  $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"1\">\n";
-  $output .= "<tr>";
-  $output .= "<th>project</th>";
-  $output .= "<th>versions</th>";
-  $output .= "<th>default version</th>";
-  $output .= "<th>mail</th>";
-  $output .= "<th>developers</th>";
-  $output .= "<th>areas</th>";
-  $output .= "<th>operations</th>";
-  $output .= "</tr>\n";
+  
+  $header = array("project", "versions", "default version", "mail", "developers", "areas", "operations");
   while ($project = db_fetch_object($result)) {
     unset($developers);
     foreach (split(",", $project->developers) as $developer) {
@@ -136,17 +127,9 @@ function project_admin_list() {
         $developers[] = format_name($user);
       }
     }
-    $output .= "<tr>";
-    $output .= "<td>$project->name</td>";
-    $output .= "<td>". str_replace(",", ", ", $project->versions) ."</td>";
-    $output .= "<td>$project->version_default</td>";
-    $output .= "<td>$project->mail</td>";
-    $output .= "<td>". (count($developers) ? implode(", ", $developers) : t("None defined.")) ."</td>";
-    $output .= "<td>". str_replace(",", ", ", $project->areas) ."</td>";
-    $output .= "<td>". l(t("edit project"), "admin/project/edit/$project->pid") ."</td>";
-    $output .= "</tr>\n";
+    $rows[] = array($project->name, str_replace(",", ", ", $project->versions), $project->version_default, $project->mail, (count($developers) ? implode(", ", $developers) : t("None defined.")), str_replace(",", ", ", $project->areas), l(t("edit project"), "admin/project/edit/$project->pid"));
   }
-  $output .= "</table>\n";
+  $output = table($header, $rows);
   return $output;
 }
 
@@ -647,26 +630,6 @@ function project_node($field) {
   return $info[$field];
 }
 
-function project_save($op, &$node) {
-
-  if ($op == "approve") {
-    return array("status" => 1);
-  }
-
-  if ($op == "create") {
-    return array("created" => time(), "comment" => 0, "moderate" => 0, "promote" => 0, "status" => 1, "pid", "ptype", "pstatus", "area", "priority", "version", "assigned", "file");
-  }
-
-  if ($op == "decline") {
-    return array("status" => 0);
-  }
-
-  if ($op == "update") {
-    return array("changed" => time(), "comment" => 0, "moderate" => 0, "promote" => 0, "status" => 1, "revisions", "pid", "ptype", "pstatus", "area", "priority", "version", "assigned", "file");
-  }
-
-}
-
 function project_access($op, $node) {
   if ($op == "view") {
     return $node->status;
@@ -711,7 +674,7 @@ function project_delete(&$node) {
   db_query("DELETE FROM project WHERE nid = '$node->nid'");
 }
 
-function project_validate(&$node, &$error) {
+function project_validate(&$node) {
   if ($node->pid) {
     $result = db_query("SELECT * FROM projects WHERE pid = '%d'", $node->pid);
     $project = db_fetch_object($result);
@@ -732,7 +695,7 @@ function project_validate(&$node, &$error) {
     }
   }
    
-  return $node;
+  return $error ? $error : "";
 }
 
 // Node output functions
