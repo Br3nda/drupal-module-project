@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.57 2003/03/10 12:46:34 kjartan Exp $
+// $Id: project.module,v 1.58 2003/03/10 20:08:16 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -631,13 +631,16 @@ function project_node($field) {
 }
 
 function project_access($op, $node) {
-  global $user;
   if ($op == "view") {
     return $node->status;
   }
 
   if  ($op == "create") {
-    return user_access("maintain bug reports") && $user->uid;
+    return user_access("maintain bug reports");
+  }
+
+  if  ($op == "update") {
+    return user_access("maintain bug reports");
   }
 
   if ($op == "decline") {
