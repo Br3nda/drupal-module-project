@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.133 2003/12/10 14:01:38 kjartan Exp $
+// $Id: project.module,v 1.134 2003/12/18 13:14:32 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -174,26 +174,16 @@ function project_link($type, $node = 0, $main = 0) {
           $project = node_load(array('nid' => db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", arg(1)), 0)));
         }
         elseif (arg(0) == 'node' && is_numeric(arg(2))) {
-          $project = node_load(array('nid' => arg(2), 'type' => 'project_project'));
+          if (!$project = node_load(array('nid' => arg(2), 'type' => 'project_project'))) {
+            if ($issue = node_load(array('nid' => arg(2), 'type' => 'project_issue'))) {
+              $project = node_load(array('nid' => $issue->pid, 'type' => 'project_project'));
+            }
+          }
         }
 
         // If we have a project make some specific menu items for easy navigation.
         if ($project) {
-          $uri = "project/$project->uri";
-          if ($_GET["q"] == "node/view/$project->nid") {
-            $_GET["q"] = $uri; // Magical hack to trick menu().
-          }
-          menu($uri, strtolower($project->title), 'project_page', 2);
-          if ($GLOBALS['user']->uid) {
-            menu("$uri/issues/user", t('my issues'), 'project_page', 0);
-            menu("$uri/issues/subscribe", t('subscribe'), 'project_page', 3);
-          }
-          foreach ($categories as $cat => $category) {
-            menu("$uri/issues/$cat", $category, 'project_page', 2);
-          }
-          menu("$uri/issues/add", t('submit'), 'project_page', 3);
-          menu("$uri/issues/statistics", t('statistics'), 'project_page', 4);
-          menu("$uri/issues/search", t('search'), 'project_page', 5);
+          project_project_menu($project);
         }
 
         // Create all project issues menu.

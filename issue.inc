@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.43 2003/12/10 14:01:38 kjartan Exp $
+// $Id: issue.inc,v 1.44 2003/12/18 13:14:32 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -305,6 +305,8 @@ function project_issue_view($node, $main = 0, $page = 0) {
     $breadcrumb[] = l(t('Issues'), "project/$project->uri/issues");
 
     drupal_set_breadcrumb($breadcrumb);
+
+    menu_set_active_item("project/$project->uri/issues/$node->category");
 
     $output = theme('node', $node, $main, $page);
     $output .= project_comment_view($node);
