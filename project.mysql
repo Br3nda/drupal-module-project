@@ -22,3 +22,6 @@ CREATE TABLE `projects` (
   `mail` varchar(255) NOT NULL default '',
   PRIMARY KEY  (`pid`)
 ) TYPE=MyISAM;
+
+ALTER TABLE projects ADD version_default NOT NULL;
+ALTER TABLE projects MODIFY areas text;

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.19 2002/06/10 10:43:54 kjartan Exp $
+// $Id: project.module,v 1.20 2002/06/10 18:46:27 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -35,6 +35,7 @@ function project_perm() {
 function project_admin_form($edit = 0) {
   $form = form_textfield("Name", "name", $edit["name"], 60, 255);
   $form .= form_textarea("Versions", "versions", str_replace(",", "\n", $edit["versions"]), 20, 5);
+  $form .= form_textfield("Default version", "version_default", $edit["version_default"], 20, 255);
   $form .= form_textfield("E-mail", "mail", $edit["mail"], 20, 255);
   $form .= form_textarea("Developers", "developers", str_replace(",", "\n", $edit["developers"]), 20, 5);
   $form .= form_textarea("Areas", "areas", str_replace(",", "\n", $edit["areas"] ? $edit["areas"] : "Code,Documentation,Miscellaneous,User interface"), 20, 5);
@@ -47,15 +48,16 @@ function project_admin_form($edit = 0) {
 }
 
 function project_admin_list() {
-  $result = db_query("SELECT pid,name,versions,developers,areas,mail FROM projects ORDER BY name");
+  $result = db_query("SELECT pid,name,versions,version_default,developers,areas,mail FROM projects ORDER BY name");
 
   $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"1\">\n";
   $output .= "<tr>";
   $output .= "<th>project</th>";
   $output .= "<th>versions</th>";
+  $output .= "<th>default version</th>";
   $output .= "<th>mail</th>";
   $output .= "<th>developers</th>";
-  //$output .= "<th>areas</th>";
+  $output .= "<th>areas</th>";
   $output .= "<th>operations</th>";
   $output .= "</tr>\n";
   while ($project = db_fetch_object($result)) {
@@ -67,10 +69,11 @@ function project_admin_list() {
     }
     $output .= "<tr>";
     $output .= "<td>$project->name</td>";
-    $output .= "<td>$project->versions</td>";
+    $output .= "<td>". str_replace(",", ", ", $project->versions) ."</td>";
+    $output .= "<td>$project->version_default</td>";
     $output .= "<td>$project->mail</td>";
     $output .= "<td>". (count($developers) ? implode(", ", $developers) : t("None defined.")) ."</td>";
-    //$output .= "<td>$project->areas</td>";
+    $output .= "<td>". str_replace(",", ", ", $project->areas) ."</td>";
     $output .= "<td>". la(t("edit project"), array("mod" => "project", "op" => "edit", "pid" => $project->pid)) ."</td>";
     $output .= "</tr>\n";
   }
@@ -120,10 +123,10 @@ function project_admin() {
         }
       }
       if ($edit["pid"]) {
-        db_query("UPDATE projects SET name = '%s', versions = '%s', developers = '%s', areas = '%s', mail = '%s' WHERE pid = '%d'", $edit["name"], $edit["versions"], implode(",", $ids), $edit["areas"], $edit["mail"], $edit["pid"]);
+        db_query("UPDATE projects SET name = '%s', versions = '%s', version_default = '%s', developers = '%s', areas = '%s', mail = '%s' WHERE pid = '%d'", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"], $edit["pid"]);
       }
       else {
-        db_query("INSERT INTO projects (name, versions, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], implode(",", $ids), $edit["areas"], $edit["mail"]);
+        db_query("INSERT INTO projects (name, versions, version_default, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"]);
       }
       project_admin_list();
       break;
@@ -560,13 +563,19 @@ function project_form(&$node, &$help, &$error, &$form) {
   }
 
   // Initialize project variables.
-  $projects = array(0 => "<none>");
   $result = db_query("SELECT * FROM projects ORDER BY name");
-  while ($p = db_fetch_object($result)) {
-    $projects[$p->pid] = $p->name;
-    if ($p->pid == $node->pid) {
-      $project = $p;
-    }
+  if (db_num_rows($result) != 1) {
+    $projects = array(0 => "<none>");
+		while ($p = db_fetch_object($result)) {
+		  $projects[$p->pid] = $p->name;
+		  if ($p->pid == $node->pid) {
+		    $project = $p;
+		  }
+		}
+  }
+  else {
+    $project = db_fetch_object($result);
+    $node->pid = $project->pid;
   }
 
   // Deconstruct project details if available.
@@ -575,8 +584,14 @@ function project_form(&$node, &$help, &$error, &$form) {
     $areas = array(0 => t("Not specified")) + project_array($project->areas);
     $versions = array(0 => t("Not specified")) + project_array($project->versions);
   }
-
-  $output = form_select(t("Project"), "pid", $node->pid, $projects, $error["pid"]);
+  
+  // Construct form.
+  if (!is_array($projects)) {
+    $output = form_hidden("pid", $node->pid);
+  }
+  else {
+    $output = form_select(t("Project"), "pid", $node->pid, $projects, $error["pid"]);
+  }
   $output .= form_select(t("Type"), "ptype", $node->ptype, project_type(), $error["ptype"]);
   if ($node->nid) {
     $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
@@ -584,9 +599,12 @@ function project_form(&$node, &$help, &$error, &$form) {
   else {
     $output .= form_hidden("pstatus", 1);
   }
+  if (function_exists("taxonomy_node_form")) {
+    $output .= implode("", taxonomy_node_form("project", $node));
+  }
   $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
   $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
-  $output .= form_select(t("Version"), "version", $node->version, $versions, $error["version"]);
+  $output .= form_select(t("Version"), "version", $node->version ? $node->version : $project->version_default, $versions, $error["version"]);
   $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
   //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
