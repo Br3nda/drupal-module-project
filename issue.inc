@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.22.2.1 2003/10/25 18:48:21 kjartan Exp $
+// $Id: issue.inc,v 1.22.2.2 2003/10/27 22:04:45 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");

@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.18.2.1 2003/10/25 18:48:21 kjartan Exp $
+// $Id: mail.inc,v 1.18.2.2 2003/10/27 22:04:45 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -103,7 +103,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
       // Send the user his errors
       $mailto = mailhandler_get_fromaddress($header, $mailbox);
       $mailfrom = variable_get("site_mail", ini_get("sendmail_from"));
-      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal Project module (http://drupal.org/project/project\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
+      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal Project module (http://drupal.org/project/project)\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
 
       $body = t("You had some errors in your submission:");
       foreach ($error as $field => $text) {
