@@ -6,6 +6,17 @@ div.php code {
   border: 1px solid #ddd;
 }
 
+.project-overview td {
+  padding: 0.0em;
+}
+.project-overview td.project {
+  border-bottom: 1pt solid #ccc;
+}
+.project-overview tr.light, .project-overview tr.dark {
+  background-color: #fff;
+  border: 1pt solid black;
+}
+
 .project tr.light, .project tr.dark {
   background-color: #fff;
 }

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.107 2003/10/01 20:54:23 kjartan Exp $
+// $Id: project.module,v 1.108 2003/10/02 21:55:52 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -46,19 +46,6 @@ function project_settings() {
 
     $output .= form_select(t("Reply-to address on e-mail notifications"), "project_reply_to", variable_get("project_reply_to", ""), $items);
   }
-
-  /*
-  $vocabularies = taxonomy_get_vocabularies("project");
-  foreach ($vocabularies as $id => $vocabulary) {
-    $vocabularies[$id] = $vocabulary->name;
-  }
-  if (count($vocabularies)) {
-    $vocabularies[0] = t("<none>");
-    asort($vocabularies);
-    $output .= form_select(t("Release vocabulary"), "release_vocabulary", variable_get("release_vocabulary", 0), $vocabularies, t("If the release directory has some form or structure to it then assigning projects.."));
-  }
-  */
-
   return $output;
 }
 
@@ -229,21 +216,51 @@ function project_page() {
 
 function project_page_overview() {
   if (!is_numeric($_GET["tid"]) && count($vocabularies = taxonomy_get_vocabularies("project"))) { // Show an overview of vocabularies
-    theme("header", t("Projects"));
     foreach ($vocabularies as $vocabulary) {
       $terms = taxonomy_get_tree($vocabulary->vid);
-
-      $items = array();
+      $rows = array();
       foreach ($terms as $term) {
-        $count[] = taxonomy_term_count_nodes($term->tid);
-        $items[] = l($term->name, "project", NULL, "tid=$term->tid") ." (". end($count) .")";
+        $count = taxonomy_term_count_nodes($term->tid);
+        $browse[] = l($term->name, "project", NULL, "tid=$term->tid") ." ($count)";
+        $rows[] = array(array(
+          "colspan" => 2,
+          "data" => l($term->name, "project", NULL, "tid=$term->tid") ." ($count)",
+          "class" => "project"
+        ));
+        $result = db_query("SELECT n.nid, title FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid = %d AND n.status = 1 ORDER BY title", $term->tid);
+        while ($node = db_fetch_object($result)) {
+          $rows[] = array(
+            "&nbsp; &nbsp; &nbsp;",
+            array("data" => l($node->title, "node/view/$node->nid"), "class" => "")
+          );
+        }
+        $rows[] = array("<br />");
       }
-      $items[] = l(t("All projects"), "project", NULL, "tid=0") ." (". array_sum($count) .")";
-      if (variable_get("project_release_directory", "")) {
-        $items[] = l(t("All downloads"), "project/releases");
-      }
-      theme("box", $vocabulary->name, theme("theme_item_list", $items));
     }
+
+    if (variable_get("project_release_directory", "")) {
+      $items[] = l(t("All downloads"), "project/releases");
+    }
+    if (user_access("access project issues")) {
+      $items[] = l(t("View issues"), "project/issues");
+      $items[] = l(t("Search issues"), "project/issues/search");
+      if (user_access("maintain project issues")) {
+        foreach (project_issue_category(0, 0) as $category => $name) {
+          $items[] = l(t("Submit %category", array("%category" => $name)), "node/add/project_issue", array(), "category=$category");
+        }
+      }
+    }
+
+    $output = "<div class=\"project-overview\">";
+    $output .= table($header, $rows);
+    $output .= "</div>";
+
+    theme("header", t("Projects"));
+    print "<div style=\"float: left; padding-right: 5em;\">";
+    theme("box", t("Browse"), theme("theme_item_list", $browse));
+    theme("box", t("Resources"), theme("theme_item_list", $items));
+    print "</div>";
+    theme("box", t("Projects"), $output);
     theme("footer");
   }
   else {

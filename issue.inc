@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.15 2003/10/02 03:51:49 ax Exp $
+// $Id: issue.inc,v 1.16 2003/10/02 21:55:52 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -258,7 +258,9 @@ function project_issue_count($pid) {
 function project_issue_query($project, $query) {
   $categories = project_issue_category();
   if ($project->nid) {
-    array_unshift($project->components, 0); unset($project->components[0]);
+    foreach ($project->components as $component) {
+      $components[$component] = $component;
+    }
     $versions = project_release_load($project);
   }
   $states = project_issue_state();
@@ -272,11 +274,11 @@ function project_issue_query($project, $query) {
   );
   $rows[] = array(
     form_select(t("Categories"), "categories", $query->categories, $categories, "", "size=\"5\"", 1),
-    form_select(t("Components"), "components", $query->components, $project->components, "", "size=\"5\"", 1),
+    form_select(t("Components"), "components", $query->components, $components, "", "size=\"5\"", 1),
     form_select(t("Versions"), "versions", $query->versions, $versions, "", "size=\"5\"", 1)
   );
   $rows[] = array(
-    form_select(t("Status"), "states", $query->states, $states, "", "size=\"5\"", 1),
+    form_select(t("Status"), "states", ($query->states) ? $query->states : array(1, 2), $states, "", "size=\"5\"", 1),
     form_select(t("Priorities"), "priorities", $query->priorities, $priorities, "", "size=\"5\"", 1),
   );
   $rows[] = array(
@@ -391,6 +393,9 @@ function project_issue_query_parse() {
         $query->$key = explode(",", $value);
       }
     }
+  }
+  if ($_SERVER['REQUEST_METHOD'] == 'GET' && empty($query->states)) {
+    $query->states = "1,2";
   }
   return $query;
 }

@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.13 2003/10/01 20:54:23 kjartan Exp $
+// $Id: mail.inc,v 1.14 2003/10/02 21:55:52 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -255,9 +255,9 @@ function project_mail_notify($node) {
 
   // Create the footer
   $footer  = "-- \n";
-  $footer .= t("View: %link", array("%link" => url("node/view/$node->nid")));
-  $footer .= t("Edit: %link", array("%link" => url("project/$project->uri/comment/add/$node->nid")));
-  
+  $footer .= t("View: %link", array("%link" => url("node/view/$node->nid"))) ."\n";
+  $footer .= t("Edit: %link", array("%link" => url("project/$project->uri/comment/add/$node->nid"))) ."\n";
+
   $body = "$summary\n$body\n$footer\n";
 
   // Create mail header
@@ -298,8 +298,14 @@ function project_mail_notify($node) {
     user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\n", $header));
   }
 
-  if ($project->mail_copy && (empty($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
-    user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
+  if ($project->mail_copy && (!count($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
+    mail(
+      $project->mail,
+      check_output(t("[$node->category]") ." $node->title"),
+      str_replace("\r", "", $body),
+      "MIME-version: 1.0\nContent-type: text/plain; charset=UTF-8; format=flowed\nContent-transfer-encoding: 8bit\n" . implode("\n", $header)
+    );
+    //user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
   }
 }
 

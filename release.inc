@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.5 2003/10/02 03:51:49 ax Exp $
+// $Id: release.inc,v 1.6 2003/10/02 21:55:52 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -10,15 +10,16 @@ function project_release_cron() {
         while ($version = readdir($handle)) {
           if (is_dir("$dir/$version") && !in_array($version, array(".", "..", "CVS"))) {
             if (file_exists(getcwd() ."/$dir/$version/$project->release_directory-$version.tar.gz")) {
-              if ($rid = array_search($version, $releases)) {
+              if (array_search($version, $releases)) {
                 unset($releases[$rid]);
-                $release->rid = $rid;
               }
-              $release->nid = $project->nid;
-              $release->fid = 0;
-              $release->version = $version;
-              $release->path = "$dir/$version/$project->release_directory-$version.tar.gz";
-              project_release_save($release);
+              else {
+                $release->nid = $project->nid;
+                $release->fid = 0;
+                $release->version = $version;
+                $release->path = "$dir/$version/$project->release_directory-$version.tar.gz";
+                project_release_save($release);
+              }
             }
           }
         }
@@ -27,7 +28,7 @@ function project_release_cron() {
         }
       }
       else {
-        print "Failed to open $dir";
+        watchdog("error", "project releases: Failed to open $dir");
       }
     }
   }
@@ -361,6 +362,7 @@ function project_release_save($release) {
 }
 
 function project_release_delete($rid) {
+  watchdog("special", "project release: deleted '$release->version'", l("view post", "node/view/$release->nid"));
   db_query("DELETE FROM {project_releases} WHERE rid = %d", $rid);
 }
 
