@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.179 2005/02/06 11:40:41 dries Exp $
+// $Id: project.module,v 1.180 2005/02/06 12:32:41 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -254,7 +254,6 @@ function project_page() {
         var_dump($term);
       }
   }
-}
 }
 
 function project_page_overview() {

@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.40 2005/02/03 22:28:15 dries Exp $ */
+/* $Id: comment.inc,v 1.41 2005/02/06 12:32:41 dries Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -44,7 +44,7 @@ function project_comment_page() {
           $edit->nid = $node->nid;
 
           project_comment_save($edit);
-          drupal_goto(url("node/$node->nid"));
+          drupal_goto("node/$node->nid");
         }
       }
       break;

@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.89 2005/02/06 12:17:12 dries Exp $ */
+/* $Id: issue.inc,v 1.90 2005/02/06 12:32:41 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -13,6 +13,7 @@ function project_issue_page() {
       break;
     case 'rss':
       $project = project_project_retrieve(arg(3));
+      $query = new StdClass();
       $query->projects = array($project->nid);
 
       header('Content-Type: text/xml');
@@ -37,6 +38,7 @@ function project_issue_page() {
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
       $project = project_project_retrieve(arg(2));
+      $query = new StdClass();
       $query->projects = array($project->nid);
 
       print theme('page', project_issue_query_result($query));
@@ -783,7 +785,7 @@ function project_issue_query_user($value) {
 }
 
 function project_issue_query_rss($projects, $result) {
-  global $locale;
+  global $base_url, $locale;
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
@@ -807,16 +809,16 @@ function project_issue_query_rss($projects, $result) {
     $rows[] = array(array('data' => t('No issues found.'), 'colspan'=> 8));
   }
 
+  $title = variable_get('site_name', 'drupal') .' - '. t('issues');
+  $link = url('project/issues', NULL, NULL, TRUE); // not 100% correct
+  $description = variable_get('site_mission', '');
+  
   $output .= "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
   $output .= "<!DOCTYPE rss [<!ENTITY % HTMLlat1 PUBLIC \"-//W3C//ENTITIES Latin 1 for XHTML//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent\">]>\n";
-  if (!$channel['version']) $channel['version'] = '2.0';
-  if (!$channel['title']) $channel['title'] = variable_get('site_name', 'drupal') .' - '. t('issues');
-  if (!$channel['link']) $channel['link'] = url();
-  if (!$channel['description']) $channel['description'] = variable_get('site_mission', '');
-  $output .= "<rss version=\"$channel[version]\">\n";
-  $output .= format_rss_channel($channel['title'], $channel['link'], $channel['description'], $items, $locale);
+  $output .= "<rss version=\"0.92\" xml:base=\"". $base_url ."\">\n";
+  $output .= format_rss_channel($title, $link, $description, $items, $locale);
   $output .= "</rss>\n";
-
+  
   return $output;
 }
 
