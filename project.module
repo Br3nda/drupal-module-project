@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.53 2003/03/09 13:14:12 kjartan Exp $
+// $Id: project.module,v 1.54 2003/03/09 15:06:49 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -32,7 +32,7 @@ function project_link($type, $node = 0, $main = 0) {
   }
 
   if ($type == "admin" && user_access("administer projects")) {
-    menu("admin/project", "project management", "project_admin", NULL, 8);
+    menu("admin/project", "project management", "project_admin", NULL, 3);
     menu("admin/project/add", "add project", "project_admin");
     //menu("admin/system#project", "settings");
   }
@@ -780,8 +780,6 @@ function project_diff(&$a, &$b) {
 }
 
 function project_view($node, $main = 0) {
-
-
   // Initialize project variables.
   $projects = array(0 => "<none>");
   $result = db_query("SELECT * FROM projects ORDER BY name");
@@ -803,34 +801,50 @@ function project_view($node, $main = 0) {
       $revisions[]["node"] = $node;
       $node = $revisions[0]["node"];
     }
-    $body .= "<b>". format_date($node->changed, "custom", "Y-m-d H:i") ." : ". format_name($node) ."</b>";
-    $body .= "<blockquote>". $node->body ."</blockquote>";
-    if (count($revisions) > 1) {
-      $body .= '<hr /><table border="0" cellpadding="0" cellspacing="2">';
-      for($i = 1; $i < count($revisions); $i++) {
-        $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
-        $body .= '<tr valign="top">';
-        $body .= '<td nowrap=\"nowrap\"><a name="'. $i .'"></a><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
-        $body .= format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i");
-        #$body .= (count($diff->title) ? "<br / ><b>". t("Title") ."</b>: ". $diff->title[0] ." -> ". $diff->title[1] : "");
-        $body .= (count($diff->pid) ? "<br / ><b>". t("Project") ."</b>: ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
-        $body .= (count($diff->ptype) ? "<br / ><b>". t("Type") ."</b>: ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
-        $body .= (count($diff->pstatus) ? "<br / ><b>". t("Status") ."</b>: ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
-        $body .= (count($diff->priority) ? "<br / ><b>". t("Priority") ."</b>: ". t($diff->priority[0]) ." -> ". t($diff->priority[1]) : "");
-        $body .= (count($diff->assigned) ? "<br / ><b>". t("Assigned") ."</b>: ". $diff->assigned_formatted[0] ." -> ". $diff->assigned_formatted[1] : "");
-        $body .= (count($diff->area) ? "<br / ><b>". t("Area") ."</b>: ". $diff->area[0] ." -> ". $diff->area[1] : "");
-        $body .= (count($diff->version) ? "<br / ><b>". t("Version") ."</b>: ". $diff->version[0] ." -> ". $diff->version[1] : "");
-        $body .= "</td>";
-        $body .= "<td>". trim($revisions[$i]["node"]->body) ."</td>";
-        $body .= '</tr>';
-        $body .= '<tr><td><br /></td></tr>';
-      }
-      $body .= "</table>";
+    else {
+      $revisions[]["node"] = $node;
+    }
 
+    for($i = 0; $i < count($revisions); $i++) {
+      if ($i) {
+        $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
+      }
+      elseif ($revisions[$i + 1]["node"]) {
+        $diff = project_diff($revisions[$i + 1]["node"], $revisions[$i]["node"]);
+      }
+
+      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date($revisions[$i]["node"]->changed), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;"));
+      if (count($diff->title)) { $rows[]  = array(array("data" => t("Title:"), "style" => "font-size: x-small"), $diff->title[1]); }
+      if (count($diff->pid)) { $rows[] = array(array("data" => t("Project:"), "style" => "font-size: x-small"), $projects[$diff->pid[1]]); }
+      if (count($diff->ptype)) { $rows[] = array(array("data" => t("Type:"), "style" => "font-size: x-small"), $types[$diff->ptype[1]]); }
+      if (count($diff->pstatus)) { $rows[] = array(array("data" => t("Status:"), "style" => "font-size: x-small"), t(project_pstatus($diff->pstatus[1]))); }
+      if (count($diff->priority)) { $rows[] = array(array("data" => t("Priority:"), "style" => "font-size: x-small"), t($diff->priority[1])); }
+      if (count($diff->assigned)) { $rows[] = array(array("data" => t("Assigned:"), "style" => "font-size: x-small"), $diff->assigned_formatted[1]); }
+      if (count($diff->area)) { $rows[] = array(array("data" => t("Area:"), "style" => "font-size: x-small"), $diff->area[1]); }
+      if (count($diff->version)) { $rows[] = array(array("data" => t("Versio:n"), "style" => "font-size: x-small"), $diff->version_formatted[1]); }
+      if (trim($revisions[$i]["node"]->body)) { $rows[] = array(array("data" => t("Comment:"), "style" => "font-size: x-small"), trim($revisions[$i]["node"]->body)); }
+      $rows[] = array(array("data" => "<br />", "colspan" => 2));
+    }
+
+    if (count($revisions) > 1) {
       $node = $revisions[$i - 1]["node"];
     }
 
-    $node->body = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ."<br /><b>". t("Area") .":</b> $node->area<br /><b>". t("Priority") .":</b> $node->priority <br /><b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />$body";
+    $headers[] = array(array("data" => "Current status", "colspan" => 2, "style" => "font-weight: bold"));
+    $headers[] = array("<b>". t("Status") .":</b>", t(project_pstatus($node->pstatus)));
+    if ($node->area) {
+      $headers[] = array("<b>". t("Area") .":</b>", $node->area);
+    }
+    $headers[] = array("<b>". t("Priority") .":</b>", $node->priority);
+    if ($node->version) {
+      $headers[] = array("<b>". t("Version") .":</b>", $node->version);
+    }
+    if ($node->assigned_formatted) {
+      $headers[] = array("<b>". t("Assigned") .":</b>", $node->assigned_formatted);
+    }
+    $headers[] = array("<br />");
+    $node->body = table(array(), array_merge($headers, $rows));
+    $node->project_name = $project->name;
   }
 
   if (count($node->revisions)) {
