@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.42 2003/02/11 20:27:01 dries Exp $
+// $Id: project.module,v 1.43 2003/02/12 17:34:13 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -12,27 +12,29 @@ function project_link($type, $node = 0, $main = 0) {
     if (user_access("post bug reports")) {
       $links[] = l(t("update $node->ptype"), "admin/project/update/$node->nid");
     }
-    $links[] = t("project") .": ". lm($node->project_name, array("mod" => "project", "pid" => $node->pid));
+    $links[] = t("project") .": ". l($node->project_name, "project/pid/$node->pid");
   }
 
   if ($type == "page" && user_access("access projects")) {
-    $links[] = lm(t("projects"), array("mod" => "project"));
+    $links[] = l(t("projects"), "project");
   }
 
   if ($type == "menu.view" && user_access("access projects")) {
     global $user;
     if (db_num_rows(db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid))) {
-      $links[] = lm(t("view your projects"), array("mod" => "project", "op" => "user"));
+      $links[] = l(t("view your projects"), "project/user");
     }
   }
 
   if ($type == "menu.create" && user_access("post bug reports")) {
-    $links[] = lm(t("create bug report"), array("mod" => "project", "op" => "add", "type" => "bug"));
-    $links[] = lm(t("create feature request"), array("mod" => "project", "op" => "add", "type" => "feature"));
+    $links[] = l(t("create bug report"), "project/add/bug");
+    $links[] = l(t("create feature request"), "project/add/feature");
   }
 
   if ($type == "admin" && user_access("administer projects")) {
-    $links[] = la(t("projects"), array("mod" => "project"));
+    menu_add("project management", url("admin/project"), "Project management.s");
+     menu_add("add project", url("admin/project/add"), "Add a new project.", NULL, "project management");
+     menu_add("settings", url("admin/system#project"), "Configure project parameters.", NULL, "project management");
   }
 
   return $links ? $links : array();
@@ -122,7 +124,7 @@ function project_admin_list() {
     $output .= "<td>$project->mail</td>";
     $output .= "<td>". (count($developers) ? implode(", ", $developers) : t("None defined.")) ."</td>";
     $output .= "<td>". str_replace(",", ", ", $project->areas) ."</td>";
-    $output .= "<td>". la(t("edit project"), array("mod" => "project", "op" => "edit", "pid" => $project->pid)) ."</td>";
+    $output .= "<td>". l(t("edit project"), "admin/project/edit/$project->pid") ."</td>";
     $output .= "</tr>\n";
   }
   $output .= "</table>\n";
@@ -131,30 +133,25 @@ function project_admin_list() {
 
 function project_admin() {
   global $op;
-
   if (!user_access("administer projects")) {
     return;
   }
 
-  $links[] = la(t("add project"), array("mod" => "project", "op" => "add"), "", array ("title" => t("Add a new project")));
-  $links[] = la(t("overview"), array("mod" => "project"), "", array ("title" => t("View existing projects")));
-  $links[] = la(t("settings"), array("mod" => "system"), "project", array ("title" => "configure project parameters"));
-
-  print "<small>". implode(" &middot; ", $links) ."</small><hr />";
+  if (empty($op)) {
+    $op = arg(2);
+  }
 
   switch ($op) {
     case "add":
       print project_admin_form();
       break;
     case "edit":
-      global $pid;
-      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
+      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", arg(3)));
       $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
       print project_admin_form($project);
       break;
     case "Delete":
-      global $pid;
-      db_query("DELETE FROM projects WHERE pid = '%d'", $pid);
+      db_query("DELETE FROM projects WHERE pid = '%d'", arg(3));
       project_admin_list();
       break;
     case "Submit":
@@ -185,22 +182,19 @@ function project_admin() {
 }
 
 function project_list_header($text, $pid, $type, $order) {
-  global $op;
-  return lm(t($text), array("mod" => "project", "pid" => $pid, "op" => $op, "type" => $type, "field" => $text, "order" => ($order == "asc" ? "desc" : "asc")));
+  return l(t($text), "project/". arg(1) ."/$pid/$type/$text/". ($order == "asc" ? "desc" : "asc"));
 }
 
 function project_sort_submitted($a, $b) {
-  global $order;
-  return $order == "asc" ? strcasecmp($a->name, $b->name) : strcasecmp($b->name, $a->name);
+  return arg(5) == "asc" ? strcasecmp($a->name, $b->name) : strcasecmp($b->name, $a->name);
 }
 
 function project_sort_assigned($a, $b) {
-  global $order;
-  return $order == "asc" ? strcasecmp($a->assigned_name, $b->assigned_name) : strcasecmp($b->assigned_name, $a->assigned_name);
+  return arg(5) ? strcasecmp($a->assigned_name, $b->assigned_name) : strcasecmp($b->assigned_name, $a->assigned_name);
 }
 
-function project_list($query, $pid = 0) {
-  global $theme, $type, $order, $field;
+function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
+  global $theme;
   $headers = array("ID" => "n.nid", "Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Submitted by" => "n.uid", "Assigned" => "p.assigned");
   if ($pid) {
     $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
@@ -252,7 +246,7 @@ function project_list($query, $pid = 0) {
         $node->name = substr($node->name, 0, strpos($node->name, "@"));
       }
       $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
-      $output .= "<td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td>";
+      $output .= "<td>#$node->nid</td><td>". l($node->title, "node/view/$node->nid") ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
       $output .= "<td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td>";
       if ($project->areas) {
@@ -265,17 +259,17 @@ function project_list($query, $pid = 0) {
       if ($project->developers) {
         $output .= "<td>". $node->assigned_formatted ."</td>";
       }
-      $output .= (user_access("post bug reports") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "");
+      $output .= (user_access("post bug reports") ? "<td>". l(t("update $node->ptype"), "project/update/$node->nid") ."</td>" : "");
       $output .= "</tr>\n";
     }
 
     $output .= "</table><br />\n";
 
     if (user_access("post bug reports") && $type && $pid) {
-      $links[] = lm(t("submit new $type"), array("mod" => "project", "op" => "add", "pid" => $pid, "type" => $type));
+      $links[] = l(t("submit new $type"), "project/add/$pid/$type");
     }
     if (user_access("search content")) {
-      $links[] = lm(t("search"), array("mod" => "project", "op" => "search", "pid" => $pid, "type" => $type));
+      $links[] = l(t("search"), "project/search/$pid/$type");
     }
     $output .= $theme->links($links);
   }
@@ -366,13 +360,17 @@ function project_page_filter_apply($edit) {
 function project_page() {
   global $op, $theme;
 
+  if (empty($op)) {
+    $op = arg(1);
+  }
+
   switch ($op) {
     case "mail_help":
       $theme->header();
       $theme->box(t("Project Mail Help"), project_mail_help());
       $theme->footer();
       break;
-    case "Search":
+    case t("Search"):
       global $edit;
       $theme->header(t("Project search results"));
       $theme->box(t("Search results"), project_page_filter_apply($edit));
@@ -380,19 +378,18 @@ function project_page() {
       $theme->footer();
       break;
     case "search":
-      global $pid, $type, $type;
       $theme->header(t("Project search"));
-      $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
+      $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
       $theme->box(t("Search"), project_page_filter($edit));
       $theme->footer();
       break;
     case "user":
-      global $pid, $type, $user;
+      global $user;
       $result = db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid);
       $theme->header(strtr("%u's projects", array("%u" => $user->name)));
 
       while ($project = db_fetch_object($result)) {
-        if ($output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$project->pid'", "p.assigned = '$user->uid'"))) {
+        if ($output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = $project->pid", "p.assigned = '$user->uid'"), $project->pid, 0, arg(4), arg(5))) {
           $theme->box($project->name, $output);
         }
       }
@@ -400,23 +397,30 @@ function project_page() {
       $theme->footer();
       break;
     case "list":
-      global $pid, $type, $user, $edit;
-      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '%d'", $pid));
+      global $edit;
+      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '%d'", arg(2)));
 
-      $output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$pid'", "p.ptype = '$type'"), $pid);
+      $filter[] = "(p.pstatus = '1' OR p.pstatus = '2')";
+      if ((int) arg(2)) {
+        $filter[] = "p.pid = ". arg(2);
+      }
+      if (arg(3)) {
+        $filter[] = "p.ptype = '". arg(3) ."'";;
+      }
+      $output = project_list($filter, arg(2), arg(3), arg(4), arg(5));
 
       $theme->header("$project->name ${type}s");
-      $theme->box($project->name ." : ". t(($type ? $type : "all")), $output);
+      $theme->box($project->name ." : ". t((arg(3) ? arg(3) : "all")), $output);
       if (!count($edit)) {
-        $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
+        $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
       }
       $theme->box(t("Search"), project_page_filter($edit));
       $theme->footer();
       break;
     case "update":
-      global $id, $user;
+      global $user;
       if (user_access("post bug reports")) {
-        $node = node_load(array("nid" => $id));
+        $node = node_load(array("nid" => arg(2)));
 
         $theme->header("Updating:". $node->title);
         node_view($node, 0);
@@ -436,11 +440,11 @@ function project_page() {
       $theme->footer();
       break;
     case "add":
-      global $pid, $type, $user;
+      global $user;
       $theme->header();
       if (user_access("post bug reports")) {
-        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1);
-        $theme->box(t("Project") ." : ". t($type), node_form($node));
+        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => arg(2), "ptype" => arg(3), "revision" => 1);
+        $theme->box(t("Project") ." : ". t(arg(3)), node_form($node));
       }
       else {
         $theme->box(t("Access denied"), message_access());
@@ -448,9 +452,9 @@ function project_page() {
       $theme->footer();
       break;
     case "Preview":
-      global $type, $edit;
+      global $edit;
       $theme->header();
-      $theme->box(t("Project") ." : ". t($type), node_preview($edit));
+      $theme->box(t("Project") ." : ". t($edit["ptype"]), node_preview($edit));
       $theme->footer();
       break;
     case t("Submit"):
@@ -461,8 +465,7 @@ function project_page() {
       $theme->footer();
       break;
     default:
-      global $pid;
-      $result = db_query("SELECT pid,name FROM projects ". ($pid ? "WHERE pid = '$pid'" : "") ."ORDER BY name");
+      $result = db_query("SELECT pid,name FROM projects". ((int) arg(1) ? " WHERE pid = ". arg(1) : "") ." ORDER BY name");
       $theme->header();
       while ($project = db_fetch_object($result)) {
         $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
@@ -470,16 +473,16 @@ function project_page() {
           $active = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE (pstatus = '1' OR pstatus = '2') AND ptype = '$type' AND pid = '$project->pid'"));
           $total = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE ptype = '$type' AND pid = '$project->pid'"));
           if (user_access("access content")) {
-            $output .= "<tr><td><b>". lm(t($name), array("mod" => "project", "op" => "list", "pid" => $project->pid, "type" => $type)) ."</b></td><td>($total->total)</td>";
+            $output .= "<tr><td><b>". l(t($name), "project/list/$project->pid/$type") ."</b></td><td>($total->total)</td>";
           }
           else {
             $output .= "<tr><td><b>". t($name) ."</b></td><td>($total->total)</td>";
           }
           if (user_access("post bug reports")) {
-            $output .= "<td>". lm(t("submit"), array("mod" => "project", "op" => "add", "pid" => $project->pid, "type" => $type)) ."</td>";
+            $output .= "<td>". l(t("submit"), "project/add/$project->pid/$type") ."</td>";
           }
           if (user_access("search content")) {
-            $output .= "<td>". lm(t("search"), array("mod" => "project", "op" => "search", "pid" => $project->pid, "type" => $type)) ."</td>";
+            $output .= "<td>". l(t("search"), "project/search/$project->pid/$type") ."</td>";
           }
           $output .= "<td>($active->total ". t("open") .")</td>";
         }
@@ -503,10 +506,10 @@ function project_block($op = "list", $delta = 0) {
       $projects[$project->name][$project->ptype] = $project->active;
     }
     foreach ($projects as $name => $project) {
-      $output .= lm($name, array("mod" => "project", "pid" => $project["pid"])) ."<br />";
+      $output .= l($name, "project/$project[pid]") ."<br />";
       foreach ($project as $type => $active) {
         if ($type != "pid") {
-          $output .= "&nbsp; ". lm(t(ucfirst($type . "s")), array("mod" => "project", "op" => "list", "pid" => $project["pid"], "type" => $type)) .": $active open<br />";
+          $output .= "&nbsp; ". l(t(ucfirst($type . "s")), "project/list/$project[pid]/$type") .": $active open<br />";
         }
       }
       $output .= "<br />";

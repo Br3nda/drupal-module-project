@@ -1,3 +1,11 @@
+12. Feburary 2003
+-----------------
+project.module
+- fixed user page not listing the correct nodes.
+- fixed problems with search values and lists not being populated correctly.
+- updated to use clean urls.
+- now uses administration menu.
+
 30. October 2002
 ----------------
 project.module
