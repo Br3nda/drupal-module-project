@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.14 2002/05/02 15:32:20 kjartan Exp $
+// $Id: project.module,v 1.15 2002/05/15 20:28:13 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -9,7 +9,7 @@ function project_link($type, $node = 0, $main = 0) {
   }
 
   if ($type == "page" && user_access("access projects")) {
-    $links[] = lm(t("projects"), array("mod" => "project")) ."</a>";
+    $links[] = lm(t("projects"), array("mod" => "project"));
   }
 
   if (($type == "menu" || $type == "menu.view") && user_access("access projects")) {
