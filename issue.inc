@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.51 2004/01/28 13:14:10 kjartan Exp $
+// $Id: issue.inc,v 1.52 2004/01/28 19:11:08 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -617,7 +617,7 @@ function project_issue_query_sql($query) {
   }
   else {
     return array(
-      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
+      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_issues} p LEFT JOIN {project_comments} c ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
       'count' => 'SELECT COUNT(DISTINCT(n.nid)) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'
     );
   }
