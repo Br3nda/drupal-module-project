@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.33 2004/09/10 20:59:15 kjartan Exp $ */
+/* $Id: comment.inc,v 1.34 2004/09/11 11:13:55 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -144,10 +144,6 @@ function project_comment_view($node, $main = 0) {
     $output .= theme('table', NULL, $rows);
     $output .= '</div>';
 
-    if (user_access('create project issues')) {
-      $links[] = '<p>'. l(t('follow up'), "project/comments/add/$node->nid") .'</p>';
-    }
-    $output .= theme('links', $links);
     return theme('box', t('Updates'), $output);
   }
 }
