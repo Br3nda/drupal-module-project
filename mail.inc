@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.36 2004/09/07 20:47:41 kjartan Exp $ */
+/* $Id: mail.inc,v 1.37 2005/01/16 23:58:37 unconed Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -130,11 +130,9 @@ function project_mail_urls($url = 0) {
   return $urls;
 }
 
-function project_mail_output(&$body, $wrap = 1) {
+function project_mail_output(&$body, $html = 1, $format = FILTER_FORMAT_DEFAULT) {
   static $i = 0;
 
-  $trans = get_html_translation_table(HTML_ENTITIES);
-  $trans = array_flip($trans);
   if ($wrap) {
     $pattern = '@(<a href="(.+?)">(.+?)</a>)@ei';
     $body = preg_replace($pattern, "'\\3 ['. project_mail_urls('\\2') .']'", $body);
@@ -146,13 +144,13 @@ function project_mail_output(&$body, $wrap = 1) {
       }
     }
 
-    //$body = check_output($body);
+    $body = check_output($body, $format);
     $body = strip_tags($body);
-    $body = strtr($body, $trans);
+    $body = decode_entities($body);
     $body = wordwrap($body, 72);
   }
   else {
-    $body = strtr($body, $trans);
+    $body = decode_entities($body);
   }
 }
 
@@ -245,7 +243,7 @@ function project_mail_notify($node) {
   }
 
   // Create main body content
-  project_mail_output($entry->body);
+  project_mail_output($entry->body, 1, $entry->format);
   $body = "$entry->body\n\n$entry->name\n";
 
   $hr = str_repeat('-', 72);
@@ -280,7 +278,7 @@ function project_mail_notify($node) {
       if ($entry->uid) {
         $uids[$entry->uid] = "u.uid = $entry->uid";
       }
-      project_mail_output($entry->body);
+      project_mail_output($entry->body, 1, $entry->format);
       $body .= "\n$hr\n\n";
       $body .= format_date($entry->created) ." : $entry->name\n\n";
       if ($entry->file_path && file_exists($entry->file_path)) {
