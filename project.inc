@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.31 2004/04/22 18:59:00 kjartan Exp $ */
+/* $Id: project.inc,v 1.32 2004/05/04 18:17:23 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -45,11 +45,20 @@ function project_project_form(&$node, &$error) {
 
   $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme('error', $error['mail_digest']));
   $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme('error', $error['mail_copy']));
+
   $options = project_issue_category();
   foreach ($options as $key => $choice) {
     $data .= form_checkbox($choice, "mail_copy_filter][$key", $key, ($key == $node->mail_copy_filter[$key]));
   }
   $email .= form_item(t('Categories'), $data, t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
+
+  $options = project_issue_state();
+  $filter_state = '';
+  foreach ($options as $key => $choice) {
+    $filter_state .= form_checkbox($choice, "mail_copy_filter_state][$key", $key, ($key == $node->mail_copy_filter_state[$key]));
+  }
+  $email .= form_item(t('States'), $filter_state, t('Which issue states to e-mail. If none are checked all states will be posted.'));
+
   $email .= form_item(t('Monthly reminder'), form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.')));
 
   if (function_exists('taxonomy_node_form')) {
@@ -117,6 +126,10 @@ function project_project_validate(&$node) {
     $node->mail_copy_filter = array_filter($node->mail_copy_filter, 'project_project_cleanup');
   }
 
+  if (is_array($node->mail_copy_filter_state)) {
+    $node->mail_copy_filter_state = array_filter($node->mail_copy_filter_state, 'project_project_cleanup');
+  }
+
   // Make sure all URL fields actually contain URLs.
   foreach (array('homepage', 'changelog', 'cvs', 'demo') as $uri) {
     if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
@@ -171,6 +184,7 @@ function project_project_load($node) {
 
   $node->components = unserialize($node->components);
   $node->mail_copy_filter = unserialize($node->mail_copy_filter);
+  $node->mail_copy_filter_state = unserialize($node->mail_copy_filter_state);
 
   return $node;
 }
@@ -178,16 +192,18 @@ function project_project_load($node) {
 function project_project_insert($node) {
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
+  $node->mail_copy_filter_state = serialize($node->mail_copy_filter_state);
 
-  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, issues, components, mail, mail_digest, mail_reminder, mail_copy, mail_copy_filter, version, help, screenshots) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', %d, '%s', '%s', %d, '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help, $node->screenshots);
+  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, issues, components, mail, mail_digest, mail_reminder, mail_copy, mail_copy_filter, mail_copy_filter_state, version, help, screenshots) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', %d, '%s', '%s', '%s', %d, '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->reminder, $node->mail_copy, $node->mail_copy_filter, $node->mail_copy_filter_state, $node->version, $node->help, $node->screenshots);
   project_release_scan_directory($node->uri);
 }
 
 function project_project_update($node) {
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
+  $node->mail_copy_filter_state = serialize($node->mail_copy_filter_state);
 
-  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', issues = %d, components = '%s', mail = '%s', mail_digest = '%s', mail_reminder = %d, mail_copy = '%s', mail_copy_filter = '%s', version = %d, help = '%s', screenshots = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->mail_reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help, $node->screenshots, $node->nid);
+  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', issues = %d, components = '%s', mail = '%s', mail_digest = '%s', mail_reminder = %d, mail_copy = '%s', mail_copy_filter = '%s', mail_copy_filter_state = '%s', version = %d, help = '%s', screenshots = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->mail_reminder, $node->mail_copy, $node->mail_copy_filter, $node->mail_copy_filter_state, $node->version, $node->help, $node->screenshots, $node->nid);
   project_release_scan_directory($node->uri);
 }
 

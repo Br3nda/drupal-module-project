@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.12 2003/12/27 19:12:00 kjartan Exp $
+-- $Id: project.mysql,v 1.13 2004/05/04 18:17:23 kjartan Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -25,6 +25,7 @@ CREATE TABLE project_projects (
 ) TYPE=MyISAM;
 ALTER TABLE project_projects ADD help text;
 ALTER TABLE project_projects ADD screenshots varchar(255) not null default '';
+ALTER TABLE project_projects ADD mail_copy_filter_state varchar(255) not null default '';
 
 --
 -- Table structure for table 'project_releases'
