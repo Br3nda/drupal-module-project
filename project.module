@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.162 2004/09/07 20:47:41 kjartan Exp $ */
+/* $Id: project.module,v 1.163 2004/09/11 11:15:17 root Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -196,7 +196,7 @@ function project_menu() {
 
   if (variable_get('project_release_directory', '')) {
     $access = user_access('administer projects');
-    $items[] = array('path' => 'admin/system/modules/project/reload', 'title' => t('scan for releases'), 'callback' => 'project_release_scan', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'admin/settings/project/reload', 'title' => t('scan for releases'), 'callback' => 'project_release_scan', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
   }
 
   return $items;
