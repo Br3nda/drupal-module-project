@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.17 2003/10/03 11:59:00 kjartan Exp $
+// $Id: issue.inc,v 1.18 2003/10/04 19:35:10 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -40,7 +40,9 @@ function project_issue_page($project) {
       if ($term = reset(taxonomy_node_get_terms($project->nid))) {
         $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
       }
-      $breadcrumb[] = l($project->title, "project/$project->uri");
+      if ($project) {
+        $breadcrumb[] = l($project->title, "node/view/$project->nid");
+      }
 
       theme("breadcrumb", $breadcrumb);
       theme("box", l(t("Issues"), "project/$project->uri/issues"), $output);
@@ -68,15 +70,18 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
   if ($node->pid) {
     // Load the project and initialize some support arrays.
     $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
-    $categories = project_issue_category(0, 0);
-    foreach ($project->components as $component) {
-      $components[$component] = $component;
+    if ($releases = project_release_load($project)) {
+      $releases = array(t("<none>")) + project_release_load($project);
     }
+    if ($project->components) {
+      $components = array(t("<none>"));
+      foreach ($project->components as $component) {
+        $components[$component] = $component;
+      }
+    }
+    $categories = project_issue_category(0, 0);
     $priorities = project_issue_priority();
-    $releases = project_release_load($project);
     $states = project_issue_state();
-
-    isset($node->rid) or $node->rid = $project->version;
 
     $output .= form_select(t("Version"), "rid", $node->rid, $releases);
     $output .= form_select(t("Component"), "component", $node->component, $components);
@@ -98,7 +103,6 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     if ($node->state || $node->nid) {
       $output .= form_select(t("Status"), "state", $node->state, $states);
     }
-    //$output .= form_textfield("Short description", "title", $node->title, 40, 255, t("Short and concise description of the problem.") . theme_error($error["title"]));
     $output .= form_textarea("Description", "body", $node->body, 60, 20, theme_error($error["body"]));
     /* TODO: pending final fileapi
     $output .= form_file(t("File attachment"), "file", 40, ($node->fid) ? t("A file already exists, if you upload another file the current file will be replaced.") : "" . theme_error($error["file"]), $node->fid);
@@ -113,19 +117,23 @@ function project_issue_validate(&$node) {
   if (empty($node->pid) && $_GET["project"]) {
     $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $_GET["project"]), 0);
   }
+  if ($node->pid && $project = node_load(array("nid" => $node->pid))) {
+    if ($releases = project_release_load($project)) {
+      if (!$node->rid || !$releases[$node->rid]) {
+        $node->rid = $project->version;
+      }
+      empty($node->rid) and $error["rid"] = t("Required.");
+    }
 
-  $node->comment = 0;
-  $node->promote = 0;
-  $node->moderate = 0;
-
-  empty($node->priority) and $node->priority = 2;
-  empty($node->category) and $node->category = $_GET["category"];
-  empty($node->state) and $node->state = 1;
-  empty($node->rid) and $node->rid = db_result(db_query("SELECT version FROM {project_projects} WHERE nid = %d", $node->pid), 0);
-  empty($node->rid) and $error["rid"] = t("Required.");
-  empty($node->pid) and $error["pid"] = t("Required.");
-  empty($node->body) and $error["body"] = t("Required.");
-  empty($node->category) and $error["category"] = t("Required.");
+    empty($node->priority) and $node->priority = 2;
+    empty($node->category) and $node->category = $_GET["category"];
+    empty($node->state) and $node->state = 1;
+    empty($node->body) and $error["body"] = t("Required.");
+    empty($node->category) and $error["category"] = t("Required.");
+  }
+  else {
+    $error["pid"] = t("Required.");
+  }
 
   /* TODO: pending final fileapi
   $file = check_file("file");
@@ -175,7 +183,7 @@ function project_issue_view($node, $main = 0) {
     if ($term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
     }
-    $breadcrumb[] = l($project->title, "project/$project->uri");
+    $breadcrumb[] = l($project->title, "node/view/$project->nid");
     $breadcrumb[] = l(t("Issues"), "project/$project->uri/issues");
 
     theme("breadcrumb", $breadcrumb);
@@ -263,30 +271,41 @@ function project_issue_query($project, $query) {
     }
     $versions = project_release_load($project);
   }
+  else {
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1");
+    while ($project = db_fetch_object($result)) {
+      $projects[$project->nid] = $project->title;
+    }
+  }
   $states = project_issue_state();
   $priorities = project_issue_priority();
 
   $rows[] = array(
-    array("data" => form_textfield(t("Summary"), "summary", $query->summary, 60, 255), "colspan" => 3)
+    array("data" => form_textfield(t("Search for"), "text", $query->summary, 60, 255), "colspan" => 3)
   );
+  if ($projects) {
+    $rows[] = array(
+      form_select(t("Projects"), "projects", $query->projects, $projects, "", "size=\"5\"", 1),
+      form_select(t("Categories"), "categories", $query->categories, $categories, "", "size=\"5\"", 1),
+    );
+  }
+  else {
+    $rows[] = array(
+      form_select(t("Versions"), "versions", $query->versions, $versions, "", "size=\"5\"", 1),
+      form_select(t("Components"), "components", $query->components, $components, "", "size=\"5\"", 1),
+      form_select(t("Categories"), "categories", $query->categories, $categories, "", "size=\"5\"", 1),
+    );
+  }
   $rows[] = array(
-    array("data" => form_textfield(t("Comment"), "comment", $query->comment, 60, 255), "colspan" => 3)
-  );
-  $rows[] = array(
-    form_select(t("Categories"), "categories", $query->categories, $categories, "", "size=\"5\"", 1),
-    form_select(t("Components"), "components", $query->components, $components, "", "size=\"5\"", 1),
-    form_select(t("Versions"), "versions", $query->versions, $versions, "", "size=\"5\"", 1)
-  );
-  $rows[] = array(
-    form_select(t("Status"), "states", ($query->states) ? $query->states : array(1, 2), $states, "", "size=\"5\"", 1),
     form_select(t("Priorities"), "priorities", $query->priorities, $priorities, "", "size=\"5\"", 1),
+    form_select(t("Status"), "states", ($query->states) ? $query->states : array(1, 2), $states, "", "size=\"5\"", 1)
   );
   $rows[] = array(
     array("data" => form_submit(t("Search")), "colspan" => 3)
   );
 
   $output = "<div class=\"project\">";
-  $output .= form(table(NULL, $rows), "post", url("project/$project->uri/issues"));
+  $output .= form(table(NULL, $rows), "post", url($project->uri ? "project/$project->uri/issues" : "project/issues"));
   $output .= "</div>";
 
   return $output;
@@ -306,7 +325,6 @@ function project_issue_query_result($project = 0) {
     $result = db_query("SELECT nid, title FROM node WHERE type = 'project_project' AND status = 1");
     while ($project = db_fetch_object($result)) {
       $projects[$project->nid] = $project->title;
-      $pids[] = "p.pid = $project->nid";
     }
   }
 
@@ -326,7 +344,7 @@ function project_issue_query_result($project = 0) {
   #$header[] = array("data" => t("submitted by"), "field" => "n.uid");
 
   if (($query = project_issue_query_parse())) {
-    $result = pager_query(project_issue_query_sql($pids, $query) . tablesort_sql($header), 20);
+    $result = pager_query(project_issue_query_sql($query) . tablesort_sql($header), 20);
   }
   else {
     $result = pager_query("SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND (". implode(" OR ", $pids) .") AND (p.state = 1 OR p.state = 2)". tablesort_sql($header), 20);
@@ -342,7 +360,7 @@ function project_issue_query_result($project = 0) {
       $number++;
       $class = "state_". ($number % 2 ? "light" : "dark") ."_$node->state";
       if (!$project) {
-        $row[] = array("data" => l($projects[$node->pid], "project/$node->pid"), "class" => $class);
+        $row[] = array("data" => l($projects[$node->pid], "node/view/$node->pid"), "class" => $class);
       }
       $row[] = array("data" => l(substr($node->title, 0, 50), "project/issues/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() ." " : ""), "class" => $class);
       $row[] = array("data" => $states[$node->state], "class" => $class);
@@ -379,7 +397,7 @@ function project_issue_query_result($project = 0) {
 }
 
 function project_issue_query_parse() {
-  $fields = array("summary", "comment", "categories", "components", "versions", "states", "priorities", "users", "assigned", "submitted");
+  $fields = array("projects", "text", "summary", "comment", "categories", "components", "versions", "states", "priorities", "users", "assigned", "submitted");
   if (is_array($_REQUEST["edit"])) {
     foreach ($_REQUEST["edit"] as $key => $value) {
       if (!empty($value) && in_array($key, $fields)) {
@@ -425,13 +443,21 @@ function project_issue_query_pager($project, $query) {
   return $get;
 }
 
-function project_issue_query_sql($pids, $query) {
+function project_issue_query_sql($query) {
   foreach ($query as $key => $value) {
     switch ($key) {
+      case "projects":
+        $sql[] = project_issue_query_sql_field("p.pid", $value, 1);
+        break;
+      case "text":
+        $comments = 1;
+        $sql[] = "(". project_issue_query_sql_field("n.title", $value, 1) ." OR ". project_issue_query_sql_field("n.body", $value, 1) ." OR ". project_issue_query_sql_field("c.body", $value, 1) .")";
+        break;
       case "summary":
         $sql[] = "(". project_issue_query_sql_field("n.title", $value, 1) ." OR ". project_issue_query_sql_field("n.body", $value, 1) .")";
         break;
       case "comment":
+        $comments = 1;
         $sql[] = project_issue_query_sql_field("c.body", $value, 1);
         break;
       case "categories":
@@ -461,11 +487,11 @@ function project_issue_query_sql($pids, $query) {
     }
   }
 
-  if (empty($query->comment)) { // Don't triple join if not necessary, its rather expensive
-    return "SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE (". implode(" OR ", $pids) .") AND n.status = 1 AND (". implode(" AND ", $sql) .")";
+  if (!$comments) { // Don't triple join if not necessary, its rather expensive
+    return "SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")";
   }
   else {
-    return "SELECT DISTINCT(n.nid) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE (". implode(" OR ", $pids) .") AND n.status = 1 AND (". implode(" AND ", $sql) .")";
+    return "SELECT DISTINCT(n.nid) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")";
   }
 }
 function project_issue_query_rss($projects, $result) {

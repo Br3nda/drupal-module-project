@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.9 2003/10/02 21:55:52 kjartan Exp $
+// $Id: project.inc,v 1.10 2003/10/04 19:35:10 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -141,11 +141,11 @@ function project_project_view($node, $main = 0) {
       $items[] = l(t("Add new release"), "project/$node->uri/releases/add");
     }
     if ($node->issues && user_access("access project issues")) {
-      $items[] = l(t("View recently submitted issues"), "project/$node->uri/issues");
-      $items[] = l(t("Search existing issues"), "project/$node->uri/issues/search");
+      $items[] = l(t("view open issues"), "project/$node->uri/issues");
+      $items[] = l(t("search issues"), "project/$node->uri/issues/search");
       if (user_access("maintain project issues")) {
         foreach (project_issue_category(0, 0) as $category => $name) {
-          $items[] = l(t("Submit %category", array("%category" => $name)), "node/add/project_issue", array(), "project=$node->uri&category=$category");
+          $items[] = l(t("submit %category", array("%category" => $name)), "node/add/project_issue", array(), "project=$node->uri&category=$category");
         }
       }
       $output = theme("theme_item_list", $items, t("Operations"));

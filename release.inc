@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.8 2003/10/03 11:59:00 kjartan Exp $
+// $Id: release.inc,v 1.9 2003/10/04 19:35:10 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -100,7 +100,7 @@ function project_release_page($node) {
           }
 
           project_release_save($edit);
-          drupal_goto(url("project/". arg(1)));
+          drupal_goto(url("node/view/$node->nid"));
         }
       }
       break;
@@ -148,7 +148,7 @@ function project_release_overview() {
       $rows = array();
     }
     if (count($releases)) {
-      $row = array(l($node->title, "project/$node->nid"));
+      $row = array(l($node->title, "node/view/$node->nid"));
       foreach ($versions as $version) {
         $row[] = ($releases[$version]) ? l(t("download"), $releases[$version]) : "";
       }
@@ -231,31 +231,31 @@ function project_release_validate(&$edit) {
   return $error;
 }
 
-function project_release_view($node, $main = 0) {
-  if ($node->changes) {
-    $project = node_load(array("nid" => $node->nid));
+function project_release_view($project, $main = 0) {
+  if ($project->changes) {
+    $project = node_load(array("nid" => $project->nid));
     $links = array();
     if (node_access($project, "update")) {
-      $links[] = l(t("edit"), "project/$project->uri/releases/edit/$node->rid");
+      $links[] = l(t("edit"), "project/$project->uri/releases/edit/$project->rid");
     }
     $breadcrumb[] = l(t("Home"), NULL);
     $breadcrumb[] = l(t("Projects"), "project");
     if ($term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
     }
-    $breadcrumb[] = l($project->title, "project/$project->uri");
+    $breadcrumb[] = l($project->title, "node/view/$project->nid");
 
     theme("breadcrumb", $breadcrumb);
-    theme("box", "$project->title $node->version", check_output($node->changes));
+    theme("box", "$project->title $project->version", check_output($project->changes));
     if ($links) {
       print "<p>". theme("links", $links) ."</p>";
     }
   }
   else {
-    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d ORDER BY created DESC", $node->nid);
+    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d ORDER BY created DESC", $project->nid);
     if (db_num_rows($result)) {
       $header = array(t("version"), t("released"), t("changes"));
-      if (node_access($node, "update") || node_access($node, "delete")) {
+      if (node_access($project, "update") || node_access($project, "delete")) {
         $header[] = array("data" => t("operations"), "colspan" => 2);
       }
       while ($release = db_fetch_object($result)) {
@@ -269,15 +269,15 @@ function project_release_view($node, $main = 0) {
           $row[] = ($release->path) ? l($release->version, $release->path) : $release->version;
         }
         else {
-          $row[] = ($release->fid) ? l($release->version, "project/$node->uri/releases/download/$release->rid", array("title" => t("Download: %size", array("%size" => format_size($file->size))))) : $release->version;
+          $row[] = ($release->fid) ? l($release->version, "project/$project->uri/releases/download/$release->rid", array("title" => t("Download: %size", array("%size" => format_size($file->size))))) : $release->version;
         }
         $row[] = ($release->created) ? array("data" => format_date($release->created, "custom", "d M Y"), "style" => "vertical-align: top;") : "";
-        $row[] = ($release->changes) ? l(t("changes"), "project/$node->uri/releases/view/$release->rid") : "";
-        if (node_access($node, "update")) {
-          $row[] = l("edit", "project/$node->uri/releases/edit/$release->rid");
+        $row[] = ($release->changes) ? l(t("changes"), "project/$project->uri/releases/view/$release->rid") : "";
+        if (node_access($project, "update")) {
+          $row[] = l("edit", "project/$project->uri/releases/edit/$release->rid");
         }
-        if (!variable_get("project_release_directory", "") && node_access($node, "delete")) {
-          $row[] = l("delete", "project/$node->uri/releases/delete/$release->rid");
+        if (!variable_get("project_release_directory", "") && node_access($project, "delete")) {
+          $row[] = l("delete", "project/$project->uri/releases/delete/$release->rid");
         }
         $rows[] = $row;
       }

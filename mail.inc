@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.14 2003/10/02 21:55:52 kjartan Exp $
+// $Id: mail.inc,v 1.15 2003/10/04 19:35:10 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -103,7 +103,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
       // Send the user his errors
       $mailto = mailhandler_get_fromaddress($header, $mailbox);
       $mailfrom = variable_get("site_mail", ini_get("sendmail_from"));
-      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
+      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal Project module (http://drupal.org/\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
 
       $body = t("You had some errors in your submission:");
       foreach ($error as $field => $text) {
@@ -261,7 +261,7 @@ function project_mail_notify($node) {
   $body = "$summary\n$body\n$footer\n";
 
   // Create mail header
-  $sender->name = ($pos = strpos($node->updator, "@")) ? substr($node->updator, 0, $pos) : $node->updator;
+  $sender->name = user_mail_encode($pos = strpos($node->updator, "@") ? substr($node->updator, 0, $pos) : $node->updator);
   $sender->mail = $project->mail;
   $domain = preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]);
   $header = array(
@@ -271,8 +271,8 @@ function project_mail_notify($node) {
     "X-Mailer: Drupal Project module (http://drupal.org/)",
     "List-Id: $project->title <$project->uri-issues-$domain>",
     "List-Archive: <". url("project/$project->uri/issues") .">",
-    "List-Subscribe: <". url("project/$project->uri") .">",
-    "List-Unsubscribe: <". url("project/$project->uri") .">"
+    "List-Subscribe: <". url("node/view/$project->uri") .">",
+    "List-Unsubscribe: <". url("node/view/$project->uri") .">"
   );
   if ($replyto = variable_get("project_reply_to", "")) {
     $header[] = "Reply-To: $project->title <$replyto>";
@@ -295,17 +295,11 @@ function project_mail_notify($node) {
 
   project_mail_output($node->title);
   while ($recipient = db_fetch_object($result)) {
-    user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\n", $header));
+    user_mail($recipient->mail, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
   }
 
   if ($project->mail_copy && (!count($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
-    mail(
-      $project->mail,
-      check_output(t("[$node->category]") ." $node->title"),
-      str_replace("\r", "", $body),
-      "MIME-version: 1.0\nContent-type: text/plain; charset=UTF-8; format=flowed\nContent-transfer-encoding: 8bit\n" . implode("\n", $header)
-    );
-    //user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
+    user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
   }
 }
 

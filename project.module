@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.111 2003/10/03 11:59:00 kjartan Exp $
+// $Id: project.module,v 1.112 2003/10/04 19:35:10 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -12,6 +12,20 @@ require_once "release.inc";
 require_once "issue.inc";
 require_once "comment.inc";
 require_once "mail.inc";
+
+function project_help($section = "admin/path/help") {
+  switch ($section) {
+    case "admin/system/modules":
+      return t("Enables teams to track outstanding items which need resolution.");
+  }
+}
+
+function project_system($field) {
+  $info = array(
+    "description" => project_help("admin/system/modules")
+  );
+  return $info[$field];
+}
 
 function project_node($field) {
   $info["name"] = t("project");
@@ -46,6 +60,17 @@ function project_settings() {
 
     $output .= form_select(t("Reply-to address on e-mail notifications"), "project_reply_to", variable_get("project_reply_to", ""), $items);
   }
+  $header = array_merge(array(t("type")), array_keys(node_invoke_nodeapi($node, "settings")));
+  foreach (array("project_issue", "project_project") as $name) {
+    $node->type = $name;
+    $cols = array();
+    foreach (node_invoke_nodeapi($node, "settings") as $setting) {
+      $cols[] = array("data" => $setting, "align" => "center", "width" => 55);
+    }
+    $rows[] = array_merge(array(module_invoke($name, "node", "name")), $cols);
+  }
+
+  $output .= form_item(t("Settings"), table($header, $rows));
   return $output;
 }
 
@@ -86,7 +111,7 @@ function project_link($type, $node = 0, $main = 0) {
       break;
     case "node":
       if ($node->type == "project_project") {
-        if (node_access("update", $node)) {
+        if (!user_access("administer nodes") && node_access("update", $node)) {
           $links[] = l(t("edit"), "node/edit/$node->nid");
         }
         if ($node->issues && user_access("access project issues")) {
@@ -139,7 +164,7 @@ function project_link($type, $node = 0, $main = 0) {
 }
 
 function project_nodeapi(&$node, $op, $arg = 0) {
-  if ($op == "form post" && $node->type == "project_issue") {
+  if ($op == "form post" && $node->type == "project_issue" && $node->pid) {
     return form_item(t("Posting PHP code"), t("Wrap your PHP code inside <code>[?php ?]</code> tags and it will be colorised automatically."));
   }
 }
@@ -165,7 +190,7 @@ function project_page() {
     global $user;
     db_query("DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $_POST["edit"]["nid"], $user->uid);
     db_query("INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)", $_POST["edit"]["nid"], $user->uid, $_POST["edit"]["level"]);
-    drupal_goto(url("project/". $_POST["edit"]["nid"]));
+    drupal_goto(url("node/view/". $_POST["edit"]["nid"]));
   }
   switch (arg(1)) {
     case "releases":
@@ -218,7 +243,6 @@ function project_page() {
 function project_page_overview() {
   if (!is_numeric($_GET["tid"]) && count($vocabularies = taxonomy_get_vocabularies("project"))) { // Show an overview of vocabularies
     $vocabulary = reset($vocabularies);
-    $browse = array(l(t("All projects"), "project", NULL, "tid=0"));
 
     $terms = taxonomy_get_tree($vocabulary->vid);
     foreach ($terms as $term) {
@@ -232,20 +256,10 @@ function project_page_overview() {
       $output .= theme("theme_item_list", $items, $term->name);
     }
 
-    if (variable_get("project_release_directory", "")) {
+    /*if (variable_get("project_release_directory", "")) {
+      $browse = array(l(t("All projects"), "project", NULL, "tid=0"));
       $browse[] = l(t("All downloads"), "project/releases");
-    }
-    if (user_access("access project issues")) {
-      $issues[] = l(t("search"), "project/issues/search");
-      foreach (project_issue_category() as $category => $name) {
-        $issues[] = l($name, "project/issues", NULL, "categories=$category");
-      }
-    }
-    if (user_access("maintain project issues")) {
-      foreach (project_issue_category(0, 0) as $category => $name) {
-        $submit[] = l($name, "node/add/project_issue", NULL, "category=$category");
-      }
-    }
+    }*/
 
     theme("header", t("Projects"));
 
@@ -253,10 +267,7 @@ function project_page_overview() {
     theme("box", NULL, $output);
     print "</div>";
     
-    $output = theme("theme_item_list", $browse, t("Browse"));
-    $output .= theme("theme_item_list", $issues, t("Issues"));
-    $output .= theme("theme_item_list", $submit, t("Submit"));
-    theme("box", NULL, $output);
+    theme("box", NULL, theme("theme_item_list", $browse, t("Details")));
 
     theme("footer");
   }
@@ -291,7 +302,7 @@ function project_page_overview() {
       $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
       while ($node = db_fetch_object($result)) {
         $rows[] = array(
-          l($node->title, "project/$node->nid"),
+          l($node->title, "node/view/$node->nid"),
           array("data" => project_interval(time() - $node->changed, 2), "align" => "right"),
           array("data" => "$node->count open", "align" => "right"),
           l(t("view"), "project/$node->nid/issues"),
