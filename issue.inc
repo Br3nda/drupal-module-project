@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.57 2004/02/21 22:19:23 kjartan Exp $
+// $Id: issue.inc,v 1.58 2004/02/21 23:00:37 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -161,11 +161,16 @@ function project_issue_subscribe($project = 0) {
     }
     $rows = array($row);
 
-    $result = db_query("SELECT n.nid, n.title, s.level FROM {node} n LEFT OUTER JOIN {project_subscriptions} s ON s.nid = n.nid WHERE n.type = 'project_project' AND n.status = 1 AND (s.uid = %d OR s.uid IS NULL) ORDER BY s.level DESC, n.title", $user->uid);
+    $result = db_query("SELECT nid, level FROM {project_subscriptions} WHERE uid = %d", $user->uid);
+    while ($project = db_fetch_object($result)) {
+      $subscriptions[$project->nid] = $project->level;
+    }
+
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title", $user->uid);
     while ($project = db_fetch_object($result)) {
       $row = array($project->title);
       foreach ($levels as $key => $level) {
-        $row[] = form_radio($level, "$project->nid", $key, $project->level == $key);
+        $row[] = form_radio($level, "$project->nid", $key, $subscriptions[$project->nid] == $key);
       }
       $rows[] = $row;
     }
