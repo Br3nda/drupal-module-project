@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.1 2003/09/28 16:13:32 kjartan Exp $
+// $Id: project.inc,v 1.2 2003/09/28 17:10:01 kjartan Exp $
 
 function project_project_form(&$node, &$help, &$error) {
   if (count($node->components)) {
@@ -56,7 +56,7 @@ function project_project_validate(&$node) {
     }
   }
   if (!$error["uri"]) {
-    $node->uri = "project/$node->uri";
+    $node->path = "project/$node->uri";
   }
 
   // We need a description.

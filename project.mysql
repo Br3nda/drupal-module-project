@@ -2,7 +2,6 @@
 -- Table structure for table 'project_projects'
 --
 
-DROP TABLE project_projects;
 CREATE TABLE project_projects (
   nid int(10) unsigned NOT NULL default '0',
   uri varchar(50) NOT NULL default '',
@@ -26,7 +25,6 @@ CREATE TABLE project_projects (
 -- Table structure for table 'project_releases'
 --
 
-DROP TABLE project_releases;
 CREATE TABLE project_releases (
   rid int(10) unsigned NOT NULL default '0',
   nid int(10) unsigned NOT NULL default '0',
@@ -45,7 +43,6 @@ CREATE TABLE project_releases (
 -- Table structure for table 'project_issues'
 --
 
-DROP TABLE project_issues;
 CREATE TABLE project_issues (
   nid int(10) unsigned NOT NULL default '0',
   pid int(10) unsigned NOT NULL default '0',
@@ -64,7 +61,6 @@ CREATE TABLE project_issues (
 -- Table structure for table 'project_comments'
 --
 
-DROP TABLE project_comments;
 CREATE TABLE project_comments (
   cid int(10) unsigned NOT NULL default '0',
   nid int(10) unsigned NOT NULL default '0',
@@ -83,7 +79,6 @@ CREATE TABLE project_comments (
 -- Table structure for table 'project_subscriptions'
 --
 
-DROP TABLE project_subscriptions;
 CREATE TABLE project_subscriptions (
   nid int(10) unsigned NOT NULL default '0',
   uid int(10) unsigned NOT NULL default '0',
