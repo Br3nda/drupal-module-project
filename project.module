@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.28 2002/06/22 13:42:48 kjartan Exp $
+// $Id: project.module,v 1.29 2002/06/26 19:15:06 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -38,8 +38,29 @@ function project_link($type, $node = 0, $main = 0) {
   return $links ? $links : array();
 }
 
+function project_conf_options () {
+  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
+  return $output;
+}  
+
 function project_perm() {
   return array("access projects", "administer projects");
+}
+
+function project_mailhandler($node, $header, $origbody, $mailbox) {
+  /*
+  ** we usually don't want our titles overwritten by the mailhandler,
+  ** since we prefix our email subjects with "bug #112 another bug" for example.
+  ** if we don't reset the title here, the node's title will soon look like "RE: bug #112: another bug".
+  */
+  
+  if ($node->type == "project") {
+    $current = node_load(array ("nid" => $node->nid));  
+    if (strstr($node->title, $current->title)) {
+      $node->title = $current->title;
+    }
+    return $node;
+  }  
 }
 
 function project_admin_form($edit = 0) {
@@ -98,8 +119,9 @@ function project_admin() {
     return;
   }
 
-  $links[] = la(t("add project"), array("mod" => "project", "op" => "add"), t("Add a new project."));
-  $links[] = la(t("overview"), array("mod" => "project"), t("View existing projects."));
+  $links[] = la(t("add project"), array("mod" => "project", "op" => "add"), "", array ("title" => t("Add a new project")));
+  $links[] = la(t("overview"), array("mod" => "project"), "", array ("title" => t("View existing projects")));
+  $links[] = la(t("settings"), array("mod" => "system"), "project", array ("title" => "configure project parameters"));
 
   print "<small>". implode(" &middot; ", $links) ."</small><hr />";
 
@@ -326,6 +348,11 @@ function project_page() {
   global $op, $theme;
 
   switch ($op) {
+    case "mail_help":
+      $theme->header();
+      $theme->box(t("Project Mail Help"), project_mail_help());
+      $theme->footer();
+      break;
     case "Search":
       global $edit;
       $theme->header(t("Project search results"));
@@ -506,22 +533,22 @@ function project_array($values) {
 function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
   
-  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
-
   if (!$project->mail) {
     return;
   }
 
+  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   $from = variable_get("site_mail", ini_get("sendmail_from"));
 
-  $body = "ID: $node->nid\n";
-  $body = "Project: $project->name\n";
+  $body = str_repeat("-", 72). "\n";  
+  // $body .= "ID: $node->nid\n"; // don't want users altering this in replies. it was not displaying anyway
+  $body .= "Project: $project->name\n";
   $body .= "Area: $node->area\n";
   $body .= "Version: $node->version\n";
-  $body .= "Status: ". project_pstatus($node->pstatus) ."\n";
+  $body .= "Pstatus: ". project_pstatus($node->pstatus) ."\n";
   $body .= "Priority: $node->priority\n";
   if ($node->assigned) {
-    $body .= "Assigned to: ". @implode("", uid_to_name($node->assigned)) ."\n";
+    $body .= "Assigned: ". @implode("", uid_to_name($node->assigned)) ."\n";
   }
   $body .= "\n";
 
@@ -529,7 +556,7 @@ function project_mail(&$node, $new = 0) {
     $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
-    $mid = "Message-ID: <$node->nid@". str_replace("www.", "", request_uri()) .">";
+    $mid = "Message-Id: <type=project&nid=$node->nid&revision=1&pid=$node->pid&ptype=$node->ptype&pstatus=$node->pstatus&area=$node->area&priority=$node->priority&version=$node->version&assigned=$node->assigned&file=$node->file&host=@$HTTP_HOST>\n";
   }
   else {
     $node->revisions = unserialize($node->revisions);
@@ -540,17 +567,18 @@ function project_mail(&$node, $new = 0) {
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
     }
-    $mid = "Message-ID: <$node->nid.". count($node->revisions) ."@". str_replace("www.", "", request_uri()) .">\n";
-    $mid .= "In-Reply-To: <$node->nid@". str_replace("www.", "", request_uri()) .">";
+    $mid = "Message-Id: <type=project&nid=$node->nid&revision=1&pid=$node->pid&ptype=$node->ptype&pstatus=$node->pstatus&area=$node->area&priority=$node->priority&version=$node->version&assigned=$node->assigned&file=$node->file&revcount=". count($node->revisions). "&host=@$HTTP_HOST>\n";
+    $mid .= "In-Reply-To: <$node->nid@$HTTP_HOST>";
   }
 
   $body = wordwrap(strip_tags($body), 72);
+  $body .= "Email help: ". path_uri() ."module.php?mod=project&op=mail_help\n";
   $body .= "View: ". path_uri() ."node.php?id=$node->nid\n";
   $body .= "Update: ". path_uri() ."module.php?mod=project&amp;op=update&amp;id=$node->nid";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, 'From: "'. ($node->name ? $node->name : $user->name) ."\" <$from>\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
+  user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 }
 
 // Node support functions
@@ -631,16 +659,16 @@ function project_validate(&$node, &$error) {
 
   if ($node->priority) {
     if (!$node->pid) {
-      $error["pid"] = "<div style=\"color: red;\">". t("Project not specified.") ."</div>";
+      $error["pid"] = "<div style=\"color: red; class=\"error\">". t("Project not specified.") ."</div>";
     }
     if (!$node->type) {
-      $error["type"] = "<div style=\"color: red;\">". t("Type not specified.") ."</div>";
+      $error["type"] = "<div style=\"color: red; class=\"error\">". t("Type not specified.") ."</div>";
     }
     if (!$node->area && $project->areas) {
-      $error["area"] = "<div style=\"color: red;\">". t("Area not specified.") ."</div>";
+      $error["area"] = "<div style=\"color: red; class=\"error\">". t("Area not specified.") ."</div>";
     }
     if (!$node->version && $project->version) {
-      $error["version"] = "<div style=\"color: red;\">". t("Version not specified.") ."</div>";
+      $error["version"] = "<div style=\"color: red; class=\"error\">". t("Version not specified.") ."</div>";
     }
   }
    
@@ -785,6 +813,38 @@ function project_view($node, $main = 0) {
     $node->name = $node->revisions[0][node]->name;
   }
   $theme->node($node, $main);
+}
+
+function project_mail_help() {
+  
+  $sn = "<i>". variable_get("site_name", "Drupal"). "</i>";
+  $output = <<<EOD
+  <p>You are welcome to contribute to projects at $sn by
+  replying to a Project email. Here is the body of a sample reply:
+  <pre>
+  PStatus: Closed
+  
+  this feature is implemented in latest CVS.
+  I am closing this item.
+  -----------------------------
+  > Project: features
+  > Area: Code
+  > Version: cvs
+  > Pstatus: Active
+  > Priority: 4
+  > 
+  > 2002-06-13 17:29 : weitzmanmeorg
+  > if i knew it, i'd fix it.
+  </pre>
+  Just type your reply above any quoted text from the Project email. If you wish to change any item parameters,
+  copy that parameter to the top of the email, removing any quoting characters such as <i>&gt;</i>. Then change the parameter value,
+  and add a blank line below your <i>command</i>. See the first line of the above email for an example.</p>
+  <p>If you want to change the title of the item, replace the email's
+  <i>Subject</i> with your desired title.</p>
+  
+  <p>As usual, you must submit your reply from an email address which is registered at $sn.</p>
+EOD;
+  return $output;
 }
 
 ?>
