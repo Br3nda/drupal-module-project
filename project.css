@@ -23,30 +23,30 @@
   border: 0;
 }
 
-.project td.state_light_1 {
+.project tr.state_light_1 {
   background-color: #fff;
 }
-.project td.state_dark_1 {
+.project tr.state_dark_1 {
   background-color: #f6f6f6;
 }
 
-.project td.state_light_2,
-.project td.state_dark_2 {
+.project tr.state_light_2,
+.project tr.state_dark_2 {
   background-color: #c0ffc0;
 }
 
-.project td.state_light_3, .project td.state_light_4, .project td.state_light_5, .project td.state_light_6,
-.project td.state_dark_3, .project td.state_dark_4, .project td.state_dark_5, .project td.state_dark_6 {
+.project tr.state_light_3, .project tr.state_light_4, .project tr.state_light_5, .project tr.state_light_6,
+.project tr.state_dark_3, .project tr.state_dark_4, .project tr.state_dark_5, .project tr.state_dark_6 {
   background-color: #c0c0ff;
 }
 
-.project td.state_light_7,
-.project td.state_dark_7 {
+.project tr.state_light_7,
+.project tr.state_dark_7 {
   background-color: #ffc0c0;
 }
 
-.project td.state_light_8,
-.project td.state_dark_8 {
+.project tr.state_light_8,
+.project tr.state_dark_8 {
   background-color: #ffff99;
 }
 

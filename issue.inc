@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.80 2004/09/29 20:28:06 kjartan Exp $ */
+/* $Id: issue.inc,v 1.81 2004/10/15 21:21:51 unconed Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -549,7 +549,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
+    $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
   }
 
   if ($search) {
@@ -594,17 +594,19 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       $number++;
       $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->state";
       if (!$project->nid) {
-        $row[] = array('data' => l($projects[$node->pid], "project/issues/$node->pid"), 'class' => $class);
+        $row[] = l($projects[$node->pid], "project/issues/$node->pid");
       }
-      $row[] = array('data' => l(substr($node->title, 0, 50), "node/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() .' ' : ''), 'class' => $class);
-      $row[] = array('data' => $states[$node->state], 'class' => $class);
-      $row[] = array('data' => $priorities[$node->priority], 'class' => $class);
-      $row[] = array('data' => t($node->category), 'class' => $class);
+      $row[] = l(substr($node->title, 0, 50), "node/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() .' ' : '');
+      $row[] = $states[$node->state];
+      $row[] = $priorities[$node->priority];
+      $row[] = t($node->category);
       if (count($releases)) {
-        $row[] = array('data' => $releases[$node->rid], 'class' => $class);
+        $row[] = $releases[$node->rid];
       }
-      $row[] = array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right', 'class' => $class);
-      $row[] = array('data' => ($node->assigned) ? format_name(user_load(array('uid' => $node->assigned))) : '', 'class' => $class);
+      $row[] = array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right');
+      $row[] = ($node->assigned) ? format_name(user_load(array('uid' => $node->assigned))) : '';
+
+      $row = array('data' => $rows, 'class' => $class);
 
       $rows[] = $row;
     }
