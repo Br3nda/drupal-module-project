@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.41 2004/10/09 18:13:08 unconed Exp $ */
+/* $Id: project.inc,v 1.42 2004/10/15 13:50:28 goba Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -190,8 +190,14 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       // Download section
       $links = array();
       
+      if ($release->version == 'cvs') {
+        $dllink = t('Download latest release (%version)', array('%version' => $release->version));
+      }
+      else {
+        $dllink = t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small')));
+      }
       $output .= "<h2>Download</h2>\n";
-      $output .= '<h3">'. l(t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small'))), $release->path) ."</h3>\n";
+      $output .= '<h3">'. l($dllink, $release->path) ."</h3>\n";
       if ($release->changes) {
         $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
       }
