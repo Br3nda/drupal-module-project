@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.163 2004/09/11 11:15:17 root Exp $ */
+/* $Id: project.module,v 1.164 2004/09/11 15:14:31 root Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -378,7 +378,7 @@ function project_page_user($arg) {
 
 function project_search($keys) {
   $find = array();
-  $result = db_query_range("SELECT DISTINCT(n.nid), n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) ". node_access_join_sql() ." WHERE n.status = 1 n.body LIKE '%%%s%%' AND ". node_access_where_sql() ." ORDER BY n.changed DESC", $keys, 0, 100);
+  $result = db_query_range("SELECT DISTINCT(n.nid), n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) ". node_access_join_sql() ." WHERE n.status = 1 AND n.body LIKE '%%%s%%' AND ". node_access_where_sql() ." ORDER BY n.changed DESC", $keys, 0, 100);
   while ($node = db_fetch_object($result)) {
     $find[] = array("title" => $node->title, "link" => url("node/$node->nid"), "user" => format_name($node), 'date' => $node->created);
   }
