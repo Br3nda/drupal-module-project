@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.85 2005/01/24 14:51:18 dries Exp $ */
+/* $Id: issue.inc,v 1.86 2005/01/30 17:11:04 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -199,7 +199,7 @@ function project_issue_form(&$node, &$param) {
   // Set form parameters so we can accept file uploads.
   $param['options'] = array('enctype' => 'multipart/form-data');
 
-  // Fetch a list of all projects to make swaping simpler
+  // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>'));
   $result = db_query('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE n.status = 1 AND p.issues = 1');
   while ($project = db_fetch_object($result)) {
@@ -293,7 +293,7 @@ function project_issue_validate(&$node) {
       }
       empty($node->priority) and $node->priority = 2;
       empty($node->category) and $node->category = arg(4);
-      empty($node->state) and $node->state = 2;
+      empty($node->state) and $node->state = 1;
 
       if (isset($node->title)) {
         empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
