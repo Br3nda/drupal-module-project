@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.4 2003/10/01 20:54:23 kjartan Exp $
+// $Id: release.inc,v 1.5 2003/10/02 03:51:49 ax Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -311,7 +311,7 @@ function project_release_save($release) {
   $file = check_file("file");
   */
   if (empty($release->rid)) {
-    watchdog("special", "project release: added '$release->version'", l("view post", node_url($release)));
+    watchdog("special", "project release: added '$release->version'", l("view post", "node/view/$release->nid"));
     $release->rid = db_next_id("project_rid");
     if (!variable_get("project_release_directory", "") && $file->filename) {
       $release->fid = drupal_file_save($file);
@@ -333,7 +333,7 @@ function project_release_save($release) {
     db_query("INSERT INTO {project_releases} (". implode(", ", $k) .") VALUES(". implode(", ", $s) .")", $v);
   }
   else {
-    watchdog("special", "project release: updated '$release->version'", l("view post", node_url($release)));
+    watchdog("special", "project release: updated '$release->version'", l("view post", "node/view/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get("project_release_directory", "") && $file->filename) {

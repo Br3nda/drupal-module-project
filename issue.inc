@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.14 2003/10/01 20:54:23 kjartan Exp $
+// $Id: issue.inc,v 1.15 2003/10/02 03:51:49 ax Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -473,7 +473,7 @@ function project_issue_query_rss($projects, $result) {
       $title = $projects[$node->pid] ."/$node->category: ". $node->title;
       $body = $node->teaser ? $node->teaser : $node->body;
 
-      $items .= format_rss_item($title, url(node_url($node)), $body);
+      $items .= format_rss_item($title, url("node/view/$node->nid"), $body);
 
       if ($node->updated > $pubdate) {
         $pubdate = $node->updated;
