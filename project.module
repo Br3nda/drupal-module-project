@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.91 2003/08/04 23:19:43 weitzman Exp $
+// $Id: project.module,v 1.92 2003/09/19 00:07:48 almaw Exp $
 
 // Drupal hooks
 function project_head() {
@@ -149,7 +149,7 @@ function project_delete_project($pid) {
     $output .= form_submit(t("Delete"));
     $output = form($output);
   }
-  print $output;
+  return $output;
 }
 
 function project_admin_list() {
@@ -183,15 +183,15 @@ function project_admin() {
 
   switch ($op) {
     case "add":
-      print project_admin_form();
+      $output .= project_admin_form();
       break;
     case "edit":
       $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
       $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
-      print project_admin_form($project);
+      $output .= project_admin_form($project);
       break;
     case "Delete":
-      project_delete_project($pid);
+      $output .= project_delete_project($pid);
       break;
     case "Submit":
       $edit = $_POST["edit"];
@@ -204,7 +204,7 @@ function project_admin() {
           $ids[] = $user->uid;
         }
         else {
-          print status(t("Unable to find developer: %s", array("%s" => $developer)));
+          $output .= status(t("Unable to find developer: %s", array("%s" => $developer)));
         }
       }
       if ($edit["pid"]) {
@@ -213,11 +213,12 @@ function project_admin() {
       else {
         db_query("INSERT INTO projects (name, versions, version_default, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"]);
       }
-      print project_admin_list();
+      $output .= project_admin_list();
       break;
     default:
-      print project_admin_list();
+      $output .= project_admin_list();
   }
+  return $output;
 }
 
 function project_list_header($text, $pid, $type, $order) {
