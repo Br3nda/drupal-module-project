@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.135 2003/12/27 19:12:00 kjartan Exp $
+// $Id: project.module,v 1.136 2003/12/29 19:41:53 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -459,10 +459,11 @@ function project_interval($timestamp, $max = 0) {
 
 function project_file_download($file) {
   if (user_access('access project issues')) {
-    if ($mime = db_result(db_query("SELECT file_mime FROM {project_issues} WHERE file_name = '%s'", $file))) {
+    $file = file_create_path($file);
+    if ($mime = db_result(db_query("SELECT file_mime FROM {project_issues} WHERE file_path = '%s'", $file))) {
       return array("Content-type: $mime");
     }
-    if ($mime = db_result(db_query("SELECT file_mime FROM {project_comments} WHERE file_name = '%s'", $file))) {
+    if ($mime = db_result(db_query("SELECT file_mime FROM {project_comments} WHERE file_path = '%s'", $file))) {
       return array("Content-type: $mime");
     }
   }

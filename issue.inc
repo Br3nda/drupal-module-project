@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.45 2003/12/27 19:11:59 kjartan Exp $
+// $Id: issue.inc,v 1.46 2003/12/29 19:41:53 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -194,8 +194,8 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     $output .= '</div>';
     $output .= '<div class="standard">';
 
-    $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_name ? t('A file already exists, if you upload another file the current file will be replaced.') : '') . theme('error', $error['file_issue']));
     $output .= form_textarea('Description', 'body', $node->body, 60, 20, theme('error', $error['body']));
+    $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')) . theme('error', $error['file_issue']));
   }
   else {
     $output = form_select(t('Project'), 'pid', $node->pid, $projects, theme('error', $error['pid']));
@@ -341,7 +341,7 @@ function project_issue_access($op, $node) {
 
 // Support stuff
 function project_issue_state($state = 0) {
-  $states = array(1 => t('active'), t('fixed'), t('duplicate'), t('postponed'), t("won't fix"), t('by design'), t('closed'));
+  $states = array(1 => t('active'), 2 => t('fixed'), 8=> t('patch'), 3 => t('duplicate'), 4 => t('postponed'), 5 => t("won't fix"), 6 => t('by design'), 7 => t('closed'));
   return $state ? $states[$state] : $states;
 }
 
@@ -388,6 +388,9 @@ function project_issue_query($project, $query) {
 
   $rows[] = array(
     array('data' => form_textfield(t('Search for'), 'text', $query->summary, 60, 255), 'colspan' => 3)
+  );
+  $rows[] = array(
+    array('data' => form_checkbox(t('Has attachment.'), 'attachment', 1, $query->attachment), 'colspan' => 3)
   );
   if ($projects) {
     $rows[] = array(
@@ -514,7 +517,7 @@ function project_issue_query_url($query = 0) {
 }
 
 function project_issue_query_parse($query = NULL) {
-  $fields = array('projects', 'text', 'summary', 'comment', 'categories', 'components', 'versions', 'states', 'priorities', 'users', 'assigned', 'submitted');
+  $fields = array('projects', 'text', 'attachment', 'summary', 'comment', 'categories', 'components', 'versions', 'states', 'priorities', 'users', 'assigned', 'submitted');
   if ($_SERVER['REQUEST_METHOD'] == 'POST' && is_array($_POST['edit'])) {
     foreach ($_POST['edit'] as $key => $value) {
       if (!empty($value) && in_array($key, $fields)) {
@@ -571,6 +574,10 @@ function project_issue_query_sql($query) {
       case 'text':
         $comments = 1;
         $sql[] = '('. project_issue_query_sql_field('n.title', $value, 1) .' OR '. project_issue_query_sql_field('n.body', $value, 1) .' OR '. project_issue_query_sql_field('c.body', $value, 1) .')';
+        break;
+      case 'attachment':
+        $comments = 1;
+        $sql[] = "(p.file_path <> '' OR c.file_path <> '')";
         break;
       case 'summary':
         $sql[] = '('. project_issue_query_sql_field('n.title', $value, 1) .' OR '. project_issue_query_sql_field('n.body', $value, 1) .')';

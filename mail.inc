@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.23 2003/12/27 19:11:59 kjartan Exp $
+// $Id: mail.inc,v 1.24 2003/12/29 19:41:53 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -237,7 +237,7 @@ function project_mail_notify($node) {
     }
   }
   if ($entry->file_path && file_exists($entry->file_path)) {
-    $summary .= ' '. t('Attachment') .': '. file_create_url($entry->file_path) .' ('. format_size($entry->file_size) .")\n";
+    $summary .= ' '. str_pad(t('Attachment'), 14) .': '. file_create_url($entry->file_path) .' ('. format_size($entry->file_size) .")\n";
   }
 
   // Create main body content
