@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.185 2005/03/31 18:33:29 goba Exp $
+// $Id: project.module,v 1.186 2005/04/05 13:39:31 goba Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -334,18 +334,18 @@ function project_page_user($arg = 0) {
     return;
   }
 
+  $header = array(
+    array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
+    array('data' => t('Updated'), 'field' => 'n.changed'),
+    array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
+  );
+
   $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid %s"), $user->uid, tablesort_sql($header));
   
   if (!db_num_rows($result)) {
     print theme('page', ($current_user ? t('You have no projects.') : t('This user has no projects.')));
     return;
   }
-
-  $header = array(
-    array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
-    array('data' => t('Updated'), 'field' => 'n.changed'),
-    array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
-  );
 
   while ($node = db_fetch_object($result)) {
     $rows[] = array(
