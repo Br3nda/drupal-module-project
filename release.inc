@@ -1,5 +1,55 @@
 <?php
-// $Id: release.inc,v 1.25 2004/02/13 09:37:50 kjartan Exp $
+/* $Id: release.inc,v 1.26 2004/04/13 21:07:34 kjartan Exp $ */
+
+function project_release_scan_directory($project = NULL) {
+  if ($dir = file_create_path(variable_get('project_release_directory', ''))) {
+    if ($project) {
+      $regexp = "($project)" .'-(.+)\.tar\.gz';
+    }
+    else {
+      $regexp = '(.+)-(.+)\.tar\.gz';
+    }
+    file_scan_directory($dir, $regexp, array('.', '..', 'CVS'), 'project_release_scan_parse');
+    foreach (project_release_scan_parse() as $project) {
+      if ($project->releases) {
+        foreach ($project->releases as $rid) {
+          project_release_delete($rid);
+        }
+      }
+    }
+  }
+}
+
+function project_release_scan_parse($dir = NULL, $file = NULL, $matches = NULL) {
+  static $projects = array();
+  if (is_null($dir)) {
+    return $projects;
+  }
+  else {
+    list($filename, $name, $version) = $matches;
+    if (!$projects[$name]) {
+      $project = db_fetch_object(db_query("SELECT nid, 'project_project' AS type FROM {project_projects} WHERE uri = '%s'", $name));
+      if ($releases = project_release_load($project, 0)) {
+        $project->releases = array_flip($releases);
+      }
+      $projects[$name] = & $project;
+    }
+    else {
+      $project = & $projects[$name];
+    }
+  
+    if ($project->releases[$version]) {
+      unset($project->releases[$version]);
+    }
+    else {
+      $release->nid = $project->nid;
+      $release->rid = $project->releases[$version];
+      $release->version = $version;
+      $release->path = $dir . '/' . $file;
+      project_release_save($release);
+    }
+  }
+}
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -142,6 +192,7 @@ function project_release_overview($arg = 0) {
   $header = array(t('project'), t('downloads'), t('description'));
 
   $result = db_query("SELECT DISTINCT(n.nid), n.title, n.teaser, r.tid FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
+
   while ($node = db_fetch_object($result)) {
     if ($tid != ($tid = $node->tid)) {
       if (count($rows)) {
@@ -153,8 +204,9 @@ function project_release_overview($arg = 0) {
       $rows = array();
     }
     $releases = array();
-    if ($arg) {
-      $result2 = db_query("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, $arg);
+    $version = variable_get('project_release_overview', -1);
+    if ($arg || $version != -1) {
+      $result2 = db_query("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, ($arg ? $arg : $version));
     }
     else {
       $result2 = db_query("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid);
@@ -312,7 +364,6 @@ function project_release_view($project, $main = 0) {
       $output = "<div class=\"project\">\n";
       $output .= theme('table', $header, $rows);
       $output .= "</div>\n";
-
       return $output;
     }
   }

@@ -23,6 +23,10 @@ div.php code {
   font-size: 0.8em;
 }
 
+.project table {
+  width: auto;
+}
+
 .project .state_light_1 {
   background-color: #eee;
 }
