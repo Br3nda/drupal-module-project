@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.8 2002/04/02 11:03:03 kjartan Exp $
+// $Id: project.module,v 1.9 2002/04/02 11:28:30 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -552,11 +552,11 @@ function project_view($node, $main = 0) {
     $body .= "<b>". format_date($node->changed, "custom", "Y-m-d") ." : ". format_name($node) ."</b>";
     $body .= "<blockquote>". $node->body ."</blockquote><hr />";
     if (count($revisions)) {
-	    $body .= "<table>";
+	    $body .= '<table border="0" cellpadding="2" cellspacing="2">';
       for($i = 1; $i < count($revisions); $i++){
         $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
 	      $body .= '<tr valign="top">';
-	      $body .= "<td>". format_name($revisions[$i]["node"]) .'<br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d") . ($diff->pstatus ? "<br / >". t("Status") .": ". project_pstatus($diff->pstatus) : "") . ($diff->uid ? "<br / >". t("Assigned") .": ". format_name($diff) : "") ."</td>";
+	      $body .= "<td><b>". format_name($revisions[$i]["node"]) .'</b><br />'. format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d") . ($diff->pstatus ? "<br / >". t("Status") .": ". project_pstatus($diff->pstatus) : "") . ($diff->assigned ? "<br / >". t("Assigned") .": ". $diff->assigned_formatted : "") ."</td>";
 	      $body .= "<td><blockquote>". $revisions[$i]["node"]->body ."</blockquote></td>";
 	      $body .= "</tr>";
 	    }
