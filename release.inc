@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.23 2004/01/15 19:20:25 kjartan Exp $
+// $Id: release.inc,v 1.24 2004/01/15 19:27:00 kjartan Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -36,8 +36,6 @@ function project_release_cron() {
 }
 
 function project_release_page($node) {
-  drupal_set_html_head("<style type=\"text/css\">\n@import url(modules/project/project.css);\n</style>");
-
   switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
     case 'add':
       if (node_access($node, 'update')) {

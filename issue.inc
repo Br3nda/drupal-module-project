@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.48 2004/01/15 19:20:25 kjartan Exp $
+// $Id: issue.inc,v 1.49 2004/01/15 19:27:00 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -8,8 +8,6 @@ function project_issue_node($field) {
 }
 
 function project_issue_page($project) {
-  drupal_set_html_head("<style type=\"text/css\">\n@import url(modules/project/project.css);\n</style>");
-
   $arg = ($project->nid) ? 3 : 2;
 
   if (project_issue_category(arg($arg))) {
@@ -249,8 +247,6 @@ function project_issue_view($node, $main = 0, $page = 0) {
     return theme('node', $node, $main, $page);
   }
   else {
-    drupal_set_html_head("<style type=\"text/css\">\n@import url(modules/project/project.css);\n</style>");
-
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
     $assigned = user_load(array('uid' => $node->assigned));

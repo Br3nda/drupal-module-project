@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.139 2004/01/15 19:20:25 kjartan Exp $
+// $Id: project.module,v 1.140 2004/01/15 19:27:00 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -151,6 +151,7 @@ function project_link($type, $node = 0, $main = 0) {
       break;
     case 'system':
       if (user_access('access projects')) {
+        drupal_set_html_head('<style type="text/css">@import url('. url('modules/project/project.css') .');</style>');
         menu('project', t('projects'), 'project_page', 1);
         menu('project/releases', t('releases'), 'project_page', 0);
         $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 AND path <> '' GROUP BY version ORDER BY created DESC");
