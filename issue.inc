@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.90 2005/02/06 12:32:41 dries Exp $ */
+/* $Id: issue.inc,v 1.91 2005/02/27 14:28:16 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -548,10 +548,10 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   
   if ($query) {
     $sql = project_issue_query_sql($query);
-    $result = pager_query($sql['sql'] . tablesort_sql($header), 20 , 0, $sql['count']);
+    $result = pager_query(db_rewrite_sql($sql['sql'] . tablesort_sql($header)), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
+    $result = pager_query(db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header)), 20);
   }
 
   if ($search) {
@@ -669,6 +669,7 @@ function project_issue_query_parse($query = NULL) {
   if (empty($query->states)) {
     $query->states = array(1, 2, 8);
   }
+
   return $query;
 }
 
