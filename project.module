@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.145 2004/02/07 15:58:14 unconed Exp $
+// $Id: project.module,v 1.146 2004/02/21 15:23:28 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -97,7 +97,7 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query('SELECT * FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
+  $result = db_query('SELECT * FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE p.state = 2 AND n.changed < %d', time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
       $comment->$var = $node->$var;
@@ -139,7 +139,7 @@ function project_link($type, $node = 0, $main = 0) {
       break;
     case 'system':
       if (user_access('access projects')) {
-        drupal_set_html_head('<style type="text/css">@import url('. url('modules/project/project.css') .');</style>');
+        drupal_set_html_head('<style type="text/css">@import url('. url('modules/project/project.css', NULL, NULL, 1) .');</style>');
         menu('project', t('projects'), 'project_page', 1);
         menu('project/releases', t('releases'), 'project_page', 0);
         $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 AND path <> '' GROUP BY version ORDER BY created DESC");
@@ -192,10 +192,6 @@ function project_link($type, $node = 0, $main = 0) {
 
       // Populate the node/add menu
       if (user_access('maintain project issues')) {
-        $categories = project_issue_category(0, 0);
-        foreach ($categories as $cat => $category) {
-          menu("node/add/project_issue/$cat", $category, 'node_page', 1);
-        }
         menu('node/add/project_issue', 'issue', 'node_page', 0, 0);
       }
       break;
@@ -346,7 +342,7 @@ function project_page_overview() {
         array('data' => t('updated'), 'field' => 'n.changed'),
         array('data' => t('issues'), 'colspan' => 4, 'field' => 'count')
       );
-      $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
+      $result = db_query("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid AND p.state < 3 WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid %s", tablesort_sql($header));
       while ($node = db_fetch_object($result)) {
         $rows[] = array(
           l($node->title, "node/view/$node->nid"),
@@ -354,7 +350,7 @@ function project_page_overview() {
           array('data' => "$node->count open", 'align' => 'right'),
           l(t('view'), "project/$node->nid/issues"),
           l(t('search'), "project/$node->nid/issues/search"),
-          l(t('submit'), 'node/add/project_issue', NULL, "project=$node->nid")
+          l(t('submit'), "node/add/project_issue/$node->nid")
         );
       }
 
@@ -371,7 +367,7 @@ function project_search($keys) {
   while ($node = db_fetch_object($result)) {
     $find[] = array("title" => $node->title, "link" => url("node/view/$node->nid"), "user" => format_name($node), 'date' => $node->created);
   }
-  return $find;
+  return array(t('Project issues'), $find);
 }
 
 // Special project stuff

@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.26 2004/02/17 21:15:20 kjartan Exp $
+// $Id: mail.inc,v 1.27 2004/02/21 15:23:28 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -303,10 +303,10 @@ function project_mail_notify($node) {
   }
 
   if (count($uids)) {
-    $result = db_query('SELECT p.*, u.name, u.mail FROM {project_subscriptions} p LEFT JOIN {users} u ON p.uid = u.uid WHERE u.status = 1 AND p.nid = %d AND (p.level = 2 OR (p.level = 1 AND (%s)))', $node->pid, implode(' OR ', $uids));
+    $result = db_query('SELECT p.*, u.name, u.mail FROM {project_subscriptions} p INNER JOIN {users} u ON p.uid = u.uid WHERE u.status = 1 AND p.nid = %d AND (p.level = 2 OR (p.level = 1 AND (%s)))', $node->pid, implode(' OR ', $uids));
   }
   else {
-    $result = db_query('SELECT p.*, u.name, u.mail FROM {project_subscriptions} p LEFT JOIN {users} u ON p.uid = u.uid WHERE u.status = 1 AND p.nid = %d AND p.level = 2', $node->pid);
+    $result = db_query('SELECT p.*, u.name, u.mail FROM {project_subscriptions} p INNER JOIN {users} u ON p.uid = u.uid WHERE u.status = 1 AND p.nid = %d AND p.level = 2', $node->pid);
   }
 
   project_mail_output($node->title, 0);
@@ -323,7 +323,7 @@ function project_mail_notify($node) {
 
 function project_mail_reminder() {
   $projects = array();
-  $result = db_query('SELECT n.nid, n.title FROM {project_projects} p LEFT JOIN {node} n USING (nid) WHERE p.mail_reminder = 1 AND n.status = 1');
+  $result = db_query('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE p.mail_reminder = 1 AND n.status = 1');
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
     $pids[] = "p.pid = $project->nid";
@@ -333,7 +333,7 @@ function project_mail_reminder() {
     $sender->name = variable_get('site_name', '');
     $sender->mail = variable_get('site_mail', '');
 
-    $result = db_query('SELECT n.*, p.*, u.name, u.mail FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid LEFT JOIN {users} u ON n.uid = u.uid WHERE n.status = 1 AND u.status = 1 AND ('. implode(' OR ', $pids) .") AND u.mail <> '' AND (p.state = 1 OR p.state = 2) ORDER BY u.uid, p.pid, p.component, p.state, n.changed DESC");
+    $result = db_query('SELECT n.*, p.*, u.name, u.mail FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE n.status = 1 AND u.status = 1 AND ('. implode(' OR ', $pids) .") AND u.mail <> '' AND (p.state = 1 OR p.state = 2) ORDER BY u.uid, p.pid, p.component, p.state, n.changed DESC");
 
     while (($node = db_fetch_object($result)) || !empty($body)) {
       if ($body && $mail && ((!$node) || ($mail != $node->mail))) {
@@ -380,10 +380,10 @@ function project_mail_digest() {
     'List-Archive: <'. url('project/issues?priorities=1', NULL, NULL, 1) .'>',
   );
 
-  $result = db_query("SELECT * FROM {project_projects} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest");
+  $result = db_query("SELECT * FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest");
   while ($project = db_fetch_object($result)) {
     $category = '';
-    $result2 = db_query('SELECT n.nid, n.title, n.created, p.state, p.category, p.component, p.priority, p.assigned FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.state = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC', $project->nid);
+    $result2 = db_query('SELECT n.nid, n.title, n.created, p.state, p.category, p.component, p.priority, p.assigned FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.state = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC', $project->nid);
     while ($node = db_fetch_object($result2)) {
       if ($category != $node->category) {
         $category = $node->category;

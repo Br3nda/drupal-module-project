@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.54 2004/02/17 21:19:34 kjartan Exp $
+// $Id: issue.inc,v 1.55 2004/02/21 15:23:28 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -8,7 +8,7 @@ function project_issue_node_name() {
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;
 
-  if (!is_array(project_issue_category(arg($arg)))) {
+  if (is_string(project_issue_category(arg($arg)))) {
     $_GET['categories'] = arg($arg);
   }
 
@@ -87,8 +87,6 @@ function project_issue_statistics($project) {
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
-  //usort($rows, create_function('$a,$b', 'return 0;'));
-  $rows = array_merge($rows);
   $output .= '<h2>'. t('Issue activity') .'</h2>';
   $output .= theme('table', $header, $rows);
 
@@ -141,7 +139,7 @@ function project_issue_form(&$node, &$error, &$param) {
 
   // Fetch a list of all projects to make swaping simpler
   $projects = array(t('<none>'));
-  $result = db_query('SELECT n.nid, n.title FROM {project_projects} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND p.issues = 1');
+  $result = db_query('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE n.status = 1 AND p.issues = 1');
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
   }
@@ -208,12 +206,12 @@ function project_issue_form(&$node, &$error, &$param) {
 
 function project_issue_validate(&$node) {
   // Try to find the active project
-  if (empty($node->pid) && arg(3)) {
-    if (is_numeric($_GET['project'])) {
-      $node->pid = db_result(db_query('SELECT nid FROM {project_projects} WHERE nid = %d', arg(3)), 0);
+  if (empty($node->pid) && $arg = arg(3)) {
+    if (is_numeric($arg)) {
+      $node->pid = db_result(db_query('SELECT nid FROM {project_projects} WHERE nid = %d', $arg), 0);
     }
     else {
-      $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", arg(3)), 0);
+      $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $arg), 0);
     }
   }
 
@@ -230,7 +228,7 @@ function project_issue_validate(&$node) {
     }
     empty($node->component) and $error['component'] = t('Required.');
     empty($node->priority) and $node->priority = 2;
-    empty($node->category) and $node->category = arg(4) ? arg(4) : arg(3);
+    empty($node->category) and $node->category = arg(4);
     empty($node->category) and $error['category'] = t('Required.');
     empty($node->state) and $node->state = 1;
     empty($node->body) and $error['body'] = t('Required.');
@@ -364,7 +362,7 @@ function project_issue_category($category = 0, $plural = 1) {
 
 function project_issue_count($pid) {
   $state = array();
-  $result = db_query('SELECT p.state, count(p.state) AS count FROM {node} n LEFT JOIN {project_issues} p USING (nid) WHERE n.status = 1 AND p.pid = %d GROUP BY p.state', $pid);
+  $result = db_query('SELECT p.state, count(p.state) AS count FROM {node} n INNER JOIN {project_issues} p USING (nid) WHERE n.status = 1 AND p.pid = %d GROUP BY p.state', $pid);
   while ($data = db_fetch_object($result)) {
     $state[$data->state] = $data->count;
   }
@@ -450,7 +448,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
     $header[] = array('data' => t('version'), 'field' => 'p.rid');
   }
   $header[] = array('data' => t('last updated'), 'field' => 'n.changed', 'sort' => 'desc');
-  $header[] = array('data' => t('assigned to'), 'field' => 'p.assigned');
+  $header[] = array('data' => t('assigned to'), 'field' => 'u.name');
   #$header[] = array('data' => t('submitted by'), 'field' => 'n.uid');
 
   if (($query = project_issue_query_parse($query))) {
@@ -458,7 +456,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
     $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query('SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
+    $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
   }
 
   if ($format == 'rss') {
@@ -616,13 +614,13 @@ function project_issue_query_sql($query) {
     }
   }
 
-  if (!$comments) { // Don't triple join if not necessary, its rather expensive
-    return array('sql' => 'SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')');
+  if (!$comments) {
+    return array('sql' => 'SELECT n.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')');
   }
   else {
     return array(
-      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_issues} p LEFT JOIN {project_comments} c ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
-      'count' => 'SELECT COUNT(DISTINCT(n.nid)) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'
+      'sql' => 'SELECT DISTINCT(n.nid) FROM {project_issues} p INNER JOIN {project_comments} c ON c.nid = p.nid INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')',
+      'count' => 'SELECT COUNT(DISTINCT(n.nid)) FROM {project_comments} c INNER JOIN {project_issues} p ON c.nid = p.nid INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'
     );
   }
 }
