@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.84 2004/12/15 21:24:47 dries Exp $ */
+/* $Id: issue.inc,v 1.85 2005/01/24 14:51:18 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -496,7 +496,7 @@ function project_issue_query($project, $query) {
 
 function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
   $query = project_issue_query_parse($query);
-
+  
   $categories = array(0 => t('<all>')) + project_issue_category();
   $states = array(implode(',', array_keys(project_issue_state())) => t('<all>')) + project_issue_state();
   $priorities = array(0 => t('<all>')) + project_issue_priority();
@@ -543,10 +543,10 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   $header[] = array('data' => t('Last updated'), 'field' => 'n.changed', 'sort' => 'desc');
   $header[] = array('data' => t('Assigned to'), 'field' => 'u.name');
   #$header[] = array('data' => t('submitted by'), 'field' => 'n.uid');
-
+  
   if ($query) {
     $sql = project_issue_query_sql($query);
-    $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
+    $result = pager_query($sql['sql'] . tablesort_sql($header), 20 , 0, $sql['count']);
   }
   else {
     $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
@@ -616,10 +616,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $link = l(t('#'), 'project/issues', array('title' => t('Permalink to search query.')), project_issue_query_url($query));
 
     if ($pager = theme("pager", NULL, 20, 0, $query + tablesort_pager())) {
-      $rows[] = array($link, array('data' => $rss . $pager, 'colspan' => count($header) - 1));
-    }
-    else {
-      $rows[] = array($link, array('data' => $rss, 'colspan' => count($header) - 1));
+      $rows[] = array(array('data' => $pager, 'colspan' => count($header)));
     }
   }
   else {
@@ -631,6 +628,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   $output .= $form;
   $output .= '</div>';
   $output .= theme('table', $header, $rows);
+  $output .= "$rss $link";
   $output .= '</div>';
   return $output;
 }
