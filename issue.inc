@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.69 2004/09/10 21:00:04 kjartan Exp $ */
+/* $Id: issue.inc,v 1.70 2004/09/11 15:18:17 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -265,7 +265,7 @@ function project_issue_form(&$node, &$param) {
       $output .= implode('', taxonomy_node_form($node->type, $node));
     }
 
-    $output .= form_textarea('Description', 'body', $node->body, 60, 20, NULL, NULL, TRUE);
+    $output .= form_textarea('Description', 'body', $node->body, 60, 20, NULL, NULL, !$node->comment);
     $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')));
   }
   else {
@@ -346,7 +346,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     $output .= '<div class="summary">'. theme('table', NULL, $rows) .'</div>';
 
     $output .= '<p>'. t('Description') .'</p>';
-    $output .= '<p>'. check_output($node->body) .'</p>';
+    $output .= '<p>'. $node->body .'</p>';
     $output .= '</div>';
 
     $node->body = $output;
