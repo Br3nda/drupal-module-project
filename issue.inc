@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.91 2005/02/27 14:28:16 kjartan Exp $ */
+/* $Id: issue.inc,v 1.92 2005/04/01 16:09:27 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -335,8 +335,8 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     if ($release->version) {
       $rows[] = array('Version:', $release->version);
     }
-    $rows[] = array(t('Component:'),  drupal_specialchars($node->component));
-    $rows[] = array(t('Category:'), drupal_specialchars($node->category));
+    $rows[] = array(t('Component:'),  check_plain($node->component));
+    $rows[] = array(t('Category:'), check_plain($node->category));
     $rows[] = array(t('Priority:'), project_issue_priority($node->priority));
     $rows[] = array(t('Assigned:'), $assigned);
     $rows[] = array(t('Status:'), project_issue_state($node->state));
