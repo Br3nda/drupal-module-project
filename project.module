@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.59 2003/03/11 13:14:49 kjartan Exp $
+// $Id: project.module,v 1.60 2003/03/11 14:04:40 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -611,9 +611,9 @@ function project_mail(&$node, $new = 0) {
   }
   $links = project_parse_links($body);
   $body = wordwrap(strip_tags($body), 72);
-  $body .= "Email help: ". url("project/mail_help") ."\n";
   $body .= "View: ". url("node/view/$node->nid") ."\n";
   $body .= "Update: ". url("project/update/$node->nid") ."\n";
+  $body .= "Email help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
@@ -823,7 +823,7 @@ function project_view($node, $main = 0) {
       if (count($diff->assigned)) { $rows[] = array(array("data" => t("Assigned:"), "style" => "font-size: x-small", "valign" => "top"), $diff->assigned_formatted[1]); }
       if (count($diff->area)) { $rows[] = array(array("data" => t("Area:"), "style" => "font-size: x-small", "valign" => "top"), $diff->area[1]); }
       if (count($diff->version)) { $rows[] = array(array("data" => t("Version:"), "style" => "font-size: x-small", "valign" => "top"), $diff->version[1]); }
-      if (trim($revisions[$i]["node"]->body)) { $rows[] = array(array("data" => t("Comment:"), "style" => "font-size: x-small", "valign" => "top"), trim($revisions[$i]["node"]->body)); }
+      if (trim($revisions[$i]["node"]->body)) { $rows[] = array(array("data" => t("Comment:"), "style" => "font-size: x-small", "valign" => "top"), check_output(trim($revisions[$i]["node"]->body))); }
       $rows[] = array(array("data" => "<br />", "colspan" => 2));
     }
 
