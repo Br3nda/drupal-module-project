@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.136 2003/12/29 19:41:53 kjartan Exp $
+// $Id: project.module,v 1.137 2003/12/29 23:11:25 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -367,7 +367,7 @@ function project_search($keys) {
 function project_update_index() {
   return array(
     'last_update' => 'project_cron_index',
-    'node_type' => 'node',
+    'node_type' => 'project',
     'select' => 'SELECT nid as lno, body as text1 FROM {project_comments} WHERE created > ' . variable_get('project_cron_index', 1) . ' OR changed > ' . variable_get('project_cron_index', 1)
   );
 }
