@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.182 2005/02/27 14:28:16 kjartan Exp $
+// $Id: project.module,v 1.183 2005/03/05 09:17:20 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -47,7 +47,7 @@ function project_node_name($field) {
   return t('project');
 }
 
-function project_node_types($field) {
+function project_node_types() {
   return array('project_project', 'project_issue');
 }
 

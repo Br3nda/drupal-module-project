@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.46 2005/02/27 14:14:09 kjartan Exp $ */
+/* $Id: release.inc,v 1.47 2005/03/05 09:17:20 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -92,8 +92,9 @@ function project_release_submit() {
       $output = form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
-      drupal_set_breadcrum($breadcrumb); 
+      drupal_set_breadcrumb($breadcrumb); 
       print theme('page', $output, $title, $breadcrumb);
+      break;
     case 'edit':
       if ($release = project_release_load(arg(4))) {
         $node = node_load(array('nid' => $release->nid));
