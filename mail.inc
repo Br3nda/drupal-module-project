@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.31 2004/05/04 18:17:23 kjartan Exp $ */
+/* $Id: mail.inc,v 1.32 2004/05/04 18:17:52 kjartan Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -189,11 +189,11 @@ function project_mail_notify($node) {
   $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
 
 
-  if (!count($project->mail_copy_filter) || !$project->mail_copy_filter[$node->category]) {
+  if (count($project->mail_copy_filter) && !$project->mail_copy_filter[$node->category]) {
     return;
   }
 
-  if (!count($project->mail_copy_filter_state) || !$project->mail_copy_filter_state[$node->state]) {
+  if (count($project->mail_copy_filter_state) && !$project->mail_copy_filter_state[$node->state]) {
     return;
   }
 
