@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.158 2004/05/25 19:42:39 kjartan Exp $ */
+/* $Id: project.module,v 1.159 2004/06/03 18:43:08 root Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -163,8 +163,8 @@ function project_link($type, $node = 0, $main = 0) {
           cache_set('project_releases', serialize($versions));
         }
 
-        foreach ($versions as $version) {
-          menu("project/releases/$version", $version, 'project_page', $i++);
+        foreach ($versions as $v => $version) {
+          menu("project/releases/$v", $version, 'project_page', $i++);
         }
       }
 
