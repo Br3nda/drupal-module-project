@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.4 2003/09/28 20:29:30 kjartan Exp $
+// $Id: mail.inc,v 1.5 2003/09/28 21:01:02 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -293,7 +293,7 @@ function project_mail_notify($node) {
   }
 
   if ($project->mail_copy) {
-    user_mail($project->mail_copy, check_output(t("[issue]") ." $node->title"), $body, implode("\r\n", $header));
+    user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\r\n", $header));
   }
 }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.100 2003/09/28 20:29:30 kjartan Exp $
+// $Id: project.module,v 1.101 2003/09/28 21:01:02 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -78,7 +78,7 @@ function project_cron() {
     project_mail_reminder();
   }
   
-  $result = db_query("SELECT * FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE state = 2 AND changed < %d", time() - 14 * 24 * 60 * 60);
+  $result = db_query("SELECT * FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE p.state = 2 AND n.changed < %d", time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array("nid", "pid", "category", "component", "priority", "assigned", "state", "title") as $var) {
       $comment->$var = $node->$var;
@@ -126,18 +126,19 @@ function project_link($type, $node = 0, $main = 0) {
         menu("node/add/project_project", t("project"), "project_page", NULL, 0);
       }
       if (user_access("maintain project issues")) {
-        $categories = project_issue_category();
+        $categories = project_issue_category(0, 0);
         foreach ($categories as $cat => $category) {
-          menu("node/add/project_issue?category=$cat", $category, "project_page", NULL, 0);
+          menu("node/add/project_issue?category=$cat", $category, "project_page", NULL, 1);
         }
       }
       if (user_access("access project issues")) {
         global $user;
         menu("project/issues", t("view open issues"), "project_page", NULL, 0);
         if ($user->uid) {
-          menu("project/issues/?users=$user->uid&states=1,2", t("your issues"), "project_page", NULL, 0);
+          menu("project/issues/?users=$user->uid&states=1,2", t("my issues"), "project_page", NULL, 0);
         }
-        foreach (project_issue_category() as $cat => $category) {
+        $categories = project_issue_category(0, 1);
+        foreach ($categories as $cat => $category) {
           menu("project/issues/?categories=$cat&states=1,2", $category, "project_page", NULL, 1);
         }
       }
