@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.46 2003/12/29 19:41:53 kjartan Exp $
+// $Id: issue.inc,v 1.47 2004/01/13 22:48:39 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -407,7 +407,7 @@ function project_issue_query($project, $query) {
   }
   $rows[] = array(
     form_select(t('Priorities'), 'priorities', $query->priorities, $priorities, '', 'size="5"', 1),
-    form_select(t('Status'), 'states', ($query->states) ? $query->states : array(1, 2), $states, '', 'size="5"', 1)
+    form_select(t('Status'), 'states', ($query->states) ? $query->states : array(1, 2, 8), $states, '', 'size="5"', 1)
   );
   $rows[] = array(
     array('data' => form_submit(t('Search')), 'colspan' => 3)
@@ -486,12 +486,13 @@ function project_issue_query_result($project = 0, $format = 'html') {
     $query = project_issue_query_pager($query);
 
     $rss = l('<img align="right" src="misc/xml.gif" />', 'project/issues/rss', array('title' => t('RSS feed for these issues.')), project_issue_query_url($query));
+    $link = l(t('#'), 'project/issues', array('title' => t('Permalink to search query.')), project_issue_query_url($query));
 
     if ($pager = theme("pager", NULL, 20, 0, $query + tablesort_pager())) {
-      $rows[] = array(array('data' => $rss . $pager, 'colspan' => count($header)));
+      $rows[] = array($link, array('data' => $rss . $pager, 'colspan' => count($header) - 1));
     }
     else {
-      $rows[] = array(array('data' => $rss, 'colspan' => count($header)));
+      $rows[] = array($link, array('data' => $rss, 'colspan' => count($header) - 1));
     }
   }
   else {
@@ -535,7 +536,7 @@ function project_issue_query_parse($query = NULL) {
     }
   }
   if (empty($query->states)) {
-    $query->states = array(1, 2);
+    $query->states = array(1, 2, 8);
   }
   return $query;
 }
