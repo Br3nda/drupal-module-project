@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.164 2004/09/11 15:14:31 root Exp $ */
+/* $Id: project.module,v 1.165 2004/09/13 15:35:40 unconed Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -302,7 +302,7 @@ function project_page_overview() {
     }
 
     if ($term) { // Paged full view
-      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ."n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
+      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid ". node_access_join_sql() ." WHERE ". node_access_where_sql() ." AND n.type = 'project_project' AND r.tid =". check_query($_GET[tid]) .' AND n.status = 1 ORDER BY title', variable_get('project_overview', 10));
       while ($node = db_fetch_object($result)) {
         $output .= node_view(node_load($node), 1);
       }
