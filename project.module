@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.37 2002/10/14 01:52:13 weitzman Exp $
+// $Id: project.module,v 1.38 2002/10/17 13:59:32 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -582,7 +582,7 @@ function project_mail(&$node, $new = 0) {
     $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
-    $mid = "Message-Id: <type=project&nid=$node->nid>\n";
+    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1>\n";
   }
   else {
     $node->revisions = unserialize($node->revisions);
