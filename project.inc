@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.2 2003/09/28 17:10:01 kjartan Exp $
+// $Id: project.inc,v 1.3 2003/09/29 19:09:18 kjartan Exp $
 
 function project_project_form(&$node, &$help, &$error) {
   if (count($node->components)) {
@@ -174,7 +174,7 @@ function project_project_access($op, $node) {
       return user_access("maintain project") && $user->uid;
     case "update":
     case "delete":
-      return (user_access("maintain project") && $user->uid == $node->uid) || user_access("administer projects");
+      return($user->uid == $node->uid || user_access("administer projects");
   }
 }
 
