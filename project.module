@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.137 2003/12/29 23:11:25 kjartan Exp $
+// $Id: project.module,v 1.138 2003/12/29 23:44:35 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -355,21 +355,12 @@ function project_page_overview() {
 }
 
 function project_search($keys) {
-  $find = do_search(array(
-    'keys' => $keys,
-    'type' => 'node',
-    'select' => "SELECT s.lno AS lno, n.title AS title, n.created AS created, u.uid AS uid, u.name AS name, s.count AS count FROM {search_index} s, {node} n LEFT JOIN {users} u ON n.uid = u.uid WHERE s.lno = n.nid AND s.type = 'project' AND n.status = 1 AND s.word like '%'")
-  );
-
+  $find = array();
+  $result = db_query_range("SELECT n.nid, n.title, n.created, u.uid, u.name FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u USING (uid) WHERE body LIKE '%%%s%%' ORDER BY changed DESC", $keys, 0, 100);
+  while ($node = db_fetch_object($result)) {
+    $find[] = array("title" => $node->title, "link" => url("node/view/$node->nid"), "user" => format_name($node), 'date' => $node->created);
+  }
   return $find;
-}
-
-function project_update_index() {
-  return array(
-    'last_update' => 'project_cron_index',
-    'node_type' => 'project',
-    'select' => 'SELECT nid as lno, body as text1 FROM {project_comments} WHERE created > ' . variable_get('project_cron_index', 1) . ' OR changed > ' . variable_get('project_cron_index', 1)
-  );
 }
 
 // Special project stuff
