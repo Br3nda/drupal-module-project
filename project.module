@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.51 2003/03/08 19:31:16 kjartan Exp $
+// $Id: project.module,v 1.52 2003/03/09 10:59:40 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -197,7 +197,7 @@ function project_sort_assigned($a, $b) {
 
 function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
 
-  $headers = array("ID" => "n.nid", "Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Submitted by" => "n.uid", "Assigned" => "p.assigned");
+  $headers = array("Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Assigned" => "p.assigned");
   if ($pid) {
     $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
     if (!$project->areas) {
@@ -248,7 +248,8 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
         $node->name = substr($node->name, 0, strpos($node->name, "@"));
       }
       $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
-      $output .= "<td>#$node->nid</td><td>". l($node->title, "node/view/$node->nid") ."</td>";
+      // $output .= "<td>#$node->nid</td>";
+      $output.= "<td>". l($node->title, "node/view/$node->nid") ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
       $output .= "<td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td>";
       if ($project->areas) {
@@ -257,7 +258,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       if ($project->versions) {
         $output .= "<td>$node->version</td>";
       }
-      $output .= "<td>". format_name($node) ."</td>";
+      // $output .= "<td>". format_name($node) ."</td>";
       if ($project->developers) {
         $output .= "<td>". $node->assigned_formatted ."</td>";
       }
@@ -514,7 +515,7 @@ function project_block($op = "list", $delta = 0) {
       }
       $output .= "<br />";
     }
-  
+
     $block["subject"] = t("Project information");
     $block["content"] = $output;
     $block["link"] = "module.php?mod=project";
@@ -544,12 +545,12 @@ function project_type($count = 1) {
 // translates from a numeric pstatus to english equivalent or vice versa.
 function project_pstatus($pstatus = 0) {
   $status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
-  if (is_numeric($pstatus)) {  
+  if (is_numeric($pstatus)) {
     return $pstatus ? $status[$pstatus] : $status;
   }
   else {
     return array_search($pstatus, $status);
-  }  
+  }
 }
 
 function project_array($values) {
@@ -565,8 +566,8 @@ function project_array($values) {
 }
 
 function project_mail(&$node, $new = 0) {
-  global $user, $HTTP_HOST, $SERVER_NAME;
-  
+  global $user, $HTTP_HOST, $SERVER_NAME, $base_url;
+
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   if (!$project->mail) {
     return;
@@ -574,8 +575,8 @@ function project_mail(&$node, $new = 0) {
 
   $from = variable_get("site_mail", ini_get("sendmail_from"));
 
-  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", path_uri()), "/"), 1));
-  $body = str_repeat("-", 72). "\n";  
+  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));
+  $body = str_repeat("-", 72). "\n";
   // $body .= "ID: $node->nid\n"; // don't want users altering this in replies. it was not displaying anyway
   $body .= "Project: $project->name\n";
   $body .= "Area: $node->area\n";
@@ -602,22 +603,21 @@ function project_mail(&$node, $new = 0) {
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
     }
-    $revcount = count($node->revisions);    
+    $revcount = count($node->revisions);
     $mid = "Message-Id: <type=project&nid=$node->nid&revcount=$revcount&host=@". $dir . strtolower($SERVER_NAME) .">\n";
     $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
     $mid .= $revcount-1 ."&host=@". $dir . strtolower($SERVER_NAME) .">\n";
   }
   $links = project_parse_links($body);
   $body = wordwrap(strip_tags($body), 72);
-  $body .= "Email help: ". path_uri() ."module.php?mod=project&op=mail_help\n";
-  $body .= "View: ". path_uri() ."node.php?id=$node->nid\n";
-  $body .= "Update: ". path_uri() ."module.php?mod=project&amp;op=update&amp;id=$node->nid";
+  $body .= "Email help: ". url("project/mail_help") ."\n";
+  $body .= "View: ". url("node/view/$node->nid") ."\n";
+  $body .= "Update: ". url("project/update/$node->nid") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  $body .= "\n\nLinks:\n". implode("\n", $links);
   user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
-  
+
 }
 
 // Node support functions
@@ -658,14 +658,14 @@ function project_load(&$node) {
 
 function project_insert(&$node) {
   db_query("INSERT INTO project (nid, pid, ptype, pstatus, area, priority, version, assigned, file) VALUES ('$node->nid', '$node->pid', '$node->ptype', '$node->pstatus', '$node->area', '$node->priority', '$node->version', '$node->assigned', '". base64_encode($node->file) ."')");
-  project_mail($node, 1);  
+  project_mail($node, 1);
 }
 
 function project_update(&$node) {
   db_query("UPDATE project SET nid = '$node->nid', pid = '$node->pid', ptype = '$node->ptype', pstatus = '$node->pstatus', area = '$node->area', priority = '$node->priority', version = '$node->version', assigned = '$node->assigned', file = '". base64_encode($node->file) ."' WHERE nid = '$node->nid'");
-  
+
   // send mail if author wrote a comment or adminwants to broadcast all changes to items
-  if (variable_get("project_always_mail", 1) || $node->body) {  
+  if (variable_get("project_always_mail", 1) || $node->body) {
     project_mail($node);
   }
 }
@@ -694,7 +694,7 @@ function project_validate(&$node) {
       $error["version"] = "<div style=\"color: red; class=\"error\">". t("Version not specified.") ."</div>";
     }
   }
-   
+
   return $error ? $error : "";
 }
 
@@ -707,7 +707,7 @@ function project_form(&$node, &$help, &$error, &$form) {
 
   // Remove teaser, its not really used so let it be auto generated.
   unset($node->teaser);
-  
+
   // Initialize project variables.
   $result = db_query("SELECT * FROM projects ORDER BY name");
   if (db_num_rows($result) != 1) {
@@ -812,7 +812,7 @@ function project_view($node, $main = 0) {
         $body .= '<tr valign="top">';
         $body .= '<td><a name="'. $i .'"></a><b>'. format_name($revisions[$i]["node"]) .'</b><br />';
         $body .= format_date($revisions[$i]["node"]->changed, "custom", "Y-m-d H:i");
-        $body .= (count($diff->title) ? "<br / ><b>". t("Title") ."</b>: ". $diff->title[0] ." -> ". $diff->title[1] : "");        
+        $body .= (count($diff->title) ? "<br / ><b>". t("Title") ."</b>: ". $diff->title[0] ." -> ". $diff->title[1] : "");
         $body .= (count($diff->pid) ? "<br / ><b>". t("Project") ."</b>: ". $projects[$diff->pid[0]] ." -> ". $projects[$diff->pid[1]] : "");
         $body .= (count($diff->ptype) ? "<br / ><b>". t("Type") ."</b>: ". $types[$diff->ptype[0]] ." -> ". $types[$diff->ptype[1]] : "");
         $body .= (count($diff->pstatus) ? "<br / ><b>". t("Status") ."</b>: ". t(project_pstatus($diff->pstatus[0])) ." -> ". t(project_pstatus($diff->pstatus[1])) : "");
@@ -843,7 +843,7 @@ function project_view($node, $main = 0) {
 // returns an array of urls from HTML or text string
 //TODO: return the source HTML with markers replacing each link so reader knows where the links came from
 function project_parse_links($html) {
-  
+
   $urls = '(http|file|ftp)';
   $ltrs = '\w';
   $gunk = '/#~:.?+=&%@!\-';
@@ -861,12 +861,12 @@ function project_parse_links($html) {
                     |
                       $
                     )
-                }x", $html, $matches);  
+                }x", $html, $matches);
   return $matches[0] ? $matches[0] : array ();
 }
 
 function project_mail_help() {
-  
+
   $sn = "<i>". variable_get("site_name", "Drupal"). "</i>";
   $output = <<<EOD
   <p>You are welcome to contribute to projects at $sn by
@@ -876,7 +876,7 @@ function project_mail_help() {
   Assigned: Killes
   Priority: 5
   Area: node.module
-  
+
   this feature is implemented in latest CVS.
   I am closing this item.
   -----------------------------
@@ -885,7 +885,7 @@ function project_mail_help() {
   > Version: cvs
   > Pstatus: Active
   > Priority: 4
-  > 
+  >
   > 2002-06-13 17:29 : weitzmanmeorg
   > if i knew it, i'd fix it.
   </pre>
@@ -894,7 +894,7 @@ function project_mail_help() {
   and add a blank line below your <i>command</i>. See the first line of the above email for an example.</p>
   <p>If you want to change the title of the item, replace the email's
   <i>Subject</i> with your desired title.</p>
-  
+
   <p>As usual, you must submit your reply from an email address which is registered at $sn.</p>
 EOD;
   return $output;
