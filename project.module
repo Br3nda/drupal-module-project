@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.5 2002/03/11 20:46:44 kjartan Exp $
+// $Id: project.module,v 1.6 2002/03/11 21:40:04 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -117,6 +117,15 @@ function project_list_header($field, $text, $pid, $type, $order) {
   return "<a href=\"module.php?mod=project&pid=$pid&op=$op&type=$type&field=$field&order=". ($order == "asc" ? "desc" : "asc") ."\">". t($text) ."</a>";
 }
 
+function project_sort_submitted($a, $b) {
+  global $order;
+  return $order == "asc" ? strcasecmp($a->name, $b->name) : strcasecmp($b->name, $a->name);
+}
+function project_sort_assigned($a, $b) {
+  global $order;
+  return $order == "asc" ? strcasecmp($a->assigned_name, $b->assigned_name) : strcasecmp($b->assigned_name, $a->assigned_name);
+}
+
 function project_list($query, $pid = 0) {
   global $theme, $type, $order, $field;
   $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($field ? $field : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
@@ -126,8 +135,8 @@ function project_list($query, $pid = 0) {
    
     $headers = array("n.nid" => "ID", "n.title" => "Title", "p.pstatus" => "Status", "p.area" => "Area", "p.version" => "Version", "n.uid" => "Submitted", "p.assigned" => "Assigned");
     $output .= "<tr style=\"text-align: left\">";
-    foreach ($headers as $field => $text) {
-      $output .= "<th>". project_list_header($field, $text, $pid, $type, $order) ."</th>";
+    foreach ($headers as $_field => $text) {
+      $output .= "<th>". project_list_header($_field, $text, $pid, $type, $order) ."</th>";
     }
     $output .= "</tr>";
   
@@ -137,8 +146,22 @@ function project_list($query, $pid = 0) {
         $node->uid = $node->revisions[0][node]->uid;
         $node->name = $node->revisions[0][node]->name;
       }
+      $nodes[] = $node;
+    }
+    
+    if ($field == "n.uid") {
+      usort($nodes, "project_sort_submitted");
+    }
+    if ($field == "p.assigned") {
+      usort($nodes, "project_sort_assigned");
+    }
+
+    foreach ($nodes as $node) {
+      $output .= "<tr style=\"background: #f6f6f6\" valign=\"top\"><td>#$node->nid</td><td><a href=\"node.php?id=$node->nid\">$node->title</a></td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>$node->area</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td><td><a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a></td></tr>\n";
+    }
 
     $output .= "</table><br />\n";
+    
     if (user_access("post content") && $type && $pid) {
       $links[] .= "<a href=\"module.php?mod=project&pid=$pid&op=add&type=$type\">". t("submit new $type") ."</a>";
     }
@@ -447,7 +470,9 @@ function project_load(&$node) {
   $project = db_fetch_object(db_query("SELECT p.pid, p.ptype, p.pstatus, p.area, p.priority, p.version, p.assigned, p.file, projects.name AS project_name FROM project p LEFT JOIN projects ON p.pid = projects.pid WHERE nid = '$node->nid'"));
   $assigned = user_load(array("uid" => $project->assigned));
   $project->assigned_formatted = $project->assigned ? format_name($assigned) : t("Unassigned");
-  $project->assigned_formatted = $project->assigned ? format_name(user_load(array("uid" => $project->assigned))) : t("Unassigned");
+  $project->assigned_name = $assigned->name ? $assigned->name : t("Unassigned");
+  return $project;
+}
 
 function project_insert(&$node) {
   db_query("INSERT INTO project (nid, pid, ptype, pstatus, area, priority, version, assigned, file) VALUES ('$node->nid', '$node->pid', '$node->ptype', '$node->pstatus', '$node->area', '$node->priority', '$node->version', '$node->assigned', '". base64_encode($node->file) ."')");
