@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.37 2004/09/26 16:15:55 kjartan Exp $ */
+/* $Id: project.inc,v 1.38 2004/09/26 21:25:46 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -191,7 +191,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     if ($releases = project_release_load($node)) {
       list($rid, $version) = each($releases);
 
-      $node->body .= '<h2>'. t('%project v%version', array('%project' => $node->title, '%version' => $version)) .'</h2>';
+      $node->body .= '<h2>'. t('%project %version', array('%project' => $node->title, '%version' => $version)) .'</h2>';
       $node->body .= project_release_view(project_release_load($rid));
     }
 
