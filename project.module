@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.112 2003/10/04 19:35:10 kjartan Exp $
+// $Id: project.module,v 1.113 2003/10/04 20:38:16 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -129,7 +129,7 @@ function project_link($type, $node = 0, $main = 0) {
       if ($node->type == "project_issue") {
         if (user_access("maintain project issues")) {
           $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
-          $links[] = l(t("update issue"), "project/$project->uri/comment/add/$node->nid");
+          $links[] = l(t("update issue"), "project/comments/add/$node->nid");
           if ($node->fid) {
             $links[] = l(t("download attachment"), "project/$project->uri/issues/download/$node->nid");
           }
@@ -204,6 +204,11 @@ function project_page() {
       $node->uri = "issues";
       project_issue_page($node);
       break;
+    case "comments":
+      if (user_access("access project issues")) {
+        project_comment_page($node);
+        break;
+      }
     default:
       if (arg(1)) {
         if (is_numeric(arg(1))) {
@@ -220,11 +225,6 @@ function project_page() {
             case "issues":
               if ($node->issues && user_access("access project issues")) {
                 project_issue_page($node);
-                break;
-              }
-            case "comment":
-              if ($node->issues && user_access("access project issues")) {
-                project_comment_page($node);
                 break;
               }
             default:

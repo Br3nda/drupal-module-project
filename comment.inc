@@ -1,11 +1,11 @@
 <?php
-// $Id: comment.inc,v 1.8 2003/10/04 19:35:10 kjartan Exp $
+// $Id: comment.inc,v 1.9 2003/10/04 20:38:16 kjartan Exp $
 
 function project_comment_page($project) {
-  switch ($_POST["op"] ? $_POST["op"] : arg(3)) {
+  switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
     case "add":
       if (user_access("maintain project issues")) {
-        $node = node_load(array("nid" => arg(4), "type" => "project_issue"));
+        $node = node_load(array("nid" => arg(3), "type" => "project_issue"));
 
         foreach (array("nid", "pid", "category", "component", "priority", "assigned", "state", "title") as $var) {
           $comment->$var = $node->$var;
@@ -173,14 +173,14 @@ function project_comment_view($node, $main = 0) {
       }
       $rows[] = array(array("class" => "content", "data" => "<p>". check_output($comment->body) ."</p>"));
       if ($comment->fid) {
-        $rows[] = array(l(t("download attachment"), "project/$node->pid/comment/download/$comment->cid"));
+        $rows[] = array(l(t("download attachment"), "project/comments/download/$comment->cid"));
       }
     }
     $output .= "<p>". table(NULL, $rows) ."</p>";
     $output .= "</div>";
 
     if (user_access("maintain project issues")) {
-      $links[] = "<br /><p>". l(t("update issue"), "project/$node->pid/comment/add/$node->nid") ."</p>";
+      $links[] = "<br /><p>". l(t("update issue"), "project/comments/add/$node->nid") ."</p>";
     }
     $output .=  theme("links", $links);
     theme("box", "", $output);
