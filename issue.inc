@@ -1,8 +1,8 @@
 <?php
-// $Id: issue.inc,v 1.9 2003/09/29 19:05:43 kjartan Exp $
+// $Id: issue.inc,v 1.10 2003/09/29 21:20:43 kjartan Exp $
 
 function project_issue_node($field) {
-  $info["name"] = t("issue");
+  $info["name"] = t("Issue");
 
   return $info[$field];
 }

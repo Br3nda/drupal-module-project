@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.7 2003/09/29 09:15:35 kjartan Exp $
+// $Id: mail.inc,v 1.8 2003/09/29 21:20:43 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -195,15 +195,16 @@ function project_mail_notify($node) {
   // Create complete history of the bug report
   $history = array($node);
   $result = db_query("SELECT * FROM {project_comments} WHERE nid = %d ORDER BY changed", $node->nid);
-  while ($comment = db_fetch_object($result)) {
-    $have_content = !empty($comment->body);
-    if ($have_content) {
-      $history[] = project_comment_load($comment->cid);
+  if (db_num_rows($result)) {
+    while ($comment = db_fetch_object($result)) {
+      $no_content = empty($comment->body);
+      if (!$no_content) {
+        $history[] = project_comment_load($comment->cid);
+      }
     }
-  }
-
-  if (!$have_content) {
-    return; // No body to notify about.
+    if ($no_content) {
+      return; // No body to notify about.
+    }
   }
 
   // Get most recent update
@@ -298,7 +299,7 @@ function project_mail_notify($node) {
     user_mail($recipient->mail, check_output(t("[issue]") ." $node->title"), $body, implode("\r\n", $header));
   }
 
-  if ($project->mail_copy) {
+  if ($project->mail_copy && (empty($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
     user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\r\n", $header));
   }
 }

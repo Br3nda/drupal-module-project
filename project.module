@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.102 2003/09/29 10:52:16 kjartan Exp $
+// $Id: project.module,v 1.103 2003/09/29 21:20:43 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -77,7 +77,7 @@ function project_cron() {
     variable_set("project_reminder_last", time());
     project_mail_reminder();
   }
-  
+
   $result = db_query("SELECT * FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE p.state = 2 AND n.changed < %d", time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array("nid", "pid", "category", "component", "priority", "assigned", "state", "title") as $var) {
