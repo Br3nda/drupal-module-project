@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.1 2002/02/13 14:41:15 kjartan Exp $
+// $Id: project.module,v 1.2 2002/02/19 12:19:39 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -112,7 +112,7 @@ function project_admin() {
   }
 }
 
-function project_list($query) {
+function project_list($query, $pid = 0) {
   global $theme, $type;
   $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY n.nid");
 
@@ -130,11 +130,11 @@ function project_list($query) {
 	  }
 	  $output .= "</table><br />\n";
 	  
-	  if (user_access("post content") && $type) {
-	    $links[] .= "<a href=\"module.php?mod=project&pid=$project->pid&op=add&type=$type\">". t("submit new $type") ."</a>";
+	  if (user_access("post content") && $type && $pid) {
+	    $links[] .= "<a href=\"module.php?mod=project&pid=$pid&op=add&type=$type\">". t("submit new $type") ."</a>";
 	  }
 	  if (user_access("search content")) {
-	    $links[] = "<a href=\"module.php?mod=project&pid=$project->pid&op=search&type=$type\">". t("search") ."</a>";
+	    $links[] = "<a href=\"module.php?mod=project&pid=$pid&op=search&type=$type\">". t("search") ."</a>";
 	  }
 	  $output .= $theme->links($links);
 	}
@@ -167,7 +167,7 @@ function project_page() {
 
       $output = project_list($query, $edit["pid"]);
 
-      $output = project_list($query);
+      $theme->header();
       $theme->box("Search results", $output);
       $theme->footer();
       break;
@@ -211,7 +211,7 @@ function project_page() {
 
       $output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$pid'",  "p.ptype = '$type'"), $pid);
       
-      $output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$pid'",  "p.ptype = '$type'"));
+      $theme->header("$project->name ${type}s");
       $theme->box($project->name ." : ". t(($type ? $type : "all")), $output);
       $theme->footer();
       break;
@@ -276,7 +276,6 @@ function project_page() {
           if (user_access("search content")) {
             // Use standard Drupal search for now
             $output .= "<td><a href=\"module.php?mod=project&pid=$project->pid&op=search&type=$type\">". t("search") ."</a></td>";
-            // Use standard Drupal search for now
           }
           $output .= "<td>($active->total ". t("open") .")</td>";
         }
@@ -474,9 +473,8 @@ function project_form(&$node, &$help, &$error) {
   $output .= form_select(t("Version"), "version", $node->version, project_array($project->versions));
   $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
-  /*if (!$node->file) {
-    $output .= form_file(t("File upload"), "file", 60);
-  }*/
+  //$output .= form_file(t("File upload"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
+  //debug_r($node);
 }
 
 function project_view($node, $main = 0) {
