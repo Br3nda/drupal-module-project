@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.44 2004/11/20 19:23:36 dries Exp $ */
+/* $Id: project.inc,v 1.44.2.1 2005/01/13 23:20:58 unconed Exp $ */
 
 function project_project_node_name() {
   return t('project');

@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.39 2004/11/21 08:48:37 dries Exp $ */
+/* $Id: comment.inc,v 1.39.2.1 2005/01/13 23:20:58 unconed Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
