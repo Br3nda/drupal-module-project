@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.72 2003/05/21 22:15:38 killes Exp $
+// $Id: project.module,v 1.73 2003/06/06 21:47:54 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -367,28 +367,28 @@ function project_page_filter_apply($edit) {
   $query[] = "n.type = 'project'";
 
   if ($edit["pid"]) {
-    $query[] = "p.pid = '". check_input($edit["pid"]) ."'";
+    $query[] = "p.pid = '". check_query($edit["pid"]) ."'";
   }
   if ($edit["type"]) {
-    $query[] = "p.ptype = '". check_input($edit["type"]) ."'";
+    $query[] = "p.ptype = '". check_query($edit["type"]) ."'";
   }
   if ($edit["status"]) {
     foreach ($edit["status"] as $id) {
-      $status[] = "p.pstatus = '". check_input($id) ."'";
+      $status[] = "p.pstatus = '". check_query($id) ."'";
     }
     $query[] = "(". implode(" OR ", $status) .")";
   }
   if ($edit["area"]) {
-    $query[] = "p.area = '". check_input($edit["area"]) ."'";
+    $query[] = "p.area = '". check_query($edit["area"]) ."'";
   }
   if ((int) $edit["assigned"] >= 0) {
     $query[] = "p.assigned = '". $edit["assigned"] ."'";
   }
-  elseif ($edit["assigned"] && $account = user_load(array("name" => check_input($edit["assigned"])))) {
+  elseif ($edit["assigned"] && $account = user_load(array("name" => check_query($edit["assigned"])))) {
     $query[] = "p.assigned = '". $account->uid ."'";
   }
   if ($edit["text"]) {
-    $query[] = "(n.title LIKE '% ". check_input($edit["text"]) ." %' OR n.body LIKE '% ". check_input($edit["text"]) ." %' OR n.revisions LIKE '% ". check_input($edit["text"]) ." %')";
+    $query[] = "(n.title LIKE '% ". check_query($edit["text"]) ." %' OR n.body LIKE '% ". check_query($edit["text"]) ." %' OR n.revisions LIKE '% ". check_query($edit["text"]) ." %')";
   }
 
   $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE ". (count($query) ? implode(" AND ", $query) : "") ." ORDER BY n.nid");
