@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.21 2003/10/05 20:40:51 kjartan Exp $
+// $Id: issue.inc,v 1.22 2003/10/07 12:23:18 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -31,21 +31,24 @@ function project_issue_page($project) {
       theme("box", "Search $project->title", project_issue_query($project, $query));
       theme("footer");
       break;
+    case "rss":
+      $output = project_issue_query_result($project, "rss");
+      header("Content-Type: text/xml");
+      print $output;
+      break;
     default:
       $output = project_issue_query_result($project);
 
       theme("header");
       $breadcrumb[] = l(t("Home"), NULL);
       $breadcrumb[] = l(t("Projects"), "project");
-      if ($term = reset(taxonomy_node_get_terms($project->nid))) {
+      if (function_exists("taxonomy_node_get_terms") && $term = reset(taxonomy_node_get_terms($project->nid))) {
         $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
       }
-      if ($project) {
-        $breadcrumb[] = l($project->title, "node/view/$project->nid");
-      }
+      $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t("All issues"), "project/issues");
 
       theme("breadcrumb", $breadcrumb);
-      theme("box", l(t("Issues"), "project/$project->uri/issues"), $output);
+      theme("box", l(t("Issues"), $project->nid ? "project/$project->uri/issues" : "project/issues"), $output);
       theme("footer");
   }
 }
@@ -79,7 +82,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
         $components[$component] = $component;
       }
     }
-    $categories = project_issue_category(0, 0);
+    $categories = array_merge(t("<none>"), project_issue_category(0, 0));
     $priorities = project_issue_priority();
     $states = project_issue_state();
     if ($user->uid) {
@@ -94,8 +97,8 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
       }
     }
 
-    $output .= form_select(t("Version"), "rid", $node->rid, $releases);
-    $output .= form_select(t("Component"), "component", $node->component, $components);
+    $output .= form_select(t("Version"), "rid", $node->rid, $releases, theme_error($error["rid"]));
+    $output .= form_select(t("Component"), "component", $node->component, $components, theme_error($error["component"]));
     $output .= form_select(t("Category"), "category", $node->category, $categories, theme_error($error["category"]));
 
     $output .= form_select(t("Priority"), "priority", $node->priority, $priorities);
@@ -115,7 +118,12 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
 function project_issue_validate(&$node) {
   // Try to find the active project
   if (empty($node->pid) && $_GET["project"]) {
-    $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $_GET["project"]), 0);
+    if (is_numeric($_GET["project"])) {
+      $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE nid = %d", $_GET["project"]), 0);
+    }
+    else {
+      $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $_GET["project"]), 0);
+    }
   }
   if ($node->pid && $project = node_load(array("nid" => $node->pid))) {
     if ($releases = project_release_load($project)) {
@@ -124,12 +132,15 @@ function project_issue_validate(&$node) {
       }
       empty($node->rid) and $error["rid"] = t("Required.");
     }
-
+    if ($node->component && !in_array($node->component, $project->components)) {
+      $node->component = 0;
+    }
+    empty($node->component) and $error["component"] = t("Required.");
     empty($node->priority) and $node->priority = 2;
     empty($node->category) and $node->category = $_GET["category"];
+    empty($node->category) and $error["category"] = t("Required.");
     empty($node->state) and $node->state = 1;
     empty($node->body) and $error["body"] = t("Required.");
-    empty($node->category) and $error["category"] = t("Required.");
   }
   else {
     $error["pid"] = t("Required.");
@@ -167,7 +178,7 @@ function project_issue_view($node, $main = 0) {
     $rows[] = array("Component:", check_output($node->component));
     $rows[] = array("Category:", check_output($node->category));
     $rows[] = array("Priority:", project_issue_priority($node->priority));
-    $rows[] = array("Assigned:", format_name($assigned));
+    $rows[] = array("Assigned:", $assigned->name);
     $rows[] = array("Status:", project_issue_state($node->state));
     $rows[] = array(array("data" => "<br />", "colspan" => 2));
     $output .= "<div class=\"summary\">". table(NULL, $rows) ."</div>";
@@ -182,7 +193,7 @@ function project_issue_view($node, $main = 0) {
 
     $breadcrumb[] = l(t("Home"), NULL);
     $breadcrumb[] = l(t("Projects"), "project");
-    if ($term = reset(taxonomy_node_get_terms($project->nid))) {
+    if (function_exists("taxonomy_node_get_terms") && $term = reset(taxonomy_node_get_terms($project->nid))) {
       $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
     }
     $breadcrumb[] = l($project->title, "node/view/$project->nid");
@@ -313,7 +324,7 @@ function project_issue_query($project, $query) {
   return $output;
 }
 
-function project_issue_query_result($project = 0) {
+function project_issue_query_result($project = 0, $format = "html") {
   $states = project_issue_state();
   $priorities = project_issue_priority();
 
@@ -352,8 +363,8 @@ function project_issue_query_result($project = 0) {
     $result = pager_query("SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND (". implode(" OR ", $pids) .") AND (p.state = 1 OR p.state = 2)". tablesort_sql($header), 20);
   }
 
-  if ($_GET["format"] == "rss") {
-    project_issue_query_rss($projects, $result);
+  if ($format == "rss") {
+    return project_issue_query_rss($projects, $result);
   }
   elseif (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
@@ -376,14 +387,14 @@ function project_issue_query_result($project = 0) {
 
       $rows[] = $row;
     }
-    $rss = array("format=rss");
     $query = project_issue_query_pager($query);
+    $rss = array();
     foreach ($query as $key => $value) {
       $rss[] = "$key=$value";
     }
-    $rss = l("<img align=\"right\" src=\"misc/xml.gif\" />", "project/$project->uri/issues", array("title" => t("RSS feed for these issues.")), implode("&amp;", $rss));
+    $rss = l("<img align=\"right\" src=\"misc/xml.gif\" />", "project/issues/rss", array("title" => t("RSS feed for these issues.")), implode("&amp;", $rss));
     if ($pager = pager_display(NULL, 20, 0, "default", $query + tablesort_pager())) {
-      $rows[] = array(array("data" => $rss . $pager, "colspan" => 7));
+      $rows[] = array(array("data" => $rss . $pager, "colspan" => count($headers)));
     }
     else {
       $rows[] = array(array("data" => $rss, "colspan" => count($headers)));
@@ -396,7 +407,7 @@ function project_issue_query_result($project = 0) {
   $items = array(l(t("search issues"), ($project) ? "project/$project->uri/issues/search" : "project/issues/search"));
   if (user_access("maintain project issues")) {
     foreach (project_issue_category(0, 0) as $category => $name) {
-      $items[] =  l(t("submit %category", array("%category" => $name)), "node/add/project_issue", array(), "project=$project->uri&category=$category");
+      $items[] =  l(t("submit %category", array("%category" => $name)), "node/add/project_issue", array(), ($project->uri ? "project=$project->uri&" : "") . "category=$category");
     }
   }
   $rows[] = array(array("data" => theme("theme_item_list", $items), "colspan"=> 8));
@@ -510,6 +521,7 @@ function project_issue_query_sql($query) {
     );
   }
 }
+
 function project_issue_query_rss($projects, $result) {
   global $base_url, $languages;
 
@@ -517,10 +529,18 @@ function project_issue_query_rss($projects, $result) {
     while ($node = db_fetch_object($result)) {
       $node = node_load($node);
 
-      $title = $projects[$node->pid] ."/$node->category: ". $node->title;
       $body = $node->teaser ? $node->teaser : $node->body;
 
-      $items .= format_rss_item($title, url("node/view/$node->nid"), $body, array("pubDate" => date("r", ($node->updated > $node->created) ? $node->updated : $node->created)));
+      $items .= format_rss_item(
+        $node->title,
+        url("node/view/$node->nid"),
+        $body,
+        array(
+          "pubDate" => date("r", ($node->updated > $node->created) ? $node->updated : $node->created),
+          "comments" => url("node/view/$node->nid"),
+          "category" => $projects[$node->pid]
+        )
+      );
     }
   }
   else {
@@ -539,9 +559,7 @@ function project_issue_query_rss($projects, $result) {
   $output .= format_rss_channel($channel["title"], $channel["link"], $channel["description"], $items, $channel["language"]);
   $output .= "</rss>\n";
 
-  header("Content-Type: text/xml");
-  print $output;
-  exit;
+  return $output;
 }
 
 ?>

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.10 2003/10/04 19:35:10 kjartan Exp $
+// $Id: project.inc,v 1.11 2003/10/07 12:23:18 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -128,7 +128,7 @@ function project_project_view($node, $main = 0) {
   else {
     $breadcrumb[] = l(t("Home"), NULL);
     $breadcrumb[] = l(t("Projects"), "project");
-    if ($term = reset(taxonomy_node_get_terms($node->nid))) {
+    if (function_exists("taxonomy_node_get_terms") && $term = reset(taxonomy_node_get_terms($node->nid))) {
       $breadcrumb[] = l($term->name, "project", NULL, "tid=$term->tid");
     }
 
@@ -138,7 +138,7 @@ function project_project_view($node, $main = 0) {
     }
 
     if (!variable_get("project_release_directory", "") && node_access($node, "update")) {
-      $items[] = l(t("Add new release"), "project/$node->uri/releases/add");
+      $items[] = l(t("add new release"), "project/$node->uri/releases/add");
     }
     if ($node->issues && user_access("access project issues")) {
       $items[] = l(t("view open issues"), "project/$node->uri/issues");

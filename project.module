@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.115 2003/10/05 22:38:29 kjartan Exp $
+// $Id: project.module,v 1.116 2003/10/07 12:23:18 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -200,8 +200,6 @@ function project_page() {
       project_page_user();
       break;
     case "issues":
-      $node->title = t("All issues");
-      $node->uri = "issues";
       project_issue_page($node);
       break;
     case "comments":
@@ -241,7 +239,7 @@ function project_page() {
 }
 
 function project_page_overview() {
-  if (!is_numeric($_GET["tid"]) && count($vocabularies = taxonomy_get_vocabularies("project"))) { // Show an overview of vocabularies
+  if (!is_numeric($_GET["tid"]) && function_exists("taxonomy_get_vocabularies") && count($vocabularies = taxonomy_get_vocabularies("project"))) { // Show an overview of vocabularies
     $vocabulary = reset($vocabularies);
 
     $terms = taxonomy_get_tree($vocabulary->vid);

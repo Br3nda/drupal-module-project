@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.13 2003/10/05 20:40:51 kjartan Exp $
+// $Id: comment.inc,v 1.14 2003/10/07 12:23:18 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -169,7 +169,7 @@ function project_comment_view($node, $main = 0) {
 
       if ($summary || $comment->body) {
         $rows[] = array(
-          array("class" => "header", "data" => t("%count submitted by %user on %date", array("%count" => "<a name=\"comment". ++$i. "\" href=\"". url("node/view/$node->nid") ."#comment$i\">#$i</a>", "%user" => format_name($comment), "%date" => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : "")));
+          array("class" => "header", "data" => t("%count submitted by %user on %date", array("%count" => "<a name=\"comment". ++$i. "\" href=\"". url("node/view/$node->nid") ."#$i\">#$i</a>", "%user" => format_name($comment), "%date" => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : "")));
         if ($summary) {
           $rows[] = array(array("class" => "summary", "data" => table(NULL, $summary)));
         }
