@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.36 2004/09/15 17:50:26 kjartan Exp $ */
+/* $Id: comment.inc,v 1.37 2004/09/27 20:13:02 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -177,7 +177,12 @@ function project_comment_save($edit) {
     }
 
     watchdog('special', "project: added comment '$edit->title'", l('view post', "node/$node->nid"));
-    db_query("INSERT INTO {project_comments} (cid, nid, uid,  created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->filepath, $file->filemime, $file->filesize);
+    db_query("INSERT INTO {project_comments} (cid, nid, uid, created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->filepath, $file->filemime, $file->filesize);
+
+    // Update node_comment_statistics so the tracker page lists the number of comments
+    $count = db_result(db_query('SELECT COUNT(cid) FROM {project_comments} WHERE nid = %d', $edit->nid));
+    db_query("UPDATE {node_comment_statistics} SET comment_count = %d, last_comment_timestamp = %d, last_comment_name = '%s', last_comment_uid = %d WHERE nid = %d", $count, time(), $user->name, $user->uid, $edit->nid);
+
     node_save($node);
   }
 

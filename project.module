@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.169 2004/09/26 21:25:46 kjartan Exp $ */
+/* $Id: project.module,v 1.170 2004/09/27 20:13:02 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -148,12 +148,22 @@ function project_menu($may_cache) {
   if ($may_cache) {
     // User pages:
     $access = user_access('access projects');
-    $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/releases', 'title' => t('releases'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+
+    $vocabularies = taxonomy_get_vocabularies('project');
+    $vocabulary = reset($vocabularies);
+    $terms = taxonomy_get_tree($vocabulary->vid);
+
+    $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'callback arguments' => array($terms[0]->tid), 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+
+    foreach ($terms as $i => $term) {
+      $items[] = array('path' => 'project/'. $term->name, 'title' => $term->name, 'callback' => 'project_page_overview', 'callback arguments' => array($term->tid), 'access' => $access, 'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK, 'weight' => $term->weight);
+    }
+
+    $items[] = array('path' => 'project/releases', 'title' => t('releases'), 'callback' => 'project_release_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
     foreach (project_releases_list() as $v => $version) {
-      $items[] = array('path' => "project/releases/$v", 'title' => $version, 'callback' => 'project_page', 'access' => $access, 'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK), 'weight' => $i++);
+      $items[] = array('path' => "project/releases/$v", 'title' => $version, 'callback' => 'project_release_page', 'access' => $access, 'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK), 'weight' => $i++);
     }
 
     // Create projects
@@ -162,17 +172,22 @@ function project_menu($may_cache) {
 
     // Issues
     $access = user_access('access project issues');
-    $items[] = array('path' => 'project/issues', 'title' => t('issues'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/user', 'title' => t('issues'), 'callback' => 'project_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/subscribe', 'title' => t('subscribe'), 'callback' => 'project_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/add', 'title' => t('submit'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/statistics', 'title' => t('statistics'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/search', 'title' => t('search'), 'callback' => 'project_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues', 'title' => t('issues'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues/user', 'title' => t('issues'), 'callback' => 'project_issue_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues/subscribe', 'title' => t('subscribe'), 'callback' => 'project_issue_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues/add', 'title' => t('submit'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues/statistics', 'title' => t('statistics'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/issues/search', 'title' => t('search'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
     // Create issues
     $access = user_access('create project issues');
     $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
 
+
+    // Comments
+    $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+
+    // Releases
     if (variable_get('project_release_directory', '')) {
       $access = user_access('administer projects');
       $items[] = array('path' => 'admin/settings/project/reload', 'title' => t('scan for releases'), 'callback' => 'project_release_scan', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
@@ -210,20 +225,6 @@ function project_page() {
   }
 
   switch (arg(1)) {
-    case 'releases':
-      project_release_page();
-      break;
-    case 'user':
-      project_page_user(arg(2));
-      break;
-    case 'issues':
-      project_issue_page();
-      break;
-    case 'comments':
-      if (user_access('access project issues')) {
-        project_comment_page();
-        break;
-      }
     default:
       project_page_overview();
       break;
@@ -264,7 +265,7 @@ function project_page() {
   }
 }
 
-function project_page_overview() {
+function project_page_overview($tid = 0) {
   if (!is_numeric($_GET['tid']) && function_exists('taxonomy_get_vocabularies') && count($vocabularies = taxonomy_get_vocabularies('project'))) { // Show an overview of vocabularies
     $vocabulary = reset($vocabularies);
 
@@ -273,7 +274,12 @@ function project_page_overview() {
       array('data' => t('issues'), 'colspan' => 3)
     );
 
-    $terms = taxonomy_get_tree($vocabulary->vid);
+    if ($tid && is_numeric($tid)) {
+      $terms = array(taxonomy_get_term($tid));
+    }
+    else {
+      $terms = taxonomy_get_tree($vocabulary->vid);
+    }
     foreach ($terms as $term) {
       $rows[] = array(array('data' => l($term->name, "project?tid=$term->tid"), 'class' => 'title', 'colspan' => 4));
       if ($term->description) {
@@ -339,7 +345,7 @@ function project_page_overview() {
   }
 }
 
-function project_page_user($arg) {
+function project_page_user($arg = 0) {
   if ($arg) {
     $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE uid = %d OR name = '%s'", $arg, $arg));
     if ($user) {
