@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.18 2003/10/04 19:35:10 kjartan Exp $
+// $Id: issue.inc,v 1.19 2003/10/04 20:02:55 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -344,7 +344,8 @@ function project_issue_query_result($project = 0) {
   #$header[] = array("data" => t("submitted by"), "field" => "n.uid");
 
   if (($query = project_issue_query_parse())) {
-    $result = pager_query(project_issue_query_sql($query) . tablesort_sql($header), 20);
+    $sql = project_issue_query_sql($query);
+    $result = pager_query($sql["sql"] . tablesort_sql($header), 20, 0, $sql["count"]);
   }
   else {
     $result = pager_query("SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND (". implode(" OR ", $pids) .") AND (p.state = 1 OR p.state = 2)". tablesort_sql($header), 20);
@@ -488,10 +489,13 @@ function project_issue_query_sql($query) {
   }
 
   if (!$comments) { // Don't triple join if not necessary, its rather expensive
-    return "SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")";
+    return array("sql" => "SELECT n.nid FROM {project_issues} p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")");
   }
   else {
-    return "SELECT DISTINCT(n.nid) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")";
+    return array(
+      "sql" => "SELECT DISTINCT(n.nid) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")",
+      "count" => "SELECT COUNT(DISTINCT(n.nid)) FROM {project_comments} c LEFT JOIN {project_issues} p ON c.nid = p.nid LEFT JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND (". implode(" AND ", $sql) .")"
+    );
   }
 }
 function project_issue_query_rss($projects, $result) {
