@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.85 2003/06/23 22:16:32 weitzman Exp $
+// $Id: project.module,v 1.86 2003/06/25 23:17:05 weitzman Exp $
 
 
 // Drupal hooks
@@ -629,14 +629,15 @@ function project_array($values) {
 }
 
 function project_mail(&$node, $new = 0) {
-  global $user, $base_url;
+  global $base_url;
+
 
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   if (!$project->mail) {
     return;
   }
 
-  $body .= "ID: $node->nid\n";
+
   $body .= "Project: $project->name\n";
   $body .= "Area: $node->area\n";
   $body .= "Version: $node->version\n";
@@ -650,8 +651,9 @@ function project_mail(&$node, $new = 0) {
   $from = $project->mail;
   $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));  
   if ($new) {
-    $author = $node->name ? $node->name : $user->name;
+    $author = $node->name ? $node->name : t(variable_get("anonymous", "Anonymous"));
     $body .= format_date(time(), "small") ." : $author\n";
+
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
     $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
@@ -662,9 +664,10 @@ function project_mail(&$node, $new = 0) {
     $node->revisions = array_reverse($node->revisions);
     foreach ($node->revisions as $revision) {
       if (!$author) {
-        $author = implode("", uid_to_name($revision["node"]->uid));
+        $author = $revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : t(variable_get("anonymous", "Anonymous"));
       }
-      $body .= format_date($revision["node"]->changed, "small") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : "") ."\n";
+      $body .= format_date($revision["node"]->changed, "small") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : t(variable_get("anonymous", "Anonymous"))) ."\n";
+
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
     }
@@ -703,7 +706,8 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : $user->name). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : t(variable_get("anonymous", "Anonymous"))). " <$from>\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+
 
 }
 
@@ -923,7 +927,6 @@ function project_view($node, $main = 0) {
       $node = $revisions[$i - 1]["node"];
     }
 
-    $headers[] = array(array("data" => "Current status", "colspan" => 2, "style" => "font-weight: bold"));
     $headers[] = array("<b>". t("Status") .":</b>", t(project_pstatus($node->pstatus)));
     if ($node->area) {
       $headers[] = array("<b>". t("Area") .":</b>", $node->area);
@@ -940,6 +943,7 @@ function project_view($node, $main = 0) {
     $node->body .= table(array(), array_merge($headers, $rows));
     $node->body .= "</div>";
     $node->project_name = $project->name;
+
   }
 
   if (count($node->revisions)) {
