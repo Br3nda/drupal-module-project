@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.151 2004/04/13 21:07:34 kjartan Exp $
+/* $Id: project.module,v 1.152 2004/04/13 21:14:48 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -146,7 +146,6 @@ function project_link($type, $node = 0, $main = 0) {
       }
       break;
     case 'system':
-      menu('project/test', t('test'), 'project_release_scan_directory');
       if (user_access('access projects')) {
         drupal_set_html_head('<style type="text/css">@import url('. url('modules/project/project.css', NULL, NULL, 1) .');</style>');
         menu('project', t('projects'), 'project_page', 1);
@@ -402,7 +401,7 @@ function project_page_user($arg) {
       l(t('submit'), "node/add/project_issue/$node->nid")
     );
   }
-  
+
   $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
   $output .= l('#', "project/user/$user->name");
 
