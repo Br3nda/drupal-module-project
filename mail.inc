@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.21 2003/12/02 14:54:46 kjartan Exp $
+// $Id: mail.inc,v 1.22 2003/12/06 18:39:55 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -267,7 +267,7 @@ function project_mail_notify($node) {
   // Create mail header
   $sender->name = user_mail_encode(($pos = strpos($node->updator, '@')) ? substr($node->updator, 0, $pos) : $node->updator);
   $sender->mail = $project->mail;
-  $domain = preg_replace("|.+://([a-zA-Z0-9\._-]+).*|', '\$1", $GLOBALS['base_url']);
+  $domain = preg_replace('|.+://([a-zA-Z0-9\._-]+).*|', '\1', $GLOBALS['base_url']);
   $header = array(
     "Return-Path: <$sender->mail>",
     'Date: '. date('r'),
