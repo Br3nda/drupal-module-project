@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.41 2002/12/24 13:27:02 dries Exp $
+// $Id: project.module,v 1.42 2003/02/11 20:27:01 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -10,7 +10,7 @@ function project_system($field) {
 function project_link($type, $node = 0, $main = 0) {
   if ($type == "node" && $node->type == "project") {
     if (user_access("post bug reports")) {
-      $links[] = lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid));
+      $links[] = l(t("update $node->ptype"), "admin/project/update/$node->nid");
     }
     $links[] = t("project") .": ". lm($node->project_name, array("mod" => "project", "pid" => $node->pid));
   }
@@ -38,7 +38,7 @@ function project_link($type, $node = 0, $main = 0) {
   return $links ? $links : array();
 }
 
-function project_conf_options () {
+function project_settings () {
   $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
   $output .= form_select(t("Mail Criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
   return $output;
