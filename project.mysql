@@ -39,6 +39,7 @@ CREATE TABLE project_releases (
   PRIMARY KEY (`rid`),
   KEY project_releases_nid (nid)
 ) TYPE=MyISAM;
+ALTER TABLE project_releases ADD status tinyint(1) unsigned NOT NULL default '1';
 
 --
 -- Table structure for table 'project_issues'

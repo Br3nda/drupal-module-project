@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.22.2.2 2003/10/27 22:04:45 kjartan Exp $
+// $Id: issue.inc,v 1.22.2.3 2003/11/02 01:48:49 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -74,7 +74,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     // Load the project and initialize some support arrays.
     $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
     if ($releases = project_release_load($project)) {
-      $releases = array(t("<none>")) + project_release_load($project);
+      $releases = array(t("<none>")) + $releases;
     }
     if ($project->components) {
       $components = array(t("<none>"));

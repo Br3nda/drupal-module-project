@@ -1,83 +1,89 @@
+02. November 2003
+-----------------
++ Added status field to releases (Kjartan).
++ Implemented delete function for releases (Kjartan):
+    * Releases are never deleted, just marked with status = 0.
+    * When adding a version that has been deleted the old version is restored.
++ Fixed search (Weitzman).
+
 24. September 2003
 ------------------
 General
- - Temporarily disabled file uploads (pending final fileapi).
+- Temporarily disabled file uploads (pending final fileapi).
 
- + Added a project.css to split style out of the code.
- + Added navigation trail to several pages.
++ Added a project.css to split style out of the code.
++ Added navigation trail to several pages.
 
 Projects
- - Projects are now nodes, with all the benefits that brings: taxonomy,
-   users can submit and maintain their own projects, etc.
- - Versions have been replaced with releases.
+- Projects are now nodes, with all the benefits that brings: taxonomy, users
+  can submit and maintain their own projects, etc.
+- Versions have been replaced with releases.
 
- + Added more data to projects (link to hp, demo, etc).
- + Added project uri: /project/<name>. Uses node->path
- + Added release directory option for projects that don't require file
-   uploads.
- + Added taxonomy support to projects. Limited support in project
-   navigation.
- + Create a better download page when release_directory is used.
++ Added more data to projects (link to hp, demo, etc).
++ Added project uri: /project/<name>. Uses node->path
++ Added release directory option for projects that don't require file uploads.
++ Added taxonomy support to projects. Limited support in project navigation.
++ Create a better download page when release_directory is used.
 
 Issues (bug reports, etc)
- - Updates to issues are no longer saved as node revisions.
- - Developers are no longer a fixed list. Instead users assigns issues
-   to their account. Assigning bugs to others is no longer supported.
- - Tweaked the output for node view to make the original report stand
-   out from the comments/updates.
- - Tweaked mails to highlight new changes more from previous changes.
- - Changed output for "view your projects".
- - Changed mailhandler to be completely custom instead of using the
-   default handler and improve usability.
- - Fixed pager support so it remembers searches.
- - Improved search to let you select multiple values for fields.
+- Updates to issues are no longer saved as node revisions.
+- Developers are no longer a fixed list. Instead users assigns issues to their
+  account. Assigning bugs to others is no longer supported.
+- Tweaked the output for node view to make the original report stand out from
+  the comments/updates.
+- Tweaked mails to highlight new changes more from previous changes.
+- Changed output for "view your projects".
+- Changed mailhandler to be completely custom instead of using the default
+  handler and improve usability.
+- Fixed pager support so it remembers searches.
+- Improved search to let you select multiple values for fields.
 
- + Add possibility to link to a specific issue listing. Examples:
-     List all open issues:       /project/issues?states=1,2
-     List all open bug reports:  /project/drupal/issues?states=1,2&categories=bug
-     List open project issues:   /project/drupal/issues?states=1,2
-     List issues assigned to user: /project/drupal/issues?assigned=1
- + Added support request category.
- + Added file uploads to issues.
- + Added tablesort support for issue listings.
- + Monthly mail to remind users to follow up on their open issues.
- + Users can subscribe to get no mail, mails for issues they are
-   involved with or all issues per project.
- + Added non-project specific issue pages.
++ Add possibility to link to a specific issue listing. Examples:
+   List all open issues:       /project/issues?states=1,2
+   List all open bug reports:  /project/drupal/issues?states=1,2&categories=bug
+   List open project issues:   /project/drupal/issues?states=1,2
+   List issues assigned to user: /project/drupal/issues?assigned=1
++ Added support request category.
++ Added file uploads to issues.
++ Added tablesort support for issue listings.
++ Monthly mail to remind users to follow up on their open issues.
++ Users can subscribe to get no mail, mails for issues they are involved with
+  or all issues per project.
++ Added non-project specific issue pages.
 
 21. July 2003
 -------------
 project.module
-  - fixed bug in from: line of project emails
-  - reintroduced row coloring based on Status in list pages
+- fixed bug in from: line of project emails
+- reintroduced row coloring based on Status in list pages
 
 17. July 2003
 -------------
 project.module
-  - now using table() to render all lists. better themeability
-  - added pager
+- Now using table() to render all lists, better themeability.
+- Added pager support.
 
 18. June 2003
 -------------
 project.module
-  - Updated priorities to use English text where possible.
+- Updated priorities to use English text where possible.
 
 16. April 2003
 --------------
 project.module
-  - added overview reports.
-  - fixed preview not working on translated sites.
+- added overview reports.
+- fixed preview not working on translated sites.
 
 8. March 2003
 -------------
 project.module
-  - removed _save():
-      * Moved code into _validate hook.
-  - changed *_validate() to the new system:
-      * No $error for second parameter.
-      * Return $error instead of $node.
-      * $node passed by reference.
-  - fixed Submit button not showing up.
+- removed _save():
+    * Moved code into _validate hook.
+- changed *_validate() to the new system:
+    * No $error for second parameter.
+    * Return $error instead of $node.
+    * $node passed by reference.
+- fixed Submit button not showing up.
 
 12. Feburary 2003
 -----------------
@@ -180,7 +186,7 @@ project.module
 20. December 2001
 -----------------
 project.module
-- changed the list behaviour. A bug is active even if marked as fixed. Bugs
+- changed the list behavior. A bug is active even if marked as fixed. Bugs
   are not really closed until the user whom reported the bug have reported it
   as closed.
 
@@ -189,7 +195,7 @@ project.module
 project.module
 - assigned to was not stored.
 - think i got the stripslashes right at last.
-- changed the access checks so non-priviledged users can submit update.
+- changed the access checks so non-privileged users can submit update.
 - made it show the name of the person that submitted the node and not the
   person who lasted updated it.
 - revisions are complex!
@@ -199,4 +205,3 @@ project.module
 -----------------
 project.module
 - initial commit of project.module.
-

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.11 2003/10/07 12:23:18 kjartan Exp $
+// $Id: project.inc,v 1.11.2.1 2003/11/02 01:48:49 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -137,7 +137,7 @@ function project_project_view($node, $main = 0) {
       $node->body .= $output;
     }
 
-    if (!variable_get("project_release_directory", "") && node_access($node, "update")) {
+    if (node_access($node, "update")) {
       $items[] = l(t("add new release"), "project/$node->uri/releases/add");
     }
     if ($node->issues && user_access("access project issues")) {
