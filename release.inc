@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.16 2003/11/13 19:55:44 dries Exp $
+// $Id: release.inc,v 1.17 2003/11/17 12:45:10 kjartan Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -122,8 +122,12 @@ function project_release_page($node) {
       break;
     */
     default:
+      if (node_access($node, "update")) {
+        $links = array(l(t("add new release"), "project/$node->uri/releases/add"));
+      }
       print theme("header", t("%project releases", array("%project" => "$node->title")));
       print theme("box", t("Releases"), project_release_view($node));
+      print theme('links', $links);
       print theme("footer");
   }
 }
@@ -146,7 +150,12 @@ function project_release_overview() {
       $rows = array();
     }
     $releases = array();
-    $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid);
+    if (arg(2)) {
+      $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version = '%s' ORDER BY created DESC", $node->nid, arg(2));
+    }
+    else {
+      $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid);
+    }
     if (db_num_rows($result2)) {
       while ($release = db_fetch_object($result2)) {
         $releases[] = l($release->version, $release->path, array("class" => count($releases) ? "project-old" : "project-recent"));
@@ -167,13 +176,7 @@ function project_release_overview() {
   $output .= "</div>";
   $output .= "</div>";
 
-  $breadcrumb[] = l(t("Home"), NULL);
-  $breadcrumb[] = l(t("Projects"), "project");
-
-  print theme("header");
-  print theme("breadcrumb", $breadcrumb);
-  print theme("box", t("Project downloads"), $output);
-  print theme("footer");
+  return $output;
 }
 
 function project_release_form(&$release, &$error, &$param) {

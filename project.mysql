@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.9 2003/11/07 17:25:23 kjartan Exp $
+-- $Id: project.mysql,v 1.10 2003/11/17 12:45:10 kjartan Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -23,6 +23,7 @@ CREATE TABLE project_projects (
   PRIMARY KEY (`nid`),
   KEY project_projects_uri (uri(8))
 ) TYPE=MyISAM;
+ALTER TABLE project_projects ADD help text;
 
 --
 -- Table structure for table 'project_releases'

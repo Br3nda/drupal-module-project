@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.31 2003/11/15 17:16:22 ax Exp $
+// $Id: issue.inc,v 1.32 2003/11/17 12:45:10 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -8,8 +8,6 @@ function project_issue_node($field) {
 }
 
 function project_issue_page($project) {
-  global $base_url;
-
   $arg = ($project->nid) ? 3 : 2;
 
   switch ($_POST["op"] ? $_POST["op"] : arg($arg)) {
@@ -22,8 +20,8 @@ function project_issue_page($project) {
       */
       break;
     case "search":
-      print theme("header", "Search $project->title");
-      print theme("box", "Search $project->title", project_issue_query($project, $query));
+      print theme("header", t("Search %project", array('%project' => $project->title)));
+      print theme("box", t("Search %project", array('%project' => $project->title)), project_issue_query($project, $query));
       print theme("footer");
       break;
     case "rss":
@@ -32,13 +30,20 @@ function project_issue_page($project) {
       print $output;
       break;
     case "add":
-      drupal_goto("$base_url/node/add/project_issue/$project->uri");
+      drupal_goto(url("node/add/project_issue/$project->uri"));
       break;
+    case 'subscribe':
+      if ($project->issues && $GLOBALS["user"]->uid) {
+        print theme("header", t("Issue subscriptions"));
+        print theme("box", t("Issue subscriptions"), project_issue_subscribe($project));
+        print theme("footer");
+        break;
+      }
     case "user":
-       $_POST["edit"]["users"] = $GLOBALS["user"]->uid;
+       $_GET["users"] = $GLOBALS["user"]->uid;
     default:
       if (project_issue_category(arg($arg))) {
-        $_POST["edit"]["categories"] = arg($arg);
+        $_GET["categories"] = arg($arg);
       }
       $output = project_issue_query_result($project);
 
@@ -54,6 +59,16 @@ function project_issue_page($project) {
       print theme("box", l(t("Issues"), $project->nid ? "project/$project->uri/issues" : "project/issues", NULL, project_issue_query_url()), $output);
       print theme("footer");
   }
+}
+
+function project_issue_subscribe($project) {
+  $levels = array(0 => t("None"), 1 => t("Own issues"), 2 => t("All issues"));
+  $level = db_result(db_query("SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $project->nid, $GLOBALS["user"]->uid));
+
+  $form = form_radios(t("Subscribe to %project issues", array('%project' => $project->title)), "level", $level, $levels);
+  $form .= form_hidden("nid", $project->nid);
+  $form .= form_submit(t("Subscribe"));
+  return form($form, "post", url("project"));
 }
 
 function project_issue_form(&$node, &$help, &$error, &$param) {
@@ -76,6 +91,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
   if ($node->pid) {
     // Load the project and initialize some support arrays.
     $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
+    $help = check_output($project->help);
     if ($releases = project_release_load($project)) {
       $releases = array(t("<none>")) + $releases;
     }
@@ -140,7 +156,7 @@ function project_issue_validate(&$node) {
     }
     empty($node->component) and $error["component"] = t("Required.");
     empty($node->priority) and $node->priority = 2;
-    empty($node->category) and $node->category = arg(4);
+    empty($node->category) and $node->category = arg(4) ? arg(4) : arg(3);
     empty($node->category) and $error["category"] = t("Required.");
     empty($node->state) and $node->state = 1;
     empty($node->body) and $error["body"] = t("Required.");
@@ -376,7 +392,7 @@ function project_issue_query_result($project = 0, $format = "html") {
       $number++;
       $class = "state_". ($number % 2 ? "light" : "dark") ."_$node->state";
       if ($projects) {
-        $row[] = array("data" => l($projects[$node->pid], "node/view/$node->pid"), "class" => $class);
+        $row[] = array("data" => l($projects[$node->pid], drupal_get_path_alias("node/view/$node->pid") . "/issues"), "class" => $class);
       }
       $row[] = array("data" => l(substr($node->title, 0, 50), "node/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() ." " : ""), "class" => $class);
       $row[] = array("data" => $states[$node->state], "class" => $class);
@@ -413,7 +429,7 @@ function project_issue_query_result($project = 0, $format = "html") {
 
 function project_issue_query_url($query = 0) {
   static $url;
-  
+
   if (is_array($query)) {
     foreach ($query as $key => $value) {
       $url[] = "$key=$value";
@@ -528,7 +544,7 @@ function project_issue_query_sql($query) {
 }
 
 function project_issue_query_rss($projects, $result) {
-  global $base_url, $languages;
+  global $languages;
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
@@ -556,7 +572,7 @@ function project_issue_query_rss($projects, $result) {
   $output .= "<!DOCTYPE rss [<!ENTITY % HTMLlat1 PUBLIC \"-//W3C//ENTITIES Latin 1 for XHTML//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent\">]>\n";
   if (!$channel["version"]) $channel["version"] = "2.0";
   if (!$channel["title"]) $channel["title"] = variable_get("site_name", "drupal") ." - ". t("issues");
-  if (!$channel["link"]) $channel["link"] = $base_url;
+  if (!$channel["link"]) $channel["link"] = url();
   if (!$channel["description"]) $channel["description"] = variable_get("site_mission", "");
   foreach ($languages as $key => $value) break;
   if (!$channel["language"]) $channel["language"] = $key ? $key : "en";
