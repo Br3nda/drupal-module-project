@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.42 2004/10/15 13:50:28 goba Exp $ */
+/* $Id: project.inc,v 1.43 2004/11/04 08:50:50 dries Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -191,13 +191,11 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $links = array();
       
       if ($release->version == 'cvs') {
-        $dllink = t('Download latest release (%version)', array('%version' => $release->version));
+        $links[] = l(t('Download latest release (%version)', array('%version' => $release->version)), $release->path);
       }
       else {
-        $dllink = t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small')));
+        $links[] = l(t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small'))), $release->path);
       }
-      $output .= "<h2>Download</h2>\n";
-      $output .= '<h3">'. l($dllink, $release->path) ."</h3>\n";
       if ($release->changes) {
         $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
       }
@@ -205,10 +203,10 @@ function project_project_view(&$node, $teaser = false, $page = false) {
         $links[] = l(t('View older releases'), 'node/'. $node->nid .'/release');
       }
       if (node_access('update', $node)) {
-        $links[] = l(t('Add new releases'), 'node/'. $node->nid .'/release/add');
+        $links[] = l(t('Add new release'), 'node/'. $node->nid .'/release/add');
       }
       if ($links) {
-        $output .= theme('item_list', $links);
+        $output .= theme('item_list', $links, t('Releases'));
       }
 
       // Misc section
