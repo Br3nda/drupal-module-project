@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.63 2003/03/17 15:42:50 kjartan Exp $
+// $Id: project.module,v 1.64 2003/03/29 18:42:06 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -8,7 +8,7 @@ function project_system($field) {
 }
 
 function project_head() {
-  if (arg(0) == "node") {
+  if (arg(0) == "node" || arg(0) == "project") {
     $style = <<<EOF
 <style>
 #project tr.light, #project tr.dark {
@@ -484,7 +484,7 @@ function project_page() {
       theme("footer");
       break;
     default:
-      $result = db_query("SELECT pid,name FROM projects". ($pid ? " WHERE pid = ". $pid : "") ." ORDER BY name");
+      $result = db_query("SELECT pid,name FROM projects". (is_numeric($pid) ? " WHERE pid = ". $pid : "") ." ORDER BY name");
       theme("header");
       while ($project = db_fetch_object($result)) {
         $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
