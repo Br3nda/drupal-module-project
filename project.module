@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.152 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: project.module,v 1.153 2004/04/14 11:54:35 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -146,6 +146,9 @@ function project_link($type, $node = 0, $main = 0) {
       }
       break;
     case 'system':
+      if (variable_get('project_release_directory', '') && user_access('administer projects')) {
+        menu('admin/system/modules/project/reload', t('scan for releases'), 'project_release_scan', 1);
+      }
       if (user_access('access projects')) {
         drupal_set_html_head('<style type="text/css">@import url('. url('modules/project/project.css', NULL, NULL, 1) .');</style>');
         menu('project', t('projects'), 'project_page', 1);

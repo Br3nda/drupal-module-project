@@ -1,5 +1,10 @@
 <?php
-/* $Id: release.inc,v 1.27 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: release.inc,v 1.28 2004/04/14 11:54:35 kjartan Exp $ */
+
+function project_release_scan() {
+  project_release_scan_directory();
+  print theme('page', t('Scan successful.'), t('Release directory scan'));
+}
 
 function project_release_scan_directory($project = NULL) {
   if ($dir = file_create_path(variable_get('project_release_directory', ''))) {
