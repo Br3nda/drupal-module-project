@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.37 2005/01/16 23:58:37 unconed Exp $ */
+/* $Id: mail.inc,v 1.38 2005/01/29 21:49:34 unconed Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -133,7 +133,7 @@ function project_mail_urls($url = 0) {
 function project_mail_output(&$body, $html = 1, $format = FILTER_FORMAT_DEFAULT) {
   static $i = 0;
 
-  if ($wrap) {
+  if ($html) {
     $pattern = '@(<a href="(.+?)">(.+?)</a>)@ei';
     $body = preg_replace($pattern, "'\\3 ['. project_mail_urls('\\2') .']'", $body);
     $urls = project_mail_urls();
