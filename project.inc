@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.45 2005/01/30 17:17:51 dries Exp $ */
+/* $Id: project.inc,v 1.46 2005/02/06 19:59:02 dries Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -242,44 +242,27 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       // Developer section
       $links = array();
 
-      if ($node->cvs) {
-        $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
-      }
       if ($node->issues) {
         #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
         $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
         $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
       }
 
+      if ($node->cvs) {
+        $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
+      }
+      
+      if (module_exist('cvs')) {
+        $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
+        $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
+      }
+      
       if ($links) {
         $output .= theme('item_list', $links, t('Development'));
       }
    }
 
     $node->body .= $output;
-
-    /*
-    if ($node->issues && user_access('access project issues')) {
-      $links[] = l(t('issues'), "project/issues/$node->uri");
-    }
-
-    foreach (array('homepage' => t('homepage'), 'documentation' => t('documentation'), 'license' => t('license'), 'changelog' => t('changelog'), 'cvs' => t('cvs tree'), 'demo' => t('demo site'), 'screenshots' => t('screenshots')) as $uri => $name) {
-      if (!empty($node->$uri)) {
-        $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
-      }
-    }
-
-    if ($links) {
-      #$node->body .= theme('item_list', $links, t('Links'));
-    }
-
-    if ($releases = project_release_load($node)) {
-      list($rid, $version) = each($releases);
-
-      $node->body .= '<h2>'. t('%project %version', array('%project' => $node->title, '%version' => $version)) .'</h2>';
-      $node->body .= project_release_view(project_release_load($rid));
-    }
-    */
   }
 }
 
@@ -354,6 +337,29 @@ function project_project_retrieve($key = 0) {
     }
   }
   return $node;
+}
+
+function project_developers($nid = 0) {
+  if ($project = node_load(array('nid' => $nid))) {
+    $output = module_invoke('cvs', 'get_project_contributors', $nid);
+    drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
+    print theme('page', $output);
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+function project_cvs($nid = 0) {
+  if ($project = node_load(array('nid' => $nid))) {
+    $_REQUEST['nid'] = $nid;
+    $output = module_invoke('cvs', 'show_messages');
+    drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
+    print theme('page', $output);
+  }
+  else {
+    drupal_not_found();
+  }
 }
 
 ?>

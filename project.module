@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.180 2005/02/06 12:32:41 dries Exp $
+// $Id: project.module,v 1.181 2005/02/06 19:59:02 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -160,7 +160,13 @@ function project_menu($may_cache) {
     foreach (project_releases_list() as $v => $version) {
       $items[] = array('path' => "project/releases/$v", 'title' => $version, 'callback' => 'project_release_page', 'access' => $access, 'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK), 'weight' => $i++);
     }
-
+    
+    // Developers
+    $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
+    
+    // CVS messages:
+    $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
+    
     // Create projects
     $access = user_access('maintain projects');
     $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
@@ -177,7 +183,6 @@ function project_menu($may_cache) {
     // Create issues
     $access = user_access('create project issues');
     $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
-
 
     // Comments
     $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_CALLBACK);
@@ -300,6 +305,14 @@ function project_page_overview() {
   $output .= '<div class="project">'. theme('table', NULL, $rows) .'</div>';
 
   print theme('page', $output);
+}
+
+function project_user($type, $edit, &$user, $category = NULL) {
+  if ($type == 'view') {
+    if ($projects = module_invoke('cvs', 'get_contributed_projects', $user->uid)) {
+      return array(t('Projects') => $projects);
+    }
+  }
 }
 
 function project_page_user($arg = 0) {
