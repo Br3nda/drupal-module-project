@@ -1,5 +1,11 @@
 <?php
-// $Id: issue.inc,v 1.3 2003/09/28 20:06:02 kjartan Exp $
+// $Id: issue.inc,v 1.4 2003/09/28 20:23:21 kjartan Exp $
+
+function project_issue_node($field) {
+  $info["name"] = t("issue");
+
+  return $info[$field];
+}
 
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;

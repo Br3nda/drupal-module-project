@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.98 2003/09/28 20:13:45 kjartan Exp $
+// $Id: project.module,v 1.99 2003/09/28 20:23:21 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -122,7 +122,7 @@ function project_link($type, $node = 0, $main = 0) {
       break;
     case "system":
       if (user_access("maintain projects")) {
-        menu("node/add/project_project", t("project"), NULL, NULL, 0);
+        menu("node/add/project_project", t("project"), "project_page", NULL, 0);
       }
       if (user_access("maintain project issues")) {
         $categories = project_issue_category();
@@ -132,12 +132,12 @@ function project_link($type, $node = 0, $main = 0) {
       }
       if (user_access("access project issues")) {
         global $user;
-        menu("project/issues", t("view open issues"), NULL, NULL, 0);
+        menu("project/issues", t("view open issues"), "project_page", NULL, 0);
         if ($user->uid) {
-          menu("project/issues/?users=$user->uid&states=1,2", t("your issues"), NULL, NULL, 0);
+          menu("project/issues/?users=$user->uid&states=1,2", t("your issues"), "project_page", NULL, 0);
         }
         foreach (project_issue_category() as $cat => $category) {
-          menu("project/issues/?categories=$cat&states=1,2", $category, NULL, NULL, 1);
+          menu("project/issues/?categories=$cat&states=1,2", $category, "project_page", NULL, 1);
         }
       }
       break;
