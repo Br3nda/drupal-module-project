@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.99 2003/09/28 20:23:21 kjartan Exp $
+// $Id: project.module,v 1.100 2003/09/28 20:29:30 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -84,6 +84,7 @@ function project_cron() {
       $comment->$var = $node->$var;
     }
     $comment->state = 7;
+    $comment->body = t("Automatically closed due to inactivity (marked fixed for 14 days).");
     project_comment_save($comment);
   }
 }

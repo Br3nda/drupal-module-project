@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.3 2003/09/28 19:49:21 kjartan Exp $
+// $Id: mail.inc,v 1.4 2003/09/28 20:29:30 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -200,6 +200,10 @@ function project_mail_notify($node) {
   $entry = array_pop($history);
   $node->updator = $entry->name;
   $data = unserialize($entry->data);
+
+  if (empty($entry->body)) {
+    return; // No body to notify about.
+  }
 
   // Record users that are connected to this node
   $uids = array();
