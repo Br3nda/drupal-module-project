@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.22.2.4 2003/11/09 17:10:44 ax Exp $
+// $Id: issue.inc,v 1.22.2.5 2003/12/03 01:02:46 chris Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -332,7 +332,7 @@ function project_issue_query_result($project = 0, $format = "html") {
     $query->projects = $project->nid;
   }
   else {
-    $result = db_query("SELECT nid, title FROM node WHERE type = 'project_project' AND status = 1");
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1");
     while ($node = db_fetch_object($result)) {
       $projects[$node->nid] = $node->title;
     }
