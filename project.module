@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.86.2.3 2003/07/21 19:37:46 weitzman Exp $
+// $Id: project.module,v 1.86.2.4 2003/07/21 20:55:33 weitzman Exp $
 
 // Drupal hooks
 function project_head() {
@@ -426,7 +426,7 @@ function project_page() {
 
   switch ($op) {
     case "mail_help":
-      theme("header");
+      theme("header", t("Project Mail Help"));
       theme("box", t("Project Mail Help"), project_mail_help());
       theme("footer");
       break;
@@ -715,7 +715,17 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($author ? $author : t(variable_get("anonymous", "Anonymous"))). " <$from>". "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  
+  if (strpos($author, "@")) {
+    $fromname = substr($author, 0, strpos($author, "@"));
+  }
+  else if ($author) {
+    $fromname = $author;
+  }  
+  else {
+    $fromname = t(variable_get("anonymous", "Anonymous"));
+  }  
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: $fromname <$from>". "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 
 }
