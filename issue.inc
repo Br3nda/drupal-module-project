@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.34 2003/12/02 14:54:46 kjartan Exp $
+// $Id: issue.inc,v 1.35 2003/12/02 14:58:33 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('Issue');
@@ -161,7 +161,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     $group1 .= form_select(t('Version'), 'rid', $node->rid, $releases, theme_error($error['rid']));
     $group1 .= form_select(t('Component'), 'component', $node->component, $components, theme_error($error['component']));
 
-    $group2 .= form_select(t('Category'), 'category', $node->category, $categories, theme_error($error['category']));    
+    $group2 = form_select(t('Category'), 'category', $node->category, $categories, theme_error($error['category']));
     $group2 .= form_select(t('Priority'), 'priority', $node->priority, $priorities);
     $group2 .= form_select(t('Assigned'), 'assigned', $node->assigned, $assigned);
     if ($node->state || $node->nid) {
