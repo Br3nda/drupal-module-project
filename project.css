@@ -58,15 +58,22 @@ div.php code {
   padding: 0em 0.2em;
 }
 
-.project .downloads table {
+.project .downloads td {
+  border-bottom: 1px solid #999;
 }
-.project .project-name, .project .project-download {
-  border-bottom: 1px solid #e0e0e0;
+.project .downloads ul {
+  margin: 0px;
+}
+.project .downloads li {
+  list-style-type: circle;
 }
 .project .project-name {
-  width: 150px;
+  width: 125px;
 }
-.project .project-download {
-  width: 50px;
-  text-align: center;
+.project .project-teaser {
+}
+.project-recent {
+}
+.project-old {
+  font-size: smaller;
 }

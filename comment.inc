@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.10 2003/10/04 22:01:57 kjartan Exp $
+// $Id: comment.inc,v 1.11 2003/10/04 22:46:35 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -21,7 +21,7 @@ function project_comment_page($project) {
       break;
     case "edit":
       if (user_access("maintain project issues")) {
-        $node = node_load(array("nid" => arg(4), "type" => "project_issue"));
+        $node = node_load(array("nid" => arg(3), "type" => "project_issue"));
         $output = project_comment_form($comment, $error, $param);
         theme("header", "Edit comment $comment->version for $node->title");
         project_comment_view($comment);
@@ -60,7 +60,7 @@ function project_comment_page($project) {
       break;
     case t("Submit"):
       if (user_access("maintain project issues")) {
-        $node = node_load(array("nid" => arg(4), "type" => "project_issue"));
+        $node = node_load(array("nid" => arg(3), "type" => "project_issue"));
         $edit = array2object($_POST["edit"]);
         $edit->nid = $node->nid;
         $error = project_comment_validate($edit);
@@ -80,7 +80,7 @@ function project_comment_page($project) {
       break;
     /* TODO: pending final fileapi
     case "download":
-      $comment = project_comment_load(arg(4));
+      $comment = project_comment_load(arg(3));
       if ($comment->fid) {
         drupal_file_send($comment->fid);
       }

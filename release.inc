@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.10 2003/10/04 22:01:57 kjartan Exp $
+// $Id: release.inc,v 1.11 2003/10/04 22:46:35 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -123,22 +123,10 @@ function project_release_overview() {
   $output = "<div class=\"project\">";
   $output .= "<div class=\"downloads\">";
 
-  // Figure out which versions we have
-  $versions = array();
-  $result = db_query("SELECT version FROM project_releases WHERE path <> '' GROUP BY version");
-  while ($version = db_result($result, $i++)) {
-    $versions[] = $version;
-  }
+  $header = array(t("project"), t("downloads"), t("description"));
 
-  $header = array(t("project"), array("colspan" => count($versions) + 1, "data" => t("downloads")));
-
-  $result = db_query("SELECT DISTINCT(n.nid), n.title, r.tid FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
+  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.teaser, r.tid FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
   while ($node = db_fetch_object($result)) {
-    $releases = array();
-    $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND path <> ''", $node->nid);
-    while ($release = db_fetch_object($result2)) {
-      $releases[$release->version] = $release->path;
-    }
     if ($tid != ($tid = $node->tid)) {
       if (count($rows)) {
         $output .= "<h2>$term->name</h2>";
@@ -148,12 +136,17 @@ function project_release_overview() {
       $term = taxonomy_get_term($tid);
       $rows = array();
     }
-    if (count($releases)) {
-      $row = array(array("class" => "project-name", "data" => l($node->title, "node/view/$node->nid")));
-      foreach ($versions as $version) {
-        $row[] = array("class" => "project-download", "data" => ($releases[$version]) ? l($version, $releases[$version]) : "");
+    $releases = array();
+    $result2 = db_query("SELECT path, version FROM {project_releases} WHERE nid = %d AND path <> '' ORDER BY created DESC", $node->nid);
+    if (db_num_rows($result2)) {
+      while ($release = db_fetch_object($result2)) {
+        $releases[] = l($release->version, $release->path, array("class" => count($releases) ? "project-old" : "project-recent"));
       }
-      $rows[] = $row;
+      $rows[] = array(
+        array("class" => "project-name", "data" => l($node->title, "node/view/$node->nid")),
+        array("class" => "project-download", "data" => theme("theme_item_list", $releases)),
+        array("class" => "project-teaser", "data" => strip_tags($node->teaser)),
+      );
     }
   }
   if (count($rows)) {
