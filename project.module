@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.48 2003/02/21 00:18:27 ax Exp $
+// $Id: project.module,v 1.49 2003/02/22 14:46:18 ax Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -97,6 +97,25 @@ function project_admin_form($edit = 0) {
   return form($form);
 }
 
+function project_delete_project($pid) {
+  global $edit;
+
+  if ($edit["confirm"]) {
+    db_query("DELETE FROM projects WHERE pid = '%d'", $pid);
+    $msg = t("Project #%p deleted", array ("%p" => $pid));
+    watchdog("special", $msg);          
+    $output = status($msg);
+    $output .= project_admin_list();
+  }
+  else {
+    $output = form_item(t("Confirm Deletion"), t("Do you wish to delete project #%p?", array ("%p" => $pid)));
+    $output .= form_hidden("confirm", 1);
+    $output .= form_submit(t("Delete"));
+    $output = form($output);
+  }
+  print $output;
+}
+
 function project_admin_list() {
   $result = db_query("SELECT pid,name,versions,version_default,developers,areas,mail FROM projects ORDER BY name");
 
@@ -128,7 +147,7 @@ function project_admin_list() {
     $output .= "</tr>\n";
   }
   $output .= "</table>\n";
-  print $output;
+  return $output;
 }
 
 function project_admin() {
@@ -140,19 +159,19 @@ function project_admin() {
   if (empty($op)) {
     $op = arg(2);
   }
+  $pid = arg(3);
 
   switch ($op) {
     case "add":
       print project_admin_form();
       break;
     case "edit":
-      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", arg(3)));
+      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
       $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
       print project_admin_form($project);
       break;
     case "Delete":
-      db_query("DELETE FROM projects WHERE pid = '%d'", arg(3));
-      project_admin_list();
+      project_delete_project($pid);
       break;
     case "Submit":
       global $edit;
@@ -174,10 +193,10 @@ function project_admin() {
       else {
         db_query("INSERT INTO projects (name, versions, version_default, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"]);
       }
-      project_admin_list();
+      print project_admin_list();
       break;
     default:
-      project_admin_list();
+      print project_admin_list();
   }
 }
 
@@ -359,6 +378,8 @@ function project_page() {
   if (empty($op)) {
     $op = arg(1);
   }
+  $pid = arg(2);
+  $type = arg(3);
 
   switch ($op) {
     case "mail_help":
@@ -375,7 +396,7 @@ function project_page() {
       break;
     case "search":
       theme("header", t("Project search"));
-      $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
+      $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
       theme("box", t("Search"), project_page_filter($edit));
       theme("footer");
       break;
@@ -394,21 +415,21 @@ function project_page() {
       break;
     case "list":
       global $edit;
-      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '%d'", arg(2)));
+      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '%d'", $pid));
 
       $filter[] = "(p.pstatus = '1' OR p.pstatus = '2')";
-      if ((int) arg(2)) {
-        $filter[] = "p.pid = ". arg(2);
+      if ((int) $pid) {
+        $filter[] = "p.pid = ". $pid;
       }
-      if (arg(3)) {
-        $filter[] = "p.ptype = '". arg(3) ."'";;
+      if ($type) {
+        $filter[] = "p.ptype = '". $type ."'";;
       }
-      $output = project_list($filter, arg(2), arg(3), arg(4), arg(5));
+      $output = project_list($filter, $pid, $type, arg(4), arg(5));
 
       theme("header", "$project->name ${type}s");
-      theme("box", $project->name ." : ". t((arg(3) ? arg(3) : "all")), $output);
+      theme("box", $project->name ." : ". t(($type ? $type : "all")), $output);
       if (!count($edit)) {
-        $edit = array("pid" => arg(2), "status" => array(1 => 1, 2), "assigned" => -1, "type" => arg(3));
+        $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
       }
       theme("box", t("Search"), project_page_filter($edit));
       theme("footer");
@@ -416,7 +437,7 @@ function project_page() {
     case "update":
       global $user;
       if (user_access("maintain bug reports")) {
-        $node = node_load(array("nid" => arg(2)));
+        $node = node_load(array("nid" => $pid));
 
         theme("header", "Updating:". $node->title);
         node_view($node, 0);
@@ -439,8 +460,8 @@ function project_page() {
       global $user;
       theme("header");
       if (user_access("maintain bug reports")) {
-        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => arg(2), "ptype" => arg(3), "revision" => 1);
-        theme("box", t("Project") ." : ". t(arg(3)), node_form($node));
+        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1);
+        theme("box", t("Project") ." : ". t($type), node_form($node));
       }
       else {
         theme("box", t("Access denied"), message_access());
@@ -461,7 +482,7 @@ function project_page() {
       theme("footer");
       break;
     default:
-      $result = db_query("SELECT pid,name FROM projects". ((int) arg(1) ? " WHERE pid = ". arg(1) : "") ." ORDER BY name");
+      $result = db_query("SELECT pid,name FROM projects". ($pid ? " WHERE pid = ". $pid : "") ." ORDER BY name");
       theme("header");
       while ($project = db_fetch_object($result)) {
         $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
