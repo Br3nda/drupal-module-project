@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.122 2003/11/17 12:45:10 kjartan Exp $
+// $Id: project.module,v 1.123 2003/11/17 15:01:40 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -176,6 +176,7 @@ function project_link($type, $node = 0, $main = 0) {
             menu("$uri/issues/$cat", $category, 'page', 2);
           }
           menu("$uri/issues/add", t('submit'), 'page', 3);
+          menu("$uri/issues/statistics", t('statistics'), 'page', 4);
         }
 
         // Create all project issues menu.
@@ -188,6 +189,7 @@ function project_link($type, $node = 0, $main = 0) {
           menu("project/issues/$cat", $category, 'page', 2);
         }
         menu('project/issues/add', t('submit'), 'page', 3);
+        menu("project/issues/statistics", t('statistics'), 'page', 4);
       }
 
       // Populate the node/add menu

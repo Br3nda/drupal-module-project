@@ -7,6 +7,7 @@
 + Added per project customizable submission guidelines for issues (Kjartan).
   Requires database update:
     ALTER TABLE project_projects ADD help text;
++ Added basic issue statistics.
 
 10. November 2003
 -----------------

@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.32 2003/11/17 12:45:10 kjartan Exp $
+// $Id: issue.inc,v 1.33 2003/11/17 15:01:40 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -32,6 +32,11 @@ function project_issue_page($project) {
     case "add":
       drupal_goto(url("node/add/project_issue/$project->uri"));
       break;
+    case 'statistics':
+      print theme("header", t("Statistics for %project", array('%project' => $project->title)));
+      print theme("box", t("Statistics for %project", array('%project' => $project->title)), project_issue_statistics($project));
+      print theme("footer");
+      break;
     case 'subscribe':
       if ($project->issues && $GLOBALS["user"]->uid) {
         print theme("header", t("Issue subscriptions"));
@@ -59,6 +64,52 @@ function project_issue_page($project) {
       print theme("box", l(t("Issues"), $project->nid ? "project/$project->uri/issues" : "project/issues", NULL, project_issue_query_url()), $output);
       print theme("footer");
   }
+}
+
+function project_issue_statistics($project) {
+  if ($project->nid) {
+    $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
+  }
+  $output = '<div class="project">';
+
+  // Issue lifetime
+  $header = array(t('category'), t('overall'), t('last month'));
+  $rows = array();
+  $duration = time() - 30 * 24 * 60 * 60;
+  $result = db_query("SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category", $filter);
+  while ($stat = db_fetch_object($result)) {
+    $rows[$stat->category][0] = project_issue_category($stat->category);;
+    $rows[$stat->category][1] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+  }
+  // Processing this week
+  $result = db_query("SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category", $filter, $duration);
+  while ($stat = db_fetch_object($result)) {
+    $rows[$stat->category][2] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+  }
+
+  $output .= '<h2>'. t('Average lifetime') .'</h2>';
+  $output .= theme('table', $header, $rows);
+
+  $header = array(t('status'), t('overall'), '%', t('last month'));
+  $rows = array();
+  // Activity overall
+  $total = db_result(db_query("SELECT COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s", $filter));
+  $result = db_query("SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s GROUP BY p.state", $filter);
+  while ($stat = db_fetch_object($result)) {
+    $rows[$stat->state][0] = project_issue_state($stat->state);;
+     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'numeric');
+     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'small numeric');
+  }
+  // Activity this week
+  $result = db_query("SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state", $filter, $duration);
+  while ($stat = db_fetch_object($result)) {
+    $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'numeric');
+  }
+
+  $output .= '<h2>'. t('Issue activity') .'</h2>';
+  $output .= theme('table', $header, $rows);
+  $output .= '</div>';
+  return $output;
 }
 
 function project_issue_subscribe($project) {

@@ -77,3 +77,10 @@ div.php code {
 .project-old {
   font-size: smaller;
 }
+
+.project .numeric {
+  text-align: right;
+}
+.project .small {
+  font-size: 0.8em;
+}
