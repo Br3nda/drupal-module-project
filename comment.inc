@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.20 2003/12/22 01:56:42 ax Exp $
+// $Id: comment.inc,v 1.21 2003/12/27 19:11:59 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -48,14 +48,6 @@ function project_comment_page($project) {
         }
       }
       break;
-    /* TODO: pending final fileapi
-    case 'download':
-      $comment = project_comment_load(arg(3));
-      if ($comment->fid) {
-        drupal_file_send($comment->fid);
-      }
-      break;
-    */
   }
 }
 
@@ -93,18 +85,7 @@ function project_comment_validate(&$edit) {
   $error = project_issue_validate($edit);
   unset($error['body']);
 
-  /* TODO: pending final fileapi
-  $file = check_file('file');
-
-  if ($file && !$file->fid && !empty($file->error)) {
-    $error['file'] = theme_error($file->error);
-  }
-  else {
-    $edit->fid = $file->fid;
-  }
-  */
-
-  return $error;
+  return $error ? $error : array();
 }
 
 function project_comment_view($node, $main = 0) {
@@ -123,44 +104,49 @@ function project_comment_view($node, $main = 0) {
   );
 
   $result = db_query('SELECT p.*, u.name FROM {project_comments} p LEFT JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
-  $i = 0;
-  while ($comment = db_fetch_object($result)) {
-    $i++;
-    $data = unserialize($comment->data);
-    $summary = array();
-    foreach ($fields as $field => $text) {
-      if (isset($data['old']->$field) && isset($data['new']->$field)) {
-        $summary[] = array(
-          t($text) .':',
-          project_mail_summary($field, $data['old']->$field),
-          '&raquo; '. project_mail_summary($field, $data['new']->$field)
-        );
+  if (db_num_rows($result)) {
+    $i = 0;
+    while ($comment = db_fetch_object($result)) {
+      $i++;
+      $data = unserialize($comment->data);
+      $summary = array();
+      foreach ($fields as $field => $text) {
+        if (isset($data['old']->$field) && isset($data['new']->$field)) {
+          $summary[] = array(
+            t($text) .':',
+            project_mail_summary($field, $data['old']->$field),
+            '&raquo; '. project_mail_summary($field, $data['new']->$field)
+          );
+        }
+      }
+
+      if ($comment->file_path && file_exists($comment->file_path)) {
+        $summary[] = array(t('Attachment:'), '<a href="'. file_create_url($comment->file_path). '">'. basename($comment->file_path) .'</a> ('. format_size($comment->file_size) .')');
+      }
+
+      if ($summary || $comment->body) {
+        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/view/$node->nid#comment-$i", array ('id' => "comment-$i", 'name' => "comment-$i")), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
+        if ($summary) {
+          $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
+        }
+        if ($comment->body) {
+          $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
+        }
+        if ($comment->fid) {
+          $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
+        }
       }
     }
+    $output = '<div class="project">';
+    $output .= theme('table', NULL, $rows);
+    $output .= '</div>';
 
-    if ($summary || $comment->body) {
-      $rows[] = array(
-        array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/view/$node->nid#comment-$i", array ('id' => "comment-$i", 'name' => "comment-$i")), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
-      if ($summary) {
-        $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
-      }
-      if ($comment->body) {
-        $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
-      }
-      if ($comment->fid) {
-        $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
-      }
+    if (user_access('maintain project issues')) {
+      $links[] = '<p>'. l(t('update issue'), "project/comments/add/$node->nid") .'</p>';
     }
+    $output .= theme('links', $links);
+    return theme('box', t('Updates'), $output);
   }
-  $output = '<div class="project">';
-  $output .= theme('table', NULL, $rows);
-  $output .= '</div>';
-
-  if (user_access('maintain project issues')) {
-    $links[] = '<p>'. l(t('update issue'), "project/comments/add/$node->nid") .'</p>';
-  }
-  $output .= theme('links', $links);
-  return theme('box', t('Updates'), $output);
 }
 
 function project_comment_load($cid) {
@@ -170,16 +156,12 @@ function project_comment_load($cid) {
 function project_comment_save($edit) {
   global $user;
 
-  /* TODO: pending final fileapi
-  $file = check_file('file');
-  */
   if (empty($edit->cid)) {
     $edit->cid = db_next_id('project_cid');
-    /* TODO: pending final fileapi
-    if ($file) {
-      $edit->fid = drupal_file_save($file);
+    if ($edit->file) {
+      $file = file_save_upload($edit->file, variable_get('project_directory_issues', 'issues'));
+      unset($edit->file);
     }
-    */
 
     if (empty($edit->uid)) {
       $edit->uid = $user->uid;
@@ -196,7 +178,7 @@ function project_comment_save($edit) {
     }
 
     watchdog('special', "project: added comment '$edit->title'", l('view post', "node/view/$node->nid"));
-    db_query("INSERT INTO {project_comments} (cid, nid, uid, fid, created, changed, body, data) VALUES (%d, %d, %d, %d, %d, %d, '%s', '%s')", $edit->cid, $edit->nid, $edit->uid, $edit->fid, time(), time(), $edit->body, serialize($data));
+    db_query("INSERT INTO {project_comments} (cid, nid, uid,  created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, time(), time(), $edit->body, serialize($data), $file->path, $file->mime, $file->size);
     node_save($node);
   }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.21 2003/12/08 08:32:04 kjartan Exp $
+// $Id: release.inc,v 1.22 2003/12/27 19:12:00 kjartan Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -187,8 +187,8 @@ function project_release_form(&$release, &$error, &$param) {
   $param['options'] = array('enctype' => 'multipart/form-data');
   */
 
-  $output = form_textfield(t('Version'), 'version', $release->version, 40, 255, theme_error($error['version']));
-  $output .= form_textarea(t('Changes'), 'changes', $release->changes, 40, 10, theme_error($error['changes']));
+  $output = form_textfield(t('Version'), 'version', $release->version, 40, 255, theme('error', $error['version']));
+  $output .= form_textarea(t('Changes'), 'changes', $release->changes, 40, 10, theme('error', $error['changes']));
   if (!variable_get('project_release_directory', '')) {
   /* TODO: pending final fileapi
   $output .= form_file(t('File'), 'file', 40, ($release->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . $error['file'], $release->fid);
@@ -238,7 +238,7 @@ function project_release_validate(&$edit) {
   $file = check_file('file');
 
   if ($file && !$file->fid && !empty($file->error)) {
-    $error['file'] = theme_error($file->error);
+    $error['file'] = theme('error', $file->error);
   }
   else {
     $edit->fid = $file->fid;

@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.22 2003/12/06 18:39:55 kjartan Exp $
+// $Id: mail.inc,v 1.23 2003/12/27 19:11:59 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -201,7 +201,7 @@ function project_mail_notify($node) {
   $result = db_query('SELECT * FROM {project_comments} WHERE nid = %d ORDER BY changed', $node->nid);
   if (db_num_rows($result)) {
     while ($comment = db_fetch_object($result)) {
-      $no_content = empty($comment->body);
+      $no_content = empty($comment->body) && empty($comment->file_path);
       if (!$no_content) {
         $history[] = project_comment_load($comment->cid);
       }
@@ -236,6 +236,9 @@ function project_mail_notify($node) {
       $summary .= " $text". project_mail_summary($field, $node->$field) ."\n";
     }
   }
+  if ($entry->file_path && file_exists($entry->file_path)) {
+    $summary .= ' '. t('Attachment') .': '. file_create_url($entry->file_path) .' ('. format_size($entry->file_size) .")\n";
+  }
 
   // Create main body content
   project_mail_output($entry->body);
@@ -253,7 +256,12 @@ function project_mail_notify($node) {
       project_mail_output($entry->body);
       $body .= "\n$hr\n\n";
       $body .= format_date($entry->created) ." : $entry->name\n\n";
-      $body .= "$entry->body\n";
+      if ($entry->file_path && file_exists($entry->file_path)) {
+        $body .= t('Attachment') .': '. file_create_url($entry->file_path) .' ('. format_size($entry->file_size) .")\n\n";
+      }
+      if ($entry->body) {
+        $body .= "$entry->body\n";
+      }
     }
   }
 
@@ -300,6 +308,7 @@ function project_mail_notify($node) {
 
   project_mail_output($node->title, 0);
   $node->title = t("[$node->category]") ." $node->title";
+
   while ($recipient = db_fetch_object($result)) {
     user_mail($recipient->mail, $node->title, $body, implode("\n", $header));
   }

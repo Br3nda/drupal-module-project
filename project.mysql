@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.11 2003/12/06 17:26:37 kjartan Exp $
+-- $Id: project.mysql,v 1.12 2003/12/27 19:12:00 kjartan Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -63,6 +63,11 @@ CREATE TABLE project_issues (
   KEY project_issues_pid (pid)
 ) TYPE=MyISAM;
 
+ALTER TABLE project_issues DROP fid;
+ALTER TABLE project_issues ADD file_path varchar(255) NOT NULL default '';
+ALTER TABLE project_issues ADD file_mime varchar(255) NOT NULL default '';
+ALTER TABLE project_issues ADD file_size int NOT NULL default 0;
+
 --
 -- Table structure for table 'project_comments'
 --
@@ -80,6 +85,11 @@ CREATE TABLE project_comments (
   PRIMARY KEY (`cid`),
   KEY project_comments_nid (nid)
 ) TYPE=MyISAM;
+
+ALTER TABLE project_comments DROP fid;
+ALTER TABLE project_comments ADD file_path varchar(255) NOT NULL default '';
+ALTER TABLE project_comments ADD file_mime varchar(255) NOT NULL default '';
+ALTER TABLE project_comments ADD file_size int NOT NULL default 0;
 
 --
 -- Table structure for table 'project_subscriptions'

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.22 2003/12/22 18:47:46 kjartan Exp $
+// $Id: project.inc,v 1.23 2003/12/27 19:12:00 kjartan Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -41,26 +41,26 @@ function project_project_form(&$node, &$help, &$error) {
     }
   }
 
-  //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'). theme_error($error['title']));
-  $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme_error($error['body']));
-  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme_error($error['uri']));
+  //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'). theme('error', $error['title']));
+  $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme('error', $error['body']));
+  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme('error', $error['uri']));
   if (variable_get('project_release_directory', '') && user_access('maintain projects')) {
-    $project .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme_error($error['release_directory']));
+    $project .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme('error', $error['release_directory']));
   }
-  $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme_error($error['mail']));
-  $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme_error($error['homepage']));
-  $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme_error($error['screenshots']));
-  $project .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme_error($error['changelog']));
-  $project .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme_error($error['cvs']));
-  $project .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, t('Link to a live demo.'). theme_error($error['demo']));
+  $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme('error', $error['mail']));
+  $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme('error', $error['homepage']));
+  $project .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme('error', $error['screenshots']));
+  $project .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme('error', $error['changelog']));
+  $project .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme('error', $error['cvs']));
+  $project .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, t('Link to a live demo.'). theme('error', $error['demo']));
 
   $issue .= form_item(t('Issue tracker'), form_checkbox(t('Enable issue tracker'), 'issues', 1, $node->issues, t('Let users submit bug requests, patches, feature requests, support requests, etc.')));
   $issue .= form_select(t('Default version'), 'version', $node->version, project_release_load($node), t('Default version for issues.'));
   $issue .= form_textarea(t('Components'), 'components', $node->components, 20, 5);
   $issue .= form_textarea(t('Submission guidelines'), 'help', $node->help, 20, 5);
 
-  $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme_error($error['mail_digest']));
-  $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme_error($error['mail_copy']));
+  $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme('error', $error['mail_digest']));
+  $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme('error', $error['mail_copy']));
   $options = project_issue_category();
   foreach ($options as $key => $choice) {
     $data .= form_checkbox($choice, "mail_copy_filter][$key", $key, ($key == $node->mail_copy_filter[$key]));

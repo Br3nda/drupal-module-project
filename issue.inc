@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.44 2003/12/18 13:14:32 kjartan Exp $
+// $Id: issue.inc,v 1.45 2003/12/27 19:11:59 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -23,14 +23,6 @@ function project_issue_page($project) {
   drupal_set_breadcrumb($breadcrumb);
 
   switch ($_POST['op'] ? $_POST['op'] : arg($arg)) {
-    case 'download':
-      $node = node_load(array('nid' => arg(4)));
-      /* TODO: pending final fileapi
-      if ($node->fid) {
-        drupal_file_send($node->fid);
-      }
-      */
-      break;
     case 'search':
       print theme('page', project_issue_query($project, $query));
       break;
@@ -146,10 +138,8 @@ function project_issue_subscribe($project) {
 function project_issue_form(&$node, &$help, &$error, &$param) {
   global $user;
 
-  /* TODO: pending final fileapi
   // Set form parameters so we can accept file uploads.
   $param['options'] = array('enctype' => 'multipart/form-data');
-  */
 
   // Fetch a list of all projects to make swaping simpler
   $projects = array(t('<none>'));
@@ -186,11 +176,11 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
       );
     }
 
-    $group1 = form_select(t('Project'), 'pid', $node->pid, $projects, theme_error($error['pid']));
-    $group1 .= form_select(t('Version'), 'rid', $node->rid, $releases, theme_error($error['rid']));
-    $group1 .= form_select(t('Component'), 'component', $node->component, $components, theme_error($error['component']));
+    $group1 = form_select(t('Project'), 'pid', $node->pid, $projects, theme('error', $error['pid']));
+    $group1 .= form_select(t('Version'), 'rid', $node->rid, $releases, theme('error', $error['rid']));
+    $group1 .= form_select(t('Component'), 'component', $node->component, $components, theme('error', $error['component']));
 
-    $group2 = form_select(t('Category'), 'category', $node->category, $categories, theme_error($error['category']));
+    $group2 = form_select(t('Category'), 'category', $node->category, $categories, theme('error', $error['category']));
     $group2 .= form_select(t('Priority'), 'priority', $node->priority, $priorities);
     $group2 .= form_select(t('Assigned'), 'assigned', $node->assigned, $assigned);
     if ($node->state || $node->nid) {
@@ -204,13 +194,11 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     $output .= '</div>';
     $output .= '<div class="standard">';
 
-    $output .= form_textarea('Description', 'body', $node->body, 60, 20, theme_error($error['body']));
-    /* TODO: pending final fileapi
-    $output .= form_file(t('File attachment'), 'file', 40, ($node->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . theme_error($error['file']), $node->fid);
-    */
+    $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_name ? t('A file already exists, if you upload another file the current file will be replaced.') : '') . theme('error', $error['file_issue']));
+    $output .= form_textarea('Description', 'body', $node->body, 60, 20, theme('error', $error['body']));
   }
   else {
-    $output = form_select(t('Project'), 'pid', $node->pid, $projects, theme_error($error['pid']));
+    $output = form_select(t('Project'), 'pid', $node->pid, $projects, theme('error', $error['pid']));
   }
 
   return $output;
@@ -244,21 +232,12 @@ function project_issue_validate(&$node) {
     empty($node->category) and $error['category'] = t('Required.');
     empty($node->state) and $node->state = 1;
     empty($node->body) and $error['body'] = t('Required.');
+
+    $node->file = file_save_upload('file_issue');
   }
   else {
     $error['pid'] = t('Required.');
   }
-
-  /* TODO: pending final fileapi
-  $file = check_file('file');
-
-  if (!$file->fid && !empty($file->error)) {
-    $error['file'] = theme_error($file->error);
-  }
-  else {
-    $node->fid = $file->fid;
-  }
-  */
 
   return $error;
 }
@@ -278,12 +257,14 @@ function project_issue_view($node, $main = 0, $page = 0) {
     if ($release->version) {
       $rows[] = array('Version:', $release->version);
     }
-    $rows[] = array('Component:', check_output($node->component));
-    $rows[] = array('Category:', check_output($node->category));
-    $rows[] = array('Priority:', project_issue_priority($node->priority));
-    $rows[] = array('Assigned:', $assigned->name);
-    $rows[] = array('Status:', project_issue_state($node->state));
-    $rows[] = array(array('data' => '<br />', 'colspan' => 2));
+    $rows[] = array(t('Component:'), check_output($node->component));
+    $rows[] = array(t('Category:'), check_output($node->category));
+    $rows[] = array(t('Priority:'), project_issue_priority($node->priority));
+    $rows[] = array(t('Assigned:'), $assigned->name);
+    $rows[] = array(t('Status:'), project_issue_state($node->state));
+    if ($node->file_path && file_exists($node->file_path)) {
+      $rows[] = array(t('Attachment:'), '<a href="'. file_create_url($node->file_path). '">'. basename($node->file_path) .'</a> ('. format_size($node->file_size) .')');
+    }
     $output .= '<div class="summary">'. theme('table', NULL, $rows) .'</div>';
 
     if ($node->body) {
@@ -320,26 +301,29 @@ function project_issue_load($node) {
 }
 
 function project_issue_insert($node) {
-  /* TODO: pending final fileapi
-  if ($file->filename) {
-    $node->fid = drupal_file_save($file);
+  if ($node->file) {
+    $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
   }
-  */
-  db_query("INSERT INTO {project_issues} (nid, pid, fid, category, component, priority, rid, assigned, state) VALUES (%d, %d, %d, '%s', '%s', %d, %d, %d, %d)", $node->nid, $node->pid, $node->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state);
+
+  db_query("INSERT INTO {project_issues} (nid, pid, category, component, priority, rid, assigned, state, file_path, file_mime, file_size) VALUES (%d, %d, '%s', '%s', %d, %d, %d, %d, '%s', '%s', %d)", $node->nid, $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->path, $file->mime, $file->size);
   project_mail_notify($node);
 }
 
 function project_issue_update($node) {
-  /* TODO: pending final fileapi
-  if ($file->filename) {
-    $node->fid = drupal_file_save($file);
+  if ($node->file) {
+    // Remove old file.
+    file_delete(db_result(db_query('SELECT file_path FROM {project_issues} WHERE nid = %d', $node->nid)));
+    $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
+    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d, file_path = '%s', file_mime = '%s', file_size = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->path, $file->mime, $file->size, $node->nid);
   }
-  */
-  db_query("UPDATE {project_issues} SET pid = %d, fid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $file->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
+  else {
+    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
+  }
   project_mail_notify($node);
 }
 
 function project_issue_delete($node) {
+  file_delete($node->file_path);
   db_query('DELETE FROM {project_issues} WHERE nid = %d', $node->nid);
 }
 
