@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.12 2003/11/02 01:42:08 kjartan Exp $
+// $Id: project.inc,v 1.13 2003/11/10 18:46:08 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -123,7 +123,7 @@ function project_project_validate(&$node) {
 
 function project_project_view($node, $main = 0) {
   if ($main) {
-    theme("node", $node, $main);
+    print theme("node", $node, $main);
   }
   else {
     $breadcrumb[] = l(t("Home"), NULL);
@@ -148,7 +148,7 @@ function project_project_view($node, $main = 0) {
           $items[] = l(t("submit %category", array("%category" => $name)), "node/add/project_issue", array(), "project=$node->uri&category=$category");
         }
       }
-      $output = theme("theme_item_list", $items, t("Operations"));
+      $output = theme("item_list", $items, t("Operations"));
 
       if ($GLOBALS["user"]->uid) {
         $level = db_result(db_query("SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $node->nid, $GLOBALS["user"]->uid));
@@ -159,9 +159,9 @@ function project_project_view($node, $main = 0) {
       }
     }
 
-    theme("breadcrumb", $breadcrumb);
-    theme("node", $node, $main);
-    theme("box", NULL, $output);
+    print theme("breadcrumb", $breadcrumb);
+    print theme("node", $node, $main);
+    print theme("box", NULL, $output);
   }
 }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.14 2003/11/03 23:19:12 kjartan Exp $
+// $Id: release.inc,v 1.15 2003/11/10 18:46:08 kjartan Exp $
 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
@@ -41,25 +41,25 @@ function project_release_page($node) {
       if (node_access($node, "update")) {
         $error = 1;
         $output = project_release_form($release, $error, $param);
-        theme("header", "Add release to $node->title");
-        theme("box", "Add release to $node->title", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-        theme("footer");
+        print theme("header", "Add release to $node->title");
+        print theme("box", "Add release to $node->title", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("footer");
       }
       break;
     case "edit":
       if (node_access($node, "update") && ($release = project_release_load(arg(4))) && $node->nid == $release->nid) {
         $output = project_release_form($release, $error, $param);
-        theme("header", "Edit release $release->version for $node->title");
+        print theme("header", "Edit release $release->version for $node->title");
         project_release_view($release);
-        theme("box", "Edit release", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-        theme("footer");
+        print theme("box", "Edit release", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("footer");
       }
       break;
     case "view":
       if (node_access($node, "view") && ($release = project_release_load(arg(4))) && $node->nid == $release->nid) {
-        theme("header", "$node->title $release->version");
+        print theme("header", "$node->title $release->version");
         project_release_view($release);
-        theme("footer");
+        print theme("footer");
       }
       break;
     case "delete":
@@ -70,9 +70,9 @@ function project_release_page($node) {
           break;
         }
       }
-      theme("header");
-      theme("box", "", message_access());
-      theme("footer");
+      print theme("header");
+      print theme("box", "", message_access());
+      print theme("footer");
       break;
     case t("Preview"):
       if (node_access($node, "update")) {
@@ -82,10 +82,10 @@ function project_release_page($node) {
         $error = project_release_validate($edit);
         $output = project_release_form($edit, $error, $param);
 
-        theme("header", $node->title);
+        print theme("header", $node->title);
         project_release_view($edit);
-        theme("box", t("Preview"), form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-        theme("footer");
+        print theme("box", t("Preview"), form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("footer");
       }
       break;
     case t("Submit"):
@@ -97,9 +97,9 @@ function project_release_page($node) {
         if ($error) {
           $output = project_release_form($edit, $error, $param);
 
-          theme("header", $node->title);
-          theme("box", $node->title, form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-          theme("footer");
+          print theme("header", $node->title);
+          print theme("box", $node->title, form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+          print theme("footer");
         }
         else {
           // Save the release and re-direct to the overview page for the project
@@ -122,9 +122,9 @@ function project_release_page($node) {
       break;
     */
     default:
-      theme("header", t("%project releases", array("%project" => "$node->title")));
-      theme("box", t("Releases"), project_release_view($node));
-      theme("footer");
+      print theme("header", t("%project releases", array("%project" => "$node->title")));
+      print theme("box", t("Releases"), project_release_view($node));
+      print theme("footer");
   }
 }
 
@@ -153,7 +153,7 @@ function project_release_overview() {
       }
       $rows[] = array(
         array("class" => "project-name", "data" => l($node->title, "node/view/$node->nid")),
-        array("class" => "project-download", "data" => theme("theme_item_list", $releases)),
+        array("class" => "project-download", "data" => theme("item_list", $releases)),
         array("class" => "project-teaser", "data" => strip_tags($node->teaser)),
       );
     }
@@ -170,10 +170,10 @@ function project_release_overview() {
   $breadcrumb[] = l(t("Home"), NULL);
   $breadcrumb[] = l(t("Projects"), "project");
 
-  theme("header");
-  theme("breadcrumb", $breadcrumb);
-  theme("box", t("Project downloads"), $output);
-  theme("footer");
+  print theme("header");
+  print theme("breadcrumb", $breadcrumb);
+  print theme("box", t("Project downloads"), $output);
+  print theme("footer");
 }
 
 function project_release_form(&$release, &$error, &$param) {
@@ -258,8 +258,8 @@ function project_release_view($project, $main = 0) {
     }
     $breadcrumb[] = l($project->title, "node/view/$project->nid");
 
-    theme("breadcrumb", $breadcrumb);
-    theme("box", "$project->title $release->version", check_output($release->changes));
+    print theme("breadcrumb", $breadcrumb);
+    print theme("box", "$project->title $release->version", check_output($release->changes));
     if ($links) {
       print "<p>". theme("links", $links) ."</p>";
     }

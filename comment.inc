@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.15 2003/10/25 18:45:32 kjartan Exp $
+// $Id: comment.inc,v 1.16 2003/11/10 18:46:08 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -13,26 +13,26 @@ function project_comment_page($project) {
 
         $error = project_comment_validate($comment);
         $output = project_comment_form($comment, $error, $param);
-        theme("header", t("New comment"));
-        theme("box", t("New comment"), form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("header", t("New comment"));
+        print theme("box", t("New comment"), form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
         node_view($node);
-        theme("footer");
+        print theme("footer");
       }
       break;
     case "edit":
       if (user_access("maintain project issues")) {
         $node = node_load(array("nid" => arg(3), "type" => "project_issue"));
         $output = project_comment_form($comment, $error, $param);
-        theme("header", "Edit comment $comment->version for $node->title");
+        print theme("header", "Edit comment $comment->version for $node->title");
         project_comment_view($comment);
-        theme("box", "Edit comment", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-        theme("footer");
+        print theme("box", "Edit comment", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("footer");
       }
       break;
     case "delete":
-      theme("header", "TODO");
-      theme("box", "TODO", "This feature hasn't been implemented yet due to security considerations.");
-      theme("footer");
+      print theme("header", "TODO");
+      print theme("box", "TODO", "This feature hasn't been implemented yet due to security considerations.");
+      print theme("footer");
       break;
     case t("Preview"):
       if (user_access("maintain project issues")) {
@@ -52,10 +52,10 @@ function project_comment_page($project) {
         */
         $output = project_comment_form($edit, $error, $param);
 
-        theme("header", $edit->title);
+        print theme("header", $edit->title);
         node_preview($edit);
-        theme("box", $node->edit, form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-        theme("footer");
+        print theme("box", $node->edit, form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+        print theme("footer");
       }
       break;
     case t("Submit"):
@@ -67,9 +67,9 @@ function project_comment_page($project) {
         if ($error) {
           $output = project_comment_form($edit, $error, $param);
 
-          theme("header", "$node->title");
-          theme("box", "$node->title", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
-          theme("footer");
+          print theme("header", "$node->title");
+          print theme("box", "$node->title", form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
+          print theme("footer");
         }
         else {
           // Save the comment and re-direct to the overview page for the project
@@ -189,7 +189,7 @@ function project_comment_view($node, $main = 0) {
       $links[] = "<p>". l(t("update issue"), "project/comments/add/$node->nid") ."</p>";
     }
     $output .=  theme("links", $links);
-    theme("box", t("Updates"), $output);
+    print theme("box", t("Updates"), $output);
   }
 }
 

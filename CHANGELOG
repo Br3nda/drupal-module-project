@@ -1,10 +1,23 @@
+10. November 2003
+-----------------
+- Fixed view and create issue categories menu items not showing (Kjartan).
+- Fixed #3462: Project module breaks without clean URLs enabled (Kjartan).
+- Fixed #3898: Issues query doesn't pass proper parameters to pager() (Kjartan).
+
++ Added context sensitivity to the 'view issues' menu (Kjartan).
+   * Now limits to current project if available.
++ Updated to use new theme system.
++ Added feature #3531: Make searches bookmarkable.
+   * The title is now a permalink to the search results.
+
 02. November 2003
 -----------------
 + Added status field to releases (Kjartan).
 + Implemented delete function for releases (Kjartan):
     * Releases are never deleted, just marked with status = 0.
     * When adding a version that has been deleted the old version is restored.
-+ Fixed search (Weitzman).
+
+- Fixed search (Weitzman).
 
 24. September 2003
 ------------------
