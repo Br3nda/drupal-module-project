@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.117 2003/10/25 18:45:32 kjartan Exp $
+// $Id: project.module,v 1.118 2003/10/31 04:04:37 weitzman Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -368,7 +368,7 @@ function project_search($keys) {
   $find = do_search(array(
     "keys" => $keys,
     "type" => "node",
-    "select" => "SELECT s.lno AS lno, n.title AS title, n.created AS created, u.uid AS uid, u.name AS name, s.count AS count FROM search_index s, node n LEFT JOIN users u ON n.uid = u.uid WHERE s.lno = n.nid AND s.type = 'recipe' AND n.status = 1 AND s.word like '%'")
+    "select" => "SELECT s.lno AS lno, n.title AS title, n.created AS created, u.uid AS uid, u.name AS name, s.count AS count FROM search_index s, node n LEFT JOIN users u ON n.uid = u.uid WHERE s.lno = n.nid AND s.type = 'project' AND n.status = 1 AND s.word like '%'")
   );
 
   return $find;
