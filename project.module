@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.64 2003/03/29 18:42:06 kjartan Exp $
+// $Id: project.module,v 1.65 2003/03/31 11:24:34 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -380,8 +380,13 @@ function project_page() {
   if (empty($op)) {
     $op = arg(1);
   }
-  $pid = arg(2);
-  $type = arg(3);
+  if (is_numeric(arg(2))) {
+    $pid = arg(2);
+    $type = arg(3);
+  }
+  else {
+    $type = arg(2);
+  }
 
   switch ($op) {
     case "mail_help":
@@ -812,6 +817,7 @@ function project_view($node, $main = 0) {
   }
   $types = project_type();
 
+  $node->title = "[". t($node->ptype) ."] $node->title";
   if ($main) {
     $node->teaser = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ." <b>". t("Area") .":</b> $node->area <b>". t("Priority") .":</b> $node->priority <b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />". (count($node->revisions) ? $node->revisions[0][node]->teaser : $node->teaser);
   }
@@ -834,7 +840,7 @@ function project_view($node, $main = 0) {
         $diff = project_diff($revisions[$i + 1]["node"], $revisions[$i]["node"]);
       }
 
-      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date($revisions[$i]["node"]->changed), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;"));
+      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date(($revisions[$i]["node"]->changed ? $revisions[$i]["node"]->changed : $revisions[$i]["node"]->created)), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;"));
       if (count($diff->title)) { $rows[]  = array(array("data" => t("Title:"), "style" => "font-size: x-small", "valign" => "top"), $diff->title[1]); }
       if (count($diff->pid)) { $rows[] = array(array("data" => t("Project:"), "style" => "font-size: x-small", "valign" => "top"), $projects[$diff->pid[1]]); }
       if (count($diff->ptype)) { $rows[] = array(array("data" => t("Type:"), "style" => "font-size: x-small", "valign" => "top"), $types[$diff->ptype[1]]); }
