@@ -1,10 +1,12 @@
 <?php
-// $Id: project.module,v 1.16 2002/05/15 21:07:34 kjartan Exp $
+// $Id: project.module,v 1.17 2002/05/20 00:00:03 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
   if ($type == "node" && $node->type == "project") {
-    $links[] = lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid));
+    if (user_access("post content")) {
+      $links[] = lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid));
+    }
     $links[] = t("project") .": ". lm($node->project_name, array("mod" => "project", "pid" => $node->pid));
   }
 
@@ -162,7 +164,7 @@ function project_list($query, $pid = 0) {
     $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
 
     foreach ($nodes as $node) {
-      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\"><td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td><td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td></tr>\n";
+      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\"><td>#$node->nid</td><td>". l($node->title, array("id" => $node->nid)) ."</td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td><td>$node->version</td><td>". format_name($node) ."</td><td>". $node->assigned_formatted ."</td>". (user_access("post content") ? "<td>". lm(t("update $node->ptype"), array("mod" => "project", "op" => "update", "id" => $node->nid)) ."</td>" : "") ."</tr>\n";
     }
 
     $output .= "</table><br />\n";
@@ -259,18 +261,24 @@ function project_page() {
       break;
     case "update":
       global $id, $user;
-      $node = node_load(array("nid" => $id));
-
-      $theme->header();
-      node_view($node, 0);
-
-      // Clean up for follow up
-      unset($node->body);
-      unset($node->teaser);
-      $node->revision = 1;
-      $node->uid = $user->uid;
-      $node->name = $user->name;
-      $theme->box("$node->project_name : ". t($node->ptype), node_form($node));
+      if (user_access("post content")) {
+        $node = node_load(array("nid" => $id));
+  
+        $theme->header("Updating:". $node->title);
+        node_view($node, 0);
+  
+        // Clean up for follow up
+        unset($node->body);
+        unset($node->teaser);
+        $node->revision = 1;
+        $node->uid = $user->uid;
+        $node->name = $user->name;
+        $theme->box("$node->project_name : ". t($node->ptype), node_form($node));
+      }
+      else {
+        $theme->header();
+        print message_access();
+      }
       $theme->footer();
       break;
     case "add":
@@ -307,7 +315,7 @@ function project_page() {
           $active = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE (pstatus = '1' OR pstatus = '2') AND ptype = '$type' AND pid = '$project->pid'"));
           $total = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE ptype = '$type' AND pid = '$project->pid'"));
           if (user_access("access content")) {
-            $output .= "<tr><td><b>". lm(t($name), array("mod" => "project", "op" => "list", "pid" => $pid, "type" => $type)) ."</b></td><td>($total->total)</td>";
+            $output .= "<tr><td><b>". lm(t($name), array("mod" => "project", "op" => "list", "pid" => $project->pid, "type" => $type)) ."</b></td><td>($total->total)</td>";
           }
           else {
             $output .= "<tr><td><b>". t($name) ."</b></td><td>($total->total)</td>";
