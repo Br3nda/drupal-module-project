@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.125 2003/12/03 00:51:18 chris Exp $
+// $Id: project.module,v 1.126 2003/12/06 13:13:52 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -7,11 +7,13 @@
 // issue nodes      -> project_issues
 // issue comments   -> project_comments
 
-require_once 'project.inc';
-require_once 'release.inc';
-require_once 'issue.inc';
-require_once 'comment.inc';
-require_once 'mail.inc';
+if (file_exists('modules/project/project.inc')) {
+  require_once 'modules/project/project.inc';
+  require_once 'modules/project/release.inc';
+  require_once 'modules/project/issue.inc';
+  require_once 'modules/project/comment.inc';
+  require_once 'modules/project/mail.inc';
+}
 
 function project_help($section) {
   switch ($section) {
@@ -296,6 +298,8 @@ function project_page_overview() {
   if (!is_numeric($_GET['tid']) && function_exists('taxonomy_get_vocabularies') && count($vocabularies = taxonomy_get_vocabularies('project'))) { // Show an overview of vocabularies
     $vocabulary = reset($vocabularies);
 
+    $output = '<div style="float: left; padding-right: 5em;">';
+
     $terms = taxonomy_get_tree($vocabulary->vid);
     foreach ($terms as $term) {
       $count = taxonomy_term_count_nodes($term->tid);
@@ -305,10 +309,9 @@ function project_page_overview() {
       while ($node = db_fetch_object($result)) {
         $items[] = l($node->title, "node/view/$node->nid");
       }
+      $output .= theme('item_list', $items, $term->name);
     }
 
-    $output .= '<div style="float: left; padding-right: 5em;">';
-    $output .= theme('item_list', $items, $term->name);
     $output .= '</div>';
     $output .= '<div style="float: left;">';
     $output .= theme('item_list', $browse, t('Details'));

@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.36 2003/12/03 00:51:18 chris Exp $
+// $Id: issue.inc,v 1.37 2003/12/06 13:16:57 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('Issue');
@@ -326,7 +326,7 @@ function project_issue_access($op, $node) {
 
 // Support stuff
 function project_issue_state($state = 0) {
-  $states = array(1 => t('active'), t('fixed'), t('duplicate'), t('postponed'), t("won't fix'), t('by design'), t('closed"));
+  $states = array(1 => t('active'), t('fixed'), t('duplicate'), t('postponed'), t("won't fix"), t('by design'), t('closed'));
   return $state ? $states[$state] : $states;
 }
 
