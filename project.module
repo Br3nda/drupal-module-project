@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.97 2003/09/28 20:06:02 kjartan Exp $
+// $Id: project.module,v 1.98 2003/09/28 20:13:45 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -127,7 +127,7 @@ function project_link($type, $node = 0, $main = 0) {
       if (user_access("maintain project issues")) {
         $categories = project_issue_category();
         foreach ($categories as $cat => $category) {
-          menu("node/add/project_issue?category=$cat", $category, NULL, NULL, 0);
+          menu("node/add/project_issue?category=$cat", $category, "project_page", NULL, 0);
         }
       }
       if (user_access("access project issues")) {

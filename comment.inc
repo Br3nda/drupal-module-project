@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.2 2003/09/28 19:34:17 kjartan Exp $
+// $Id: comment.inc,v 1.3 2003/09/28 20:13:45 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(3)) {
@@ -11,7 +11,6 @@ function project_comment_page($project) {
           $comment->$var = $node->$var;
         }
 
-        $error = 1;
         $output = project_comment_form($comment, $error, $param);
         theme("header", t("New comment"));
         theme("box", t("New comment"), form($output, ($param["method"] ? $param["method"] : "post"), $param["action"], $param["options"]));
@@ -101,7 +100,7 @@ function project_comment_form(&$edit, &$error, &$param) {
   }
 
   $output .= form_submit(t("Preview"));
-  if (!$error) {
+  if ($error) {
     $output .= form_submit(t("Submit"));
   }
 
