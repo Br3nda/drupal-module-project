@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.23 2002/06/12 13:38:44 kjartan Exp $
+// $Id: project.module,v 1.24 2002/06/12 16:45:59 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -310,7 +310,7 @@ function project_page() {
     case "search":
       global $pid, $type, $type;
       $theme->header(t("Project search"));
-      $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "type" => $type);
+      $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
       $theme->box(t("Search"), project_page_filter($edit));
       $theme->footer();
       break;
@@ -336,7 +336,7 @@ function project_page() {
       $theme->header("$project->name ${type}s");
       $theme->box($project->name ." : ". t(($type ? $type : "all")), $output);
       if (!count($edit)) {
-        $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "type" => $type);
+        $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
       }
       $theme->box(t("Search"), project_page_filter($edit));
       $theme->footer();
