@@ -1,3 +1,49 @@
+24. September 2003
+------------------
+General
+ - Temporarily disabled file uploads (pending final fileapi).
+
+ + Added a project.css to split style out of the code.
+ + Added navigation trail to several pages.
+
+Projects
+ - Projects are now nodes, with all the benefits that brings: taxonomy,
+   users can submit and maintain their own projects, etc.
+ - Versions have been replaced with releases.
+
+ + Added more data to projects (link to hp, demo, etc).
+ + Added project uri: /project/<name>. Uses node->path
+ + Added release directory option for projects that don't require file
+   uploads.
+ + Added taxonomy support to projects. Limited support in project
+   navigation.
+ + Create a better download page when release_directory is used.
+
+Issues (bug reports, etc)
+ - Updates to issues are no longer saved as node revisions.
+ - Developers are no longer a fixed list. Instead users assigns issues
+   to their account. Assigning bugs to others is no longer supported.
+ - Tweaked the output for node view to make the original report stand
+   out from the comments/updates.
+ - Tweaked mails to highlight new changes more from previous changes.
+ - Changed output for "view your projects".
+ - Changed mailhandler to be completely custom instead of using the
+   default handler and improve usability.
+ - Fixed pager support so it remembers searches.
+ - Improved search to let you select multiple values for fields.
+
+ + Add possibility to link to a specific issue listing. Examples:
+     List all open issues:       /project/issues?states=1,2
+     List all open bug reports:  /project/drupal/issues?states=1,2&categories=bug
+     List open project issues:   /project/drupal/issues?states=1,2
+     List issues assigned to user: /project/drupal/issues?assigned=1
+ + Added support request category.
+ + Added file uploads to issues.
+ + Added tablesort support for issue listings.
+ + Monthly mail to remind users to follow up on their open issues.
+ + Users can subscribe to get no mail, mails for issues they are
+   involved with or all issues per project.
+
 21. July 2003
 -------------
 project.module

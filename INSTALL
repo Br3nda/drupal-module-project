@@ -1,23 +1,30 @@
-
-Requirements
-------------
-
-This module requires the latest version of the current Drupal CVS version.
-
 Installation
 ------------
 
-1. Create the SQL tables. This depends a little on your system, but the most
-   common method is:
+1. Copy the project/ directory to modules/
+
+2. Create the SQL tables. This depends a little on your system, but the
+   most common method is:
      mysql -u username -ppassword drupal < project.mysql
 
-2. Copy the project.module to the Drupal modules/ directory.
+3. Enable the project module under "site configuration".
 
-3. Enable the module under "site configuration"
+4. Use the administration pages to setup proper access and projects.
 
-4. Use the administration pages to setup projects.
+Upgrading
+---------
 
-5. Optional. Use mailhandler.module to make your projects editable via email.
+0. Make sure you backup your database!
+
+1. Load the new SQL definitions.
+     mysql -u username -ppassword drupal < project.mysql
+
+2. Copy upgrade-project.php to the root directory of your Drupal site.
+
+3. Point your browser to http://example.com/drupal/upgrade-project.php
+
+4. Delete upgrade-project.php and the old project and projects table
+   from SQL.
 
 Author
 ------
@@ -27,8 +34,22 @@ Kjartan Mannes <kjartan@drupal.org>
 Wish list
 --------
 
-This is in no particular order.
+General
+ ? Improve themeability of listings and issues.
+ ? Make sure everything is translatable.
+ ? RSS feeds for projects, new releases, new issues, etc.
 
-- Better docs.
-- Send mail to submitter an not just project mail.
-- A dozen other things prolly.
+Projects
+ ? Completely support linking to files instead of requiring uploads.
+ ? Integrate image module galleries for screenshots.
+ ? Integrate projects to contrib/feature.module.
+
+Issues (bug reports, etc)
+ ? Add method for project owner to assign bugs to others.
+ ? Tool for administrators to be able to update the status of several
+   issues at once (mass closing).
+ ? Allow projects to specify their own categories (bug report, feature
+   request, etc).
+ ? Make components sub-projects with their own defaults.
+ ? Enable taxonomy support.
+ ? Add links to access to the complete issue overview. (Where?)

@@ -1,1042 +1,398 @@
 <?php
-// $Id: project.module,v 1.93 2003/09/19 11:25:03 kjartan Exp $
+// $Id: project.module,v 1.94 2003/09/28 16:13:32 kjartan Exp $
 
-// Drupal hooks
-function project_head() {
-  if ( (arg(0) == "node" && arg(1) == "view") || (arg(0) == "project" && arg(1) == "update") ) {
-    $style[] = "
-      <style>
-        #project tr.light { background-color: #fff; }
-        #project tr.dark { background-color: #fff; }
-        #project td { vertical-align: top; }
-      </style>";
-    return $style;
-  }
-}
+// project nodes    -> project_projects
+// project releases -> project_releases
 
-function project_system($field) {
-  $system["description"] = t("Enables a team to track outstanding items which need resolution.");
-  return $system[$field];
-}
+// issue nodes      -> project_issues
+// issue comments   -> project_comments
 
-function project_cron() {
-  if (variable_get("project_digest", 0)) {
-    if (time() - variable_get("project_digest_last", 0) > variable_get("project_digest_interval", time())) {
-      variable_set("project_digest_last", time());
+require_once "project.inc";
+require_once "release.inc";
+require_once "issue.inc";
+require_once "comment.inc";
+require_once "mail.inc";
 
-      project_mail_digest();
-    }
-  }
-}
-
-function project_link($type, $node = 0, $main = 0) {
-  if ($type == "node" && $node->type == "project") {
-    if (user_access("maintain bug reports")) {
-      $links[] = l(t("update $node->ptype"), "project/update/$node->nid");
-    }
-    $links[] = t("project") .": ". l($node->project_name, "project/pid/$node->pid");
-  }
-
-  if ($type == "page" && user_access("access projects")) {
-    $links[] = l(t("projects"), "project");
-  }
-
-  if ($type == "menu.view" && user_access("access projects")) {
-    global $user;
-    if (db_num_rows(db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid))) {
-      $links[] = l(t("view your projects"), "project/user");
-    }
-  }
-
-  if ($type == "menu.create" && user_access("maintain bug reports")) {
-    $links[] = l(t("create bug report"), "project/add/bug");
-    $links[] = l(t("create feature request"), "project/add/feature");
-  }
-
-  if ($type == "admin" && user_access("administer projects")) {
-    menu("admin/project", "project management", "project_admin", NULL, 3);
-    menu("admin/project/add", "add project", "project_admin");
-    //menu("admin/system#project", "settings");
-  }
-
-  return $links ? $links : array();
-}
-
-function project_settings () {
-  $period = array(43200 => format_interval(43200), 86400 => format_interval(86400), 172800 => format_interval(172800), 259200 => format_interval(259200), 604800 => format_interval(604800), 1209600 => format_interval(1209600));
-
-  $output = "<h4>". t("Individual e-mails") ."</h4>";
-
-  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address used in the <b>Update by mail</b> link in project emails. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
-  $output .= form_select(t("Mail criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
-
-  $output .= "<h4>". t("E-mail digests") ."</h4>";
-
-  $output .= form_select(t("Mail overview reports"), "project_digest", variable_get("project_digest", 0), array(t("Disabled"), t("Enabled")), t("Enable or disable the automated mails that summarizes the bug reports."));
-
-  $output .= form_textfield("Recipients", "project_digest_recipient", variable_get("project_digest_recipient", "root@localhost"), 55, 128, "The e-mail address to mail the overviews to.  Multiple recipients can be specified by putting a comma between each address.");
-  $output .= form_select("Digest interval", "project_digest_interval" , variable_get("project_digest_interval", 86400), $period, "The time interval at which digests are mailed out.  Requires crontab.");
-
-  return $output;
-}
-
-function project_perm() {
-  return array("access projects", "administer projects", "maintain bug reports");
-}
-
-function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
-
-  if (strstr($node->title, "project/update")) {
-    $node->type = "project";
-    $node->project_wrap = -1;
-    $node->nid = substr($node->title, strrpos($node->title, "/") + 1);
-    $current = node_load(array ("nid" => $node->nid));
-    $node = array2object(array_merge($current, $node)); //overwrite the current node with the params which were sent in this email
-
-    /*
-    ** we usually don't want our titles overwritten by the mailhandler,
-    ** since we prefix our email subjects with "bug #112 another bug" for example.
-    ** if we don't reset the title here, the node's title will soon look like "RE: bug #112: another bug".
-    */
-    $node->title = $current->title;
-
-
-    // map human readable pstatus to the equivalent integer. enables users to enter text values when updating via email.
-    if (!is_numeric($node->pstatus)) {
-      $node->pstatus = project_pstatus($node->pstatus);
-    }
-
-    // map human readable username to uid. enables assigning to a username instead of uid
-    if (!is_numeric($node->assigned)) {
-      $account = user_load(array ("name" => $node->assigned));
-      $node->assigned = $account->uid;
-    }
-
-    $node->revision = 1;
-  }
-  return $node;
-}
-
-function project_admin_form($edit = 0) {
-  $form = form_textfield("Name", "name", $edit["name"], 60, 255);
-  $form .= form_textarea("Versions", "versions", str_replace(",", "\n", $edit["versions"]), 20, 5);
-  $form .= form_textfield("Default version", "version_default", $edit["version_default"], 20, 255);
-  $form .= form_textfield("E-mail", "mail", $edit["mail"], 20, 255);
-  $form .= form_textarea("Developers", "developers", str_replace(",", "\n", $edit["developers"]), 20, 5);
-  $form .= form_textarea("Areas", "areas", str_replace(",", "\n", $edit["areas"] ? $edit["areas"] : "Code,Documentation,Miscellaneous,User interface"), 20, 5);
-  if ($edit["pid"]) {
-    $form .= form_hidden("pid", $edit["pid"]);
-  }
-  $form .= form_submit("Submit") . form_submit("Delete");
-
-  return form($form);
-}
-
-function project_delete_project($pid) {
-
-  $edit = $_POST["edit"];
-
-  if ($edit["confirm"]) {
-    db_query("DELETE FROM projects WHERE pid = '%d'", $pid);
-    $msg = t("Project #%p deleted", array ("%p" => $pid));
-    watchdog("special", $msg);
-    $output = status($msg);
-    $output .= project_admin_list();
-  }
-  else {
-    $form = form_item(t("Confirm Deletion"), t("Do you wish to delete project #%p?", array ("%p" => $pid)));
-    $form .= form_hidden("confirm", 1);
-    $form .= form_submit(t("Delete"));
-    $output = form($form);
-  }
-
-  return $output;
-}
-
-function project_admin_list() {
-  $result = db_query("SELECT pid,name,versions,version_default,developers,areas,mail FROM projects ORDER BY name");
-
-  $header = array("project", "versions", "default version", "mail", "developers", "areas", "operations");
-  while ($project = db_fetch_object($result)) {
-    unset($developers);
-    foreach (split(",", $project->developers) as $developer) {
-      if ($user = user_load(array("uid" => trim($developer)))) {
-        $developers[] = format_name($user);
-      }
-    }
-    $rows[] = array($project->name, str_replace(",", ", ", $project->versions), $project->version_default, $project->mail, (count($developers) ? implode(", ", $developers) : t("None defined.")), str_replace(",", ", ", $project->areas), l(t("edit project"), "admin/project/edit/$project->pid"));
-  }
-
-  return table($header, $rows);
-}
-
-function project_admin() {
-  if (!user_access("administer projects")) {
-    return;
-  }
-
-  $op = $_POST["op"] ? $_POST["op"] : arg(2);
-  $pid = arg(3);
-
-  switch ($op) {
-    case "add":
-      return project_admin_form();
-    case "edit":
-      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
-      $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
-      return project_admin_form($project);
-    case "Delete":
-      return project_delete_project($pid);
-    case "Submit":
-      $edit = $_POST["edit"];
-      $edit["versions"] = strtr($edit["versions"], array("\r" => "", "\n" => ","));
-      $edit["developers"] = strtr($edit["developers"], array("\r" => "", "\n" => ","));
-      $edit["areas"] = strtr($edit["areas"], array("\r" => "", "\n" => ","));
-      $ids = array();
-      foreach (split(",", check_query($edit["developers"])) as $developer) {
-        if ($user = user_load(array("name" => $developer))) {
-          $ids[] = $user->uid;
-        }
-        else {
-          $output .= status(t("Unable to find developer: %s", array("%s" => $developer)));
-        }
-      }
-      if ($edit["pid"]) {
-        db_query("UPDATE projects SET name = '%s', versions = '%s', version_default = '%s', developers = '%s', areas = '%s', mail = '%s' WHERE pid = '%d'", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"], $edit["pid"]);
-      }
-      else {
-        db_query("INSERT INTO projects (name, versions, version_default, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"]);
-      }
-      return project_admin_list();
-    default:
-      return project_admin_list();
-  }
-}
-
-function project_list_header($text, $pid, $type, $order) {
-  return l(t($text), "project/". arg(1) ."/$pid/$type/$text/". ($order == "asc" ? "desc" : "asc"));
-}
-
-function project_sort_submitted($a, $b) {
-  return arg(5) == "asc" ? strcasecmp($a->name, $b->name) : strcasecmp($b->name, $a->name);
-}
-
-function project_sort_assigned($a, $b) {
-  return arg(5) ? strcasecmp($a->assigned_name, $b->assigned_name) : strcasecmp($b->assigned_name, $a->assigned_name);
-}
-
-function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
-
-  $headers = array("Title" => "n.title", "Status" => "p.pstatus", "Pri" => "p.priority", "Area" => "p.area", "Version" => "p.version", "Last updated" => "n.changed", "Assigned" => "p.assigned");
-  if ($pid) {
-    $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
-    if (!$project->areas) {
-      unset($headers["Area"]);
-    }
-    if (!$project->areas) {
-      unset($headers["Area"]);
-    }
-    if (!$project->versions) {
-      unset($headers["Version"]);
-    }
-    if (!$project->developers) {
-      unset($headers["Assigned"]);
-    }
-  }
-  $result = pager_query("SELECT n.nid FROM node n INNER JOIN project p ON n.nid = p.nid WHERE ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"), 50);
-
-  if (db_num_rows($result)) {
-    foreach ($headers as $text => $i) {
-      $linked_headers[] =  project_list_header($text, $pid, $type, $order);
-    }
-
-    if (user_access("maintain bug reports")) {
-      $linked_headers[] = t("Operations");
-    }
-
-    while ($node = db_fetch_object($result)) {
-      $node = node_load($node);
-      if ($node->revisions) {
-        $node->uid = $node->revisions[0][node]->uid;
-        $node->name = $node->revisions[0][node]->name;
-      }
-      $nodes[] = $node;
-    }
-
-    if ($field == "n.uid") {
-      usort($nodes, "project_sort_submitted");
-    }
-    if ($field == "p.assigned") {
-      usort($nodes, "project_sort_assigned");
-    }
-
-    //$status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
-    $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
-
-    $i = 0;
-    foreach ($nodes as $node) {
-
-      // change background color only if status is not 'Active'
-      if ($node->pstatus != 1) {
-        $rowstyle = "background-color: ". $colours[$node->pstatus];
-      }
-
-      // conserve space by shortening username
-      if (strpos($node->name, "@")) {
-        $node->name = substr($node->name, 0, strpos($node->name, "@"));
-      }
-
-      $row[$i][] = array ("style" => $rowstyle, "data" => l($node->title, "node/view/$node->nid"));
-      $row[$i][] = array ("style" => $rowstyle, "data" => str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))));
-      $row[$i][] = array ("style" => $rowstyle, "data" => project_priority($node->priority));
-      if ($project->areas) {
-        $row[$i][] = array ("style" => $rowstyle, "data" => $node->area);
-      }
-      if ($project->versions) {
-        $row[$i][] = array ("style" => $rowstyle, "data" => $node->version);
-      }
-      $row[$i][] = array ("style" => $rowstyle, "data" => format_date($node->changed, "small"));
-
-      if ($project->developers) {
-        $row[$i][] = array ("style" => $rowstyle, "data" => $node->assigned_formatted);
-      }
-      if (user_access("maintain bug reports")) {
-         $row[$i][] =  array ("style" => $rowstyle, "data" => l(t("update $node->ptype"), "project/update/$node->nid"));
-      }
-      $i++;
-      unset($rowstyle);
-    }
-
-    if ($pager = pager_display(NULL, 50)) {
-      $row[] = array(array("data" => $pager, "colspan" => count($linked_headers) + 1));
-    }
-    $i++;
-
-    $output = table($linked_headers, $row). "<br />\n";
-  }
-  else {
-    $output .= "<p>". t("No matches found.") ."</p>";
-  }
-  if (user_access("maintain bug reports") && $type && $pid) {
-    $links[] = l(t("submit new $type"), "project/add/$pid/$type");
-    $output .= theme("links", $links);
-  }
-
-  return $output;
-}
-
-function project_page_filter($edit) {
-  $filter = "<table><tr valign=\"bottom\">";
-  if (!empty($edit["pid"])) {
-    $result = db_query("SELECT * FROM projects WHERE pid ='%d'", $edit["pid"]);
-    $project = db_fetch_object($result);
-    $filter .= form_hidden("pid", $edit["pid"]);
-  }
-  else {
-    $projects[0] = "All";
-    $result = db_query("SELECT pid,name FROM projects");
-    while ($project = db_fetch_object($result)) {
-      $projects[$project->pid] = $project->name;
-    }
-    $filter .= "<td>". form_select(t("Project"), "pid", $edit["pid"], $projects) ."</td>";
-  }
-
-  $filter .= "<td>". form_select(t("Type"), "type", $edit["type"], array_merge(array(0 => t("All")), project_type())) ."</td>";
-  if ($edit["pid"]) {
-    if ($project->areas) {
-      $filter .= "<td>". form_select(t("Area"), "area", $edit["area"], array(t("All")) + project_array($project->areas)) ."</td>";
-    }
-    if ($project->developers) {
-      $filter .= "<td>". form_select(t("Assigned to"), "assigned", $edit["assigned"], array(-1 => t("All"), 0 => t("Unassigned")) + uid_to_name($project->developers)) ."</td>";
-    }
-  }
-  else {
-    $filter .= "<td>". form_textfield(t("Assigned to"), "assigned", $edit["assigned"], 30, 128) ."</td>";
-  }
-  $filter .= "<td>". form_textfield("Text", "text", $edit["text"], 30, 128) ."</td>";
-  $filter .= "</tr></table>";
-  $filter .= "<table><tr valign=\"bottom\">";
-  //form_select(t("Status"), "status", $edit["status"], array_merge(array("All"), project_pstatus())) ."</td>";
-  foreach (project_pstatus() as $id => $status) {
-    $filter .= "<td>". form_checkbox(t($status), "status][$id]", $id, $edit["status"][$id]) ."</td>";
-  }
-  $filter .= "<td>". form_submit("Search") ."</td>";
-  $filter .= "</tr></table>";
-  $output = form(strtr($filter, array("<p>" => "", "</p>" => "")));
-
-  return $output;
-}
-
-function project_page_filter_apply($edit) {
-  $query[] = "n.type = 'project'";
-
-  if ($edit["pid"]) {
-    $query[] = "p.pid = '". check_query($edit["pid"]) ."'";
-  }
-  if ($edit["type"]) {
-    $query[] = "p.ptype = '". check_query($edit["type"]) ."'";
-  }
-  if ($edit["status"]) {
-    foreach ($edit["status"] as $id) {
-      $status[] = "p.pstatus = '". check_query($id) ."'";
-    }
-    $query[] = "(". implode(" OR ", $status) .")";
-  }
-  if ($edit["area"]) {
-    $query[] = "p.area = '". check_query($edit["area"]) ."'";
-  }
-  if ((int) $edit["assigned"] >= 0) {
-    $query[] = "p.assigned = '". $edit["assigned"] ."'";
-  }
-  elseif ($edit["assigned"] && $account = user_load(array("name" => check_query($edit["assigned"])))) {
-    $query[] = "p.assigned = '". $account->uid ."'";
-  }
-  if ($edit["text"]) {
-    $query[] = "(n.title LIKE '% ". check_query($edit["text"]) ." %' OR n.body LIKE '% ". check_query($edit["text"]) ." %' OR n.revisions LIKE '% ". check_query($edit["text"]) ." %')";
-  }
-
-  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE ". (count($query) ? implode(" AND ", $query) : "") ." ORDER BY n.nid");
-
-  $output = project_list($query, $edit["pid"]);
-
-  return $output;
-}
-
-function project_page() {
-
-  $op = $_POST["op"];
-
-  if (empty($op)) {
-    $op = arg(1);
-  }
-  if (is_numeric(arg(2))) {
-    $pid = arg(2);
-    $type = arg(3);
-  }
-  else {
-    $type = arg(2);
-  }
-
-  switch ($op) {
-    case "mail_help":
-      theme("header", t("Project Mail Help"));
-      theme("box", t("Project Mail Help"), project_mail_help());
-      theme("footer");
-      break;
-    case t("Search"):
-      $edit = $_POST["edit"];
-      theme("header", t("Project search results"));
-      theme("box", t("Search results"), project_page_filter_apply($edit));
-      theme("box", t("Search"), project_page_filter($edit));
-      theme("footer");
-      break;
-    case "search":
-      theme("header", t("Project search"));
-      $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
-      theme("box", t("Search"), project_page_filter($edit));
-      theme("footer");
-      break;
-    case "user":
-      global $user;
-      $result = db_query("SELECT pid,name FROM projects WHERE developers = '%d' OR developers LIKE '%d,%%' OR developers LIKE '%%,%d,%%' OR developers LIKE '%%,%d'", $user->uid, $user->uid, $user->uid, $user->uid);
-      theme("header", strtr("%u's projects", array("%u" => $user->name)));
-
-      while ($project = db_fetch_object($result)) {
-        if ($output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = $project->pid", "p.assigned = '$user->uid'"), $project->pid, 0, arg(4), arg(5))) {
-          theme("box", $project->name, $output);
-        }
-      }
-
-      theme("footer");
-      break;
-    case "list":
-      $edit = $_POST["edit"];
-      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '%d'", $pid));
-
-      $filter[] = "(p.pstatus = '1' OR p.pstatus = '2')";
-      if ((int) $pid) {
-        $filter[] = "p.pid = ". $pid;
-      }
-      if ($type) {
-        $filter[] = "p.ptype = '". $type ."'";;
-      }
-      $output = project_list($filter, $pid, $type, arg(4), arg(5));
-
-      theme("header", "$project->name ${type}s");
-      theme("box", $project->name ." : ". t(($type ? $type : "all")), $output);
-      if (!count($edit)) {
-        $edit = array("pid" => $pid, "status" => array(1 => 1, 2), "assigned" => -1, "type" => $type);
-      }
-      theme("box", t("Search"), project_page_filter($edit));
-      theme("footer");
-      break;
-    case "update":
-      global $user;
-      if (user_access("maintain bug reports")) {
-        $node = node_load(array("nid" => $pid));
-
-        theme("header", "Updating:". $node->title);
-        node_view($node, 0);
-
-        // Clean up for follow up
-        unset($node->body);
-        unset($node->teaser);
-        $node->revision = 1;
-        $node->uid = $user->uid;
-        $node->name = $user->name;
-        theme("box", "$node->project_name : ". t($node->ptype), node_form($node));
-      }
-      else {
-        theme("header");
-        print message_access();
-      }
-      theme("footer");
-      break;
-    case "add":
-      global $user;
-      theme("header");
-      if (user_access("maintain bug reports")) {
-        $node = array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1);
-        theme("box", t("Project") ." : ". t($type), node_form($node));
-      }
-      else {
-        theme("box", t("Access denied"), message_access());
-      }
-      theme("footer");
-      break;
-    case t("Preview"):
-      $edit = $_POST["edit"];
-      theme("header");
-      theme("box", t("Project") ." : ". t($edit["ptype"]), node_preview($edit));
-      theme("footer");
-      break;
-    case t("Submit"):
-      $edit = $_POST["edit"];
-      theme("header");
-      $edit["revision"] = 1;
-      theme("box", t("Project") ." : ". t($edit["ptype"]), node_submit($edit));
-      theme("footer");
-      break;
-    default:
-      $result = db_query("SELECT pid,name FROM projects". (is_numeric($pid) ? " WHERE pid = ". $pid : "") ." ORDER BY name");
-      theme("header");
-      while ($project = db_fetch_object($result)) {
-        $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
-        foreach (project_type(2) as $type => $name) {
-          $active = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE (pstatus = '1' OR pstatus = '2') AND ptype = '$type' AND pid = '$project->pid'"));
-          $total = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE ptype = '$type' AND pid = '$project->pid'"));
-          if (user_access("access content")) {
-            $output .= "<tr><td><b>". l(t($name), "project/list/$project->pid/$type") ."</b></td><td>($total->total)</td>";
-          }
-          else {
-            $output .= "<tr><td><b>". t($name) ."</b></td><td>($total->total)</td>";
-          }
-          if (user_access("maintain bug reports")) {
-            $output .= "<td>". l(t("submit"), "project/add/$project->pid/$type") ."</td>";
-          }
-          if (user_access("search content")) {
-            $output .= "<td>". l(t("search"), "project/search/$project->pid/$type") ."</td>";
-          }
-          $output .= "<td>($active->total ". t("open") .")</td>";
-        }
-        $output .= "</table>\n";
-        theme("box", $project->name, $output);
-      }
-      theme("footer");
-  }
-}
-
-function project_block($op = "list", $delta = 0) {
-  if ($op == "list") {
-    $blocks[0]["info"] = t("Project information");
-    return $blocks;
-  }
-  else {
-    $result = db_query("SELECT p.pid,p.name,n.ptype,count(n.nid) AS active FROM projects p LEFT JOIN project n ON p.pid = n.pid WHERE n.pstatus = '1' OR n.pstatus = '2' GROUP BY n.ptype, p.pid, p.name");
-    $projects = array();
-    while ($project = db_fetch_object($result)) {
-      $projects[$project->name][pid] = $project->pid;
-      $projects[$project->name][$project->ptype] = $project->active;
-    }
-    foreach ($projects as $name => $project) {
-      $title = l($name, "project/$project[pid]");
-      foreach ($project as $type => $active) {
-        if ($type != "pid") {
-          $items[] = l(t(ucfirst($type . "s")), "project/list/$project[pid]/$type") .": $active open";
-        }
-      }
-      $output .= theme_item_list($items, $title);
-      unset($items);
-    }
-
-    $block["subject"] = t("Project information");
-    $block["content"] = $output;
-    return $block;
-  }
-}
-
-// Misc support functions
-function uid_to_name($uids) {
-  foreach (split(",", $uids) as $uid) {
-    if ($user = user_load(array("uid" => $uid))) {
-      $names[$user->uid] = $user->name;
-    }
-  }
-  return $names ? $names : array();
-}
-
-function project_type($count = 1) {
-  if ($count == 1) {
-    return array("bug" => t("Bug"), "feature" => t("Feature"), "task" => t("Task"));
-  }
-  else {
-    return array("bug" => t("Bugs"), "feature" => t("Features"), "task" => t("Tasks"));
-  }
-}
-
-// translates from a numeric pstatus to english equivalent or vice versa.
-function project_pstatus($pstatus = 0) {
-  $status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
-  if (is_numeric($pstatus)) {
-    return $pstatus ? $status[$pstatus] : $status;
-  }
-  else {
-    return array_search($pstatus, $status);
-  }
-}
-
-// translates from a numeric priority to english equivalent or vice versa.
-function project_priority($priority = 0) {
-  $status = array(1 => "Critical", 2 => "Normal", 3 => "Minor");
-  if (is_numeric($priority)) {
-    return $priority ? $status[$priority] : $status;
-  }
-  else {
-    return array_search($priority, $status);
-  }
-}
-
-
-
-function project_array($values) {
-  if (!is_array($values)) {
-    $values = explode(",", $values);
-  }
-
-  foreach ($values as $value) {
-    $return[$value] = $value;
-  }
-
-  return $return ? $return : array();
-}
-
-function project_mail(&$node, $new = 0) {
-  global $base_url;
-
-
-  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
-  if (!$project->mail) {
-    return;
-  }
-
-
-  $body .= "Project: $project->name\n";
-  $body .= "Area: $node->area\n";
-  $body .= "Version: $node->version\n";
-  $body .= "Pstatus: ". project_pstatus($node->pstatus) ."\n";
-  $body .= "Priority: ". project_priority($node->priority) ."\n";
-  if ($node->assigned) {
-    $body .= "Assigned: ". @implode("", uid_to_name($node->assigned)) ."\n";
-  }
-  $body .= "\n";
-
-  $from = $project->mail;
-  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));
-  if ($new) {
-    $author = $node->name ? $node->name : t(variable_get("anonymous", "Anonymous"));
-    $body .= format_date(time(), "small") ." : $author\n";
-
-    $body .= check_output($node->body) ."\n\n";
-    $body .= str_repeat("-", 72) ."\n\n";
-    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
-  }
-  else {
-    $node->revisions = unserialize($node->revisions);
-    $node->revisions[][node] = $node;
-    $node->revisions = array_reverse($node->revisions);
-    foreach ($node->revisions as $revision) {
-      if (!$author) {
-        $author = $revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : t(variable_get("anonymous", "Anonymous"));
-      }
-      $body .= format_date($revision["node"]->changed, "small") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : t(variable_get("anonymous", "Anonymous"))) ."\n";
-
-      $body .= check_output($revision["node"]->body) ."\n\n";
-      $body .= str_repeat("-", 72) ."\n\n";
-    }
-    $revcount = count($node->revisions);
-    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=$revcount&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
-    $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
-    $mid .= $revcount-1 ."&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
-  }
-
-  /*
-  the intent here is to preserve the links before they get removed by strip_tags()
-  remove duplicates and then display the links at the bottom of the email.
-  */
-  $links = project_parse_links($body);
-
-  $unique_links = array();
-  foreach ($links as $link) {
-    if (!in_array($link, $unique_links)) {
-      $unique_links[] = $link;
-    }
-  }
-
-  $body = strip_tags($body);
-  if ($node->project_wrap <> -1) {
-    $body = wordwrap($body, 72);
-  }
-
-  // now list the links which were parsed above
-  if ($links) {
-    $body .= "Links:\n". implode("\n", $unique_links). "\n\n";
-  }
-
-  $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
-  $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
-  $body .= "Update-by-mail help: ". url("project/mail_help") ."\n";
-  $trans = get_html_translation_table(HTML_ENTITIES);
-  $trans = array_flip($trans);
-  $body = strtr($body, $trans);
-
-  if (strpos($author, "@")) {
-    $fromname = substr($author, 0, strpos($author, "@"));
-  }
-  else if ($author) {
-    $fromname = $author;
-  }
-  else {
-    $fromname = t(variable_get("anonymous", "Anonymous"));
-  }
-  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: $fromname <$from>". "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
-
-
-}
-
-// Node support functions
 function project_node($field) {
-  global $user;
-
   $info["name"] = t("project");
-  $info["description"] = t("Add information related to projects. This can be bug reports, feature requests, patches, etc.");
 
   return $info[$field];
 }
 
-function project_access($op, $node) {
-  if ($op == "view") {
-    return $node->status;
+function project_head() {
+  $style = "<style type=\"text/css\">\n@import url(modules/project/project.css);\n</style>";
+  return $style;
+}
+
+function project_perm() {
+  return array(
+    "administer projects",
+    "maintain projects",
+    "access projects",
+    "maintain project issues",
+    "access project issues"
+  );
+}
+
+function project_settings() {
+
+  $output = form_textfield(t("Release directory"), "project_release_directory", variable_get("project_release_directory", ""), 50, 255, t("Leave this blank if project maintainers are to create their own release packages. This is useful if releases are generated by an external tool."));
+  if (module_exist("mailhandler")) {
+    // TODO: move this stuff to mailhandler.module ?
+    $items = array(t("<none>"));
+    $result = db_query("SELECT mail FROM {mailhandler} ORDER BY mail");
+    while ($mail = db_result($result, $i++)) {
+      $items[$mail] = $mail;
+    }
+
+    $output .= form_select(t("Reply-to address on e-mail notifications"), "project_reply_to", variable_get("project_reply_to", ""), $items);
   }
 
-  if  ($op == "create") {
-    return user_access("maintain bug reports");
+  /*
+  $vocabularies = taxonomy_get_vocabularies("project");
+  foreach ($vocabularies as $id => $vocabulary) {
+    $vocabularies[$id] = $vocabulary->name;
+  }
+  if (count($vocabularies)) {
+    $vocabularies[0] = t("<none>");
+    asort($vocabularies);
+    $output .= form_select(t("Release vocabulary"), "release_vocabulary", variable_get("release_vocabulary", 0), $vocabularies, t("If the release directory has some form or structure to it then assigning projects.."));
+  }
+  */
+
+  return $output;
+}
+
+function project_cron() {
+  if (variable_get("project_release_directory", "") && time() - variable_get("project_release_directory_last", 0) > variable_get("project_release_directory_interval", 24 * 60 * 60)) {
+    variable_set("project_release_directory_last", time());
+    project_release_cron();
   }
 
-  if  ($op == "update") {
-    return user_access("maintain bug reports");
+  if (time() - variable_get("project_digest_last", 0) > variable_get("project_digest_interval", 7 * 24 * 60 * 60)) {
+    variable_set("project_digest_last", time());
+    project_mail_digest();
   }
 
-  if ($op == "decline") {
-    return array("status" => 0);
+  if (time() - variable_get("project_reminder_last", 0) > variable_get("project_reminder_interval", 28 * 7 * 24 * 60 * 60)) {
+    variable_set("project_reminder_last", time());
+    project_mail_reminder();
   }
 }
 
-function project_load(&$node) {
-  $project = db_fetch_object(db_query("SELECT p.pid, p.ptype, p.pstatus, p.area, p.priority, p.version, p.assigned, p.file, projects.name AS project_name FROM project p LEFT JOIN projects ON p.pid = projects.pid WHERE nid = '$node->nid'"));
-  $assigned = user_load(array("uid" => $project->assigned));
-  $project->assigned_formatted = $project->assigned ? format_name($assigned) : t("Unassigned");
-  $project->assigned_name = $assigned->name ? $assigned->name : t("Unassigned");
-  return $project;
+function project_link($type, $node = 0, $main = 0) {
+  $links = array();
+  switch ($type) {
+    case "page":
+      if (user_access("access projects")) {
+        $links[] = l(t("projects"), "project", array("title" => t("View all projects.")));
+      }
+      break;
+    case "node":
+      if ($node->type == "project_project") {
+        if (node_access("update", $node)) {
+          $links[] = l(t("edit"), "node/edit/$node->nid");
+        }
+        if ($node->issues && user_access("access project issues")) {
+          $links[] = l(t("issues"), "project/$node->uri/issues");
+        }
+        foreach (array("homepage" => t("homepage"), "changelog" => t("changelog"), "cvs" => t("cvs tree"), "demo" => t("demo site")) as $uri => $name) {
+          if (!empty($node->$uri)) {
+            $links[] = sprintf("<a href=\"%s\">%s</a>", $node->$uri, $name);
+          }
+        }
+      }
+      if ($node->type == "project_issue") {
+        if (user_access("maintain project issues")) {
+          $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
+          $links[] = l(t("add comment"), "project/$project->uri/comment/add/$node->nid");
+          if ($node->fid) {
+            $links[] = l(t("download attachment"), "project/$project->uri/issues/download/$node->nid");
+          }
+        }
+      }
+      break;
+    case "system":
+      if (user_access("maintain projects")) {
+        menu("node/add/project_project", t("create project"), NULL, NULL, 0);
+      }
+      if (user_access("maintain project issues")) {
+        menu("node/add/project_issue", t("create issue"), NULL, NULL, 0);
+      }
+      if (user_access("access project issues")) {
+        global $user;
+        menu("project/issues", t("view open issues"), NULL, NULL, 0);
+        if ($user->uid) {
+          menu("project/issues/?users=$user->uid&states=1,2", t("your issues"), NULL, NULL, 0);
+        }
+        foreach (project_issue_category() as $cat => $category) {
+          menu("project/issues/?categories=$cat&states=1,2", $category, NULL, NULL, 1);
+        }
+      }
+      break;
+  }
+
+  return $links;
 }
 
-function project_insert(&$node) {
-  db_query("INSERT INTO project (nid, pid, ptype, pstatus, area, priority, version, assigned, file) VALUES ('$node->nid', '$node->pid', '$node->ptype', '$node->pstatus', '$node->area', '$node->priority', '$node->version', '$node->assigned', '". base64_encode($node->file) ."')");
-  project_mail($node, 1);
-}
+function project_page() {
+  global $user;
 
-function project_update(&$node) {
-  db_query("UPDATE project SET nid = '$node->nid', pid = '$node->pid', ptype = '$node->ptype', pstatus = '$node->pstatus', area = '$node->area', priority = '$node->priority', version = '$node->version', assigned = '$node->assigned', file = '". base64_encode($node->file) ."' WHERE nid = '$node->nid'");
+  if (!user_access("access projects")) {
+    drupal_goto(url());
+  }
 
-  // send mail if author wrote a comment or adminwants to broadcast all changes to items
-  if (variable_get("project_always_mail", 1) || $node->body) {
-    project_mail($node);
+  switch (arg(1)) {
+    case "test":
+      project_release_cron();
+      break;
+    case "releases":
+      project_release_overview();
+      break;
+    case "user":
+      project_page_user();
+      break;
+    case "issues":
+      $node->title = t("All issues");
+      $node->uri = "issues";
+      project_issue_page($node);
+      break;
+    default:
+      if (is_numeric(arg(1))) {
+        $node = node_load(array("nid" => arg(1), "type" => "project_project"));
+      }
+      else {
+        $node = node_load(array("nid" => db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", arg(1)), 0), "type" => "project_project"));
+      }
+
+      if ($node->nid) { // Show project details
+        if ($_POST["op"] == t("Subscribe")) {
+          global $user;
+          db_query("DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
+          db_query("INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)", $node->nid, $user->uid, $_POST["edit"]["level"]);
+        }
+        switch (arg(2)) {
+          case "releases":
+            project_release_page($node);
+            break;
+          case "issues":
+            if ($node->issues && user_access("access project issues")) {
+              project_issue_page($node);
+              break;
+            }
+          case "comment":
+            if ($node->issues && user_access("access project issues")) {
+              project_comment_page($node);
+              break;
+            }
+          default:
+            theme("header", $node->title);
+            node_view($node);
+            theme("footer");
+        }
+      }
+      else { // Show project overview
+        project_page_overview();
+      }
   }
 }
 
-function project_delete(&$node) {
-  db_query("DELETE FROM project WHERE nid = '$node->nid'");
+function project_page_overview() {
+  if (!is_numeric($_GET["tid"]) && count($vocabularies = taxonomy_get_vocabularies("project"))) { // Show an overview of vocabularies
+    theme("header", t("Projects"));
+    foreach ($vocabularies as $vocabulary) {
+      $terms = taxonomy_get_tree($vocabulary->vid);
+
+      $items = array();
+      foreach ($terms as $term) {
+        $items[] = l($term->name, "project", NULL, "tid=$term->tid") ." (". taxonomy_term_count_nodes($term->tid) .")";
+      }
+
+      theme("box", $vocabulary->name, theme("theme_item_list", $items));
+    }
+    print "<p>". l(t("Show all projects"), "project", NULL, "tid=0") ."<p>";
+    if (variable_get("project_release_directory", "")) {
+      print "<p>". l(t("Show downloads"), "project/releases") ."<p>";
+    }
+    theme("footer");
+  }
+  else {
+    if (is_numeric($_GET["tid"]) && $_GET["tid"]) {
+      $term = taxonomy_get_term($_GET["tid"]);
+      $result = pager_query("SELECT DISTINCT(n.nid) FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND r.tid = $_GET[tid] AND n.status = 1 ORDER BY title", variable_get("default_nodes_main", 10));
+    }
+    else {
+      $result = pager_query("SELECT nid FROM {node} WHERE status = 1 AND type = 'project_project' ORDER BY title", variable_get("default_nodes_main", 10));
+    }
+
+    $breadcrumb[] = l(t("Home"), NULL);
+    $breadcrumb[] = l(t("Projects"), "project");
+    if ($term) {
+      $breadcrumb[] = $term->name;
+    }
+
+    theme("header", t("Projects"));
+    theme("breadcrumb", $breadcrumb);
+    while ($node = db_fetch_object($result)) {
+      node_view(node_load($node), 1);
+    }
+    if ($pager = pager_display(NULL, 20, 0, "default", array("tid" => $_GET["tid"]))) {
+      print $pager;
+    }
+
+    theme("footer");
+  }
+}
+
+function project_page_user() {
+  global $user;
+
+  switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
+    case t("Save"):
+      foreach ($_POST["edit"] as $nid => $settings) {
+        if (($project = node_load(array("nid" => $nid, "type" => "project_project")))) {
+          db_query("DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $nid, $user->uid);
+          db_query("INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)", $nid, $user->uid, $settings["subscription"]);
+        }
+        $status = status(t("Settings saved"));
+      }
+    case "settings":
+      $header = array(t("project"), t("issues notification"));
+      $result = db_query("SELECT * FROM {project_subscriptions} WHERE uid = %d", $user->uid);
+      while ($subscription = db_fetch_object($result)) {
+        $subscriptions[$subscription->nid] = $subscription->level;
+      }
+
+      $result = db_query("SELECT nid, title FROM {node} WHERE status = 1 AND type = 'project_project' ORDER BY title");
+      while ($project = db_fetch_object($result)) {
+        $rows[] = array(
+          $project->title,
+          form_select("", "$project->nid][subscription", $subscriptions[$project->nid], array(0 => t("Don't notify when issues are submitted."), 1 =>t("Only notify on my submitted issues."), 2 => t("Notify me of all issues that are submitted.")))
+        );
+      }
+
+      $output = table($header, $rows);
+      $output .= form_submit(t("Save"));
+
+      theme("header", t("User project settings"));
+      print $status;
+      theme("box", t("User project settings"), form($output));
+      theme("footer");
+      break;
+    default:
+
+      /*
+      theme("header");
+      $result = db_query("SELECT nid FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
+      while ($project = db_fetch_object($result)) {
+        $project = node_load($project);
+        $li = array();
+        $li[] = l(t("Open issues assigned to %user", array("%user" => $user->name)), "project/$project->uri/issues/?assigned=$user->uid&states=1,2");
+        $li[] = l(t("All issues assigned to %user", array("%user" => $user->name)), "project/$project->uri/issues/?assigned=$user->uid");
+        $li[] = l(t("Open issues submitted by %user", array("%user" => $user->name)), "project/$project->uri/issues/?submitted=$user->uid&states=1,2");
+        $li[] = l(t("All issues submitted by %user", array("%user" => $user->name)), "project/$project->uri/issues/?submitted=$user->uid");
+
+        $output = "<ul><li>". implode("</li><li>", $li) ."</li></ul>";
+        theme("box", l($project->title, "project/$project->uri"), $output);
+      }
+      theme("footer");
+      */
+
+
+      $_REQUEST["edit"]= array("states" => "1,2", "users" => $user->uid);
+      $output = project_issue_query_result();
+
+      theme("header");
+      theme("box", l(t("Your issues"), "project/user/issues"), $output);
+      theme("footer");
+  }
+}
+
+function project_search($keys) {
+  $find = do_search(array(
+    "keys" => $keys,
+    "type" => "node",
+    "select" => "SELECT s.lno AS lno, n.title AS title, n.created AS created, u.uid AS uid, u.name AS name, s.count AS count FROM search_index s, node n LEFT JOIN users u ON n.uid = u.uid WHERE s.lno = n.nid AND s.type = 'recipe' AND n.status = 1 AND s.word like '%'")
+  );
+
+  return $find;
+}
+
+function project_update_index() {
+  return array(
+    "last_update" => "project_cron_index",
+    "node_type" => "node",
+    "select" => "SELECT nid as lno, body as text1 FROM {project_comments} WHERE 1 OR created > " . variable_get("project_cron_index", 1) . " OR changed > " . variable_get("project_cron_index", 1)
+  );
+}
+
+// Special project stuff
+function project_types() {
+  return array("project_project", "project_issue");
+}
+
+function project_invoke(&$node, $function, $arg1 = 1, $arg2 = 0) {
+  if (in_array($node->type, project_types())) {
+    $function = "project_". $node->type ."_".$function;
+    return $function($node, $arg1, $arg2);
+  }
+}
+
+// Node functions
+/*function project_node($field) {
+  global $user;
+
+  $info["name"] = t("project");
+  $info["description"] = t("All and everything related to creating and maintaining projects.");
+
+  return $info[$field];
+}*/
+
+function project_form(&$node, &$help, &$error, &$param) {
+  // TODO: add type selector
+  switch ($node->type) {
+    case "project_project":
+      $node->type = "project_project";
+      return project_project_form($node, $help, $error, $param);
+    case "project_issue":
+      $node->type = "project_issue";
+      return project_issue_form($node, $help, $error, $param);
+  }
 }
 
 function project_validate(&$node) {
-  if ($node->pid) {
-    $result = db_query("SELECT * FROM projects WHERE pid = '%d'", $node->pid);
-    $project = db_fetch_object($result);
+  if (!in_array($node->type, project_types())) {
+    return $error["type"] = "System error: invalid project type.";
   }
-
-  $node->body = filter($node->body);
-  $node->teaser = filter($node->teaser);
-
-  if ($node->priority) {
-    if (!$node->pid) {
-      $error["pid"] = theme_error(t("Project not specified."));
-    }
-    if (!$node->type) {
-      $error["type"] = theme_error(t("Type not specified."));
-    }
-    if ($project->areas && !in_array($node->area, explode(",", $project->areas))) {
-      $error["area"] = theme_error(t("Area not specified."));
-    }
-    if ($project->versions && !in_array($node->version, explode(",", $project->versions))) {
-      $error["version"] = theme_error(t("Version not specified."));
-    }
-  }
-
-  return $error ? $error : "";
-}
-
-// Node output functions
-function project_form(&$node, &$help, &$error, &$form) {
-  global $user;
-
-  // TODO: implement file uploads correctly
-  // $form["options"] = 'enctype="multipart/form-data"';
-
-  // Remove teaser, its not really used so let it be auto generated.
-  unset($node->teaser);
-
-  // Initialize project variables.
-  $result = db_query("SELECT * FROM projects ORDER BY name");
-  if (db_num_rows($result) != 1) {
-    $projects = array(0 => "<none>");
-    while ($p = db_fetch_object($result)) {
-      $projects[$p->pid] = $p->name;
-      if ($p->pid == $node->pid) {
-        $project = $p;
-      }
-    }
-  }
-  else {
-    $project = db_fetch_object($result);
-    $node->pid = $project->pid;
-  }
-
-  // Deconstruct project details if available.
-  if ($project->pid) {
-    if ($project->developers) {
-      $developers = array(0 => t("Unassigned")) + uid_to_name($project->developers);
-    }
-    if ($project->areas) {
-      $areas = array(0 => t("Not specified")) + project_array($project->areas);
-    }
-    if ($project->versions) {
-      $versions = array(0 => t("Not specified")) + project_array($project->versions);
-    }
-  }
-
-  // Construct form.
-  if (!is_array($projects)) {
-    $output = form_hidden("pid", $node->pid);
-  }
-  else {
-    $output = form_select(t("Project"), "pid", $node->pid, $projects, $error["pid"]);
-  }
-  $output .= form_select(t("Type"), "ptype", $node->ptype, project_type(), $error["ptype"]);
-  if ($node->nid) {
-    $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
-  }
-  else {
-    $output .= form_hidden("pstatus", 1);
-  }
-  if (function_exists("taxonomy_node_form")) {
-    $output .= implode("", taxonomy_node_form("project", $node));
-  }
-  if (count($areas)) {
-    $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
-  }
-  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 2), array(1 => "Critical", 2 => "Normal", 3 => "Minor"));
-  if ($versions) {
-    $output .= form_select(t("Version"), "version", $node->version ? $node->version : $project->version_default, $versions, $error["version"]);
-  }
-  if ($developers) {
-    $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
-  }
-  $output .= "<a name=\"content\"></a>";
-  $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
-
-  //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
-
-  return $output;
-}
-
-function project_diff(&$a, &$b) {
-  foreach ($b as $key => $value) {
-    if ($a->$key !== $value) {
-      $result->$key = array($a->$key, $b->$key);
-    }
-  }
-  return $result;
+  return project_invoke($node, "validate");
 }
 
 function project_view($node, $main = 0) {
-  // Initialize project variables.
-  $projects = array(0 => "<none>");
-  $result = db_query("SELECT * FROM projects ORDER BY name");
-  while ($p = db_fetch_object($result)) {
-    $projects[$p->pid] = $p->name;
-    if ($p->pid == $node->pid) {
-      $project = $p;
-    }
-  }
-  $types = project_type();
-
-  $node->title = "[". t($node->ptype) ."] $node->title";
-  if ($main) {
-    $node->teaser = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ." <b>". t("Area") .":</b> $node->area <b>". t("Priority") .":</b> $node->priority <b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />". (count($node->revisions) ? $node->revisions[0][node]->teaser : $node->teaser);
-  }
-  else {
-    if (count($node->revisions)) {
-      $revisions = $node->revisions;
-      unset($node->revisions);
-      $revisions[]["node"] = $node;
-      $node = $revisions[0]["node"];
-    }
-    else {
-      $revisions[]["node"] = $node;
-    }
-
-    for($i = 0; $i < count($revisions); $i++) {
-      if ($i) {
-        $diff = project_diff($revisions[$i - 1]["node"], $revisions[$i]["node"]);
-      }
-      elseif ($revisions[$i + 1]["node"]) {
-        $diff = project_diff($revisions[$i + 1]["node"], $revisions[$i]["node"]);
-      }
-
-      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date(($revisions[$i]["node"]->changed ? $revisions[$i]["node"]->changed : $revisions[$i]["node"]->created)), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;", "id" => $i));
-      if (count($diff->title)) { $rows[]  = array(array("data" => t("Title:"), "style" => "font-size: x-small", "valign" => "top"), $diff->title[1]); }
-      if (count($diff->pid)) { $rows[] = array(array("data" => t("Project:"), "style" => "font-size: x-small", "valign" => "top"), $projects[$diff->pid[1]]); }
-      if (count($diff->ptype)) { $rows[] = array(array("data" => t("Type:"), "style" => "font-size: x-small", "valign" => "top"), $types[$diff->ptype[1]]); }
-      if (count($diff->pstatus)) { $rows[] = array(array("data" => t("Status:"), "style" => "font-size: x-small", "valign" => "top"), t(project_pstatus($diff->pstatus[1]))); }
-      if (count($diff->priority)) { $rows[] = array(array("data" => t("Priority:"), "style" => "font-size: x-small", "valign" => "top"), t($diff->priority[1])); }
-      if (count($diff->assigned)) { $rows[] = array(array("data" => t("Assigned:"), "style" => "font-size: x-small", "valign" => "top"), $diff->assigned_formatted[1]); }
-      if (count($diff->area)) { $rows[] = array(array("data" => t("Area:"), "style" => "font-size: x-small", "valign" => "top"), $diff->area[1]); }
-      if (count($diff->version)) { $rows[] = array(array("data" => t("Version:"), "style" => "font-size: x-small", "valign" => "top"), $diff->version[1]); }
-      if (trim($revisions[$i]["node"]->body)) { $rows[] = array(array("data" => t("Comment:"), "style" => "font-size: x-small", "valign" => "top"), check_output(trim($revisions[$i]["node"]->body))); }
-      $rows[] = array(array("data" => "<br />", "colspan" => 2));
-    }
-
-    if (count($revisions) > 1) {
-      $node = $revisions[$i - 1]["node"];
-    }
-
-    $headers[] = array("<b>". t("Status") .":</b>", t(project_pstatus($node->pstatus)));
-    if ($node->area) {
-      $headers[] = array("<b>". t("Area") .":</b>", $node->area);
-    }
-    $headers[] = array("<b>". t("Priority") .":</b>", project_priority($node->priority));
-    if ($node->version) {
-      $headers[] = array("<b>". t("Version") .":</b>", $node->version);
-    }
-    if ($node->assigned_formatted) {
-      $headers[] = array("<b>". t("Assigned") .":</b>", $node->assigned_formatted);
-    }
-    $headers[] = array("<br />");
-    $node->body = "<div id=\"project\">";
-    $node->body .= table(array(), array_merge($headers, $rows));
-    $node->body .= "</div>";
-    $node->project_name = $project->name;
-
-  }
-
-  if (count($node->revisions)) {
-    $node->uid = $node->revisions[0][node]->uid;
-    $node->name = $node->revisions[0][node]->name;
-  }
-  theme("node", $node, $main);
+  return project_invoke($node, "view", $main);
 }
 
-// returns an array of urls from HTML or text string
-//TODO: return the source HTML with markers replacing each link so reader knows where the links came from
-function project_parse_links($html) {
-
-  $urls = '(http|file|ftp)';
-  $ltrs = '\w';
-  $gunk = '/#~:.?+=&%@!\-';
-  $punc = '.:?\-';
-  $any = "$ltrs$gunk$punc";
-  preg_match_all("{
-                    \b
-                    $urls   :
-                    [$any] +?
-
-
-                    (?=
-                      [$punc] *
-                      [^$any]
-                    |
-                      $
-                    )
-                }x", $html, $matches);
-  return $matches[0] ? $matches[0] : array ();
+function project_load($node) {
+  return project_invoke($node, "load");
 }
 
-function project_mail_help() {
-
-  $sn = "<i>". variable_get("site_name", "Drupal"). "</i>";
-  $output = <<<EOD
-  <p>You are welcome to contribute to projects at $sn by
-  clicking on the <i>Update by Mail</i> link in Project emails. The following
-  is a detailed example of all that is possible in these emails.
-  <pre>
-  PStatus: Closed
-  Assigned: Killes
-  Priority: 5
-  Area: node.module
-
-  this feature is implemented in latest CVS.
-  I am closing this item.
-  </pre>
-  Note that you may change project item parameters using the syntax shown at the top of the email above.
-  Include a a blank line between your last <i>command</i>, and above the body of your message.
-  <p>As usual, you must submit your reply from an email address which is registered at $sn.</p>
-EOD;
-  return $output;
+function project_insert($node) {
+  return project_invoke($node, "insert");
 }
 
-function project_mail_digest() {
+function project_update($node) {
+  return project_invoke($node, "update");
+}
 
-  // Prepare the content:
-  $result = db_query("SELECT n.nid, n.title, n.created, p.ptype, q.name FROM node n LEFT JOIN project p ON n.nid = p.nid LEFT JOIN projects q ON q.pid = p.pid WHERE n.type = 'project' AND n.status = 1 AND p.pstatus = 1 AND p.priority = 1 ORDER BY n.nid");
+function project_delete($node) {
+  return project_invoke($node, "delete");
+}
 
-  while ($node = db_fetch_object($result)) {
-    $critical .= "[$node->ptype #$node->nid] $node->title\n";
-    $critical .= " project: $node->name\n";
-    $critical .= " age: ". format_interval(time() - $node->created) ."\n";
-    $critical .= " url: ". url("node/view/$node->nid") ."\n";
-    $critical .= "\n";
-  }
-
-  // Prepare the recepients:
-  $recipient = variable_get("project_digest_recipient", "");
-
-  // Prepare the body:
-  if ($critical) {
-    $body .= t("Please find below a list of all release critical bugs extracted from the project pages at %url:", array("%url" => url("project/"))) ."\n\n";
-    $body .= $critical;
-  }
-
-  if ($recipient && $body) {
-    mail($recipient, t("release critical bugs for %date", array("%date" => date("F d, Y", time()))), $body, "From: no-reply");
+function project_access($op, $node) {
+  switch ($node->type) {
+    case "project_project":
+      return project_project_access($op, $node);
+    case "project_issue":
+      return project_issue_access($op, $node);
   }
 }
 

@@ -1,0 +1,38 @@
+.project tr.light, .project tr.dark {
+  background-color: #fff;
+}
+.project td {
+  padding: 0.4em 0.1em;
+}
+.project td {
+  vertical-align: top;
+}
+.project .links {
+  font-size: 0.8em;
+}
+.project .author {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.project .state_light_1 {
+  background-color: #eee;
+}
+.project .state_dark_1 {
+  background-color: #ddd;
+}
+
+.project .state_light_2,
+.project .state_dark_2 {
+  background-color: #c0ffc0;
+}
+
+.project .state_light_3, .project .state_light_4, .project .state_light_5, .project .state_light_6,
+.project .state_dark_3, .project .state_dark_4, .project .state_dark_5, .project .state_dark_6 {
+  background-color: #c0c0ff;
+}
+
+.project .state_light_7,
+.project .state_dark_7 {
+  background-color: #ffc0c0;
+}
