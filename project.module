@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.76 2003/06/16 15:38:05 weitzman Exp $
+// $Id: project.module,v 1.77 2003/06/18 15:08:52 almaw Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -292,7 +292,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       // $output .= "<td>#$node->nid</td>";
       $output .= "<td>". l($node->title, "node/view/$node->nid") ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
-      $output .= "<td align=\"center\">$node->priority</td>";
+      $output .= "<td align=\"center\">". project_priority($node->priority) ."</td>";
       if ($project->areas) {
         $output .= "<td>$node->area</td>";
       }
@@ -601,6 +601,17 @@ function project_pstatus($pstatus = 0) {
   }
 }
 
+// translates from a numeric priority to english equivalent or vice versa.
+function project_priority($priority = 0) {
+  $status = array(1 => "Critical", 2 => "Normal", 3 => "Minor")
+  if (is_numeric($priority)) {
+    return $priority ? $status[$priority] : $status;
+  }
+  else {
+    return array_search($priority, $status);
+  }
+}
+
 function project_array($values) {
   if (!is_array($values)) {
     $values = explode(",", $values);
@@ -626,7 +637,7 @@ function project_mail(&$node, $new = 0) {
   $body .= "Area: $node->area\n";
   $body .= "Version: $node->version\n";
   $body .= "Pstatus: ". project_pstatus($node->pstatus) ."\n";
-  $body .= "Priority: $node->priority\n";
+  $body .= "Priority: ". project_priority($node->priority) ."\n";
   if ($node->assigned) {
     $body .= "Assigned: ". @implode("", uid_to_name($node->assigned)) ."\n";
   }
