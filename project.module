@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.2 2002/02/19 12:19:39 kjartan Exp $
+// $Id: project.module,v 1.3 2002/03/05 21:12:32 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -57,7 +57,7 @@ function project_admin_list() {
         $developers[] = $user->name;
       }
     }
-    $output .= "<tr><td>$project->name</td><td>$project->versions</td><td>$project->mail</td><td>". @implode(",", $developers) ."</td><td>$project->areas</td><td><a href=\"module.php?mod=project&op=edit&pid=$project->pid\">edit project</a></td></tr>\n";
+    $output .= "<tr><td>$project->name</td><td>$project->versions</td><td>$project->mail</td><td>". @implode(",", $developers) ."</td><td>$project->areas</td><td><a href=\"admin.php?mod=project&op=edit&pid=$project->pid\">. t("edit project") ."</a></td></tr>\n";
   }
   //$output .= "<tr><td><input name=\"edit[name]\" size=20></td><td><input name=\"edit[versions]\" size=40></td><td><input name=\"edit[developers]\" size=40></td><td><input name=\"edit[areas]\" size=40></td><td><input type=\"submit\" name=\"op\" value=\"add project\"></tr>\n";
   $output .= "</table>\n";
@@ -276,6 +276,7 @@ function project_page() {
           if (user_access("search content")) {
             // Use standard Drupal search for now
             $output .= "<td><a href=\"module.php?mod=project&pid=$project->pid&op=search&type=$type\">". t("search") ."</a></td>";
+            //$output .= "<td><a href=\"module.php?mod=search&edit[type][node]=1\">". t("search") ."</a></td>";
           }
           $output .= "<td>($active->total ". t("open") .")</td>";
         }
@@ -342,7 +343,7 @@ function project_mail(&$node, $new = 0) {
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   $from = "<". ($node->name ? $node->name : $user->name) ."> ". variable_get("site_mail", ini_get("sendmail_from"));
 
-  $from = variable_get("site_mail", "root@localhost");
+  $body = "ID: $node->nid\n";
   $body = "Project: $project->name\n";
   $body .= "Area: $node->area\n";
   $body .= "Version: $node->version\n";
@@ -377,6 +378,9 @@ function project_mail(&$node, $new = 0) {
   $body .= "Update: ". path_uri() ."module.php?mod=project&op=update&id=$node->nid";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
+  $body = strtr($body, $trans);
+  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: $from\nReply-to: $from\nX-Mailer: Drupal\nReturn-path: <$from>\nErrors-to: $from\n$mid");
+}
 
 // Node support functions
 /* Using Drupal nodes, but with too many extensions to use the standard methods
@@ -451,9 +455,12 @@ function project_delete(&$node) {
 // Node output functions
 function project_form(&$node, &$help, &$error, &$form) {
   global $user;
-function project_form(&$node, &$help, &$error) {
+  
   $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
 
+  // TODO: implement file uploads correctly
+  // $form["options"] = 'enctype="multipart/form-data"';
+  if ($project->pid) {
     // TODO: implement file uploads correctly
 
   unset($node->teaser);
