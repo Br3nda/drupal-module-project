@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.37 2003/12/06 13:16:57 kjartan Exp $
+// $Id: issue.inc,v 1.38 2003/12/06 15:41:41 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('Issue');
@@ -9,6 +9,19 @@ function project_issue_node($field) {
 
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;
+
+  if (project_issue_category(arg($arg))) {
+    $_GET['categories'] = arg($arg);
+  }
+  $output = project_issue_query_result($project);
+
+  $breadcrumb[] = l(t('Home'), NULL);
+  $breadcrumb[] = l(t('Projects'), 'project');
+  if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
+    $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
+  }
+  $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
+  drupal_set_breadcrumb($breadcrumb);
 
   switch ($_POST['op'] ? $_POST['op'] : arg($arg)) {
     case 'download':
@@ -42,18 +55,6 @@ function project_issue_page($project) {
     case 'user':
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
-      if (project_issue_category(arg($arg))) {
-        $_GET['categories'] = arg($arg);
-      }
-      $output = project_issue_query_result($project);
-
-      $breadcrumb[] = l(t('Home'), NULL);
-      $breadcrumb[] = l(t('Projects'), 'project');
-      if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
-        $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
-      }
-      $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
-      drupal_set_breadcrumb($breadcrumb);
       //drupal_set_title(l(t('Issues'), $project->nid ? "project/$project->uri/issues' : 'project/issues", NULL, project_issue_query_url()));
 
       print theme('page', $output);
@@ -64,7 +65,6 @@ function project_issue_statistics($project) {
   if ($project->nid) {
     $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
   }
-  $output = '<div class="project">';
 
   // Issue lifetime
   $header = array(t('category'), t('overall'), t('last month'));
@@ -72,16 +72,18 @@ function project_issue_statistics($project) {
   $duration = time() - 30 * 24 * 60 * 60;
   $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category', $filter);
   while ($stat = db_fetch_object($result)) {
-    $rows[$stat->category][0] = project_issue_category($stat->category);;
-    $rows[$stat->category][1] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
-  }
-  // Processing this week
-  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
-  while ($stat = db_fetch_object($result)) {
-    $rows[$stat->category][2] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+    $i++;
+    $rows[$i][0] = project_issue_category($stat->category);;
+    $rows[$i][1] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
   }
 
-  $output .= '<h2>'. t('Average lifetime') .'</h2>';
+  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
+  while ($stat = db_fetch_object($result)) {
+    $j++;
+    $rows[$j][2] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
+  }
+
+  $output = '<h2>'. t('Average lifetime') .'</h2>';
   $output .= theme('table', $header, $rows);
 
   $header = array(t('status'), t('overall'), '%', t('last month'));
@@ -91,18 +93,17 @@ function project_issue_statistics($project) {
   $result = db_query('SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s GROUP BY p.state', $filter);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][0] = project_issue_state($stat->state);;
-     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'numeric');
-     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'small numeric');
+     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
+     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
   }
   // Activity this week
   $result = db_query('SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state', $filter, $duration);
   while ($stat = db_fetch_object($result)) {
-    $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'numeric');
+    $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
 
   $output .= '<h2>'. t('Issue activity') .'</h2>';
   $output .= theme('table', $header, $rows);
-  $output .= '</div>';
   return $output;
 }
 
@@ -113,7 +114,10 @@ function project_issue_subscribe($project) {
   $form = form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), 'level', $level, $levels);
   $form .= form_hidden('nid', $project->nid);
   $form .= form_submit(t('Subscribe'));
-  return form($form, 'post', url('project'));
+
+  $output = '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>';
+  $output .= form($form, 'post', url('project'));
+  return $output;
 }
 
 function project_issue_form(&$node, &$help, &$error, &$param) {
@@ -171,7 +175,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     $output .= '</div>';
     $output .= '<div class="admin">';
     $output .= '<div class="options">'. form_group(t('Project information'), $group1) .'</div>';
-    $output .= '<div class="options">'. form_group(t('Issue status'), $group2) .'</div>';
+    $output .= '<div class="options">'. form_group(t('Issue information'), $group2) .'</div>';
     $output .= '</div>';
     $output .= '<div class="standard">';
 

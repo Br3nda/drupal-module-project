@@ -78,9 +78,18 @@ div.php code {
   font-size: smaller;
 }
 
-.project .numeric {
+.project-numeric {
   text-align: right;
 }
-.project .small {
-  font-size: 0.8em;
+.project-small2 {
+  text-align: right;
+  color: #999;
+}
+
+.node-form .project fieldset {
+  display: block;
+}
+
+.node-form .project .form-checkbox {
+  display: inline;
 }

@@ -1,8 +1,8 @@
 <?php
-// $Id: project.inc,v 1.16 2003/12/02 14:54:46 kjartan Exp $
+// $Id: project.inc,v 1.17 2003/12/06 15:41:41 kjartan Exp $
 
 function project_project_node($field) {
-  $info['name'] = t('Project');
+  $info['name'] = t('project');
 
   return $info[$field];
 }
@@ -24,33 +24,43 @@ function project_project_form(&$node, &$help, &$error) {
     }
   }
 
-  if (function_exists('taxonomy_node_form')) {
-    $output = implode('', taxonomy_node_form('project', $node));
-  }
   //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'). theme_error($error['title']));
-  $output .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme_error($error['uri']));
-  $output .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme_error($error['body']));
-  $output .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme_error($error['mail']));
-  $output .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme_error($error['homepage']));
-  $output .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme_error($error['changelog']));
-  $output .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme_error($error['cvs']));
-  $output .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, theme_error($error['demo']));
+  $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, theme_error($error['body']));
+  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'). theme_error($error['uri']));
   if (variable_get('project_release_directory', '') && user_access('maintain projects')) {
-    $output .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme_error($error['release_directory']));
+    $project .= form_textfield(t('Release directory'), 'release_directory', $node->release_directory, 40, 255, theme_error($error['release_directory']));
   }
+  $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'). theme_error($error['mail']));
 
-  $output .= form_item(t('Issue tracker'), form_checkbox(t('Enable issue tracker'), 'issues', 1, $node->issues, t('Let users submit bug requests, patches, feature requests, support requests, etc.')));
-  $output .= form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.'));
-  $output .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme_error($error['mail_digest']));
-  $output .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme_error($error['mail_copy']));
+  $link .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'). theme_error($error['homepage']));
+  $link .= form_textfield(t('Screenshots'), 'screenshots', $node->screenshots, 40, 255, t('Link to project screenshots.'). theme_error($error['screenshots']));
+  $link .= form_textfield(t('Changelog'), 'changelog', $node->changelog, 40, 255, t('Link to changelog.'). theme_error($error['changelog']));
+  $link .= form_textfield(t('CVS tree'), 'cvs', $node->cvs, 40, 255, t('Link to webcvs/viewcvs.'). theme_error($error['cvs']));
+  $link .= form_textfield(t('Demo site'), 'demo', $node->demo, 40, 255, theme_error($error['demo']));
+
+  $issue .= form_item(t('Issue tracker'), form_checkbox(t('Enable issue tracker'), 'issues', 1, $node->issues, t('Let users submit bug requests, patches, feature requests, support requests, etc.')));
+  $issue .= form_select(t('Default version'), 'version', $node->version, project_release_load($node), t('Default version for issues.'));
+  $issue .= form_textarea(t('Components'), 'components', $node->components, 20, 5);
+  $issue .= form_textarea(t('Submission guidelines'), 'help', $node->help, 20, 5);
+
+  $email .= form_textfield(t('Weekly critical issues report'), 'mail_digest', $node->mail_digest, 20, 255, t('To get a weekly digest of critical issues specify an e-mail address.') . theme_error($error['mail_digest']));
+  $email .= form_textfield(t('Issues e-mail address'), 'mail_copy', $node->mail_copy, 20, 255, t('If you wish to receive a copy of all the issues to a central location specify an address here.') . theme_error($error['mail_copy']));
   $options = project_issue_category();
   foreach ($options as $key => $choice) {
     $data .= form_checkbox($choice, "mail_copy_filter][$key", $key, ($key == $node->mail_copy_filter[$key]));
   }
-  $output .= form_item(t('Categories'), $data, t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
-  $output .= form_textarea(t('Components'), 'components', $node->components, 20, 5);
-  $output .= form_textarea(t('Submission guidelines'), 'help', $node->help, 20, 5);
-  $output .= form_select(t('Default version'), 'version', $node->version, project_release_load($node));
+  $email .= form_item(t('Categories'), $data, t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
+  $email .= form_item(t('Monthly reminder'), form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.')));
+
+  if (function_exists('taxonomy_node_form')) {
+    $output = implode('', taxonomy_node_form('project', $node));
+  }
+  $output .= '<div class="project">';
+  $output .= form_group(t('Project information'), $project);
+  $output .= form_group(t('More information'), $link);
+  $output .= form_group(t('Issue information'), $issue);
+  $output .= form_group(t('E-mail options'), $email);
+  $output .= '</div>';
   return $output;
 }
 
