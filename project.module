@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.103 2003/09/29 21:20:43 kjartan Exp $
+// $Id: project.module,v 1.104 2003/09/30 11:40:25 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -117,7 +117,7 @@ function project_link($type, $node = 0, $main = 0) {
       if ($node->type == "project_issue") {
         if (user_access("maintain project issues")) {
           $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
-          $links[] = l(t("add comment"), "project/$project->uri/comment/add/$node->nid");
+          $links[] = l(t("update issue"), "project/$project->uri/comment/add/$node->nid");
           if ($node->fid) {
             $links[] = l(t("download attachment"), "project/$project->uri/issues/download/$node->nid");
           }
@@ -149,6 +149,16 @@ function project_link($type, $node = 0, $main = 0) {
   }
 
   return $links;
+}
+
+function project_filter_highlight($text) {
+  $text = stripslashes(trim($text));
+  return highlight_string("<?php\n$text\n?>", 1);
+}
+
+function project_filter($text) {
+  $text = preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "project_filter_highlight('\\3')", $text);
+  return $text;
 }
 
 function project_page() {

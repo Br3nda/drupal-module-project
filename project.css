@@ -1,3 +1,11 @@
+code {
+  display: block;
+  background-color: #eee;
+  padding: 0.75em 1.5em;
+  font-size: 12px;
+  border: 1px solid #ddd;
+}
+
 .project tr.light, .project tr.dark {
   background-color: #fff;
 }

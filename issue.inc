@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.11 2003/09/30 09:13:56 kjartan Exp $
+// $Id: issue.inc,v 1.12 2003/09/30 11:40:25 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -361,7 +361,7 @@ function project_issue_query_result($project = 0) {
 
   $items = array(l(t("search issues"), ($project) ? "project/$project->uri/issues/search" : "project/issues/search"));
   if (user_access("maintain project issues")) {
-    foreach (project_issue_category() as $category => $name) {
+    foreach (project_issue_category(0, 0) as $category => $name) {
       $items[] =  l(t("submit %category", array("%category" => $name)), "node/add/project_issue", array(), "project=$project->uri&category=$category");
     }
   }
