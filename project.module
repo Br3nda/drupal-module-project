@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.15 2002/05/15 20:28:13 kjartan Exp $
+// $Id: project.module,v 1.16 2002/05/15 21:07:34 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -277,7 +277,7 @@ function project_page() {
       global $pid, $type, $user;
       $theme->header();
       if (user_access("post content")) {
-        $theme->box(t("Project") ." : ". t($type), node_form(array("uid" => $user->uid, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1)));
+        $theme->box(t("Project") ." : ". t($type), node_form(array("uid" => $user->uid, "name" => $user->name, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1)));
       }
       else {
         $theme->box(t("Access denied"), message_access());
@@ -502,7 +502,6 @@ function project_form(&$node, &$help, &$error, &$form) {
   if ($project->pid) {
     // TODO: implement file uploads correctly
     // $form["options"] = 'enctype="multipart/form-data"';
-
 
     unset($node->teaser);
     $developers = uid_to_name($project->developers);
