@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.92 2003/09/19 00:07:48 almaw Exp $
+// $Id: project.module,v 1.93 2003/09/19 11:25:03 kjartan Exp $
 
 // Drupal hooks
 function project_head() {
@@ -66,17 +66,17 @@ function project_settings () {
   $period = array(43200 => format_interval(43200), 86400 => format_interval(86400), 172800 => format_interval(172800), 259200 => format_interval(259200), 604800 => format_interval(604800), 1209600 => format_interval(1209600));
 
   $output = "<h4>". t("Individual e-mails") ."</h4>";
-  
+
   $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address used in the <b>Update by mail</b> link in project emails. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
   $output .= form_select(t("Mail criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
 
   $output .= "<h4>". t("E-mail digests") ."</h4>";
-  
+
   $output .= form_select(t("Mail overview reports"), "project_digest", variable_get("project_digest", 0), array(t("Disabled"), t("Enabled")), t("Enable or disable the automated mails that summarizes the bug reports."));
-    
+
   $output .= form_textfield("Recipients", "project_digest_recipient", variable_get("project_digest_recipient", "root@localhost"), 55, 128, "The e-mail address to mail the overviews to.  Multiple recipients can be specified by putting a comma between each address.");
   $output .= form_select("Digest interval", "project_digest_interval" , variable_get("project_digest_interval", 86400), $period, "The time interval at which digests are mailed out.  Requires crontab.");
-        
+
   return $output;
 }
 
@@ -99,7 +99,7 @@ function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
     ** if we don't reset the title here, the node's title will soon look like "RE: bug #112: another bug".
     */
     $node->title = $current->title;
-    
+
 
     // map human readable pstatus to the equivalent integer. enables users to enter text values when updating via email.
     if (!is_numeric($node->pstatus)) {
@@ -144,11 +144,12 @@ function project_delete_project($pid) {
     $output .= project_admin_list();
   }
   else {
-    $output = form_item(t("Confirm Deletion"), t("Do you wish to delete project #%p?", array ("%p" => $pid)));
-    $output .= form_hidden("confirm", 1);
-    $output .= form_submit(t("Delete"));
-    $output = form($output);
+    $form = form_item(t("Confirm Deletion"), t("Do you wish to delete project #%p?", array ("%p" => $pid)));
+    $form .= form_hidden("confirm", 1);
+    $form .= form_submit(t("Delete"));
+    $output = form($form);
   }
+
   return $output;
 }
 
@@ -165,34 +166,27 @@ function project_admin_list() {
     }
     $rows[] = array($project->name, str_replace(",", ", ", $project->versions), $project->version_default, $project->mail, (count($developers) ? implode(", ", $developers) : t("None defined.")), str_replace(",", ", ", $project->areas), l(t("edit project"), "admin/project/edit/$project->pid"));
   }
-  $output = table($header, $rows);
-  return $output;
+
+  return table($header, $rows);
 }
 
 function project_admin() {
-  $op = $_POST["op"];
-
   if (!user_access("administer projects")) {
     return;
   }
 
-  if (empty($op)) {
-    $op = arg(2);
-  }
+  $op = $_POST["op"] ? $_POST["op"] : arg(2);
   $pid = arg(3);
 
   switch ($op) {
     case "add":
-      $output .= project_admin_form();
-      break;
+      return project_admin_form();
     case "edit":
       $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
       $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
-      $output .= project_admin_form($project);
-      break;
+      return project_admin_form($project);
     case "Delete":
-      $output .= project_delete_project($pid);
-      break;
+      return project_delete_project($pid);
     case "Submit":
       $edit = $_POST["edit"];
       $edit["versions"] = strtr($edit["versions"], array("\r" => "", "\n" => ","));
@@ -213,12 +207,10 @@ function project_admin() {
       else {
         db_query("INSERT INTO projects (name, versions, version_default, developers, areas, mail) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')", $edit["name"], $edit["versions"], $edit["version_default"], implode(",", $ids), $edit["areas"], $edit["mail"]);
       }
-      $output .= project_admin_list();
-      break;
+      return project_admin_list();
     default:
-      $output .= project_admin_list();
+      return project_admin_list();
   }
-  return $output;
 }
 
 function project_list_header($text, $pid, $type, $order) {
@@ -257,7 +249,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
     foreach ($headers as $text => $i) {
       $linked_headers[] =  project_list_header($text, $pid, $type, $order);
     }
-    
+
     if (user_access("maintain bug reports")) {
       $linked_headers[] = t("Operations");
     }
@@ -280,20 +272,20 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
 
     //$status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
     $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
-    
+
     $i = 0;
     foreach ($nodes as $node) {
-      
+
       // change background color only if status is not 'Active'
       if ($node->pstatus != 1) {
         $rowstyle = "background-color: ". $colours[$node->pstatus];
-      }  
-      
+      }
+
       // conserve space by shortening username
       if (strpos($node->name, "@")) {
         $node->name = substr($node->name, 0, strpos($node->name, "@"));
       }
-            
+
       $row[$i][] = array ("style" => $rowstyle, "data" => l($node->title, "node/view/$node->nid"));
       $row[$i][] = array ("style" => $rowstyle, "data" => str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))));
       $row[$i][] = array ("style" => $rowstyle, "data" => project_priority($node->priority));
@@ -304,7 +296,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
         $row[$i][] = array ("style" => $rowstyle, "data" => $node->version);
       }
       $row[$i][] = array ("style" => $rowstyle, "data" => format_date($node->changed, "small"));
-      
+
       if ($project->developers) {
         $row[$i][] = array ("style" => $rowstyle, "data" => $node->assigned_formatted);
       }
@@ -314,7 +306,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       $i++;
       unset($rowstyle);
     }
-    
+
     if ($pager = pager_display(NULL, 50)) {
       $row[] = array(array("data" => $pager, "colspan" => count($linked_headers) + 1));
     }
@@ -657,9 +649,9 @@ function project_mail(&$node, $new = 0) {
     $body .= "Assigned: ". @implode("", uid_to_name($node->assigned)) ."\n";
   }
   $body .= "\n";
-  
+
   $from = $project->mail;
-  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));  
+  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", url()), "/"), 1));
   if ($new) {
     $author = $node->name ? $node->name : t(variable_get("anonymous", "Anonymous"));
     $body .= format_date(time(), "small") ." : $author\n";
@@ -686,46 +678,46 @@ function project_mail(&$node, $new = 0) {
     $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
     $mid .= $revcount-1 ."&host=@". $dir . strtolower($_SERVER["SERVER_NAME"]) .">\n";
   }
-  
+
   /*
   the intent here is to preserve the links before they get removed by strip_tags()
   remove duplicates and then display the links at the bottom of the email.
   */
   $links = project_parse_links($body);
-  
+
   $unique_links = array();
   foreach ($links as $link) {
     if (!in_array($link, $unique_links)) {
       $unique_links[] = $link;
     }
   }
-  
+
   $body = strip_tags($body);
   if ($node->project_wrap <> -1) {
     $body = wordwrap($body, 72);
   }
-  
+
   // now list the links which were parsed above
   if ($links) {
     $body .= "Links:\n". implode("\n", $unique_links). "\n\n";
-  }  
-  
+  }
+
   $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
   $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
   $body .= "Update-by-mail help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  
+
   if (strpos($author, "@")) {
     $fromname = substr($author, 0, strpos($author, "@"));
   }
   else if ($author) {
     $fromname = $author;
-  }  
+  }
   else {
     $fromname = t(variable_get("anonymous", "Anonymous"));
-  }  
+  }
   user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: $fromname <$from>". "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 
@@ -880,7 +872,7 @@ function project_form(&$node, &$help, &$error, &$form) {
   }
   $output .= "<a name=\"content\"></a>";
   $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
-  
+
   //$output .= form_file(t("Attach file"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
 
   return $output;
@@ -1022,10 +1014,10 @@ EOD;
 }
 
 function project_mail_digest() {
-  
+
   // Prepare the content:
   $result = db_query("SELECT n.nid, n.title, n.created, p.ptype, q.name FROM node n LEFT JOIN project p ON n.nid = p.nid LEFT JOIN projects q ON q.pid = p.pid WHERE n.type = 'project' AND n.status = 1 AND p.pstatus = 1 AND p.priority = 1 ORDER BY n.nid");
-   
+
   while ($node = db_fetch_object($result)) {
     $critical .= "[$node->ptype #$node->nid] $node->title\n";
     $critical .= " project: $node->name\n";
