@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.29 2002/06/26 19:15:06 kjartan Exp $
+// $Id: project.module,v 1.30 2002/06/27 09:51:03 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -533,11 +533,12 @@ function project_array($values) {
 function project_mail(&$node, $new = 0) {
   global $user, $HTTP_HOST;
   
+  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
+
   if (!$project->mail) {
     return;
   }
 
-  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   $from = variable_get("site_mail", ini_get("sendmail_from"));
 
   $body = str_repeat("-", 72). "\n";  
