@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.25 2002/06/14 10:58:04 kjartan Exp $
+// $Id: project.module,v 1.26 2002/06/22 13:36:52 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -109,7 +109,7 @@ function project_admin() {
       break;
     case "edit":
       global $pid;
-      $project = db_fetch_array(db_query("SELECT pid,name,versions,developers,areas,mail FROM projects WHERE pid = '%d'", $pid));
+      $project = db_fetch_array(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
       $project["developers"] = @implode("\n", uid_to_name($project["developers"]));
       print project_admin_form($project);
       break;
