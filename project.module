@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.83 2003/06/21 23:23:53 weitzman Exp $
+// $Id: project.module,v 1.84 2003/06/23 21:45:12 weitzman Exp $
 
 
 // Drupal hooks
@@ -687,7 +687,7 @@ function project_mail(&$node, $new = 0) {
   
   // now list the links which were parsed above
   if ($links) {
-    $body .= "Links:\n". implode("\n", $links). "\n\n";
+    $body .= "Links:\n". implode("\n", array_unique($links)). "\n\n";
   }  
   
   $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
