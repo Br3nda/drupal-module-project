@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.43 2004/11/04 08:50:50 dries Exp $ */
+/* $Id: project.inc,v 1.44 2004/11/20 19:23:36 dries Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -27,7 +27,7 @@ function project_project_form(&$node) {
   //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'));
   $project .= form_textarea(t('Full description'), 'body', $node->body, 40, 10, null, null, true);
   $project .= filter_form('format', $node->format);
-  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /projects/&lt;shortname&gt;/ URL for your project.'), null, true);
+  $project .= form_textfield(t('Short project name'), 'uri', $node->uri, 40, 50, t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'), null, true);
   $project .= form_textfield(t('Project e-mail'), 'mail', $node->mail, 20, 255, t('E-mail address where the project owners can be contacted.'), null, true);
   $project .= form_textfield(t('Homepage'), 'homepage', $node->homepage, 40, 255, t('Link to project homepage.'));
   $project .= form_textfield(t('Documentation'), 'documentation', $node->documentation, 40, 255, t('Link to project documentation.'));
