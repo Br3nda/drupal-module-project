@@ -1,10 +1,10 @@
 02. November 2003
 -----------------
-Releases
-+ Added status field to releases.
-+ Implemented delete function for releases:
++ Added status field to releases (Kjartan).
++ Implemented delete function for releases (Kjartan):
     * Releases are never deleted, just marked with status = 0.
     * When adding a version that has been deleted the old version is restored.
++ Fixed search (Weitzman).
 
 24. September 2003
 ------------------
