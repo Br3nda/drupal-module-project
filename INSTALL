@@ -3,7 +3,7 @@ Readme
 
 This is a simple notification module. It provides e-mail notifications to
 members about updates and changes to the Drupal web site.
-Send comments to kjartan@drop.org.
+Send comments to kjartan@drupal.org.
 
 Requirements
 ------------
@@ -19,19 +19,20 @@ Installation
 
 2. Copy the project.module to the Drupal modules/ directory.
 
-3. Use the administration pages to setup projects.
+3. Enable the module under "site configuration"
+
+4. Use the administration pages to setup projects.
 
 Author
 ------
 
-Kjartan Mannes <kjartan@drop.org>
+Kjartan Mannes <kjartan@drupal.org>
 
 Wish list
 --------
 
 This is in no particular order.
 
-- More filter / search capabilities.
 - Better docs.
 - Send mail to submitter an not just project mail.
 - A dozen other things prolly.
