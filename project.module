@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.82 2003/06/21 13:53:53 weitzman Exp $
+// $Id: project.module,v 1.83 2003/06/21 23:23:53 weitzman Exp $
 
 
 // Drupal hooks
@@ -256,7 +256,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       unset($headers["Assigned"]);
     }
   }
-  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"));
+  $result = db_query("SELECT n.nid FROM node n INNER JOIN project p ON n.nid = p.nid WHERE ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"));
 
   if (db_num_rows($result)) {
     $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
