@@ -55,6 +55,7 @@ div.php code {
 
 .project .summary table {
   border-collapse: collapse;
+  width: auto;
 }
 .project .summary table td {
   color: #333;
@@ -90,6 +91,15 @@ div.php code {
 .project-numeric2 {
   text-align: right;
   color: #999;
+}
+
+.project .quick-search tr td .form-item, .project .quick-search tr td input {
+  margin: 0;
+  padding: 0;
+}
+
+.project .quick-search tr td {
+  vertical-align: bottom;
 }
 
 .node-form .project fieldset {

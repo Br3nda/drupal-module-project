@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.29 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: mail.inc,v 1.30 2004/04/22 18:59:00 kjartan Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -259,7 +259,7 @@ function project_mail_notify($node) {
     "From: $sender->name <$sender->mail>",
     'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
     "List-Id: $project->title <$project->uri-issues-$domain>",
-    'List-Archive: <'. url("project/$project->uri/issues", NULL, NULL, 1) .'>',
+    'List-Archive: <'. url("project/issues/$project->uri", NULL, NULL, 1) .'>',
     'List-Subscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>',
     'List-Unsubscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>'
   );

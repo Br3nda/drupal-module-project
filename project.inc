@@ -1,27 +1,10 @@
 <?php
-/* $Id: project.inc,v 1.30 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: project.inc,v 1.31 2004/04/22 18:59:00 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
 
   return $info[$field];
-}
-
-function project_project_menu(&$node) {
-  $categories = project_issue_category(0, 1);
-  $uri = "project/$node->uri";
-
-  menu($uri, strtolower($node->title), 'project_page', 3);
-  if ($GLOBALS['user']->uid) {
-    menu("$uri/issues/user", t('my issues'), 'project_page', 0);
-    menu("$uri/issues/subscribe", t('subscribe'), 'project_page', 3);
-  }
-  foreach ($categories as $cat => $category) {
-    menu("$uri/issues/$cat", $category, 'project_page', 2);
-  }
-  menu("$uri/issues/add", t('submit'), 'project_page', 3);
-  menu("$uri/issues/statistics", t('statistics'), 'project_page', 4);
-  menu("$uri/issues/search", t('search'), 'project_page', 5);
 }
 
 function project_project_form(&$node, &$error) {
@@ -224,6 +207,18 @@ function project_project_access($op, $node) {
     case 'delete':
       return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
   }
+}
+
+function project_project_retrieve($key = 0) {
+  if ($key) {
+    if (is_numeric($key)) {
+      $node = node_load(array('nid' => $key, 'type' => 'project_project'));
+    }
+    else {
+      $node = node_load(array('nid' => db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $key), 0), 'type' => 'project_project'));
+    }
+  }
+  return $node;
 }
 
 ?>

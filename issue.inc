@@ -1,28 +1,29 @@
 <?php
-/* $Id: issue.inc,v 1.62 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: issue.inc,v 1.63 2004/04/22 18:59:00 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
 }
 
 function project_issue_page($project) {
-  $arg = ($project->nid) ? 3 : 2;
+  $project = project_project_retrieve(arg(3));
 
-  if (is_string(project_issue_category(arg($arg)))) {
-    $_GET['categories'] = arg($arg);
+  if (is_string(project_issue_category(arg(3)))) {
+    $_GET['categories'] = arg(3);
   }
 
-  $breadcrumb[] = l(t('Home'), NULL);
-  $breadcrumb[] = l(t('Projects'), 'project');
+  $breadcrumb = array(
+    l(t('Home'), NULL),
+    l(t('Projects'), 'project')
+  );
   if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
     $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
   }
   $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
-  drupal_set_breadcrumb($breadcrumb);
 
-  switch ($_POST['op'] ? $_POST['op'] : arg($arg)) {
+  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
-      print theme('page', project_issue_query($project, $query));
+      print theme('page', project_issue_query($project, $query), NULL, $breadcrumbs);
       break;
     case 'rss':
       $output = project_issue_query_result($project, 'rss');
@@ -30,10 +31,10 @@ function project_issue_page($project) {
       print $output;
       break;
     case 'add':
-      drupal_goto(url("node/add/project_issue/$project->uri"));
+      drupal_goto("node/add/project_issue/$project->uri");
       break;
     case 'statistics':
-      print theme('page', project_issue_statistics($project), t('Statistics'));
+      print theme('page', project_issue_statistics($project));
       break;
     case t('Subscribe'):
     case 'subscribe':
@@ -45,14 +46,25 @@ function project_issue_page($project) {
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
       $output = project_issue_query_result($project);
-      print theme('page', $output);
+      print theme('page', $output, NULL, $breadcrumbs);
   }
 }
 
 function project_issue_statistics($project) {
   if ($project->nid) {
+    $breadcrumb = array(
+      l(t('Home'), NULL),
+      l(t('Projects'), 'project')
+    );
+    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
+      $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
+    }
+    $breadcrumb[] = $project->nid ? l($project->title, "node/view/$project->nid") : l(t('All issues'), 'project/issues');
+    drupal_set_breadcrumbs($node);
     $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
   }
+
+  $output = '<div class="project">';
 
   // Issue lifetime
   $header = array(t('category'), t('overall'), t('last month'));
@@ -70,7 +82,7 @@ function project_issue_statistics($project) {
     $j++;
     $rows[$j][2] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
   }
-  $output = '<h2>'. t('Average lifetime') .'</h2>';
+  $output .= '<h2>'. t('Average lifetime') .'</h2>';
   $output .= theme('table', $header, $rows);
 
   $header = array(t('status'), t('overall'), '%', t('last month'));
@@ -116,6 +128,7 @@ function project_issue_statistics($project) {
     $output .= theme('table', $header, $rows);
   }
 
+  $output .= '</div>';
   return $output;
 }
 
@@ -341,11 +354,11 @@ function project_issue_view($node, $main = 0, $page = 0) {
       $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
     }
     $breadcrumb[] = l($project->title, "node/view/$project->nid");
-    $breadcrumb[] = l(t('Issues'), "project/$project->uri/issues");
+    $breadcrumb[] = l(t('Issues'), "project/issues/$project->uri");
 
     drupal_set_breadcrumb($breadcrumb);
 
-    menu_set_active_item("project/$project->uri/issues/$node->category");
+    menu_set_active_item('project/issues');
 
     $output = theme('node', $node, $main, $page);
     $output .= project_comment_view($node);
@@ -436,11 +449,12 @@ function project_issue_query($project, $query) {
     $versions = project_release_load($project, 0);
   }
   else {
-    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
-    while ($project = db_fetch_object($result)) {
-      $projects[$project->nid] = $project->title;
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 AND moderate = 0 ORDER BY title");
+    while ($node = db_fetch_object($result)) {
+      $projects[$node->nid] = $node->title;
     }
   }
+
   $states = project_issue_state();
   $priorities = project_issue_priority();
 
@@ -477,34 +491,51 @@ function project_issue_query($project, $query) {
   );
 
   $output = '<div class="project">';
-  $output .= form(theme('table', NULL, $rows), 'post', url($project->uri ? "project/$project->uri/issues" : 'project/issues'));
+  $output .= form(theme('table', NULL, $rows), 'post', url($project->uri ? "project/issues/$project->uri" : 'project/issues'));
   $output .= '</div>';
 
   return $output;
 }
 
 function project_issue_query_result($project = 0, $format = 'html') {
-  $states = project_issue_state();
-  $priorities = project_issue_priority();
+  $query = project_issue_query_parse($query);
 
-  // Get all projects we are viewing
-  $projects = array();
-  if ($project->nid) {
+  $categories = array(0 => t('<all>')) + project_issue_category();
+  $states = array(0 => t('<all>')) + project_issue_state();
+  $priorities = array(0 => t('<all>')) + project_issue_priority();
+
+  $projects = array(0 => t('<all>'));
+  $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 AND moderate = 0 ORDER BY title");
+  while ($node = db_fetch_object($result)) {
+    $projects[$node->nid] = $node->title;
+  }
+
+  // Load active project
+  if (!$project && is_numeric($query->projects)) {
+    $project = node_load(array('nid' => $query->projects));
+  }
+
+  if ($project) {
     $releases = project_release_load($project, 0);
     $query->projects = $project->nid;
+    $links = array(
+      l(t('submit'), "node/add/project_issue/$project->uri"),
+      l(t('statistics'), "project/issues/$project->uri/statistics"),
+    );
   }
   else {
-    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project'");
-    while ($node = db_fetch_object($result)) {
-      $projects[$node->nid] = $node->title;
-    }
+    $links = array(
+      l(t('submit'), "node/add/project_issue"),
+      l(t('statistics'), "project/issues/statistics"),
+    );
   }
 
+  $header = array();
   if (!$project->nid) {
     $header[] = array('data' => t('project'), 'field' => 'p.pid');
   }
   $header[] = array('data' => t('summary'), 'field' => 'n.title');
-  $header[] = array('data' => t('state'), 'field' => 'p.state');
+  $header[] = array('data' => t('status'), 'field' => 'p.state');
   $header[] = array('data' => t('pri'), 'field' => 'p.priority');
   $header[] = array('data' => t('category'), 'field' => 'p.category');
   if (count($releases)) {
@@ -514,13 +545,28 @@ function project_issue_query_result($project = 0, $format = 'html') {
   $header[] = array('data' => t('assigned to'), 'field' => 'u.name');
   #$header[] = array('data' => t('submitted by'), 'field' => 'n.uid');
 
-  if (($query = project_issue_query_parse($query))) {
+  if ($query) {
     $sql = project_issue_query_sql($query);
     $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
   }
   else {
     $result = pager_query('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 20);
   }
+
+  // Action links:
+  $form = theme('item_list', $links);
+
+  // Make quick search form:
+  $rows = array(array(
+    form_select(t('Project'), 'projects', $project->nid, $projects),
+    form_select(t('Status'), 'states', $query->states, $states),
+    form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
+    form_select(t('Category'), 'categories', $query->categories, $categories),
+    form_submit(t('Search')),
+    l(t('advanced search'), "project/issues/$project->uri/search")
+  ));
+  $form .= form(theme('table', '', $rows));
+  $rows = array();
 
   if ($format == 'rss') {
     return project_issue_query_rss($projects, $result);
@@ -531,8 +577,8 @@ function project_issue_query_result($project = 0, $format = 'html') {
       $row = array();
       $number++;
       $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->state";
-      if ($projects) {
-        $row[] = array('data' => l($projects[$node->pid], drupal_get_path_alias("node/view/$node->pid") .'/issues'), 'class' => $class);
+      if (!$project->nid) {
+        $row[] = array('data' => l($projects[$node->pid], "project/issues/$node->pid"), 'class' => $class);
       }
       $row[] = array('data' => l(substr($node->title, 0, 50), "node/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() .' ' : ''), 'class' => $class);
       $row[] = array('data' => $states[$node->state], 'class' => $class);
@@ -563,6 +609,9 @@ function project_issue_query_result($project = 0, $format = 'html') {
   }
 
   $output = '<div class="project">';
+  $output .= '<div class="quick-search">';
+  $output .= $form;
+  $output .= '</div>';
   $output .= theme('table', $header, $rows);
   $output .= '</div>';
   return $output;
@@ -727,11 +776,11 @@ function project_issue_query_rss($projects, $result) {
 
       $items .= format_rss_item(
         $node->title,
-        url("node/view/$node->nid"),
+        url("node/view/$node->nid", NULL, NULL, true),
         $body,
         array(
           'pubDate' => date('r', ($node->updated > $node->created) ? $node->updated : $node->created),
-          'comments' => url("node/view/$node->nid"),
+          'comments' => url("node/view/$node->nid", NULL, NULL, true),
           'category' => $projects[$node->pid]
         )
       );
