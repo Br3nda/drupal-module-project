@@ -1,7 +1,12 @@
 <?php
-// $Id: project.module,v 1.21 2002/06/10 19:32:34 kjartan Exp $
+// $Id: project.module,v 1.22 2002/06/11 02:15:31 weitzman Exp $
 
 // Drupal hooks
+function project_system($field) {
+  $system["description"] = t("Enables a team to track outstanding items which need resolution");
+  return $system[$field];
+}
+
 function project_link($type, $node = 0, $main = 0) {
   if ($type == "node" && $node->type == "project") {
     if (user_access("post content")) {
