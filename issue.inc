@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.6 2003/09/28 21:01:02 kjartan Exp $
+// $Id: issue.inc,v 1.7 2003/09/29 10:52:16 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("issue");
@@ -96,7 +96,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
       $output .= form_select(t("Status"), "state", $node->state, $states);
     }
     //$output .= form_textfield("Short description", "title", $node->title, 40, 255, t("Short and concise description of the problem.") . theme_error($error["title"]));
-    $output .= form_textarea("Description", "body", $node->body, 40, 10, theme_error($error["body"]));
+    $output .= form_textarea("Description", "body", $node->body, 60, 20, theme_error($error["body"]));
     /* TODO: pending final fileapi
     $output .= form_file(t("File attachment"), "file", 40, ($node->fid) ? t("A file already exists, if you upload another file the current file will be replaced.") : "" . theme_error($error["file"]), $node->fid);
     */
@@ -111,13 +111,14 @@ function project_issue_validate(&$node) {
     $node->pid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $_GET["project"]), 0);
   }
 
-  isset($node->comment) or $node->comment = 0;
+  $node->comment = 0;
   isset($node->promote) or $node->promote = 0;
   isset($node->moderate) or $node->moderate = 0;
   isset($node->priority) or $node->priority = 2;
   isset($node->category) or $node->category = $_GET["category"];
 
   empty($node->rid) and $node->rid = db_result(db_query("SELECT version FROM {project_projects} WHERE nid = %d", $node->pid), 0);
+  empty($node->rid) and $error["rid"] = t("Required.");
   empty($node->pid) and $error["pid"] = t("Required.");
   empty($node->body) and $error["body"] = t("Required.");
   empty($node->category) and $error["category"] = t("Required.");

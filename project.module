@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.101 2003/09/28 21:01:02 kjartan Exp $
+// $Id: project.module,v 1.102 2003/09/29 10:52:16 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -103,7 +103,10 @@ function project_link($type, $node = 0, $main = 0) {
           $links[] = l(t("edit"), "node/edit/$node->nid");
         }
         if ($node->issues && user_access("access project issues")) {
-          $links[] = l(t("issues"), "project/$node->uri/issues");
+          $categories = project_issue_category();
+          foreach ($categories as $category => $name) {
+            $links[] = l($name, "project/$node->uri/issues?states=1,2&categories=$category");
+          }
         }
         foreach (array("homepage" => t("homepage"), "changelog" => t("changelog"), "cvs" => t("cvs tree"), "demo" => t("demo site")) as $uri => $name) {
           if (!empty($node->$uri)) {
