@@ -59,7 +59,8 @@ div.php code {
 }
 
 .project .downloads td {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1em;
 }
 .project .downloads ul {
   margin: 0px;

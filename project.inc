@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.18 2003/12/06 17:06:24 kjartan Exp $
+// $Id: project.inc,v 1.19 2003/12/06 17:26:36 kjartan Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -148,8 +148,18 @@ function project_project_view($node, $main = 0, $page = 0) {
     }
     drupal_set_breadcrumb($breadcrumb);
 
+    foreach (array('homepage' => t('homepage'), 'changelog' => t('changelog'), 'cvs' => t('cvs tree'), 'demo' => t('demo site'), 'screenshots' => t('screenshots')) as $uri => $name) {
+      if (!empty($node->$uri)) {
+        $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
+      }
+    }
+
+    if ($links) {
+      $node->body .= theme('item_list', $links, t('Links'));
+    }
+
     if ($output = project_release_view($node)) {
-      $node->body .= '<h2>'. t('Releases') .'</h2>';
+      $node->body .= '<h1>'. t('Releases') .'</h1>';
       $node->body .= $output;
     }
   }
@@ -170,14 +180,14 @@ function project_project_insert($node) {
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
 
-  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, issues, components, mail, mail_digest, mail_reminder, mail_copy, mail_copy_filter, version, help) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', %d, '%s', '%s', %d, '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help);
+  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, issues, components, mail, mail_digest, mail_reminder, mail_copy, mail_copy_filter, version, help, screenshots) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s', %d, '%s', '%s', %d, '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help, $node->screenshots);
 }
 
 function project_project_update($node) {
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
 
-  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', issues = %d, components = '%s', mail = '%s', mail_digest = '%s', mail_reminder = %d, mail_copy = '%s', mail_copy_filter = '%s', version = %d, help = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->mail_reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help, $node->nid);
+  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', issues = %d, components = '%s', mail = '%s', mail_digest = '%s', mail_reminder = %d, mail_copy = '%s', mail_copy_filter = '%s', version = %d, help = '%s', screenshots = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->issues, $node->components, $node->mail, $node->mail_digest, $node->mail_reminder, $node->mail_copy, $node->mail_copy_filter, $node->version, $node->help, $node->screenshots, $node->nid);
 }
 
 function project_project_delete($node) {

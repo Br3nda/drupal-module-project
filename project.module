@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.128 2003/12/06 17:06:24 kjartan Exp $
+// $Id: project.module,v 1.129 2003/12/06 17:26:36 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -134,15 +134,7 @@ function project_link($type, $node = 0, $main = 0) {
           $links = array(l(t('add new release'), "project/$node->uri/releases/add"));
         }
         if ($node->issues && user_access('access project issues')) {
-          $categories = project_issue_category();
-          foreach ($categories as $category => $name) {
-            $links[] = l($name, "project/$node->uri/issues?categories=$category");
-          }
-        }
-        foreach (array('homepage' => t('homepage'), 'changelog' => t('changelog'), 'cvs' => t('cvs tree'), 'demo' => t('demo site')) as $uri => $name) {
-          if (!empty($node->$uri)) {
-            $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
-          }
+          $links[] = l(t('issues'), "project/$node->uri/issues");
         }
       }
       if ($node->type == 'project_issue') {
