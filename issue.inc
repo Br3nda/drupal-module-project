@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.2 2003/09/28 19:34:17 kjartan Exp $
+// $Id: issue.inc,v 1.3 2003/09/28 20:06:02 kjartan Exp $
 
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;
@@ -48,7 +48,7 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
   */
 
   // Fetch a list of all projects to make swaping simpler
-  $projects = array();
+  $projects = array(t("<none>"));
   $result = db_query("SELECT n.nid, n.title FROM {project_projects} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND p.issues = 1");
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
