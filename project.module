@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.17 2002/05/20 00:00:03 kjartan Exp $
+// $Id: project.module,v 1.18 2002/05/31 23:38:05 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -421,7 +421,7 @@ function project_mail(&$node, $new = 0) {
     $mid .= "In-Reply-To: <$node->nid@$HTTP_HOST>";
   }
 
-  $body = wordwrap(strip_tags($body, 72));
+  $body = wordwrap(strip_tags($body), 72);
   $body .= "View: ". path_uri() ."node.php?id=$node->nid\n";
   $body .= "Update: ". path_uri() ."module.php?mod=project&amp;op=update&amp;id=$node->nid";
   $trans = get_html_translation_table(HTML_ENTITIES);
