@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.8 2003/09/29 13:53:12 kjartan Exp $
+// $Id: issue.inc,v 1.9 2003/09/29 19:05:43 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("issue");
@@ -209,16 +209,14 @@ function project_issue_delete($node) {
 }
 
 function project_issue_access($op, $node) {
-  global $user;
-
   switch ($op) {
     case "view":
       return $node->status && user_access("access project issues");
     case "create":
-      return user_access("maintain project issues") && $user->uid;
+      return user_access("maintain project issues");
     case "update":
     case "delete":
-      return (user_access("maintain project issues") && $user->uid == $node->uid) || user_access("administer projects");
+      return user_access("administer projects");
   }
 }
 
