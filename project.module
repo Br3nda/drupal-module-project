@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.67 2003/04/16 18:14:14 dries Exp $
+// $Id: project.module,v 1.68 2003/04/20 14:36:24 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -983,12 +983,12 @@ function project_mail_digest() {
 
   // Prepare the body:
   if ($critical) {
-    $body .= t("Please find below a list of all release critical bugs extracted from the project pages at %url:", array("%url" => url("project"))) ."\n\n";
+    $body .= t("Please find below a list of all release critical bugs extracted from the project pages at %url:", array("%url" => url("project/"))) ."\n\n";
     $body .= $critical;
   }
 
   if ($recipient && $body) {
-    mail($recipient, "[project] release critical bugs", $body, "From: no-reply");
+    mail($recipient, t("release critical bugs for %date", array("%date" => date("F d, Y", time()))), $body, "From: no-reply");
   }
 }
 
