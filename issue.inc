@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.16 2003/10/02 21:55:52 kjartan Exp $
+// $Id: issue.inc,v 1.17 2003/10/03 11:59:00 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -395,7 +395,7 @@ function project_issue_query_parse() {
     }
   }
   if ($_SERVER['REQUEST_METHOD'] == 'GET' && empty($query->states)) {
-    $query->states = "1,2";
+    $query->states = array(1, 2);
   }
   return $query;
 }

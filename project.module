@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.110 2003/10/03 11:17:27 kjartan Exp $
+// $Id: project.module,v 1.111 2003/10/03 11:59:00 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -92,7 +92,7 @@ function project_link($type, $node = 0, $main = 0) {
         if ($node->issues && user_access("access project issues")) {
           $categories = project_issue_category();
           foreach ($categories as $category => $name) {
-            $links[] = l($name, "project/$node->uri/issues?states=1,2&categories=$category");
+            $links[] = l($name, "project/$node->uri/issues?categories=$category");
           }
         }
         foreach (array("homepage" => t("homepage"), "changelog" => t("changelog"), "cvs" => t("cvs tree"), "demo" => t("demo site")) as $uri => $name) {
@@ -125,11 +125,11 @@ function project_link($type, $node = 0, $main = 0) {
         global $user;
         menu("project/issues", t("view open issues"), "project_page", NULL, 0);
         if ($user->uid) {
-          menu("project/issues/?users=$user->uid&states=1,2", t("my issues"), "project_page", NULL, 0);
+          menu("project/issues/?users=$user->uid", t("my issues"), "project_page", NULL, 0);
         }
         $categories = project_issue_category(0, 1);
         foreach ($categories as $cat => $category) {
-          menu("project/issues/?categories=$cat&states=1,2", $category, "project_page", NULL, 1);
+          menu("project/issues/?categories=$cat", $category, "project_page", NULL, 1);
         }
       }
       break;
@@ -346,26 +346,7 @@ function project_page_user() {
       theme("footer");
       break;
     default:
-
-      /*
-      theme("header");
-      $result = db_query("SELECT nid FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
-      while ($project = db_fetch_object($result)) {
-        $project = node_load($project);
-        $li = array();
-        $li[] = l(t("Open issues assigned to %user", array("%user" => $user->name)), "project/$project->uri/issues/?assigned=$user->uid&states=1,2");
-        $li[] = l(t("All issues assigned to %user", array("%user" => $user->name)), "project/$project->uri/issues/?assigned=$user->uid");
-        $li[] = l(t("Open issues submitted by %user", array("%user" => $user->name)), "project/$project->uri/issues/?submitted=$user->uid&states=1,2");
-        $li[] = l(t("All issues submitted by %user", array("%user" => $user->name)), "project/$project->uri/issues/?submitted=$user->uid");
-
-        $output = "<ul><li>". implode("</li><li>", $li) ."</li></ul>";
-        theme("box", l($project->title, "project/$project->uri"), $output);
-      }
-      theme("footer");
-      */
-
-
-      $_REQUEST["edit"]= array("states" => "1,2", "users" => $user->uid);
+      $_POST["edit"]= array("users" => $user->uid);
       $output = project_issue_query_result();
 
       theme("header");

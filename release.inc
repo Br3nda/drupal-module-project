@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.7 2003/10/03 11:15:15 kjartan Exp $
+// $Id: release.inc,v 1.8 2003/10/03 11:59:00 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -10,7 +10,7 @@ function project_release_cron() {
         while ($version = readdir($handle)) {
           if (is_dir("$dir/$version") && !in_array($version, array(".", "..", "CVS"))) {
             if (file_exists(getcwd() ."/$dir/$version/$project->release_directory-$version.tar.gz")) {
-              if (array_search($version, $releases)) {
+              if ($rid = array_search($version, $releases)) {
                 unset($releases[$rid]);
               }
               else {
