@@ -1,7 +1,7 @@
 <?php
-/* $Id: comment.inc,v 1.29 2004/04/13 21:14:48 kjartan Exp $ */
+/* $Id: comment.inc,v 1.30 2004/05/05 01:16:00 kjartan Exp $ */
 
-function project_comment_page($project) {
+function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'add':
       if (user_access('maintain project issues')) {
