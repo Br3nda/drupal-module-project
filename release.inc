@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.40 2004/11/21 08:48:37 dries Exp $ */
+/* $Id: release.inc,v 1.41 2004/11/24 22:03:32 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -341,7 +341,7 @@ function project_release_save($release) {
     // Prepare the query:
     foreach ($release as $key => $value) {
       if (in_array($key, $fields)) {
-        $k[] = check_query($key);
+        $k[] = db_escape_string($key);
         $v[] = $value;
         $s[] = "'%s'";
       }
@@ -368,7 +368,7 @@ function project_release_save($release) {
     // Prepare the query:
     foreach ($release as $key => $value) {
       if (in_array($key, $fields)) {
-        $q[] = check_query($key) ." = '%s'";
+        $q[] = db_escape_string($key) ." = '%s'";
         $v[] = $value;
       }
     }

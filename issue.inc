@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.82 2004/10/15 21:29:47 unconed Exp $ */
+/* $Id: issue.inc,v 1.83 2004/11/24 22:03:32 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -54,7 +54,7 @@ function project_issue_statistics($project) {
     }
     $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
     drupal_set_breadcrumb($breadcrumb);
-    $filter = sprintf(' AND p.pid = %d ', check_query($project->nid));
+    $filter = sprintf(' AND p.pid = %d ', db_escape_string($project->nid));
   }
 
   $output = '<div class="project">';
@@ -678,7 +678,7 @@ function project_issue_query_sql_field($field, $values, $like = 0, $operator = '
     $values = array($values);
   }
   foreach ($values as $value) {
-    $value = check_query($value);
+    $value = db_escape_string($value);
     if ($callback) {
       $value = $callback($value);
     }
