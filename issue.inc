@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.56 2004/02/21 15:57:14 kjartan Exp $
+// $Id: issue.inc,v 1.57 2004/02/21 22:19:23 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -35,8 +35,9 @@ function project_issue_page($project) {
     case 'statistics':
       print theme('page', project_issue_statistics($project), t('Statistics'));
       break;
+    case t('Subscribe'):
     case 'subscribe':
-      if ($project->issues && $GLOBALS['user']->uid) {
+      if ($GLOBALS['user']->uid) {
         print theme('page', project_issue_subscribe($project));
         break;
       }
@@ -118,17 +119,61 @@ function project_issue_statistics($project) {
   return $output;
 }
 
-function project_issue_subscribe($project) {
-  $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
-  $level = db_result(db_query('SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $GLOBALS['user']->uid));
+function project_issue_subscribe($project = 0) {
+  global $user;
 
-  $form = form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), 'level', $level, $levels);
-  $form .= form_hidden('nid', $project->nid);
-  $form .= form_submit(t('Subscribe'));
+  $levels = array(0 => t('none'), 1 => t('own issues'), 2 => t('all issues'));
 
-  $output = '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>';
-  $output .= form($form, 'post', url('project'));
-  return $output;
+  if (is_array($_POST['edit'])) {
+    // Remove previous subscriptions for user.
+    if ($project->nid) {
+      db_query('DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $user->uid);
+    }
+    else {
+      db_query('DELETE FROM {project_subscriptions} WHERE uid = %d', $user->uid);
+    }
+
+    if ($_POST['all']) {
+      $_level = array_search($_POST['all'], $levels);
+    }
+
+    foreach ($_POST['edit'] as $nid => $level) {
+      if ($_level !== 0) {
+        db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
+      }
+    }
+    drupal_set_message(t('Subscription settings saved.'));
+  }
+
+  if ($project) {
+    $level = db_result(db_query('SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $user->uid));
+  
+    $output = '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>';
+
+    $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "][$project->nid", $level, $levels);
+  }
+  else {
+    $headers = array_merge(t('project'), $levels);
+
+    $row = array(t('All projects'));
+    foreach ($levels as $key => $level) {
+      $row[] = form_submit($level, 'all');
+    }
+    $rows = array($row);
+
+    $result = db_query("SELECT n.nid, n.title, s.level FROM {node} n LEFT OUTER JOIN {project_subscriptions} s ON s.nid = n.nid WHERE n.type = 'project_project' AND n.status = 1 AND (s.uid = %d OR s.uid IS NULL) ORDER BY s.level DESC, n.title", $user->uid);
+    while ($project = db_fetch_object($result)) {
+      $row = array($project->title);
+      foreach ($levels as $key => $level) {
+        $row[] = form_radio($level, "$project->nid", $key, $project->level == $key);
+      }
+      $rows[] = $row;
+    }
+    $output = theme('table', $headers, $rows);
+  }
+
+  $output .= form_submit(t('Subscribe'));
+  return form($output);
 }
 
 function project_issue_form(&$node, &$error, &$param) {
@@ -665,6 +710,10 @@ function project_issue_query_rss($projects, $result) {
   $output .= "</rss>\n";
 
   return $output;
+}
+
+function project_issue_tracker_comments($node) {
+  return db_query("SELECT c.cid, c.nid, c.uid, c.created AS timestamp, '%s' AS subject, u.name FROM {project_comments} c INNER JOIN {users} u ON c.uid = u.uid WHERE c.nid = %d ORDER BY c.cid DESC", $node->title, $node->nid);
 }
 
 ?>

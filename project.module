@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.146 2004/02/21 15:23:28 kjartan Exp $
+// $Id: project.module,v 1.147 2004/02/21 22:19:23 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -181,6 +181,7 @@ function project_link($type, $node = 0, $main = 0) {
         menu('project/issues', t('issues'), 'project_page', 1);
         if ($GLOBALS['user']->uid) {
           menu('project/issues/user', t('my issues'), 'project_page', 0);
+          menu('project/issues/subscribe', t('subscribe'), 'project_page', 3);
         }
         foreach ($categories as $cat => $category) {
           menu("project/issues/$cat", $category, 'project_page', 2);
@@ -250,12 +251,6 @@ function project_page() {
     drupal_goto(url());
   }
 
-  if ($_POST['op'] == t('Subscribe') && $_POST['edit']['nid']) {
-    global $user;
-    db_query('DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $_POST['edit']['nid'], $user->uid);
-    db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $_POST['edit']['nid'], $user->uid, $_POST['edit']['level']);
-    drupal_goto(url('node/view/'. $_POST['edit']['nid']));
-  }
   switch (arg(1)) {
     case 'releases':
       print theme('page', project_release_overview(arg(2)));
