@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.75 2003/06/13 14:16:15 weitzman Exp $
+// $Id: project.module,v 1.76 2003/06/16 15:38:05 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -663,9 +663,9 @@ function project_mail(&$node, $new = 0) {
   $links = project_parse_links($body);
   
   $body = wordwrap(strip_tags($body), 72);
-  $body .= "Update: ". url("project/update/$node->nid#Content") ."\n";
+  $body .= "Update-by-www: ". url("project/update/$node->nid#Content") ."\n";
   $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
-  $body .= "Update by mail help: ". url("project/mail_help") ."\n";
+  $body .= "Update-by-mail help: ". url("project/mail_help") ."\n";
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
@@ -810,7 +810,7 @@ function project_form(&$node, &$help, &$error, &$form) {
   if (function_exists("taxonomy_node_form")) {
     $output .= implode("", taxonomy_node_form("project", $node));
   }
-  if ($areas) {
+  if (count($areas)) {
     $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
   }
   $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 2), array(1 => "Critical", 2 => "Normal", 3 => "Minor"));
