@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.61 2003/03/11 14:13:24 kjartan Exp $
+// $Id: project.module,v 1.62 2003/03/12 09:41:06 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -617,7 +617,7 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
-  user_mail($project->mail, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
+  user_mail($project->mail, check_output(trim("$node->ptype #$node->nid : $node->title")), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
 
 }
 
@@ -680,6 +680,9 @@ function project_validate(&$node) {
     $result = db_query("SELECT * FROM projects WHERE pid = '%d'", $node->pid);
     $project = db_fetch_object($result);
   }
+  
+  $node->body = filter($node->body);
+  $node->teaser = filter($node->teaser);
 
   if ($node->priority) {
     if (!$node->pid) {
@@ -688,10 +691,10 @@ function project_validate(&$node) {
     if (!$node->type) {
       $error["type"] = theme_error(t("Type not specified."));
     }
-    if (!$node->area && $project->areas) {
+    if ($project->areas && !in_array($node->area, explode(",", $project->areas))) {
       $error["area"] = theme_error(t("Area not specified."));
     }
-    if (!$node->version && $project->version) {
+    if ($project->versions && !in_array($node->version, explode(",", $project->versions))) {
       $error["version"] = theme_error(t("Version not specified."));
     }
   }
