@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.40 2004/09/28 20:19:19 kjartan Exp $ */
+/* $Id: project.inc,v 1.41 2004/10/09 18:13:08 unconed Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -93,7 +93,7 @@ function project_project_validate(&$node) {
   }
   else {
     // Make sure uri only includes valid characters
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $node->uri)) {
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $node->uri)) {
       form_set_error('uri', t('Please only use alphanumerical characters for the project name.'));
     }
 
