@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.25 2003/11/02 01:42:08 kjartan Exp $
+// $Id: issue.inc,v 1.26 2003/11/02 11:53:30 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -280,7 +280,7 @@ function project_issue_query($project, $query) {
     foreach ($project->components as $component) {
       $components[$component] = $component;
     }
-    $versions = project_release_load($project);
+    $versions = project_release_load($project, 0);
   }
   else {
     $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
@@ -329,11 +329,11 @@ function project_issue_query_result($project = 0, $format = "html") {
   // Get all projects we are viewing
   $projects = array();
   if ($project->nid) {
-    $releases = project_release_load($project);
+    $releases = project_release_load($project, 0);
     $query->projects = $project->nid;
   }
   else {
-    $result = db_query("SELECT nid, title FROM node WHERE type = 'project_project' AND status = 1");
+    $result = db_query("SELECT nid, title FROM node WHERE type = 'project_project'");
     while ($node = db_fetch_object($result)) {
       $projects[$node->nid] = $node->title;
     }
