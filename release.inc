@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.28 2004/04/14 11:54:35 kjartan Exp $ */
+/* $Id: release.inc,v 1.29 2004/04/14 13:53:53 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -43,15 +43,14 @@ function project_release_scan_parse($dir = NULL, $file = NULL, $matches = NULL) 
       $project = & $projects[$name];
     }
 
+    $release->scan = 1;
+    $release->nid = $project->nid;
+    $release->rid = $project->releases[$version];
+    $release->version = $version;
+    $release->path = $dir . '/' . $file;
+    project_release_save($release);
     if ($project->releases[$version]) {
       unset($project->releases[$version]);
-    }
-    else {
-      $release->nid = $project->nid;
-      $release->rid = $project->releases[$version];
-      $release->version = $version;
-      $release->path = $dir . '/' . $file;
-      project_release_save($release);
     }
   }
 }
@@ -59,34 +58,7 @@ function project_release_scan_parse($dir = NULL, $file = NULL, $matches = NULL) 
 function project_release_cron() {
   // TODO: should be able to optimize this to use less file system calls.
   if ($dir = variable_get('project_release_directory', '')) {
-    $result = db_query("SELECT nid, 'project_project' AS type, release_directory FROM {project_projects} WHERE release_directory <> ''");
-    while ($project = db_fetch_object($result)) {
-      if ($handle = opendir($dir)) {
-        $releases = project_release_load($project, 0);
-        while ($version = readdir($handle)) {
-          if (is_dir("$dir/$version") && !in_array($version, array('.', '..', 'CVS'))) {
-            if (file_exists(getcwd() ."/$dir/$version/$project->release_directory-$version.tar.gz")) {
-              if ($rid = array_search($version, $releases)) {
-                unset($releases[$rid]);
-              }
-              else {
-                $release->nid = $project->nid;
-                $release->fid = 0;
-                $release->version = $version;
-                $release->path = "$dir/$version/$project->release_directory-$version.tar.gz";
-                project_release_save($release);
-              }
-            }
-          }
-        }
-        foreach ($releases as $rid => $version) {
-          project_release_delete($rid);
-        }
-      }
-      else {
-        watchdog('error', "project: releases cron failed to open $dir");
-      }
-    }
+    project_release_scan_directory();
   }
 }
 
@@ -429,7 +401,9 @@ function project_release_save($release) {
     */
 
     unset($release->created);
-    $release->changed = time();
+    if (!$release->scan) {
+      $release->changed = time();
+    }
 
     // Prepare the query:
     foreach ($release as $key => $value) {
