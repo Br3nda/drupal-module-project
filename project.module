@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.39 2002/10/30 16:01:11 killes Exp $
+// $Id: project.module,v 1.40 2002/11/23 21:24:52 killes Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -562,7 +562,7 @@ function project_array($values) {
 }
 
 function project_mail(&$node, $new = 0) {
-  global $user, $HTTP_HOST;
+  global $user, $HTTP_HOST, $SERVER_NAME;
   
   $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
   if (!$project->mail) {
@@ -571,6 +571,7 @@ function project_mail(&$node, $new = 0) {
 
   $from = variable_get("site_mail", ini_get("sendmail_from"));
 
+  $dir = str_replace("/", ".", substr(strchr(str_replace("http://", "", path_uri()), "/"), 1));
   $body = str_repeat("-", 72). "\n";  
   // $body .= "ID: $node->nid\n"; // don't want users altering this in replies. it was not displaying anyway
   $body .= "Project: $project->name\n";
@@ -587,7 +588,7 @@ function project_mail(&$node, $new = 0) {
     $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
-    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1>\n";
+    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1&host=@". $dir . strtolower($SERVER_NAME) .">\n";
   }
   else {
     $node->revisions = unserialize($node->revisions);
@@ -599,9 +600,9 @@ function project_mail(&$node, $new = 0) {
       $body .= str_repeat("-", 72) ."\n\n";
     }
     $revcount = count($node->revisions);    
-    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=$revcount>\n";
+    $mid = "Message-Id: <type=project&nid=$node->nid&revcount=$revcount&host=@". $dir . strtolower($SERVER_NAME) .">\n";
     $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
-    $mid .= $revcount-1 . ">\n";
+    $mid .= $revcount-1 ."&host=@". $dir . strtolower($SERVER_NAME) .">\n";
   }
 
   $body = wordwrap(strip_tags($body), 72);
