@@ -25,3 +25,8 @@ CREATE TABLE `projects` (
 
 ALTER TABLE projects ADD version_default varchar(255) NOT NULL;
 ALTER TABLE projects MODIFY areas text;
+
+
+UPDATE project SET priority = 1 WHERE priority > 1 AND priority < 4;
+UPDATE project SET priority = 2 WHERE priority > 2;
+ 

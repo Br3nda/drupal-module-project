@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.66 2003/04/13 18:37:50 dries Exp $
+// $Id: project.module,v 1.67 2003/04/16 18:14:14 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -21,6 +21,16 @@ function project_head() {
 EOF;
 
     return $style;
+  }
+}
+
+function project_cron() {
+  if (variable_get("project_digest", 0)) {
+    if (time() - variable_get("project_digest_last", 0) > variable_get("project_digest_interval", time())) {
+      variable_set("project_digest_last", time());
+
+      project_mail_digest();
+    }
   }
 }
 
@@ -58,8 +68,20 @@ function project_link($type, $node = 0, $main = 0) {
 }
 
 function project_settings () {
-  $output = form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
-  $output .= form_select(t("Mail Criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
+  $period = array(43200 => format_interval(43200), 86400 => format_interval(86400), 172800 => format_interval(172800), 259200 => format_interval(259200), 604800 => format_interval(604800), 1209600 => format_interval(1209600));
+
+  $output = "<h4>". t("Individual e-mails") ."</h4>";
+  
+  $output .= form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
+  $output .= form_select(t("Mail criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
+
+  $output .= "<h4>". t("E-mail digests") ."</h4>";
+  
+  $output .= form_select(t("Mail overview reports"), "project_digest", variable_get("project_digest", 0), array(t("Disabled"), t("Enabled")), t("Enable or disable the automated mails that summerizes the bug reports."));
+    
+  $output .= form_textfield("Recepients", "project_digest_recipient", variable_get("project_digest_recipient", "root@localhost"), 55, 128, "The e-mail address to mail the overviews to.  Multiple recipients can be specified by putting a comma between each address.");
+  $output .= form_select("Digest interval", "project_digest_interval" , variable_get("project_digest_interval", 86400), $period, "The time interval at which digests are mailed out.  Requires crontab.");
+        
   return $output;
 }
 
@@ -783,7 +805,7 @@ function project_form(&$node, &$help, &$error, &$form) {
   if ($areas) {
     $output .= form_select(t("Area"), "area", $node->area, $areas, $error["area"]);
   }
-  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
+  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "Critical", 2 => "Normal", 3 => "Minor"));
   if ($versions) {
     $output .= form_select(t("Version"), "version", $node->version ? $node->version : $project->version_default, $versions, $error["version"]);
   }
@@ -941,6 +963,33 @@ function project_mail_help() {
   <p>As usual, you must submit your reply from an email address which is registered at $sn.</p>
 EOD;
   return $output;
+}
+
+function project_mail_digest() {
+  
+  // Prepare the content:
+  $result = db_query("SELECT n.nid, n.title, n.created, p.ptype, q.name FROM node n LEFT JOIN project p ON n.nid = p.nid LEFT JOIN projects q ON q.pid = p.pid WHERE n.type = 'project' AND n.status = 1 AND p.pstatus = 1 AND p.priority = 1 ORDER BY n.nid");
+   
+  while ($node = db_fetch_object($result)) {
+    $critical .= "[$node->ptype #$node->nid] $node->title\n";
+    $critical .= " project: $node->name\n";
+    $critical .= " age: ". format_interval(time() - $node->created) ."\n";
+    $critical .= " url: ". url("node/view/$node->nid") ."\n";
+    $critical .= "\n";
+  }
+
+  // Prepare the recepients:
+  $recipient = variable_get("project_digest_recipient", "");
+
+  // Prepare the body:
+  if ($critical) {
+    $body .= t("Please find below a list of all release critical bugs extracted from the project pages at %url:", array("%url" => url("project"))) ."\n\n";
+    $body .= $critical;
+  }
+
+  if ($recipient && $body) {
+    mail($recipient, "[project] release critical bugs", $body, "From: no-reply");
+  }
 }
 
 ?>
