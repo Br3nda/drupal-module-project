@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.22 2003/10/07 12:23:18 kjartan Exp $
+// $Id: issue.inc,v 1.23 2003/10/25 18:45:32 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -85,16 +85,14 @@ function project_issue_form(&$node, &$help, &$error, &$param) {
     $categories = array_merge(t("<none>"), project_issue_category(0, 0));
     $priorities = project_issue_priority();
     $states = project_issue_state();
-    if ($user->uid) {
-      if ($user->uid == $node->assigned) {
-        $assigned = array(0 => t("Unassign"), $user->uid => $user->name);
-      }
-      else {
-        $assigned = array(
-          $node->assigned => ($node->assigned && ($account = user_load(array("uid" => $node->assigned))) ? $account->name : t("Unassigned")),
-          $user->uid => $user->name
-        );
-      }
+    if ($user->uid == $node->assigned) {
+      $assigned = array(0 => t("Unassign"), $user->uid => $user->name);
+    }
+    else {
+      $assigned = array(
+        $node->assigned => ($node->assigned && ($account = user_load(array("uid" => $node->assigned))) ? $account->name : t("Unassigned")),
+        $user->uid => $user->name
+      );
     }
 
     $output .= form_select(t("Version"), "rid", $node->rid, $releases, theme_error($error["rid"]));
@@ -227,7 +225,6 @@ function project_issue_update($node) {
   }
   */
   db_query("UPDATE {project_issues} SET pid = %d, fid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $file->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
-  project_mail_notify($node);
 }
 
 function project_issue_delete($node) {

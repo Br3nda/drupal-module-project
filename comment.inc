@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.14 2003/10/07 12:23:18 kjartan Exp $
+// $Id: comment.inc,v 1.15 2003/10/25 18:45:32 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -162,7 +162,7 @@ function project_comment_view($node, $main = 0) {
           $summary[] = array(
             t($text) .":",
             project_mail_summary($field, $data["old"]->$field),
-            "&rArr; ". project_mail_summary($field, $data["new"]->$field)
+            "&raquo; ". project_mail_summary($field, $data["new"]->$field)
           );
         }
       }

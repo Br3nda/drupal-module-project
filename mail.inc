@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.18 2003/10/06 06:34:49 kjartan Exp $
+// $Id: mail.inc,v 1.19 2003/10/25 18:45:32 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -103,7 +103,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
       // Send the user his errors
       $mailto = mailhandler_get_fromaddress($header, $mailbox);
       $mailfrom = variable_get("site_mail", ini_get("sendmail_from"));
-      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal Project module (http://drupal.org/\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
+      $headers = "From: $mailfrom\nReply-to: $mailfrom\nX-Mailer: Drupal Project module (http://drupal.org/project/project\nReturn-path: $mailfrom\nErrors-to: $mailfrom";
 
       $body = t("You had some errors in your submission:");
       foreach ($error as $field => $text) {
@@ -272,7 +272,7 @@ function project_mail_notify($node) {
     "Return-Path: <$sender->mail>",
     "Date: ". date("r"),
     "From: $sender->name <$sender->mail>",
-    "X-Mailer: Drupal Project module (http://drupal.org/)",
+    "X-Mailer: Drupal Project module (http://drupal.org/project/project)",
     "List-Id: $project->title <$project->uri-issues-$domain>",
     "List-Archive: <". url("project/$project->uri/issues") .">",
     "List-Subscribe: <". url("node/view/$project->uri") .">",
@@ -329,7 +329,7 @@ function project_mail_reminder() {
           "Return-Path: <$sender->mail;>",
           "Date: ". date("r"),
           "From: $sender->name <$sender->mail>",
-          "X-Mailer: Drupal Project module (http://drupal.org/)",
+          "X-Mailer: Drupal Project module (http://drupal.org/project/project)",
           "List-Id: $sender->name <project-reminder-". preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]) .">",
           "List-Archive: <". url("project") .">",
         );
@@ -363,7 +363,7 @@ function project_mail_reminder() {
 function project_mail_digest() {
   $header = array(
     "Date: ". date("r"),
-    "X-Mailer: Drupal Project module (http://drupal.org/)",
+    "X-Mailer: Drupal Project module (http://drupal.org/project/project)",
     "List-Id: $project->title <". preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]) ."-project-issues-digest>",
     "List-Archive: <". url("project/issues?priorities=1") .">",
   );

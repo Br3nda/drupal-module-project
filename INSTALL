@@ -1,11 +1,14 @@
 Installation
 ------------
 
-1. Copy the project/ directory to modules/
+1. Place all the files in modules/project, include the CSS and include
+   files.
 
-2. Create the SQL tables. This depends a little on your system, but the
-   most common method is:
+2. Create the SQL tables. This depends your system and database 
+   backend, but if using MySQL this should work:
      mysql -u username -ppassword drupal < project.mysql
+   If you don't have command line access you will have to load the
+   project.mysql using the tools you do have access to.
 
 3. Enable the project module under "site configuration".
 
