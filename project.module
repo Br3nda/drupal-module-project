@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.58 2003/03/10 20:08:16 kjartan Exp $
+// $Id: project.module,v 1.59 2003/03/11 13:14:49 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -197,7 +197,7 @@ function project_sort_assigned($a, $b) {
 
 function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
 
-  $headers = array("Title" => "n.title", "Status" => "p.pstatus", "Last updated" => "n.changed", "Area" => "p.area", "Version" => "p.version", "Assigned" => "p.assigned");
+  $headers = array("Title" => "n.title", "Status" => "p.pstatus", "Pri" => "p.priority", "Area" => "p.area", "Version" => "p.version", "Last updated" => "n.changed", "Assigned" => "p.assigned");
   if ($pid) {
     $project = db_fetch_object(db_query("SELECT * FROM projects WHERE pid = '%d'", $pid));
     if (!$project->areas) {
@@ -213,7 +213,7 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       unset($headers["Assigned"]);
     }
   }
-  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
+  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"));
 
   if (db_num_rows($result)) {
     $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
@@ -249,15 +249,16 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       }
       $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
       // $output .= "<td>#$node->nid</td>";
-      $output.= "<td>". l($node->title, "node/view/$node->nid") ."</td>";
+      $output .= "<td>". l($node->title, "node/view/$node->nid") ."</td>";
       $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
-      $output .= "<td>". format_date($node->changed, "custom", "Y-m-d H:i") ."</td>";
+      $output .= "<td align=\"center\">$node->priority</td>";
       if ($project->areas) {
         $output .= "<td>$node->area</td>";
       }
       if ($project->versions) {
         $output .= "<td>$node->version</td>";
       }
+      $output .= "<td>". format_date($node->changed, "small") ."</td>";
       // $output .= "<td>". format_name($node) ."</td>";
       if ($project->developers) {
         $output .= "<td>". $node->assigned_formatted ."</td>";
@@ -535,10 +536,10 @@ function uid_to_name($uids) {
 
 function project_type($count = 1) {
   if ($count == 1) {
-    return array("bug" => t("Bug"), "feature" => t("Feature"));
+    return array("bug" => t("Bug"), "feature" => t("Feature"), "task" => t("Task"));
   }
   else {
-    return array("bug" => t("Bugs"), "feature" => t("Features"));
+    return array("bug" => t("Bugs"), "feature" => t("Features"), "task" => t("Tasks"));
   }
 }
 
@@ -589,7 +590,7 @@ function project_mail(&$node, $new = 0) {
   $body .= "\n";
 
   if ($new) {
-    $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
+    $body .= format_date(time(), "small") ." : ". ($node->name ? $node->name : $user->name) ."\n";
     $body .= check_output($node->body) ."\n\n";
     $body .= str_repeat("-", 72) ."\n\n";
     $mid = "Message-Id: <type=project&nid=$node->nid&revcount=1&host=@". $dir . strtolower($SERVER_NAME) .">\n";
@@ -599,7 +600,7 @@ function project_mail(&$node, $new = 0) {
     $node->revisions[][node] = $node;
     $node->revisions = array_reverse($node->revisions);
     foreach ($node->revisions as $revision) {
-      $body .= format_date($revision["node"]->changed, "custom", "Y-m-d H:i") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : "") ."\n";
+      $body .= format_date($revision["node"]->changed, "small") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : "") ."\n";
       $body .= check_output($revision["node"]->body) ."\n\n";
       $body .= str_repeat("-", 72) ."\n\n";
     }
