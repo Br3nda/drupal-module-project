@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.68 2003/04/20 14:36:24 dries Exp $
+// $Id: project.module,v 1.69 2003/04/27 17:32:53 ax Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -862,7 +862,7 @@ function project_view($node, $main = 0) {
         $diff = project_diff($revisions[$i + 1]["node"], $revisions[$i]["node"]);
       }
 
-      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date(($revisions[$i]["node"]->changed ? $revisions[$i]["node"]->changed : $revisions[$i]["node"]->created)), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;"));
+      $rows[] = array(array("data" => t("Submitted by %author on %date", array("%date" => format_date(($revisions[$i]["node"]->changed ? $revisions[$i]["node"]->changed : $revisions[$i]["node"]->created)), "%author" => format_name($revisions[$i]["node"]))), "colspan" => 2, "style" => "font-size: x-small;", "id" => $i));
       if (count($diff->title)) { $rows[]  = array(array("data" => t("Title:"), "style" => "font-size: x-small", "valign" => "top"), $diff->title[1]); }
       if (count($diff->pid)) { $rows[] = array(array("data" => t("Project:"), "style" => "font-size: x-small", "valign" => "top"), $projects[$diff->pid[1]]); }
       if (count($diff->ptype)) { $rows[] = array(array("data" => t("Type:"), "style" => "font-size: x-small", "valign" => "top"), $types[$diff->ptype[1]]); }
