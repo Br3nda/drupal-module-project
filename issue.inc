@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.70 2004/09/11 15:18:17 kjartan Exp $ */
+/* $Id: issue.inc,v 1.71 2004/09/13 18:34:51 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -250,9 +250,7 @@ function project_issue_form(&$node, &$param) {
     $group2 = form_select(t('Category'), 'category', $node->category, $categories, NULL, 0, FALSE, TRUE);
     $group2 .= form_select(t('Priority'), 'priority', $node->priority, $priorities);
     $group2 .= form_select(t('Assigned'), 'assigned', $node->assigned, $assigned);
-    if ($node->state || $node->nid) {
-      $group2 .= form_select(t('Status'), 'state', $node->state, $states);
-    }
+    $group2 .= form_select(t('Status'), 'state', $node->state, $states);
 
     $output .= '</div>';
     $output .= '<div class="admin">';
