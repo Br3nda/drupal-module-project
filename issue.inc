@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.12 2003/09/30 11:40:25 kjartan Exp $
+// $Id: issue.inc,v 1.13 2003/09/30 18:24:47 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -150,20 +150,18 @@ function project_issue_view($node, $main = 0) {
     $output = "<div class=\"project\">";
     $rows = array();
     $rows[] = array("Project:", $project->title);
-    $rows[] = array("Category:", check_output($node->category));
-    $rows[] = array("Component:", check_output($node->component));
-    $rows[] = array("Priority:", project_issue_priority($node->priority));
     $rows[] = array("Version:", $release->version);
+    $rows[] = array("Component:", check_output($node->component));
+    $rows[] = array("Category:", check_output($node->category));
+    $rows[] = array("Priority:", project_issue_priority($node->priority));
     $rows[] = array("Assigned:", format_name($assigned));
     $rows[] = array("Status:", project_issue_state($node->state));
     $rows[] = array(array("data" => "<br />", "colspan" => 2));
-    //$rows[] = array(array("data" => t("Submitted by %user on %date", array("%user" => format_name($node), "%date" => format_date($node->created))), "colspan" => 2, "class" => "author"));
-    $output .= table(NULL, $rows);
+    $output .= "<div class=\"summary\">". table(NULL, $rows) ."</div>";
 
     $rows = array();
     $rows[] = array(array("data" => t("Description"), "colspan" => 2, "class" => "banner"));
     $rows[] = array(array("data" => check_output($node->body), "colspan" => 2, "class" => "content"));
-
     $output .= table(NULL, $rows);
     $output .= "</div>";
 

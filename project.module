@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.104 2003/09/30 11:40:25 kjartan Exp $
+// $Id: project.module,v 1.105 2003/09/30 18:24:47 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -151,13 +151,19 @@ function project_link($type, $node = 0, $main = 0) {
   return $links;
 }
 
+function project_nodeapi(&$node, $op, $arg = 0) {
+  if ($op == "form post" && $node->type == "project_issue") {
+    return form_item(t("Posting PHP code"), t("Wrap your PHP code inside <code>[?php ?]</code> tags and it will be colorised automatically."));
+  }
+}
+
 function project_filter_highlight($text) {
-  $text = stripslashes(trim($text));
-  return highlight_string("<?php\n$text\n?>", 1);
+  $text = trim(stripslashes($text));
+  return "<div class=\"php\">". highlight_string("<?php\n$text\n?>", 1) ."</div>";
 }
 
 function project_filter($text) {
-  $text = preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "project_filter_highlight('\\3')", $text);
+  $text = preg_replace('@\[(\?(php)?|%)(.+?)(\?|%)\]@se', "project_filter_highlight('$3')", $text);
   return $text;
 }
 

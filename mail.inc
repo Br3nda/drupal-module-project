@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.8 2003/09/29 21:20:43 kjartan Exp $
+// $Id: mail.inc,v 1.9 2003/09/30 18:24:47 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -181,10 +181,10 @@ function project_mail_notify($node) {
   $project = node_load(array("nid" => $node->pid, "type" => "project_project"));
   $fields = array(
     "pid" => t("Project"),
-    "category" => t("Category"),
-    "component" => t("Component"),
-    "priority" => t("Priority"),
     "rid" => t("Version"),
+    "component" => t("Component"),
+    "category" => t("Category"),
+    "priority" => t("Priority"),
     "assigned" => t("Assigned to"),
     "name" => t("Reported by"),
     "updator" => t("Updated by"),
