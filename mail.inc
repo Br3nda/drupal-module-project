@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.5 2003/09/28 21:01:02 kjartan Exp $
+// $Id: mail.inc,v 1.6 2003/09/29 09:10:23 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -191,19 +191,22 @@ function project_mail_notify($node) {
 
   // Create complete history of the bug report
   $history = array($node);
-  $result = db_query("SELECT * FROM {project_comments} WHERE nid = %d AND body <> '' ORDER BY changed", $node->nid);
+  $result = db_query("SELECT * FROM {project_comments} WHERE nid = %d ORDER BY changed", $node->nid);
   while ($comment = db_fetch_object($result)) {
-    $history[] = project_comment_load($comment->cid);
+    $have_content = !empty($comment->body);
+    if ($have_content) {
+      $history[] = project_comment_load($comment->cid);
+    }
+  }
+
+  if (!$have_content) {
+    return; // No body to notify about.
   }
 
   // Get most recent update
   $entry = array_pop($history);
   $node->updator = $entry->name;
   $data = unserialize($entry->data);
-
-  if (empty($entry->body)) {
-    return; // No body to notify about.
-  }
 
   // Record users that are connected to this node
   $uids = array();
@@ -369,7 +372,7 @@ function project_mail_digest() {
       if ($category != $node->category) {
         $category = $node->category;
         $banner = "$project->title / ". project_issue_category($node->category);
-        $body[$project->mail_digest] .= "[ $banner ]". str_repeat("=", 72 - 4 - strlen($banner)) ."\n";
+        $body[$project->mail_digest] .= "$banner\n". str_repeat("-", $banner) ."\n";
       }
       $body[$project->mail_digest] .= "$node->title\n";
       if ($node->assigned && $assigned = user_load(array("uid" => $node->assigned))) {
