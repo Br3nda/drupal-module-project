@@ -1,28 +1,10 @@
 <?php
-// $Id: project.module,v 1.86 2003/06/25 23:17:05 weitzman Exp $
-
+// $Id: project.module,v 1.86.2.1 2003/07/17 23:01:26 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
   $system["description"] = t("Enables a team to track outstanding items which need resolution.");
   return $system[$field];
-}
-
-function project_head() {
-  if (arg(0) == "node" || arg(0) == "project") {
-    $style = <<<EOF
-<style>
-#project tr.light, #project tr.dark {
-  background-color: #fff;
-}
-#project td {
-  vertical-align: top;
-}
-</style>
-EOF;
-
-    return $style;
-  }
 }
 
 function project_cron() {
@@ -256,16 +238,16 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
       unset($headers["Assigned"]);
     }
   }
-  $result = db_query("SELECT n.nid FROM node n INNER JOIN project p ON n.nid = p.nid WHERE ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"));
+  $result = pager_query("SELECT n.nid FROM node n INNER JOIN project p ON n.nid = p.nid WHERE ". implode(" AND ", $query) ." ORDER BY ". ($headers[$field] ? $headers[$field] : "n.changed") ." ". ($order == "asc" ? "ASC" : "DESC"), 50);
 
   if (db_num_rows($result)) {
-    $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
-
-    $output .= "<tr style=\"text-align: left\">";
     foreach ($headers as $text => $i) {
-      $output .= "<th>". project_list_header($text, $pid, $type, $order) ."</th>";
+      $linked_headers[] =  project_list_header($text, $pid, $type, $order);
     }
-    $output .= "</tr>";
+    
+    if (user_access("maintain bug reports")) {
+      $linked_headers[] = t("Operations");
+    }
 
     while ($node = db_fetch_object($result)) {
       $node = node_load($node);
@@ -285,32 +267,41 @@ function project_list($query, $pid = 0, $type = 0, $field = 0, $order = 0) {
 
     //$status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
     $colours = array(1 => "#ffffc0", "#c0ffc0", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#f6f6f6", "#ffc0c0");
-
+    
+    $i = 0;
     foreach ($nodes as $node) {
       if (strpos($node->name, "@")) {
         $node->name = substr($node->name, 0, strpos($node->name, "@"));
       }
-      $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
-      // $output .= "<td>#$node->nid</td>";
-      $output .= "<td>". l($node->title, "node/view/$node->nid") ."</td>";
-      $output .= "<td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td>";
-      $output .= "<td align=\"center\">". project_priority($node->priority) ."</td>";
+      // $output .= "<tr style=\"background: ". $colours[$node->pstatus] ."\" valign=\"top\">";
+      
+      $row[$i][] = l($node->title, "node/view/$node->nid");
+      $row[$i][] = str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus)));
+      $row[$i][] = project_priority($node->priority);
       if ($project->areas) {
-        $output .= "<td>$node->area</td>";
+        $row[$i][] = $node->area;
       }
       if ($project->versions) {
-        $output .= "<td>$node->version</td>";
+        $row[$i][] = $node->version;
       }
-      $output .= "<td>". format_date($node->changed, "small") ."</td>";
+      $row[$i][] = format_date($node->changed, "small");
+      
       // $output .= "<td>". format_name($node) ."</td>";
       if ($project->developers) {
-        $output .= "<td>". $node->assigned_formatted ."</td>";
+        $row[$i][] = $node->assigned_formatted;
       }
-      $output .= (user_access("maintain bug reports") ? "<td>". l(t("update $node->ptype"), "project/update/$node->nid") ."</td>" : "");
-      $output .= "</tr>\n";
+      if (user_access("maintain bug reports")) {
+         $row[$i][] =  l(t("update $node->ptype"), "project/update/$node->nid");
+      }
+      $i++;
     }
+    
+    if ($pager = pager_display(NULL, 50)) {
+      $row[] = array(array("data" => $pager, "colspan" => count($linked_headers) + 1));
+    }
+    $i++;
 
-    $output .= "</table><br />\n";
+    $output = table($linked_headers, $row). "<br />\n";
   }
   else {
     $output .= "<p>". t("No matches found.") ."</p>";
