@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.4 2002/03/05 22:02:45 kjartan Exp $
+// $Id: project.module,v 1.5 2002/03/11 20:46:44 kjartan Exp $
 
 // Drupal hooks
 function project_link($type, $node = 0, $main = 0) {
@@ -112,32 +112,43 @@ function project_admin() {
   }
 }
 
+function project_list_header($field, $text, $pid, $type, $order) {
+  global $op;
+  return "<a href=\"module.php?mod=project&pid=$pid&op=$op&type=$type&field=$field&order=". ($order == "asc" ? "desc" : "asc") ."\">". t($text) ."</a>";
+}
+
 function project_list($query, $pid = 0) {
-  global $theme, $type;
-  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY n.nid");
+  global $theme, $type, $order, $field;
+  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY ". ($field ? $field : "n.nid") ." ". ($order == "desc" ? "DESC" : "ASC"));
 
   if (db_num_rows($result)) {
-	  $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
-	  $output .= "<tr style=\"text-align: left\"><th>". t("ID") ."</th><th>". t("Title") ."</th><th>". t("Status") ."</th><th>". t("Area") ."</th><th>". t("Version") ."</th><th>". t("Assigned") ."</th></tr>";
-	
-	  while ($node = db_fetch_object($result)) {
-	    $node = node_load($node);
-	    if ($node->revisions) {
-	      $node->uid = $node->revisions[0][node]->uid;
-	      $node->name = $node->revisions[0][node]->name;
-	    }
-	    $output .= "<tr style=\"background: #f6f6f6\" valign=\"top\"><td>#$node->nid</td><td><a href=\"node.php?id=$node->nid\">$node->title</a></td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>$node->area</td><td>$node->version</td><td>". $node->assigned_formatted ."</td><td><a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a></td></tr>\n";
-	  }
-	  $output .= "</table><br />\n";
-	  
-	  if (user_access("post content") && $type && $pid) {
-	    $links[] .= "<a href=\"module.php?mod=project&pid=$pid&op=add&type=$type\">". t("submit new $type") ."</a>";
-	  }
-	  if (user_access("search content")) {
-	    $links[] = "<a href=\"module.php?mod=project&pid=$pid&op=search&type=$type\">". t("search") ."</a>";
-	  }
-	  $output .= $theme->links($links);
-	}
+    $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
+   
+    $headers = array("n.nid" => "ID", "n.title" => "Title", "p.pstatus" => "Status", "p.area" => "Area", "p.version" => "Version", "n.uid" => "Submitted", "p.assigned" => "Assigned");
+    $output .= "<tr style=\"text-align: left\">";
+    foreach ($headers as $field => $text) {
+      $output .= "<th>". project_list_header($field, $text, $pid, $type, $order) ."</th>";
+    }
+    $output .= "</tr>";
+  
+    while ($node = db_fetch_object($result)) {
+      $node = node_load($node);
+      if ($node->revisions) {
+        $node->uid = $node->revisions[0][node]->uid;
+        $node->name = $node->revisions[0][node]->name;
+      }
+
+    $output .= "</table><br />\n";
+    if (user_access("post content") && $type && $pid) {
+      $links[] .= "<a href=\"module.php?mod=project&pid=$pid&op=add&type=$type\">". t("submit new $type") ."</a>";
+    }
+    if (user_access("search content")) {
+      $links[] = "<a href=\"module.php?mod=project&pid=$pid&op=search&type=$type\">". t("search") ."</a>";
+    }
+    $output .= $theme->links($links);
+  }
+
+  return $output;
 }
 
 
@@ -457,31 +468,36 @@ function project_form(&$node, &$help, &$error, &$form) {
   global $user;
   
   $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
-
-  // TODO: implement file uploads correctly
-  // $form["options"] = 'enctype="multipart/form-data"';
   if ($project->pid) {
     // TODO: implement file uploads correctly
-
-  unset($node->teaser);
-  $developers = uid_to_name($project->developers);
-  $developers[0] = "Unassigned";
-
-  $output .= form_hidden("pid", $project->pid);
-  $output .= form_hidden("ptype", $node->ptype);
-  if ($node->nid) {
-    $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
+    // $form["options"] = 'enctype="multipart/form-data"';
+    
+    
+    unset($node->teaser);
+    $developers = uid_to_name($project->developers);
+    $developers[0] = "Unassigned";
+    
+    $output .= form_hidden("pid", $project->pid);
+    $output .= form_hidden("ptype", $node->ptype);
+    if ($node->nid) {
+      $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
+    }
+    else {
+      $output .= form_hidden("pstatus", 1);
+    }
+    $output .= form_select(t("Area"), "area", $node->area, project_array($project->areas));
+    $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
+    $output .= form_select(t("Version"), "version", $node->version, project_array($project->versions));
+    $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
+    $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
+    //$output .= form_file(t("File upload"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
+    //debug_r($node);
+  }
+  else {
     $error["title"] = t("Error. Try again.");
   }
-    $output .= form_hidden("pstatus", 1);
+
   return $output;
-  $output .= form_select(t("Area"), "area", $node->area, project_array($project->areas));
-  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
-  $output .= form_select(t("Version"), "version", $node->version, project_array($project->versions));
-  $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
-  $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
-  //$output .= form_file(t("File upload"), "file", 60, ($node->file ? t("Uploading a new file will remove the previously uploaded file") : ""));
-  //debug_r($node);
 }
 
 function project_view($node, $main = 0) {
