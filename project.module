@@ -1,10 +1,27 @@
 <?php
-// $Id: project.module,v 1.62 2003/03/12 09:41:06 kjartan Exp $
+// $Id: project.module,v 1.63 2003/03/17 15:42:50 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
   $system["description"] = t("Enables a team to track outstanding items which need resolution.");
   return $system[$field];
+}
+
+function project_head() {
+  if (arg(0) == "node") {
+    $style = <<<EOF
+<style>
+#project tr.light, #project tr.dark {
+  background-color: #fff;
+}
+#project td {
+  vertical-align: top;
+}
+</style>
+EOF;
+
+    return $style;
+  }
 }
 
 function project_link($type, $node = 0, $main = 0) {
@@ -44,19 +61,19 @@ function project_settings () {
   $output = form_textfield(t("Reply-to email address"), "project_reply_to", variable_get("project_reply_to", variable_get("site_mail", ini_get("sendmail_from"))), 50, 100, t("The email address for processing project replies. If you configure a mailhandler mailbox for this email address, you may offer bidirectional web<->email editing of your projects."));
   $output .= form_select(t("Mail Criteria"), "project_always_mail", variable_get("project_always_mail", 1), array("1" => "All project changes", "0" => "Only when comments are posted"), t("If desired, limit the amount of email that your projects send by choosing which project changes should trigger an email."));
   return $output;
-}  
+}
 
 function project_perm() {
   return array("access projects", "administer projects", "maintain bug reports");
 }
 
 function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
-  
+
   if ($node->type == "project" && $node->nid) {
-    
+
     $current = node_load(array ("nid" => $node->nid));
     $node = array2object(array_merge($current, $node)); //overwrite the current node with the params which were sent in this email
-    
+
     /*
     ** we usually don't want our titles overwritten by the mailhandler,
     ** since we prefix our email subjects with "bug #112 another bug" for example.
@@ -65,18 +82,18 @@ function project_mailhandler(&$node, $stream, $msg_number, $header, $mailbox) {
     if (strstr($current->title, $node->title)) {
       $node->title = $current->title;
     }
-  
-    // map human readable pstatus to the equivalent integer. enables users to enter text values when replying via email.  
+
+    // map human readable pstatus to the equivalent integer. enables users to enter text values when replying via email.
     if (!is_numeric($node->pstatus)) {
       $node->pstatus = project_pstatus($node->pstatus);
     }
-  
+
     // map human readable username to uid. enables assigning to a username instead of uid
     if (!is_numeric($node->assigned)) {
       $account = user_load(array ("name" => $node->assigned));
       $node->assigned = $account->uid;
     }
-    
+
     $node->revision = 1;
   }
   return $node;
@@ -103,7 +120,7 @@ function project_delete_project($pid) {
   if ($edit["confirm"]) {
     db_query("DELETE FROM projects WHERE pid = '%d'", $pid);
     $msg = t("Project #%p deleted", array ("%p" => $pid));
-    watchdog("special", $msg);          
+    watchdog("special", $msg);
     $output = status($msg);
     $output .= project_admin_list();
   }
@@ -118,7 +135,7 @@ function project_delete_project($pid) {
 
 function project_admin_list() {
   $result = db_query("SELECT pid,name,versions,version_default,developers,areas,mail FROM projects ORDER BY name");
-  
+
   $header = array("project", "versions", "default version", "mail", "developers", "areas", "operations");
   while ($project = db_fetch_object($result)) {
     unset($developers);
@@ -680,7 +697,7 @@ function project_validate(&$node) {
     $result = db_query("SELECT * FROM projects WHERE pid = '%d'", $node->pid);
     $project = db_fetch_object($result);
   }
-  
+
   $node->body = filter($node->body);
   $node->teaser = filter($node->teaser);
 
@@ -847,7 +864,9 @@ function project_view($node, $main = 0) {
       $headers[] = array("<b>". t("Assigned") .":</b>", $node->assigned_formatted);
     }
     $headers[] = array("<br />");
-    $node->body = table(array(), array_merge($headers, $rows));
+    $node->body = "<div id=\"project\">";
+    $node->body .= table(array(), array_merge($headers, $rows));
+    $node->body .= "</div>";
     $node->project_name = $project->name;
   }
 
