@@ -1,9 +1,10 @@
 <?php
-/* $Id: release.inc,v 1.41 2004/11/24 22:03:32 dries Exp $ */
+/* $Id: release.inc,v 1.42 2004/12/15 21:24:47 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
-  print theme('page', t('Scan successful.'), t('Release directory scan'));
+  drupal_set_title(t('Release directory scan'));
+  print theme('page', t('Scan successful.'));
 }
 
 function project_release_scan_directory($project = NULL) {
@@ -81,25 +82,25 @@ function project_release_submit() {
   switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
     case 'add':
       $node = node_load(array('nid' => arg(1)));
-      $title = t('Add release to %project', array('%project' => $node->title));
       $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
       if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
         $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
       }
       $breadcrumb[] = l($node->title, "node/$node->nid");
-
       $error = 1;
       $release->nid = $node->nid;
       $output = form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
 
+      drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
+      drupal_set_breadcrum($breadcrumb); 
       print theme('page', $output, $title, $breadcrumb);
     case 'edit':
       if ($release = project_release_load(arg(4))) {
         $node = node_load(array('nid' => $release->nid));
-        $title = t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title));
         $output = project_release_view($release);
         $output .= form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
-        print theme('page', $output, $title);
+        drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
+        print theme('page', $output);
       }
       break;
     case 'delete':
@@ -144,7 +145,8 @@ function project_release_page() {
     case 'view':
       if ($release = project_release_load(arg(3))) {
         $node = node_load(array('nid' => $release->nid));
-        print theme('page', project_release_view($release), "$node->title $release->version");
+        drupal_set_title("$node->title $release->version");
+        print theme('page', project_release_view($release));
       }
       break;
     default:

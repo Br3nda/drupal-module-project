@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.83 2004/11/24 22:03:32 dries Exp $ */
+/* $Id: issue.inc,v 1.84 2004/12/15 21:24:47 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -9,7 +9,7 @@ function project_issue_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
       $project = project_project_retrieve(arg(3));
-      print theme('page', project_issue_query($project, $query), NULL, $breadcrumbs);
+      print theme('page', project_issue_query($project, $query));
       break;
     case 'rss':
       $project = project_project_retrieve(arg(3));
