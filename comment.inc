@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.22 2003/12/29 20:25:07 kjartan Exp $
+// $Id: comment.inc,v 1.23 2004/01/28 13:41:39 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -142,7 +142,7 @@ function project_comment_view($node, $main = 0) {
     $output .= '</div>';
 
     if (user_access('maintain project issues')) {
-      $links[] = '<p>'. l(t('update issue'), "project/comments/add/$node->nid") .'</p>';
+      $links[] = '<p>'. l(t('follow up'), "project/comments/add/$node->nid") .'</p>';
     }
     $output .= theme('links', $links);
     return theme('box', t('Updates'), $output);
