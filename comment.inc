@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.39 2004/11/21 08:48:37 dries Exp $ */
+/* $Id: comment.inc,v 1.40 2005/02/03 22:28:15 dries Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -128,7 +128,7 @@ function project_comment_view($node, $main = 0) {
       }
 
       if ($summary || $comment->body) {
-        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
+        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => format_name($comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($node->nid, $node->changed))));
         if ($summary) {
           $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
         }
