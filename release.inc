@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.9 2003/10/04 19:35:10 kjartan Exp $
+// $Id: release.inc,v 1.10 2003/10/04 22:01:57 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -121,6 +121,7 @@ function project_release_page($node) {
 
 function project_release_overview() {
   $output = "<div class=\"project\">";
+  $output .= "<div class=\"downloads\">";
 
   // Figure out which versions we have
   $versions = array();
@@ -129,7 +130,7 @@ function project_release_overview() {
     $versions[] = $version;
   }
 
-  $header = array_merge(array(t("project")), $versions);
+  $header = array(t("project"), array("colspan" => count($versions) + 1, "data" => t("downloads")));
 
   $result = db_query("SELECT DISTINCT(n.nid), n.title, r.tid FROM {node} n INNER JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
   while ($node = db_fetch_object($result)) {
@@ -148,9 +149,9 @@ function project_release_overview() {
       $rows = array();
     }
     if (count($releases)) {
-      $row = array(l($node->title, "node/view/$node->nid"));
+      $row = array(array("class" => "project-name", "data" => l($node->title, "node/view/$node->nid")));
       foreach ($versions as $version) {
-        $row[] = ($releases[$version]) ? l(t("download"), $releases[$version]) : "";
+        $row[] = array("class" => "project-download", "data" => ($releases[$version]) ? l($version, $releases[$version]) : "");
       }
       $rows[] = $row;
     }
@@ -161,6 +162,7 @@ function project_release_overview() {
     $output .= table($header, $rows);
   }
 
+  $output .= "</div>";
   $output .= "</div>";
 
   $breadcrumb[] = l(t("Home"), NULL);

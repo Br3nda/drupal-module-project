@@ -52,9 +52,21 @@ div.php code {
 .project .summary table {
   border-collapse: collapse;
 }
-
 .project .summary table td {
   color: #333;
   font-size: 90%;
   padding: 0em 0.2em;
+}
+
+.project .downloads table {
+}
+.project .project-name, .project .project-download {
+  border-bottom: 1px solid #e0e0e0;
+}
+.project .project-name {
+  width: 150px;
+}
+.project .project-download {
+  width: 50px;
+  text-align: center;
 }

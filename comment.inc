@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.9 2003/10/04 20:38:16 kjartan Exp $
+// $Id: comment.inc,v 1.10 2003/10/04 22:01:57 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(2)) {
@@ -7,7 +7,7 @@ function project_comment_page($project) {
       if (user_access("maintain project issues")) {
         $node = node_load(array("nid" => arg(3), "type" => "project_issue"));
 
-        foreach (array("nid", "pid", "category", "component", "priority", "assigned", "state", "title") as $var) {
+        foreach (array("nid", "pid", "rid", "category", "component", "priority", "assigned", "state", "title") as $var) {
           $comment->$var = $node->$var;
         }
 
@@ -74,7 +74,7 @@ function project_comment_page($project) {
         else {
           // Save the comment and re-direct to the overview page for the project
           project_comment_save($edit);
-          drupal_goto(url("project/issues/view/". arg(4)));
+          drupal_goto(url("node/view/$node-nid"));
         }
       }
       break;
