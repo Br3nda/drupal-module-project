@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.41 2003/12/08 18:53:56 goba Exp $
+// $Id: issue.inc,v 1.42 2003/12/10 13:43:20 kjartan Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -81,7 +81,6 @@ function project_issue_statistics($project) {
     $j++;
     $rows[$j][2] = array('data' => project_interval($stat->duration, 2), 'class' => 'numeric');
   }
-
   $output = '<h2>'. t('Average lifetime') .'</h2>';
   $output .= theme('table', $header, $rows);
 
@@ -92,17 +91,44 @@ function project_issue_statistics($project) {
   $result = db_query('SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s GROUP BY p.state', $filter);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][0] = project_issue_state($stat->state);;
-     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
-     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
+    $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
+    $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
   }
   // Activity this week
   $result = db_query('SELECT p.state, COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state', $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
-
+  //usort($rows, create_function('$a,$b', 'return 0;'));
+  $rows = array_merge($rows);
   $output .= '<h2>'. t('Issue activity') .'</h2>';
   $output .= theme('table', $header, $rows);
+
+  // Project overview
+  if (!$project->nid) {
+    $header = array_merge(array(t('project')), project_issue_state(), array(t('total')));
+    $rows = array();
+    $result = db_query("SELECT n.nid, n.title, p.state, COUNT(p.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state");
+
+    $orig = array('project' => array('data' => 0));
+    foreach (project_issue_state() as $key => $value) {
+      $orig[$key] = array('data' => '', 'class' => 'project-numeric');
+    }
+    $orig['total'] = array('data' => '', 'class' => 'project-numeric');
+
+    while ($stat = db_fetch_object($result)) {
+      if (!$rows[$stat->nid]['project']) {
+        $rows[$stat->nid] = $orig;
+        $rows[$stat->nid]['project']['data'] = l($stat->title, "node/view/$stat->nid");
+      }
+      $rows[$stat->nid]['total']['data'] += $stat->total;
+      $rows[$stat->nid][$stat->state]['data'] = $stat->total;
+    }
+    usort($rows, create_function('$a,$b', 'return $a[1]["data"] < $b[1]["data"];'));
+    $output .= '<h2>'. t('Project overview') .'</h2>';
+    $output .= theme('table', $header, $rows);
+  }
+
   return $output;
 }
 
