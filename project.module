@@ -1,9 +1,9 @@
 <?php
-// $Id: project.module,v 1.90 2003/07/21 20:56:36 weitzman Exp $
+// $Id: project.module,v 1.91 2003/08/04 23:19:43 weitzman Exp $
 
 // Drupal hooks
 function project_head() {
-  if (arg(0) == "node" && arg(1) == "view") {
+  if ( (arg(0) == "node" && arg(1) == "view") || (arg(0) == "project" && arg(1) == "update") ) {
     $style[] = "
       <style>
         #project tr.light { background-color: #fff; }
