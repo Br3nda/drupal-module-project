@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.44 2004/11/20 19:23:36 dries Exp $ */
+/* $Id: project.inc,v 1.45 2005/01/30 17:17:51 dries Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -167,7 +167,7 @@ function project_project_set_location(&$node, $extra = array()) {
 
   $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
   if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
-    $breadcrumb[] = array('path' => url('project/'. $term->name), 'title' => $term->name);
+    $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
   }
   $breadcrumb = array_merge($breadcrumb, $extra);
 
