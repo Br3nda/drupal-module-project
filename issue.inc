@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.20 2003/10/04 20:38:16 kjartan Exp $
+// $Id: issue.inc,v 1.21 2003/10/05 20:40:51 kjartan Exp $
 
 function project_issue_node($field) {
   $info["name"] = t("Issue");
@@ -161,7 +161,9 @@ function project_issue_view($node, $main = 0) {
     $output = "<div class=\"project\">";
     $rows = array();
     $rows[] = array("Project:", $project->title);
-    $rows[] = array("Version:", $release->version);
+    if ($release->version) {
+      $rows[] = array("Version:", $release->version);
+    }
     $rows[] = array("Component:", check_output($node->component));
     $rows[] = array("Category:", check_output($node->category));
     $rows[] = array("Priority:", project_issue_priority($node->priority));
@@ -272,7 +274,7 @@ function project_issue_query($project, $query) {
     $versions = project_release_load($project);
   }
   else {
-    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1");
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title");
     while ($project = db_fetch_object($result)) {
       $projects[$project->nid] = $project->title;
     }
@@ -319,19 +321,18 @@ function project_issue_query_result($project = 0) {
   $projects = array();
   if ($project->nid) {
     $releases = project_release_load($project);
-    $pids[] = "p.pid = $project->nid";
+    $query->projects = $project->nid;
   }
   else {
     $result = db_query("SELECT nid, title FROM node WHERE type = 'project_project' AND status = 1");
-    while ($project = db_fetch_object($result)) {
-      $projects[$project->nid] = $project->title;
+    while ($node = db_fetch_object($result)) {
+      $projects[$node->nid] = $node->title;
     }
   }
 
   if (!$project->nid) {
     $header[] = array("data" => t("project"), "field" => "p.pid");
   }
-
   $header[] = array("data" => t("summary"), "field" => "n.title");
   $header[] = array("data" => t("state"), "field" => "p.state");
   $header[] = array("data" => t("pri"), "field" => "p.priority");
@@ -343,7 +344,7 @@ function project_issue_query_result($project = 0) {
   $header[] = array("data" => t("assigned to"), "field" => "p.assigned");
   #$header[] = array("data" => t("submitted by"), "field" => "n.uid");
 
-  if (($query = project_issue_query_parse())) {
+  if (($query = project_issue_query_parse($query))) {
     $sql = project_issue_query_sql($query);
     $result = pager_query($sql["sql"] . tablesort_sql($header), 20, 0, $sql["count"]);
   }
@@ -360,10 +361,10 @@ function project_issue_query_result($project = 0) {
       $row = array();
       $number++;
       $class = "state_". ($number % 2 ? "light" : "dark") ."_$node->state";
-      if (!$project) {
+      if ($projects) {
         $row[] = array("data" => l($projects[$node->pid], "node/view/$node->pid"), "class" => $class);
       }
-      $row[] = array("data" => l(substr($node->title, 0, 50), "project/issues/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() ." " : ""), "class" => $class);
+      $row[] = array("data" => l(substr($node->title, 0, 50), "node/view/$node->nid") . (node_is_new($node->nid, $node->changed) ? theme_mark() ." " : ""), "class" => $class);
       $row[] = array("data" => $states[$node->state], "class" => $class);
       $row[] = array("data" => $priorities[$node->priority], "class" => $class);
       $row[] = array("data" => t($node->category), "class" => $class);
@@ -375,8 +376,17 @@ function project_issue_query_result($project = 0) {
 
       $rows[] = $row;
     }
-    if ($pager = pager_display(NULL, 20, 0, "default", project_issue_query_pager($pids, $query) + tablesort_pager())) {
-      $rows[] = array(array("data" => $pager, "colspan" => 8));
+    $rss = array("format=rss");
+    $query = project_issue_query_pager($query);
+    foreach ($query as $key => $value) {
+      $rss[] = "$key=$value";
+    }
+    $rss = l("<img align=\"right\" src=\"misc/xml.gif\" />", "project/$project->uri/issues", array("title" => t("RSS feed for these issues.")), implode("&amp;", $rss));
+    if ($pager = pager_display(NULL, 20, 0, "default", $query + tablesort_pager())) {
+      $rows[] = array(array("data" => $rss . $pager, "colspan" => 7));
+    }
+    else {
+      $rows[] = array(array("data" => $rss, "colspan" => count($headers)));
     }
   }
   else {
@@ -397,17 +407,19 @@ function project_issue_query_result($project = 0) {
   return $output;
 }
 
-function project_issue_query_parse() {
+function project_issue_query_parse($query = NULL) {
   $fields = array("projects", "text", "summary", "comment", "categories", "components", "versions", "states", "priorities", "users", "assigned", "submitted");
-  if (is_array($_REQUEST["edit"])) {
-    foreach ($_REQUEST["edit"] as $key => $value) {
+  if (is_array($_POST["edit"])) {
+    foreach ($_POST["edit"] as $key => $value) {
       if (!empty($value) && in_array($key, $fields)) {
         $query->$key = $value;
+        $_POST[$key] = is_array($value) ? implode(",", $value) : $value;
       }
     }
+    unset($_POST["edit"], $_POST["op"]);
   }
   else {
-    foreach ($_REQUEST as $key => $value) {
+    foreach ($_GET as $key => $value) {
       if (!empty($value) && in_array($key, $fields)) {
         $query->$key = explode(",", $value);
       }
@@ -434,7 +446,7 @@ function project_issue_query_sql_field($field, $values, $like = 0, $operator = "
   return "(". implode($operator, $sql) .")";
 }
 
-function project_issue_query_pager($project, $query) {
+function project_issue_query_pager($query) {
   $get = array();
   if (count($query)) {
     foreach ($query as $key => $value) {
@@ -508,14 +520,7 @@ function project_issue_query_rss($projects, $result) {
       $title = $projects[$node->pid] ."/$node->category: ". $node->title;
       $body = $node->teaser ? $node->teaser : $node->body;
 
-      $items .= format_rss_item($title, url("node/view/$node->nid"), $body);
-
-      if ($node->updated > $pubdate) {
-        $pubdate = $node->updated;
-      }
-      if ($node->created > $pubdate) {
-        $pubdate = $node->created;
-      }
+      $items .= format_rss_item($title, url("node/view/$node->nid"), $body, array("pubDate" => date("r", ($node->updated > $node->created) ? $node->updated : $node->created)));
     }
   }
   else {
@@ -524,14 +529,14 @@ function project_issue_query_rss($projects, $result) {
 
   $output .= "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
   $output .= "<!DOCTYPE rss [<!ENTITY % HTMLlat1 PUBLIC \"-//W3C//ENTITIES Latin 1 for XHTML//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent\">]>\n";
-  if (!$channel["version"]) $channel["version"] = "0.91";
-  if (!$channel["title"]) $channel["title"] = variable_get("site_name", "drupal") ." - ". variable_get("site_slogan", "");
+  if (!$channel["version"]) $channel["version"] = "2.0";
+  if (!$channel["title"]) $channel["title"] = variable_get("site_name", "drupal") ." - ". t("issues");
   if (!$channel["link"]) $channel["link"] = $base_url;
   if (!$channel["description"]) $channel["description"] = variable_get("site_mission", "");
   foreach ($languages as $key => $value) break;
   if (!$channel["language"]) $channel["language"] = $key ? $key : "en";
   $output .= "<rss version=\"". $channel["version"] . "\">\n";
-  $output .= format_rss_channel($channel["title"], $channel["link"], $channel["description"], $items, $channel["language"], array("pubDate" => date("r", $pubdate)));
+  $output .= format_rss_channel($channel["title"], $channel["link"], $channel["description"], $items, $channel["language"]);
   $output .= "</rss>\n";
 
   header("Content-Type: text/xml");

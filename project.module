@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.113 2003/10/04 20:38:16 kjartan Exp $
+// $Id: project.module,v 1.114 2003/10/05 20:40:51 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -266,7 +266,7 @@ function project_page_overview() {
     print "<div style=\"float: left; padding-right: 5em;\">";
     theme("box", NULL, $output);
     print "</div>";
-    
+
     theme("box", NULL, theme("theme_item_list", $browse, t("Details")));
 
     theme("footer");

@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.16 2003/10/04 20:38:16 kjartan Exp $
+// $Id: mail.inc,v 1.17 2003/10/05 20:40:51 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == "project") {
@@ -127,26 +127,30 @@ function project_mail_urls($url = 0) {
   return $urls;
 }
 
-function project_mail_output(&$body) {
+function project_mail_output(&$body, $wrap = 1) {
   static $i = 0;
 
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
-  $pattern = '@(<a href="(.+?)">(.+?)</a>)@ei';
-
-  $body = preg_replace($pattern, "'\\3 ['. project_mail_urls('\\2') .']'", $body);
-  $urls = project_mail_urls();
-  if (count($urls)) {
-    $body .= "\n";
-    for ($max = count($urls); $i < $max; $i++) {
-      $body .= "[". ($i + 1) ."] ". $urls[$i] ."\n";
+  if ($wrap) {
+    $pattern = '@(<a href="(.+?)">(.+?)</a>)@ei';
+    $body = preg_replace($pattern, "'\\3 ['. project_mail_urls('\\2') .']'", $body);
+    $urls = project_mail_urls();
+    if (count($urls)) {
+      $body .= "\n";
+      for ($max = count($urls); $i < $max; $i++) {
+        $body .= "[". ($i + 1) ."] ". $urls[$i] ."\n";
+      }
     }
-  }
 
-  //$body = check_output($body);
-  $body = strip_tags($body);
-  $body = strtr($body, $trans);
-  $body = wordwrap($body, 72);
+    //$body = check_output($body);
+    $body = strip_tags($body);
+    $body = strtr($body, $trans);
+    $body = wordwrap($body, 72);
+  }
+  else {
+    $body = strtr($body, $trans);
+  }
 }
 
 function project_mail_summary($field, $value) {
@@ -209,7 +213,7 @@ function project_mail_notify($node) {
 
   // Get most recent update
   $entry = array_pop($history);
-  $node->updator = $entry->name;
+  $node->updator = $entry->name ? $entry->name : $user->name;
   $data = unserialize($entry->data);
 
   // Record users that are connected to this node
@@ -261,7 +265,7 @@ function project_mail_notify($node) {
   $body = "$summary\n$body\n$footer\n";
 
   // Create mail header
-  $sender->name = user_mail_encode($pos = strpos($node->updator, "@") ? substr($node->updator, 0, $pos) : $node->updator);
+  $sender->name = user_mail_encode(($pos = strpos($node->updator, "@")) ? substr($node->updator, 0, $pos) : $node->updator);
   $sender->mail = $project->mail;
   $domain = preg_replace("|.+://([a-zA-Z0-9\._-]+).*|", "\$1", $GLOBALS["base_url"]);
   $header = array(
@@ -281,6 +285,7 @@ function project_mail_notify($node) {
   if (count($history)) {
     $header[] = "Message-Id: <type=project&nid=$node->nid&cid=$entry->cid&host=@$domain>";
     $header[] = "In-Reply-To: <type=project&nid=$node->nid&host=@$domain>";
+    $header[] = "References: <type=project&nid=$node->nid&host=@$domain> <type=project&nid=$node->nid&revcount=1&host=@$domain>";
   }
   else {
     $header[] = "Message-Id: <type=project&nid=$node->nid&host=@$domain>";
@@ -293,13 +298,14 @@ function project_mail_notify($node) {
     $result = db_query("SELECT p.*, u.name, u.mail FROM {project_subscriptions} p LEFT JOIN {users} u ON p.uid = u.uid WHERE u.status = 1 AND p.nid = %d AND p.level = 2", $node->pid);
   }
 
-  project_mail_output($node->title);
+  project_mail_output($node->title, 0);
+  $node->title = t("[$node->category]") ." $node->title";
   while ($recipient = db_fetch_object($result)) {
-    user_mail($recipient->mail, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
+    user_mail($recipient->mail, $subject, $body, implode("\n", $header));
   }
 
   if ($project->mail_copy && (!count($project->mail_copy_filter) || $project->mail_copy_filter[$node->category])) {
-    user_mail($project->mail_copy, check_output(t("[$node->category]") ." $node->title"), $body, implode("\n", $header));
+    user_mail($project->mail_copy, $subject, $body, implode("\n", $header));
   }
 }
 
