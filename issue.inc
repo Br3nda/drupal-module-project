@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.40 2003/12/06 17:58:29 kjartan Exp $
+// $Id: issue.inc,v 1.41 2003/12/08 18:53:56 goba Exp $
 
 function project_issue_node($field) {
   $info['name'] = t('issue');
@@ -474,7 +474,7 @@ function project_issue_query_result($project = 0, $format = 'html') {
 
     $rss = l('<img align="right" src="misc/xml.gif" />', 'project/issues/rss', array('title' => t('RSS feed for these issues.')), project_issue_query_url($query));
 
-    if ($pager = pager_display(NULL, 20, 0, 'default', $query + tablesort_pager())) {
+    if ($pager = theme("pager", NULL, 20, 0, $query + tablesort_pager())) {
       $rows[] = array(array('data' => $rss . $pager, 'colspan' => count($header)));
     }
     else {

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.130 2003/12/08 08:32:04 kjartan Exp $
+// $Id: project.module,v 1.131 2003/12/08 18:53:56 goba Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -326,7 +326,7 @@ function project_page_overview() {
       while ($node = db_fetch_object($result)) {
         $output .= node_view(node_load($node), 1);
       }
-      if ($pager = pager_display(NULL, variable_get('project_overview', 10), 0, 'default', array('tid' => $_GET['tid']))) {
+      if ($pager = theme("pager", NULL, variable_get('project_overview', 10), 0, array('tid' => $_GET['tid']))) {
         $output .= $pager;
       }
     }
