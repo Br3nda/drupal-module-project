@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.31 2002/06/27 15:48:31 weitzman Exp $
+// $Id: project.module,v 1.32 2002/07/10 23:26:36 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -47,7 +47,7 @@ function project_perm() {
   return array("access projects", "administer projects");
 }
 
-function project_mailhandler($node, $header, $origbody, $mailbox) {
+function project_mailhandler($node, $stream, $msg_number, $mailbox) {
   /*
   ** we usually don't want our titles overwritten by the mailhandler,
   ** since we prefix our email subjects with "bug #112 another bug" for example.
