@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.78 2004/09/28 19:32:00 kjartan Exp $ */
+/* $Id: issue.inc,v 1.79 2004/09/28 20:19:19 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -13,9 +13,10 @@ function project_issue_page() {
       break;
     case 'rss':
       $project = project_project_retrieve(arg(3));
-      $output = project_issue_query_result($project, 'rss');
+      $query->projects = array($project->nid);
+
       header('Content-Type: text/xml');
-      print $output;
+      print project_issue_query_result($query, 'rss');
       break;
     case 'add':
       $project = project_project_retrieve(arg(3));
@@ -36,8 +37,9 @@ function project_issue_page() {
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
       $project = project_project_retrieve(arg(2));
-      $output = project_issue_query_result($project);
-      print theme('page', $output, NULL, $breadcrumbs);
+      $query->projects = array($project->nid);
+
+      print theme('page', project_issue_query_result($query));
   }
 }
 
@@ -278,7 +280,7 @@ function project_issue_validate(&$node) {
   }
 
   // Validate the rest of the form when we have a project.
-  if (isset($node->body)) {
+  if (isset($node->title) && !$node->validated) {
     if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
       if ($releases = project_release_load($project)) {
         if (!$node->rid || !$releases[$node->rid]) {
@@ -489,7 +491,7 @@ function project_issue_query($project, $query) {
   return $output;
 }
 
-function project_issue_query_result($project = 0, $format = 'html', $query = NULL, $search = true) {
+function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
   $query = project_issue_query_parse($query);
 
   $categories = array(0 => t('<all>')) + project_issue_category();
@@ -503,8 +505,10 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
   }
 
   // Load active project
-  if (!$project && is_numeric($query->projects)) {
-    $project = node_load(array('nid' => $query->projects));
+  if (!$project) {
+    if (count($query->projects) == 1) {
+      $project = node_load(array('nid' => $query->projects[0]));
+    }
   }
 
   if ($project) {
@@ -550,7 +554,7 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
     $form = theme('item_list', $links);
 
     // Convert array fields to single select form items. Some magic happens here.
-    $fields = array('projects', 'states', 'priorities', 'categories');
+    $fields = array('projects', 'states', 'priorities', 'categories', 'users');
     foreach ($fields as $field) {
       if (is_array($query->$field)) {
         $option = array();
@@ -569,7 +573,7 @@ function project_issue_query_result($project = 0, $format = 'html', $query = NUL
       form_select(t('Status'), 'states', $query->states, $states),
       form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
       form_select(t('Category'), 'categories', $query->categories, $categories),
-      form_submit(t('Search')),
+      form_hidden('users', $query->users) . form_submit(t('Search')),
       l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
     ));
     $form .= form(theme('table', '', $rows));
@@ -656,7 +660,6 @@ function project_issue_query_parse($query = NULL) {
       }
     }
   }
-
 
   if (empty($query->states)) {
     $query->states = array(1, 2, 8);

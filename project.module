@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.171 2004/09/28 19:32:00 kjartan Exp $ */
+/* $Id: project.module,v 1.172 2004/09/28 20:19:19 kjartan Exp $ */
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -375,7 +375,7 @@ function project_page_user($arg = 0) {
   $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
   $output .= l('#', "project/user/$user->name");
 
-  $output .= theme('box', t('issues'), project_issue_query_result(NULL, 'html', $query, false));
+  $output .= theme('box', t('issues'), project_issue_query_result($query, 'html', false));
 
   print theme('page', $output);
 }

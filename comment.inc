@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.37 2004/09/27 20:13:02 kjartan Exp $ */
+/* $Id: comment.inc,v 1.38 2004/09/28 20:19:19 kjartan Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -35,7 +35,7 @@ function project_comment_page() {
       if (user_access('create project issues')) {
         $edit = array2object($_POST['edit']);
         $edit = project_comment_validate($edit);
-        if ($error) {
+        if (form_get_errors()) {
           $edit->type = 'project_issue';
           print theme('page', node_preview($edit, $error));
         }
