@@ -6,8 +6,8 @@
 
 + Added context sensitivity to the 'view issues' menu (Kjartan).
    * Now limits to current project if available.
-+ Updated to use new theme system.
-+ Added feature #3531: Make searches bookmarkable.
++ Updated to use new theme system (Kjartan).
++ Added feature #3531: Make searches bookmarkable (Kjartan).
    * The title is now a permalink to the search results.
 
 02. November 2003

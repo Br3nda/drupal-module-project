@@ -1,18 +1,25 @@
 Installation
 ------------
 
-1. Place all the files in modules/project, include the CSS and include
-   files.
+1. Place these files in modules/project:
+     project.module
+     project.css
+     project.inc
+     release.inc
+     issue.inc
+     comment.inc
+     mail.inc
 
-2. Create the SQL tables. This depends your system and database 
-   backend, but if using MySQL this should work:
-     mysql -u username -ppassword drupal < project.mysql
-   If you don't have command line access you will have to load the
-   project.mysql using the tools you do have access to.
+2. Load the database definition using the tool of your choice. For mysql with
+   command line access use:
+      mysql -u user -p drupal < project.mysql
+   Replace user with the MySQL username, and drupal with the table being used.
 
-3. Enable the project module under "site configuration".
+3. Enable the project module under administer > configuration > modules.
 
-4. Use the administration pages to setup proper access and projects.
+4. Grant the proper access to user accounts under administer > accounts >
+   permissions.
+
 
 Upgrading
 ---------
@@ -20,11 +27,11 @@ Upgrading
 0. Make sure you backup your database!
 
 1. Load the new SQL definitions.
-     mysql -u username -ppassword drupal < project.mysql
+     mysql -u username -p drupal < project.mysql
 
-2. Copy upgrade-project.php to the root directory of your Drupal site.
+2. Copy update-project.php to the root directory of your Drupal site.
 
-3. Point your browser to http://example.com/drupal/upgrade-project.php
+3. Point the browser to http://example.com/drupal/upgrade-project.php
 
-4. Delete upgrade-project.php and the old project and projects table
+4. Delete update-project.php and the old project and projects table
    from SQL.

@@ -10,10 +10,9 @@ Wish list
 General
  ? Improve themeability of listings and issues.
  ? Make sure everything is translatable.
- ? RSS feeds for projects, new releases, new issues, etc.
+ ? RSS feeds for projects, new releases, etc.
 
 Projects
- ? Completely support linking to files instead of requiring uploads.
  ? Integrate image module galleries for screenshots.
  ? Integrate projects to contrib/feature.module.
 
