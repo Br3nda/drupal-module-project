@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.module,v 1.173 2004/09/29 20:28:06 kjartan Exp $ */
+// $Id: project.module,v 1.174 2004/10/01 00:08:34 uwe Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
