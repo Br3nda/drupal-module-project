@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.52 2004/01/28 19:11:08 kjartan Exp $
+// $Id: issue.inc,v 1.53 2004/02/17 21:15:19 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -191,6 +191,10 @@ function project_issue_form(&$node, &$error, &$param) {
     $output .= '<div class="options">'. form_group(t('Issue information'), $group2) .'</div>';
     $output .= '</div>';
     $output .= '<div class="standard">';
+
+    if (function_exists('taxonomy_node_form')) {
+      $output .= implode('', taxonomy_node_form($node->type, $node));
+    }
 
     $output .= form_textarea('Description', 'body', $node->body, 60, 20, theme('error', $error['body']));
     $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')) . theme('error', $error['file_issue']));

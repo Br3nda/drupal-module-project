@@ -1,5 +1,5 @@
 <?php
-// $Id: mail.inc,v 1.25 2004/01/02 17:13:24 kjartan Exp $
+// $Id: mail.inc,v 1.26 2004/02/17 21:15:20 kjartan Exp $
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -116,12 +116,15 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
     // Return a NULL result so mailhandler doesn't save the node using the default methods.
     return NULL;
   }
+  else {
+    return $node;
+  }
 }
 
 function project_mail_urls($url = 0) {
   static $urls = array();
   if ($url) {
-    $urls[] = strpos($url, '://') ? $url : url($url);
+    $urls[] = strpos($url, '://') ? $url : url($url, NULL, NULL, 1);
     return count($urls);
   }
   return $urls;
@@ -267,8 +270,8 @@ function project_mail_notify($node) {
 
   // Create the footer
   $footer  = "-- \n";
-  $footer .= t('View: %link', array('%link' => url("node/view/$node->nid"))) ."\n";
-  $footer .= t('Edit: %link', array('%link' => url("project/comments/add/$node->nid"))) ."\n";
+  $footer .= t('View: %link', array('%link' => url("node/view/$node->nid", NULL, NULL, 1))) ."\n";
+  $footer .= t('Edit: %link', array('%link' => url("project/comments/add/$node->nid", NULL, NULL, 1))) ."\n";
 
   $body = "$summary\n$body\n$footer\n";
 
@@ -282,9 +285,9 @@ function project_mail_notify($node) {
     "From: $sender->name <$sender->mail>",
     'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
     "List-Id: $project->title <$project->uri-issues-$domain>",
-    'List-Archive: <'. url("project/$project->uri/issues") .'>',
-    'List-Subscribe: <'. url("node/view/$project->uri") .'>',
-    'List-Unsubscribe: <'. url("node/view/$project->uri") .'>'
+    'List-Archive: <'. url("project/$project->uri/issues", NULL, NULL, 1) .'>',
+    'List-Subscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>',
+    'List-Unsubscribe: <'. url("node/view/$project->uri", NULL, NULL, 1) .'>'
   );
   if ($replyto = variable_get('project_reply_to', '')) {
     $header[] = "Reply-To: $project->title <$replyto>";
@@ -340,7 +343,7 @@ function project_mail_reminder() {
           "From: $sender->name <$sender->mail>",
           'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
           "List-Id: $sender->name <project-reminder-". preg_replace('|.+://([a-zA-Z0-9\._-]+).*|', '\1', $GLOBALS['base_url']) .'>',
-          'List-Archive: <'. url('project') .'>',
+          'List-Archive: <'. url('project', NULL, NULL, 1) .'>',
         );
 
         user_mail($mail, t('Your submitted bugs for %date', array('%date' => date('F d, Y', time()))), $body, implode("\n", $header));
@@ -362,7 +365,7 @@ function project_mail_reminder() {
         }
         $body .= '  state: '. project_issue_state($node->state) ."\n";
         $body .= '  age: '. format_interval(time() - $node->created) ."\n";
-        $body .= '  url: '. url("node/view/$node->nid") ."\n";
+        $body .= '  url: '. url("node/view/$node->nid", NULL, NULL, 1) ."\n";
         $body .= "\n";
       }
     }
@@ -374,7 +377,7 @@ function project_mail_digest() {
     'Date: '. date('r'),
     'X-Mailer: Drupal Project module (http://drupal.org/project/project)',
     "List-Id: $project->title <". preg_replace('|.+://([a-zA-Z0-9\._-]+).*|', '\1', $GLOBALS['base_url']) .'-project-issues-digest>',
-    'List-Archive: <'. url('project/issues?priorities=1') .'>',
+    'List-Archive: <'. url('project/issues?priorities=1', NULL, NULL, 1) .'>',
   );
 
   $result = db_query("SELECT * FROM {project_projects} p LEFT JOIN {node} n USING (nid) WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest");
@@ -392,7 +395,7 @@ function project_mail_digest() {
         $body[$project->mail_digest] .= '  assigned: '. $assigned->name ."\n";
       }
       $body[$project->mail_digest] .= '  age: '. format_interval(time() - $node->created) ."\n";
-      $body[$project->mail_digest] .= '  url: '. url("node/view/$node->nid") ."\n";
+      $body[$project->mail_digest] .= '  url: '. url("node/view/$node->nid", NULL, NULL, 1) ."\n";
       $body[$project->mail_digest] .= "\n";
     }
   }

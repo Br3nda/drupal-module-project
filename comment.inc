@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.23 2004/01/28 13:41:39 kjartan Exp $
+// $Id: comment.inc,v 1.24 2004/02/17 21:15:19 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -7,7 +7,7 @@ function project_comment_page($project) {
       if (user_access('maintain project issues')) {
         $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
-        foreach (array('nid', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
+        foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
           $comment->$var = $node->$var;
         }
 
@@ -55,7 +55,7 @@ function project_comment_form(&$edit, &$error, &$param) {
   $output = '<div class="node-form">';
   $output .= '<div class="standard">';
   $output .= form_textfield(t('Title'), 'title', $edit->title, 60, 128, $error['title']);
-  $output .= project_issue_form($edit, $help, $error, $param);
+  $output .= project_issue_form($edit, $error, $param);
   $output .= '</div></div>';
 
   if ($edit->cid) {
@@ -63,6 +63,7 @@ function project_comment_form(&$edit, &$error, &$param) {
   }
 
   $output .= form_submit(t('Preview'));
+
   if (!$error) {
     $output .= form_submit(t('Submit'));
   }

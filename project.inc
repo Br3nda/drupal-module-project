@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.26 2004/01/30 12:06:00 kjartan Exp $
+// $Id: project.inc,v 1.27 2004/02/17 21:15:20 kjartan Exp $
 
 function project_project_node_name() {
   return t('project');
@@ -69,7 +69,7 @@ function project_project_form(&$node, &$error) {
   $email .= form_item(t('Monthly reminder'), form_checkbox(t('Send monthly reminders to users'), 'mail_reminder', 1, $node->mail_reminder, t('Enabling this will send a monthly reminder to users that have open issues registered.')));
 
   if (function_exists('taxonomy_node_form')) {
-    $output = implode('', taxonomy_node_form('project', $node));
+    $output = implode('', taxonomy_node_form($node->type, $node));
   }
   $output .= '<div class="project">';
   $output .= form_group(t('Project information'), $project);
