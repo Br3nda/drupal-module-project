@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.58 2004/02/21 23:00:37 kjartan Exp $
+// $Id: issue.inc,v 1.59 2004/02/21 23:25:40 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -138,8 +138,8 @@ function project_issue_subscribe($project = 0) {
     }
 
     foreach ($_POST['edit'] as $nid => $level) {
-      if ($_level !== 0) {
-        db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
+      if ($_level !== 0 && $level !== 0) {
+        db_queryd('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
       }
     }
     drupal_set_message(t('Subscription settings saved.'));
@@ -160,17 +160,23 @@ function project_issue_subscribe($project = 0) {
       $row[] = form_submit($level, 'all');
     }
     $rows = array($row);
+    $nids = array();
 
-    $result = db_query("SELECT nid, level FROM {project_subscriptions} WHERE uid = %d", $user->uid);
-    while ($project = db_fetch_object($result)) {
-      $subscriptions[$project->nid] = $project->level;
-    }
-
-    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1 ORDER BY title", $user->uid);
+    $result = db_query("SELECT n.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n USING (nid) WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title", $user->uid);
     while ($project = db_fetch_object($result)) {
       $row = array($project->title);
       foreach ($levels as $key => $level) {
-        $row[] = form_radio($level, "$project->nid", $key, $subscriptions[$project->nid] == $key);
+        $row[] = form_radio($level, "$project->nid", $key, $project->level == $key);
+      }
+      $rows[] = $row;
+      $nids[] = $project->nid;
+    }
+
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = 'project_project' AND status = 1". ($nids ?  " AND nid NOT IN (%s)" : "") ." ORDER BY title", implode(',', $nids));
+    while ($project = db_fetch_object($result)) {
+      $row = array($project->title);
+      foreach ($levels as $key => $level) {
+        $row[] = form_radio($level, "$project->nid", $key, $key == 0);
       }
       $rows[] = $row;
     }
