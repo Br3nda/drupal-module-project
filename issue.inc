@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.53 2004/02/17 21:15:19 kjartan Exp $
+// $Id: issue.inc,v 1.54 2004/02/17 21:19:34 kjartan Exp $
 
 function project_issue_node_name() {
   return t('issue');
@@ -8,7 +8,7 @@ function project_issue_node_name() {
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;
 
-  if (project_issue_category(arg($arg))) {
+  if (!is_array(project_issue_category(arg($arg)))) {
     $_GET['categories'] = arg($arg);
   }
 
