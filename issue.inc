@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.76 2004/09/23 20:14:04 kjartan Exp $ */
+/* $Id: issue.inc,v 1.77 2004/09/26 16:15:55 kjartan Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -352,17 +352,15 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
 
     $node->body = $output;
 
-    $breadcrumb[] = l(t('Home'), NULL);
-    $breadcrumb[] = l(t('Projects'), 'project');
-    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
-      $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
+    // Breadcrumb navigation
+    $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
+    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->pid))) {
+      $breadcrumb[] = array('path' => url('project', 'tid='.$term->tid), 'title' => $term->name);
     }
-    $breadcrumb[] = l($project->title, "node/$project->nid");
-    $breadcrumb[] = l(t('Issues'), "project/issues/$project->uri");
-
-    drupal_set_breadcrumb($breadcrumb);
-
-    #menu_set_active_item('project/issues');
+    $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
+    $breadcrumb[] = array('path' => 'project/issues/'. $project->uri, 'title' => t('issues'));
+    $breadcrumb[] = array('path' => 'node/'. $node->nid);
+    menu_set_location($breadcrumb);
 
     $node->body .= project_comment_view($node);
   }

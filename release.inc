@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.34 2004/09/07 20:47:41 kjartan Exp $ */
+/* $Id: release.inc,v 1.35 2004/09/26 16:15:55 kjartan Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -77,66 +77,44 @@ function project_release_cron() {
   }
 }
 
-function project_release_page() {
-  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
+function project_release_submit() {
+  switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
     case 'add':
-      $node = node_load(array('nid' => arg(3)));
-      if (node_access('update', $node)) {
-        $title = t('Add release to %project', array('%project' => $node->title));
-        $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
-        if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
-          $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
-        }
-        $breadcrumb[] = l($node->title, "node/$node->nid");
-
-        $error = 1;
-        $release->nid = $node->nid;
-        $output = form(project_release_form($release, $error, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
-
-        print theme('page', $output, $title, $breadcrumb);
+      $node = node_load(array('nid' => arg(1)));
+      $title = t('Add release to %project', array('%project' => $node->title));
+      $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
+      if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
+        $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
       }
-      else {
-        print theme('page', message_access());
-      }
-      break;
+      $breadcrumb[] = l($node->title, "node/$node->nid");
+
+      $error = 1;
+      $release->nid = $node->nid;
+      $output = form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+
+      print theme('page', $output, $title, $breadcrumb);
     case 'edit':
-      if ($release = project_release_load(arg(3))) {
+      if ($release = project_release_load(arg(4))) {
         $node = node_load(array('nid' => $release->nid));
-        if (node_access('update', $node)) {
-          $title = t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title));
-          $output = project_release_view($release);
-          $output .= form(project_release_form($release, $error, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
-          print theme('page', $output, $title);
-        }
-        else {
-          print theme('page', message_access());
-        }
-      }
-      break;
-    case 'view':
-      if ($release = project_release_load(arg(3))) {
-        $node = node_load(array('nid' => $release->nid));
-        print theme('page', project_release_view($release), "$node->title $release->version");
+        $title = t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title));
+        $output = project_release_view($release);
+        $output .= form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+        print theme('page', $output, $title);
       }
       break;
     case 'delete':
-      if (node_access('update', $node)) {
-        if (($release = project_release_load(arg(3))) && $release->nid == $node->nid) {
-          project_release_delete(arg(3));
-          drupal_goto(url("node/$release->nid"));
-        }
-      }
-      else {
-        print theme('page', message_access());
+      if (($release = project_release_load(arg(4))) && $release->nid == arg(1)) {
+        project_release_delete(arg(4));
+        drupal_goto(url("node/$release->nid/release"));
       }
       break;
     case t('Preview'):
       $edit = array2object($_POST['edit']);
       $node = node_load(array('nid' => $edit->nid));
       if (node_access('update', $node)) {
-        $error = project_release_validate($edit);
+        project_release_validate($edit);
         $output = project_release_view($edit);
-        $output .= form(project_release_form($edit, $error, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+        $output .= form(project_release_form($edit, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
 
         print theme('page', $output);
       }
@@ -145,35 +123,30 @@ function project_release_page() {
       $edit = array2object($_POST['edit']);
       $node = node_load(array('nid' => $edit->nid));
       if (node_access('update', $node)) {
-        $error = project_release_validate($edit);
-        if ($error) {
-          $output = project_release_form($edit, $error, $param);
+        project_release_validate($edit);
+        if (form_get_errors()) {
+          $output = project_release_form($edit, $param);
 
           print theme('page', form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']));
         }
         else {
           // Save the release and re-direct to the overview page for the project
-          if (variable_get('project_release_directory', '')) {
-            unset($edit->version);
-          }
-
           $edit->status = 1;
           project_release_save($edit);
-          drupal_goto(url("node/$node->nid"));
+          drupal_goto(url("node/$node->nid/release"));
         }
       }
-      else {
-        print theme('page', message_access());
+  }
+}
+
+function project_release_page() {
+  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
+    case 'view':
+      if ($release = project_release_load(arg(3))) {
+        $node = node_load(array('nid' => $release->nid));
+        print theme('page', project_release_view($release), "$node->title $release->version");
       }
       break;
-    /* TODO: pending final fileapi
-    case 'download':
-      $release = project_release_load(arg(3));
-      if ($release->fid) {
-        drupal_file_send($release->fid);
-      }
-      break;
-    */
     default:
       print theme('page', project_release_overview(arg(2)));
   }
@@ -228,14 +201,14 @@ function project_release_overview($arg = 0) {
   return $output;
 }
 
-function project_release_form(&$release, &$error, &$param) {
+function project_release_form(&$release, &$param) {
   /* TODO: pending final fileapi
   // Set form parameters so we can accept file uploads.
   $param['options'] = array('enctype' => 'multipart/form-data');
   */
 
-  $output = form_textfield(t('Version'), 'version', $release->version, 40, 255, theme('error', $error['version']));
-  $output .= form_textarea(t('Changes'), 'changes', $release->changes, 40, 10, theme('error', $error['changes']));
+  $output = form_textfield(t('Version'), 'version', $release->version, 40, 255, null, null, true);
+  $output .= form_textarea(t('Changes'), 'changes', $release->changes, 40, 10, null, null, true);
   if (!variable_get('project_release_directory', '')) {
   /* TODO: pending final fileapi
   $output .= form_file(t('File'), 'file', 40, ($release->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . $error['file'], $release->fid);
@@ -247,7 +220,7 @@ function project_release_form(&$release, &$error, &$param) {
   $output .= form_hidden('nid', $release->nid);
 
   $output .= form_submit(t('Preview'));
-  if (!$error) {
+  if (!form_get_errors()) {
     $output .= form_submit(t('Submit'));
   }
 
@@ -262,14 +235,14 @@ function project_release_validate(&$edit) {
   }
 
   if (empty($edit->version)) {
-    $error['version'] = t('Required.');
+    form_set_error('version', t('You must specify a valid version.'));
   }
   else {
     $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d AND version = '%s'", $edit->nid, trim($edit->version));
     if ($release = db_fetch_object($result)) {
       if ($edit->rid != $release->rid) {
         if ($release->status) {
-          $error['version'] = t('This version already exists for this project.');
+          form_set_error('version', t('This version already exists for this project.'));
         }
         else {
           $edit->rid = $release->rid;
@@ -279,7 +252,7 @@ function project_release_validate(&$edit) {
   }
 
   if (empty($edit->changes)) {
-    $error['changes'] = t('Required.');
+    form_set_error('changes', t('You must specify changes.'));
   }
 
   /* TODO: pending final fileapi
@@ -292,78 +265,44 @@ function project_release_validate(&$edit) {
     $edit->fid = $file->fid;
   }
   */
-
-  return $error;
 }
 
-function project_release_view($project, $main = 0) {
-  if ($project->changes) {
-    $release = $project;
+function project_release_view($release, $project = 0) {
+  if (!$project) {
     $project = node_load(array('nid' => $project->nid));
-
-    $links = array();
-    if (variable_get('project_release_directory', '')) {
-      $links[] = ($release->path) ? l(t('download'), $release->path) : $release->version;
-    }
-    elseif ($release->fid) {
-      $links[] = l(t('download'), "project/releases/download/$release->rid", array('title' => t('Download: %size', array('%size' => format_size($file->size)))));
-    }
-
-    if (node_access('update', $project)) {
-      $links[] = l(t('edit'), "project/releases/edit/$release->rid");
-    }
-
-    $breadcrumb = array(
-      l(t('Home'), NULL),
-      l(t('Projects'), 'project')
-    );
-    if ($term = reset(taxonomy_node_get_terms($project->nid))) {
-      $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
-    }
-    $breadcrumb[] = l($project->title, "node/$project->nid");
-
-    drupal_set_breadcrumb($breadcrumb);
-
-    $output = check_output($release->changes);
-    $output .= '<p>'. theme('links', $links) .'</p>';
-    return $output;
   }
-  else {
-    $result = db_query('SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC', $project->nid);
-    if (db_num_rows($result)) {
-      $header = array(t('version'), t('released'), t('changes'));
-      if (node_access('update', $project) || node_access('delete', $project)) {
-        $header[] = array('data' => t('operations'), 'colspan' => 2);
-      }
-      while ($release = db_fetch_object($result)) {
-        /* TODO: pending final fileapi
-        if ($release->fid) {
-          $file = drupal_file_load($release->fid);
-        }
-        */
-        $row = array();
-        if (variable_get('project_release_directory', '')) {
-          $row[] = ($release->path) ? l($release->version, $release->path) : $release->version;
-        }
-        else {
-          $row[] = ($release->fid) ? l($release->version, "project/releases/download/$release->rid", array('title' => t('Download: %size', array('%size' => format_size($file->size))))) : $release->version;
-        }
-        $row[] = ($release->created) ? array('data' => format_date($release->created, 'custom', 'd M Y'), 'style' => 'vertical-align: top;') : '';
-        $row[] = ($release->changes) ? l(t('changes'), "project/releases/view/$release->rid") : '';
-        if (node_access('update', $project)) {
-          $row[] = l('edit', "project/releases/edit/$release->rid");
-        }
-        if (node_access('delete', $project)) {
-          $row[] = l('delete', "project/releases/delete/$release->rid");
-        }
-        $rows[] = $row;
-      }
 
-      $output = "<div class=\"project\">\n";
-      $output .= theme('table', $header, $rows);
-      $output .= "</div>\n";
-      return $output;
+  $links = array();
+  if ($release->rid && node_access('update', $project)) {
+    $links[] = l('edit', "node/$project->nid/release/edit/$release->rid");
+    $links[] = l('delete', "node/$project->nid/release/delete/$release->rid");
+  }
+
+  if ($release->path) {
+    $output .= '<small>Download: '. l(basename($release->path), $release->path) .'</small><br />';
+  }
+
+  if ($release->created) {
+    $output .= '<small>Released: '. format_date($release->created) .'</small><br />';
+  }
+
+  $output .= $release->changes;
+  $output .= theme('links', $links);
+
+  return $output;
+}
+
+function project_release_list($project, $main = 0) {
+  $result = db_query('SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC', $project->nid);
+  if (db_num_rows($result)) {
+    $header = array(t('version'), t('released'), t('changes'));
+    if (node_access('update', $project) || node_access('delete', $project)) {
+      $header[] = array('data' => t('operations'), 'colspan' => 2);
     }
+    while ($release = db_fetch_object($result)) {
+      $output .= theme('box', l(t('%project v%version', array('%project' => $project->title, '%version' => $release->version)), 'node/'. $project->nid .'/releases', array('id' => $release->version), NULL, $release->version), project_release_view($release, $project));
+    }
+    return $output;
   }
 }
 
@@ -444,6 +383,23 @@ function project_release_save($release) {
 function project_release_delete($rid) {
   watchdog('special', "project: deleted release '$release->version'", l('view post', "node/$release->nid"));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
+}
+
+function project_releases_list() {
+  if ($versions = cache_get('project_releases')) {
+    $versions = unserialize($versions->data);
+  }
+  else {
+    $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 GROUP BY version ORDER BY created DESC;");
+    $versions = array();
+    while ($object = db_fetch_object($result)) {
+      $version = preg_replace('/^(.+?)\.?(?:\d+)?$/', '\1', $object->version);
+      $versions[$version] = $version == $object->version ? $version : $version .'.x';
+    }
+    cache_set('project_releases', serialize($versions));
+  }
+
+  return $versions;
 }
 
 ?>

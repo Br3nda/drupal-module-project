@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.36 2004/09/23 20:14:04 kjartan Exp $ */
+/* $Id: project.inc,v 1.37 2004/09/26 16:15:55 kjartan Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -155,15 +155,28 @@ function project_project_content($node, $teaser = false) {
   return node_prepare($node, $teaser);
 }
 
+function project_project_set_location(&$node, $extra = array()) {
+  $breadcrumb = array();
+
+  $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
+  if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
+    $breadcrumb[] = array('path' => url('project', 'tid='. $term->tid), 'title' => $term->name);
+  }
+  $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
+  $breadcrumb = array_merge($breadcrumb, $extra);
+
+  return $breadcrumb;
+}
+
 function project_project_view(&$node, $teaser = false, $page = false) {
   if ($page) {
-    $breadcrumb[] = l(t('Home'), NULL);
-    $breadcrumb[] = l(t('Projects'), 'project');
-    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
-      $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
+    // Breadcrumb navigation
+    $breadcrumb = project_project_set_location($node);
+    menu_set_location($breadcrumb);
+
+    if ($node->issues && user_access('access project issues')) {
+      $links[] = l(t('issues'), "project/issues/$node->uri");
     }
-    drupal_set_breadcrumb($breadcrumb);
-    menu_set_active_item("project/$node->uri");
 
     foreach (array('homepage' => t('homepage'), 'documentation' => t('documentation'), 'license' => t('license'), 'changelog' => t('changelog'), 'cvs' => t('cvs tree'), 'demo' => t('demo site'), 'screenshots' => t('screenshots')) as $uri => $name) {
       if (!empty($node->$uri)) {
@@ -175,13 +188,30 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $node->body .= theme('item_list', $links, t('Links'));
     }
 
-    if ($output = project_release_view($node)) {
-      $node->body .= '<h1>'. t('Releases') .'</h1>';
-      $node->body .= $output;
+    if ($releases = project_release_load($node)) {
+      list($rid, $version) = each($releases);
+
+      $node->body .= '<h2>'. t('%project v%version', array('%project' => $node->title, '%version' => $version)) .'</h2>';
+      $node->body .= project_release_view(project_release_load($rid));
     }
+
   }
 
   $node = project_project_content($node, $teaser);
+}
+
+function project_project_releases() {
+  $node = node_load(array('nid' => arg(1)));
+
+  // Breadcrumb navigation
+  $breadcrumb[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('Releases'));
+  $breadcrumb = project_project_set_location($node, $breadcrumb);
+
+  menu_set_location($breadcrumb);
+
+  $output = project_release_list($node);
+
+  print theme('page', $output, $node->title);
 }
 
 function project_project_load($node) {
