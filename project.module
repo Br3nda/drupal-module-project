@@ -1,0 +1,507 @@
+<?php
+// $Id: project.module,v 1.1 2002/02/13 14:41:15 kjartan Exp $
+
+// Drupal hooks
+function project_link($type, $node = 0, $main = 0) {
+  if ($type == "node" && $node->type == "project") {
+    $links[] = "<a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update") ."</a>";
+    $links[] = t("project") .": <a href=\"module.php?mod=project&pid=$node->pid\">$node->project_name</a>";
+    //$links[] = t("assigned") .": $node->assigned_formatted";
+  }
+
+  if ($type == "page" && user_access("access projects")) {
+    $links[] = "<a href=\"module.php?mod=project\">". t("projects") ."</a>";
+  }
+
+  if (($type == "menu" || $type == "menu.view") && user_access("access projects")) {
+    global $user;
+    if (db_num_rows(db_query("SELECT pid,name FROM projects WHERE developers = '$user->uid' OR developers LIKE '$user->uid,%' OR developers LIKE '%,$user->uid,%' OR developers LIKE '%,$user->uid'"))) {
+      $links[] = "<a href=\"module.php?mod=project&op=user\">". t("view your projects") ."</a>";
+    }
+  }
+
+  if ($type == "admin" && user_access("administer projects")) {
+    $links[] = "<a href=\"admin.php?mod=project\">". t("projects") ."</a>";
+  }
+
+  return $links ? $links : array();
+}
+
+function project_perm() {
+  return array("access projects", "administer projects");
+}
+
+function project_admin_form($edit = 0) {
+  if ($edit["pid"]) {
+    $form .= form_hidden("pid", $edit["pid"]);
+  }
+  $form .= form_textfield("Name", "name", $edit["name"], 60, 255);
+  $form .= form_textarea("Versions", "versions", str_replace(",", "\n", $edit["versions"]), 20, 5);
+  $form .= form_textfield("E-mail", "mail", $edit["mail"], 20, 255);
+  $form .= form_textarea("Developers", "developers", str_replace(",", "\n", $edit["developers"]), 20, 5);
+  $form .= form_textarea("Areas", "areas", str_replace(",", "\n", $edit["areas"] ? $edit["areas"] : "Code,Documentation,Miscellaneous,User interface"), 20, 5);
+  $form .= form_submit("Submit") . form_submit("Delete");
+
+  return form($form);
+}
+
+function project_admin_list() {
+  $result = db_query("SELECT pid,name,versions,developers,areas,mail FROM projects ORDER BY name");
+
+  $output .= "<table cellpadding=\"2\" cellspacing=\"2\" border=\"1\">\n";
+  $output .= "<tr><th>project</th><th>versions</th><th>mail</th><th>developers</th><th>areas</th><th>operations</th></tr>\n";
+  while ($project = db_fetch_object($result)) {
+    unset($developers);
+    foreach (split(",", $project->developers) as $developer) {
+      if ($user = user_load(array("uid" => trim($developer)))) {
+        $developers[] = $user->name;
+      }
+    }
+    $output .= "<tr><td>$project->name</td><td>$project->versions</td><td>$project->mail</td><td>". @implode(",", $developers) ."</td><td>$project->areas</td><td><a href=\"module.php?mod=project&op=edit&pid=$project->pid\">edit project</a></td></tr>\n";
+  }
+  //$output .= "<tr><td><input name=\"edit[name]\" size=20></td><td><input name=\"edit[versions]\" size=40></td><td><input name=\"edit[developers]\" size=40></td><td><input name=\"edit[areas]\" size=40></td><td><input type=\"submit\" name=\"op\" value=\"add project\"></tr>\n";
+  $output .= "</table>\n";
+  print $output;
+}
+
+function project_admin() {
+  global $op;
+
+  if (!user_access("administer projects")) return;
+
+  $links[] = "<a href=\"admin.php?mod=project&op=add\">add project</a>";
+  $links[] = "<a href=\"admin.php?mod=project\">overview</a>";
+
+  print "<small>". implode(" &middot; ", $links) ."</small><hr />";
+
+  switch ($op) {
+    case "add":
+      print project_admin_form();
+      break;
+    case "edit":
+      global $pid;
+      $project = db_fetch_array(db_query("SELECT pid,name,versions,developers,areas,mail FROM projects WHERE pid = '". check_query($pid) ."'"));
+      $project["developers"] = implode("\n", uid_to_name($project["developers"]));
+      print project_admin_form($project);
+      break;
+    case "Delete":
+      global $pid;
+      db_query("DELETE FROM projects WHERE pid = '$pid'");
+      project_admin_list();
+      break;
+    case "Submit":
+      global $edit;
+      $edit["versions"] = strtr($edit["versions"], array("\r" => "", "\n" => ","));
+      $edit["developers"] = strtr($edit["developers"], array("\r" => "", "\n" => ","));
+      $edit["areas"] = strtr($edit["areas"], array("\r" => "", "\n" => ","));
+      foreach (split(",", check_query($edit["developers"])) as $developer) {
+        if ($user = user_load(array("name" => $developer))) {
+          $ids[] = $user->uid;
+        }
+      }
+      if ($edit["pid"]) {
+        db_query("UPDATE projects SET name = '". check_query($edit["name"]) ."', versions = '". check_query($edit["versions"]) ."', developers = '". implode(",", $ids) ."', areas = '". check_query($edit["areas"]) ."', mail = '". check_query($edit["mail"]) ."'  WHERE pid = '". check_query($edit["pid"]) ."'");
+      }
+      else {
+        db_query("INSERT INTO projects (name, versions, developers, areas, mail) VALUES ('". check_query($edit["name"]) ."', '". check_query($edit["versions"]) ."', '". implode(",", $ids) ."', '". check_query($edit["areas"]) ."', '". check_query($edit["mail"]) ."')");
+      }
+      project_admin_list();
+      break;
+    default:
+      project_admin_list();
+  }
+}
+
+function project_list($query) {
+  global $theme, $type;
+  $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY n.nid");
+
+  if (db_num_rows($result)) {
+	  $output = "<table cellpadding=\"3\" cellspacing=\"2\" border=\"0\">\n";
+	  $output .= "<tr style=\"text-align: left\"><th>". t("ID") ."</th><th>". t("Title") ."</th><th>". t("Status") ."</th><th>". t("Area") ."</th><th>". t("Version") ."</th><th>". t("Assigned") ."</th></tr>";
+	
+	  while ($node = db_fetch_object($result)) {
+	    $node = node_load($node);
+	    if ($node->revisions) {
+	      $node->uid = $node->revisions[0][node]->uid;
+	      $node->name = $node->revisions[0][node]->name;
+	    }
+	    $output .= "<tr style=\"background: #f6f6f6\" valign=\"top\"><td>#$node->nid</td><td><a href=\"node.php?id=$node->nid\">$node->title</a></td><td>". str_replace(" ", "&nbsp;", t(project_pstatus($node->pstatus))) ."</td><td>$node->area</td><td>$node->version</td><td>". $node->assigned_formatted ."</td><td><a href=\"module.php?mod=project&op=update&id=$node->nid\">". t("update $node->ptype") ."</a></td></tr>\n";
+	  }
+	  $output .= "</table><br />\n";
+	  
+	  if (user_access("post content") && $type) {
+	    $links[] .= "<a href=\"module.php?mod=project&pid=$project->pid&op=add&type=$type\">". t("submit new $type") ."</a>";
+	  }
+	  if (user_access("search content")) {
+	    $links[] = "<a href=\"module.php?mod=project&pid=$project->pid&op=search&type=$type\">". t("search") ."</a>";
+	  }
+	  $output .= $theme->links($links);
+	}
+}
+
+
+function project_page() {
+  global $op, $theme;
+
+  switch ($op) {
+    case "Search":
+      global $edit;
+      if ($edit["pid"]) {
+        $query[] = "p.pid = '". check_input($edit["pid"]) ."'";
+      }
+      if ($edit["type"]) {
+        $query[] = "p.ptype = '". check_input($edit["type"]) ."'";
+      }
+      if ($edit["status"]) {
+        $query[] = "p.pstatus = '". check_input($edit["status"]) ."'";
+      }
+      if ($edit["assigned"] && $account = user_load(array("name" => check_input($edit["assigned"])))) {
+        $query[] = "p.assigned = '". $account->uid ."'";
+      }
+      if ($edit["text"]) {
+        $query[] = "(n.title LIKE '% ". check_input($edit["text"]) ." %' OR n.body LIKE '% ". check_input($edit["text"]) ." %' OR n.revisions LIKE '% ". check_input($edit["text"]) ." %')";
+      }
+      
+      $result = db_query("SELECT n.nid FROM node n LEFT JOIN project p ON n.nid = p.nid WHERE n.type = 'project' AND ". implode(" AND ", $query) ." ORDER BY n.nid");
+
+      $output = project_list($query, $edit["pid"]);
+
+      $output = project_list($query);
+      $theme->box("Search results", $output);
+      $theme->footer();
+      break;
+    case "search":
+      global $pid, $type, $user;
+
+      $result = db_query("SELECT pid,name FROM projects");
+      $projects[0] = "All";
+      while ($project = db_fetch_object($result)) {
+        $projects[$project->pid] = $project->name;
+      }
+
+      $filter = form_select("Project", "pid", $pid, $projects);
+      $filter .= form_select("Type", "type", $type, array("All", "bug" => "Bug", "feature" => "Feature"));
+      $filter .= form_select("Status", "status", 1, array_merge(array("All"), project_pstatus()));
+      $filter .= form_textfield("Assigned to", "assigned", "", 30, 128);
+      $filter .= form_textfield("Text", "text", "", 30, 128);
+      $filter .= form_submit("Search");
+      $output = form($filter);
+      
+      $theme->header();
+      $theme->box("Search", $output);
+      $theme->footer();
+      break;
+    case "user":
+      global $pid, $type, $user;
+      $result = db_query("SELECT pid,name FROM projects WHERE developers = '$user->uid' OR developers LIKE '$user->uid,%' OR developers LIKE '%,$user->uid,%' OR developers LIKE '%,$user->uid'");
+      $theme->header(strtr("%u's projects", array("%u" => $user->name)));
+      
+      while ($project = db_fetch_object($result)) {
+        if ($output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$project->pid'", "p.assigned = '$user->uid'"))) {
+          $theme->box($project->name, $output);
+        }
+      }
+      
+      $theme->footer();
+      break;
+    case "list":
+      global $pid, $type, $user;
+      $project = db_fetch_object(db_query("SELECT pid,name FROM projects WHERE pid = '$pid'"));
+
+      $output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$pid'",  "p.ptype = '$type'"), $pid);
+      
+      $output = project_list(array("(p.pstatus = '1' OR p.pstatus = '2')", "p.pid = '$pid'",  "p.ptype = '$type'"));
+      $theme->box($project->name ." : ". t(($type ? $type : "all")), $output);
+      $theme->footer();
+      break;
+    case "update":
+      global $id, $user;
+      $node = node_load(array("nid" => $id));
+
+      $theme->header();
+      node_view($node, 0);
+
+      // Clean up for follow up
+      unset($node->body);
+      unset($node->teaser);
+      $node->revision = 1;
+      $node->uid = $user->uid;
+      $node->name = $user->name;
+      $theme->box("$node->project_name : ". t($node->ptype), node_form($node));
+      $theme->footer();
+      break;
+    case "add":
+      global $pid, $type, $user;
+      $theme->header();
+      if (user_access("post content")) {
+        $theme->box(t("Project") ." : ". t($type), node_form(array("uid" => $user->uid, "type" => "project", "pid" => $pid, "ptype" => $type, "revision" => 1)));
+      }
+      else {
+        $theme->box(t("Access denied"), message_access());
+      }
+      $theme->footer();
+      break;
+    case "Preview":
+      global $type, $edit;
+      $theme->header();
+      $theme->box(t("Project") ." : ". t($type), node_preview($edit));
+      $theme->footer();
+      break;
+    case t("Submit"):
+      global $type, $edit;
+      $theme->header();
+      $edit[revision] = 1;
+      $theme->box(t("Project") ." : ". t($type), node_submit($edit));
+      $theme->footer();
+      break;
+    default:
+      global $pid;
+      $result = db_query("SELECT pid,name FROM projects ". ($pid ? "WHERE pid = '$pid'" : "") ."ORDER BY name");
+      $theme->header();
+      while ($project = db_fetch_object($result)) {
+        $output = "<table cellpadding=\"2\" cellspacing=\"2\" border=\"0\">\n";
+        foreach (array("bug" => "Bugs", "feature" => "Features"/*, "patch" => "Patches"*/) as $type=>$name) {
+          $active = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE (pstatus = '1' OR pstatus = '2') AND ptype = '$type' AND pid = '$project->pid'"));
+          $total = db_fetch_object(db_query("SELECT count(*) AS total FROM project WHERE ptype = '$type' AND pid = '$project->pid'"));
+          if (user_access("access content")) {
+            $output .= "<tr><td><b><a href=\"module.php?mod=project&pid=$project->pid&op=list&type=$type\">". t($name) ."</a></b></td><td>($total->total)</td>";
+          }
+          else {
+            $output .= "<tr><td><b>". t($name) ."</b></td><td>($total->total)</td>";
+          }
+          if (user_access("post content")) {
+            $output .= "<td><a href=\"module.php?mod=project&pid=$project->pid&op=add&type=$type\">". t("submit") ."</a></td>";
+          }
+          if (user_access("search content")) {
+            // Use standard Drupal search for now
+            $output .= "<td><a href=\"module.php?mod=project&pid=$project->pid&op=search&type=$type\">". t("search") ."</a></td>";
+            // Use standard Drupal search for now
+          }
+          $output .= "<td>($active->total ". t("open") .")</td>";
+        }
+        $output .= "</table>\n";
+        $theme->box($project->name, $output);
+      }
+      $theme->footer();
+  }
+}
+
+function project_block() {
+  $result = db_query("SELECT p.pid,p.name,n.ptype,count(n.nid) AS active FROM projects p LEFT JOIN project n ON p.pid = n.pid WHERE n.pstatus = '1' OR n.pstatus = '2' GROUP BY n.ptype, p.pid, p.name");
+  while ($project = db_fetch_object($result)) {
+    $projects[$project->name][pid] = $project->pid;
+    $projects[$project->name][$project->ptype] = $project->active;
+  }
+  foreach ($projects as $name => $project) {
+    $output .= "<a href =\"module.php?mod=project&pid=$project[pid]\">$name</a><br />";
+    foreach ($project as $type => $active) {
+      if ($type != "pid") {
+        $output .= "&nbsp; <a href =\"module.php?mod=project&pid=$project[pid]&op=list&type=$type\">". t(ucfirst($type . "s")) ."</a>: $active open". (0 && user_access("post content") ? " (<a href=\"module.php?mod=project&pid=$project[pid]&op=add&type=$type\">". t("submit") ."</a>)" : "") ."<br />";
+      }
+    }
+    $output .= "<br />";
+  }
+  
+  $block[0]["subject"] = t("Project information");
+  $block[0]["content"] = $output;
+  $block[0]["info"] = t("Project information");
+  $block[0]["link"] = "module.php?mod=project";
+  return $block;
+}
+
+// Misc support functions
+function uid_to_name($uids) {
+  foreach (split(",", $uids) as $uid) {
+    if ($user = user_load(array("uid" => $uid))) {
+      $names[$user->uid] = $user->name;
+    }
+  }
+  return $names;
+}
+
+function project_pstatus($pstatus = 0) {
+  $status = array(1 => "Active", "Fixed", "Duplicate", "Postponed", "Won't fix", "By design", "Closed");
+  return $pstatus ? $status[$pstatus] : $status;
+}
+
+function project_array($values) {
+  if (!is_array($values)) {
+    $values = explode(",", $values);
+  }
+
+  foreach ($values as $value) {
+    $return[$value] = $value;
+  }
+
+  return $return;
+}
+
+function project_mail(&$node, $new = 0) {
+  global $user, $HTTP_HOST;
+
+  $project = db_fetch_object(db_query("SELECT pid,name,mail FROM projects WHERE pid = '$node->pid'"));
+  $from = "<". ($node->name ? $node->name : $user->name) ."> ". variable_get("site_mail", ini_get("sendmail_from"));
+
+  $from = variable_get("site_mail", "root@localhost");
+  $body = "Project: $project->name\n";
+  $body .= "Area: $node->area\n";
+  $body .= "Version: $node->version\n";
+  $body .= "Status: ". project_pstatus($node->pstatus) ."\n";
+  $body .= "Priority: $node->priority\n";
+  if ($node->assigned) {
+    $body .= "Assigned to: ". @implode("", uid_to_name($node->assigned)) ."\n";
+  }
+  $body .= "\n";
+
+  if ($new) {
+    $body .= format_date(time(), "custom", "Y-m-d H:i") ." : ". ($node->name ? $node->name : $user->name) ."\n";
+    $body .= check_output($node->body) ."\n\n";
+    $body .= str_repeat("-", 72) ."\n\n";
+    $mid = "Message-ID: <$node->nid@$HTTP_HOST>";
+  }
+  else {
+    $node->revisions = unserialize($node->revisions);
+    $node->revisions[][node] = $node;
+    $node->revisions = array_reverse($node->revisions);
+    foreach ($node->revisions as $revision) {
+      $body .= format_date($revision["node"]->changed, "custom", "Y-m-d H:i") ." : ". ($revision["node"]->uid ? implode("", uid_to_name($revision["node"]->uid)) : "") ."\n";
+      $body .= check_output($revision["node"]->body) ."\n\n";
+      $body .= str_repeat("-", 72) ."\n\n";
+    }
+    $mid = "Message-ID: <$node->nid.". count($node->revisions) ."@$HTTP_HOST>\n";
+    $mid .= "In-Reply-To: <$node->nid@$HTTP_HOST>";
+  }
+
+  $body = wordwrap(strip_tags($body, 72));
+  $body .= "View: ". path_uri() ."node.php?id=$node->nid\n";
+  $body .= "Update: ". path_uri() ."module.php?mod=project&op=update&id=$node->nid";
+  $trans = get_html_translation_table(HTML_ENTITIES);
+  $trans = array_flip($trans);
+
+// Node support functions
+/* Using Drupal nodes, but with too many extensions to use the standard methods
+
+function project_node($field) {
+  global $user;
+
+  $info["name"] = t("project");
+  $info["description"] = t("Add information related to projects. This can be bug reports, feature requests, patches, etc.");
+
+  return $info[$field];
+}*/
+
+function project_save($op, &$node) {
+
+  if ($op == "approve") {
+    return array("status" => 1);
+  }
+
+  if ($op == "create") {
+    return array("created" => time(), "comment" => 0, "moderate" => 0, "promote" => 0, "status" => 1, "pid", "ptype", "pstatus", "area", "priority", "version", "assigned", "file");
+  }
+
+  if ($op == "decline") {
+    return array("status" => 0);
+  }
+
+  if ($op == "update") {
+    return array("changed" => time(), "comment" => 0, "moderate" => 0, "promote" => 0, "status" => 1, "revisions", "pid", "ptype", "pstatus", "area", "priority", "version", "assigned", "file");
+  }
+
+}
+
+function project_access($op, $node) {
+  if ($op == "view") {
+    return $node->status;
+  }
+
+  if  ($op == "create") {
+    return 1;
+  }
+
+  if ($op == "decline") {
+    return array("status" => 0);
+  }
+
+  if ($op == "update") {
+    return 1;
+  }
+}
+
+function project_load(&$node) {
+  $project = db_fetch_object(db_query("SELECT p.pid, p.ptype, p.pstatus, p.area, p.priority, p.version, p.assigned, p.file, projects.name AS project_name FROM project p LEFT JOIN projects ON p.pid = projects.pid WHERE nid = '$node->nid'"));
+  $assigned = user_load(array("uid" => $project->assigned));
+  $project->assigned_formatted = $project->assigned ? format_name($assigned) : t("Unassigned");
+  $project->assigned_formatted = $project->assigned ? format_name(user_load(array("uid" => $project->assigned))) : t("Unassigned");
+
+function project_insert(&$node) {
+  db_query("INSERT INTO project (nid, pid, ptype, pstatus, area, priority, version, assigned, file) VALUES ('$node->nid', '$node->pid', '$node->ptype', '$node->pstatus', '$node->area', '$node->priority', '$node->version', '$node->assigned', '". base64_encode($node->file) ."')");
+  project_mail($node, 1);
+}
+
+function project_update(&$node) {
+  db_query("UPDATE project SET nid = '$node->nid', pid = '$node->pid', ptype = '$node->ptype', pstatus = '$node->pstatus', area = '$node->area', priority = '$node->priority', version = '$node->version', assigned = '$node->assigned', file = '". base64_encode($node->file) ."' WHERE nid = '$node->nid'");
+  project_mail($node);
+}
+
+function project_delete(&$node) {
+  db_query("DELETE FROM project WHERE nid = '$node->nid'");
+}
+
+// Node output functions
+function project_form(&$node, &$help, &$error, &$form) {
+  global $user;
+function project_form(&$node, &$help, &$error) {
+  $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
+
+    // TODO: implement file uploads correctly
+
+  unset($node->teaser);
+  $developers = uid_to_name($project->developers);
+  $developers[0] = "Unassigned";
+
+  $output .= form_hidden("pid", $project->pid);
+  $output .= form_hidden("ptype", $node->ptype);
+  if ($node->nid) {
+    $output .= form_select(t("Status"), "pstatus", $node->pstatus, project_pstatus());
+    $error["title"] = t("Error. Try again.");
+  }
+    $output .= form_hidden("pstatus", 1);
+  return $output;
+  $output .= form_select(t("Area"), "area", $node->area, project_array($project->areas));
+  $output .= form_select(t("Priority"), "priority", ($node->priority ? $node->priority : 4), array(1 => "1 - must fix", "2", "3", "4 - fix if time", "5", "6", "7 - don't fix"));
+  $output .= form_select(t("Version"), "version", $node->version, project_array($project->versions));
+  $output .= form_select(t("Assigned to"), "assigned", $node->assigned, $developers);
+  $output .= form_textarea(t("Content"), "body", ($node->state == "update" ? "" : $node->body), 60, 20, t("Allowed HTML tags") .": ". htmlspecialchars(variable_get("allowed_html", "")));
+  /*if (!$node->file) {
+    $output .= form_file(t("File upload"), "file", 60);
+  }*/
+}
+
+function project_view($node, $main = 0) {
+  global $theme;
+
+  $project = db_fetch_object(db_query("SELECT pid,name,versions,developers,areas FROM projects WHERE pid = '$node->pid'"));
+
+  if ($main) {
+    $node->teaser = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ." <b>". t("Area") .":</b> $node->area <b>". t("Priority") .":</b> $node->priority <b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />". (count($node->revisions) ? $node->revisions[0][node]->teaser : $node->teaser);
+  }
+  else {
+    $node->revisions[][node] = $node;
+    foreach ($node->revisions as $revision) {
+      $body .= "<b>". format_date($revision["node"]->changed, "small") ." : ". format_name($revision["node"]) ."</b>";
+      $body .= "<blockquote>". $revision["node"]->body ."</blockquote>";
+    }
+
+    $node->body = "<b>". t("Status") .":</b> ". t(project_pstatus($node->pstatus)) ."<br /><b>". t("Area") .":</b> $node->area<br /><b>". t("Priority") .":</b> $node->priority <br /><b>". t("Version") .":</b> $node->version<br /><b>". t("Assigned") .":</b> $node->assigned_formatted<hr />$body";
+  }
+
+  if (count($node->revisions)) {
+    $node->uid = $node->revisions[0][node]->uid;
+    $node->name = $node->revisions[0][node]->name;
+  }
+  $theme->node($node, $main);
+}
+
+?>

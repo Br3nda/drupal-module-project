@@ -1,0 +1,24 @@
+CREATE TABLE `project` (
+  `nid` int(10) unsigned NOT NULL default '0',
+  `pid` int(10) unsigned NOT NULL default '0',
+  `pstatus` tinyint(2) NOT NULL default '0',
+  `area` varchar(255) NOT NULL default '',
+  `priority` tinyint(2) NOT NULL default '0',
+  `version` varchar(255) NOT NULL default '',
+  `assigned` int(10) unsigned NOT NULL default '0',
+  `file` text,
+  `ptype` varchar(255) NOT NULL default '',
+  PRIMARY KEY  (`nid`),
+  KEY `pid` (`pid`),
+  KEY `assigned` (`assigned`)
+) TYPE=MyISAM;
+
+CREATE TABLE `projects` (
+  `pid` int(10) unsigned NOT NULL auto_increment,
+  `name` varchar(255) NOT NULL default '',
+  `versions` varchar(255) NOT NULL default '',
+  `developers` varchar(255) NOT NULL default '',
+  `areas` varchar(255) NOT NULL default '',
+  `mail` varchar(255) NOT NULL default '',
+  PRIMARY KEY  (`pid`)
+) TYPE=MyISAM;

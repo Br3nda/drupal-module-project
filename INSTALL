@@ -1,0 +1,37 @@
+Readme
+------
+
+This is a simple notification module. It provides e-mail notifications to
+members about updates and changes to the Drupal web site.
+Send comments to kjartan@drop.org.
+
+Requirements
+------------
+
+This module requires the lastest version of the current Drupal CVS version.
+
+Installation
+------------
+
+1. Create the SQL tables. This depends a little on your system, but the most
+   common method is:
+     mysql -u username -ppassword drupal < project.mysql
+
+2. Copy the project.module to the Drupal modules/ directory.
+
+3. Use the administration pages to setup projects.
+
+Author
+------
+
+Kjartan Mannes <kjartan@drop.org>
+
+Wish list
+--------
+
+This is in no particular order.
+
+- More filter / search capabilities.
+- Better docs.
+- Send mail to submitter an not just project mail.
+- A dozen other things prolly.

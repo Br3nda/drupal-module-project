@@ -1,0 +1,52 @@
+30. January 2002
+----------------
+project.module
+- updated some links.
+- cleaned up the code and added some more functions to resuse code.
+- added a "view your projects" to the user meny to see things that are
+  assigned to you.
+- various other minor things.
+
+17. January 2002
+----------------
+project.module
+- moved view link to title.
+- switched to use user_mail().
+- minor formatting changes.
+
+8. January 2002
+---------------
+project.module
+- add search/filter
+- modified layout
+
+21. December 2001
+-----------------
+project.module
+- added a project block.
+- modified the UI a little.
+- strip html tags from mails.
+
+20. December 2001
+-----------------
+project.module
+- changed the list behaviour. A bug is active even if marked as fixed. Bugs
+  are not really closed until the user whom reported the bug have reported it
+  as closed.
+
+17. December 2001
+-----------------
+project.module
+- assigned to was not stored.
+- think i got the stripslashes right at last.
+- changed the access checks so non-priviledged users can submit update.
+- made it show the name of the person that submitted the node and not the
+  person who lasted updated it.
+- revisions are complex!
+- fixed a crash bug and did some parsing changes
+
+16. December 2001
+-----------------
+project.module
+- initial commit of project.module.
+
