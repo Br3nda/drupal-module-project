@@ -1,5 +1,6 @@
 <?php
-// $Id: project.module,v 1.79 2003/06/18 18:50:09 dries Exp $
+// $Id: project.module,v 1.80 2003/06/18 22:39:05 weitzman Exp $
+
 
 // Drupal hooks
 function project_system($field) {
@@ -613,6 +614,8 @@ function project_priority($priority = 0) {
   }
 }
 
+
+
 function project_array($values) {
   if (!is_array($values)) {
     $values = explode(",", $values);
@@ -673,15 +676,18 @@ function project_mail(&$node, $new = 0) {
   
   /*
   the intent here is to preserve the links before they get removed by strip_tags()
-  then display the links at the bottom of the email. Alas, the display part of this function was
-  removed for unknown reasons (maybe a mistake?).
+  then display the links at the bottom of the email.
   */
   $links = project_parse_links($body);
   
   $body = strip_tags($body);
-  if ($node->wrap <> -1) {
+  if ($node->project_wrap <> -1) {
     $body = wordwrap($body, 72);
   }
+  
+  // now list the links which were parsed above
+  $body .= "Links:\n". implode("\n", $links). "\n\n";
+  
   $body .= "Update-by-www: ". url("project/update/$node->nid#content") ."\n";
   $body .= "Update-by-mail: mailto:". variable_get("project_reply_to", $from). "?Subject=project/update/". $node->nid. "\n";
   $body .= "Update-by-mail help: ". url("project/mail_help") ."\n";
@@ -913,7 +919,7 @@ function project_view($node, $main = 0) {
     if ($node->area) {
       $headers[] = array("<b>". t("Area") .":</b>", $node->area);
     }
-    $headers[] = array("<b>". t("Priority") .":</b>", $node->priority);
+    $headers[] = array("<b>". t("Priority") .":</b>", project_priority($node->priority));
     if ($node->version) {
       $headers[] = array("<b>". t("Version") .":</b>", $node->version);
     }
