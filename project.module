@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.78 2003/06/18 15:38:15 weitzman Exp $
+// $Id: project.module,v 1.79 2003/06/18 18:50:09 dries Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -604,7 +604,7 @@ function project_pstatus($pstatus = 0) {
 
 // translates from a numeric priority to english equivalent or vice versa.
 function project_priority($priority = 0) {
-  $status = array(1 => "Critical", 2 => "Normal", 3 => "Minor")
+  $status = array(1 => "Critical", 2 => "Normal", 3 => "Minor");
   if (is_numeric($priority)) {
     return $priority ? $status[$priority] : $status;
   }
