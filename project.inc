@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.20 2003/12/18 13:14:32 kjartan Exp $
+// $Id: project.inc,v 1.21 2003/12/22 01:56:42 ax Exp $
 
 function project_project_node($field) {
   $info['name'] = t('project');
@@ -120,15 +120,15 @@ function project_project_validate(&$node) {
   if (empty($node->mail)) {
     $error['mail'] = t('Required.');
   }
-  elseif (($data = user_validate_mail($node->mail))) {
+  elseif ($data = user_validate_mail($node->mail)) {
     $error['mail'] = $data;
   }
 
-  if (($data = user_validate_mail($node->mail_digest))) {
+  if (!empty($node->mail_digest) && ($data = user_validate_mail($node->mail_digest))) {
     $error['mail_digest'] = $data;
   }
 
-  if (($data = user_validate_mail($node->mail_copy))) {
+  if (!empty($node->mail_copy) && ($data = user_validate_mail($node->mail_copy))) {
     $error['mail_copy'] = $data;
   }
 

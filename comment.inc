@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.19 2003/12/02 14:54:46 kjartan Exp $
+// $Id: comment.inc,v 1.20 2003/12/22 01:56:42 ax Exp $
 
 function project_comment_page($project) {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -123,44 +123,44 @@ function project_comment_view($node, $main = 0) {
   );
 
   $result = db_query('SELECT p.*, u.name FROM {project_comments} p LEFT JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
-  if (db_num_rows($result)) {
-    while ($comment = db_fetch_object($result)) {
-      $data = unserialize($comment->data);
-      $summary = array();
-      foreach ($fields as $field => $text) {
-        if (isset($data['old']->$field) && isset($data['new']->$field)) {
-          $summary[] = array(
-            t($text) .':',
-            project_mail_summary($field, $data['old']->$field),
-            '&raquo; '. project_mail_summary($field, $data['new']->$field)
-          );
-        }
-      }
-
-      if ($summary || $comment->body) {
-        $rows[] = array(
-          array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => "<a name=\"comment". ++$i .'" href="'. url("node/view/$node->nid") ."#$i\">#$i</a>", '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
-        if ($summary) {
-          $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
-        }
-        if ($comment->body) {
-          $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
-        }
-        if ($comment->fid) {
-          $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
-        }
+  $i = 0;
+  while ($comment = db_fetch_object($result)) {
+    $i++;
+    $data = unserialize($comment->data);
+    $summary = array();
+    foreach ($fields as $field => $text) {
+      if (isset($data['old']->$field) && isset($data['new']->$field)) {
+        $summary[] = array(
+          t($text) .':',
+          project_mail_summary($field, $data['old']->$field),
+          '&raquo; '. project_mail_summary($field, $data['new']->$field)
+        );
       }
     }
-    $output = '<div class="project">';
-    $output .= theme('table', NULL, $rows);
-    $output .= '</div>';
 
-    if (user_access('maintain project issues')) {
-      $links[] = '<p>'. l(t('update issue'), "project/comments/add/$node->nid") .'</p>';
+    if ($summary || $comment->body) {
+      $rows[] = array(
+        array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/view/$node->nid#comment-$i", array ('id' => "comment-$i", 'name' => "comment-$i")), '%user' => format_name($comment), '%date' => format_date($comment->created))) . (node_is_new($node->nid, $comment->changed) ? theme_mark() : '')));
+      if ($summary) {
+        $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
+      }
+      if ($comment->body) {
+        $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
+      }
+      if ($comment->fid) {
+        $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
+      }
     }
-    $output .= theme('links', $links);
-    return theme('box', t('Updates'), $output);
   }
+  $output = '<div class="project">';
+  $output .= theme('table', NULL, $rows);
+  $output .= '</div>';
+
+  if (user_access('maintain project issues')) {
+    $links[] = '<p>'. l(t('update issue'), "project/comments/add/$node->nid") .'</p>';
+  }
+  $output .= theme('links', $links);
+  return theme('box', t('Updates'), $output);
 }
 
 function project_comment_load($cid) {
