@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.6 2003/09/30 09:13:56 kjartan Exp $
+// $Id: project.inc,v 1.7 2003/10/01 09:26:20 kjartan Exp $
 
 function project_project_node($field) {
   $info["name"] = t("Project");
@@ -150,8 +150,9 @@ function project_project_view($node, $main = 0) {
       if ($GLOBALS["user"]->uid) {
         $level = db_result(db_query("SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $node->nid, $GLOBALS["user"]->uid));
         $form = form_radios(t("Issues e-mail subscription"), "level", $level, array(0 => t("None"), 1 => t("Own issues"), 2 => t("All issues")));
+        $form .= form_hidden("nid", $node->nid);
         $form .= form_submit(t("Subscribe"));
-        $output .= form($form, "post", "project/$node->uri");
+        $output .= form($form, "post", url("project"));
       }
     }
 

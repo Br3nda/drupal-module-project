@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.105 2003/09/30 18:24:47 kjartan Exp $
+// $Id: project.module,v 1.106 2003/10/01 09:26:20 kjartan Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -174,10 +174,13 @@ function project_page() {
     drupal_goto(url());
   }
 
+  if ($_POST["op"] == t("Subscribe") && $_POST["edit"]["nid"]) {
+    global $user;
+    db_query("DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $_POST["edit"]["nid"], $user->uid);
+    db_query("INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)", $_POST["edit"]["nid"], $user->uid, $_POST["edit"]["level"]);
+    drupal_goto(url("project/". $_POST["edit"]["nid"]));
+  }
   switch (arg(1)) {
-    case "test":
-      project_release_cron();
-      break;
     case "releases":
       project_release_overview();
       break;
@@ -198,11 +201,6 @@ function project_page() {
       }
 
       if ($node->nid) { // Show project details
-        if ($_POST["op"] == t("Subscribe")) {
-          global $user;
-          db_query("DELETE FROM {project_subscriptions} WHERE nid = %d AND uid = %d", $node->nid, $user->uid);
-          db_query("INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)", $node->nid, $user->uid, $_POST["edit"]["level"]);
-        }
         switch (arg(2)) {
           case "releases":
             project_release_page($node);
