@@ -1,5 +1,5 @@
 <?php
-// $Id: issue.inc,v 1.1 2003/09/28 16:13:32 kjartan Exp $
+// $Id: issue.inc,v 1.2 2003/09/28 19:34:17 kjartan Exp $
 
 function project_issue_page($project) {
   $arg = ($project->nid) ? 3 : 2;
@@ -9,7 +9,6 @@ function project_issue_page($project) {
       if ($node = node_load(array("nid" => arg($arg + 1), "type" => "project_issue"))) {
         theme("header", $node->title);
         node_view($node);
-        project_comment_view($node);
         theme("footer");
       }
       break;
@@ -169,6 +168,7 @@ function project_issue_view($node, $main = 0) {
 
     theme("breadcrumb", $node->breadcrumb);
     theme("node", $node, $main);
+    project_comment_view($node);
   }
 }
 
@@ -184,7 +184,9 @@ function project_issue_insert($node) {
   }
   */
   db_query("INSERT INTO {project_issues} (nid, pid, fid, category, component, priority, rid, assigned, state) VALUES (%d, %d, %d, '%s', '%s', %d, %d, %d, %d)", $node->nid, $node->pid, $node->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state);
-  project_mail_notify($node);
+  if ($node->body) {
+    project_mail_notify($node);
+  }
 }
 
 function project_issue_update($node) {
@@ -194,7 +196,9 @@ function project_issue_update($node) {
   }
   */
   db_query("UPDATE {project_issues} SET pid = %d, fid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $file->fid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
-  project_mail_notify($node);
+  if ($node->body) {
+    project_mail_notify($node);
+  }
 }
 
 function project_issue_delete($node) {
@@ -485,7 +489,7 @@ function project_issue_query_rss($projects, $result) {
       #$row[] = array("data" => format_name(user_load(array("uid" => $node->uid))), "class" => $class);
 
       $rows[] = $row;
-      
+
     }
     if ($pager = pager_display(NULL, 20, 0, "default", project_issue_query_pager($pids, $query) + tablesort_pager())) {
       $rows[] = array(array("data" => $pager, "colspan" => 8));

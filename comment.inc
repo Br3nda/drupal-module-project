@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.inc,v 1.1 2003/09/28 16:13:32 kjartan Exp $
+// $Id: comment.inc,v 1.2 2003/09/28 19:34:17 kjartan Exp $
 
 function project_comment_page($project) {
   switch ($_POST["op"] ? $_POST["op"] : arg(3)) {
@@ -74,7 +74,7 @@ function project_comment_page($project) {
         else {
           // Save the comment and re-direct to the overview page for the project
           project_comment_save($edit);
-          drupal_goto(url("node/view/". arg(4)));
+          drupal_goto(url("project/issues/view/". arg(4)));
         }
       }
       break;
