@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.6 2003/10/02 21:55:52 kjartan Exp $
+// $Id: release.inc,v 1.7 2003/10/03 11:15:15 kjartan Exp $
 
 function project_release_cron() {
   if ($dir = variable_get("project_release_directory", "")) {
@@ -318,7 +318,7 @@ function project_release_save($release) {
       $release->fid = drupal_file_save($file);
     }
 
-    $release->created = time();
+    $release->created = ($release->version == "cvs") ? 0 : time();
     $release->changed = time();
 
     // Prepare the query:
