@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.45 2003/02/17 00:36:09 weitzman Exp $
+// $Id: project.module,v 1.46 2003/02/17 21:33:53 weitzman Exp $
 
 // Drupal hooks
 function project_system($field) {
@@ -607,7 +607,7 @@ function project_mail(&$node, $new = 0) {
     $mid .= "In-Reply-To: <type=project&nid=$node->nid&revcount=";
     $mid .= $revcount-1 ."&host=@". $dir . strtolower($SERVER_NAME) .">\n";
   }
-
+  $links = project_parse_links($body);
   $body = wordwrap(strip_tags($body), 72);
   $body .= "Email help: ". path_uri() ."module.php?mod=project&op=mail_help\n";
   $body .= "View: ". path_uri() ."node.php?id=$node->nid\n";
@@ -615,6 +615,9 @@ function project_mail(&$node, $new = 0) {
   $trans = get_html_translation_table(HTML_ENTITIES);
   $trans = array_flip($trans);
   $body = strtr($body, $trans);
+  $body .= "\n\nLinks:\n". implode("\n", $links);
+  print $body;
+  die();
   user_mail($project->mail ? $project->mail : $from, check_output("$node->ptype #$node->nid : $node->title"), $body, "From: ". ($node->name ? $node->name : $user->name). " <$from>\nReply-to: ". variable_get("project_reply_to", $from). "\nX-Mailer: Drupal\nErrors-to: $from\n$mid");
   
 }
@@ -857,6 +860,31 @@ function project_view($node, $main = 0) {
     $node->name = $node->revisions[0][node]->name;
   }
   theme("node", $node, $main);
+}
+
+// returns an array of urls from HTML or text string
+//TODO: return the source HTML with markers replacing each link so reader knows where the links came from
+function project_parse_links($html) {
+  
+  $urls = '(http|file|ftp)';
+  $ltrs = '\w';
+  $gunk = '/#~:.?+=&%@!\-';
+  $punc = '.:?\-';
+  $any = "$ltrs$gunk$punc";
+  preg_match_all("{
+                    \b
+                    $urls   :
+                    [$any] +?
+
+
+                    (?=
+                      [$punc] *
+                      [^$any]
+                    |
+                      $
+                    )
+                }x", $html, $matches);  
+  return $matches[0] ? $matches[0] : array ();
 }
 
 function project_mail_help() {
