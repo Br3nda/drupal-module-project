@@ -6,11 +6,10 @@
 * systems.
 *
 * @author Kjartan Mannes
-* @drupal_user natrak@natrak.net
-* @drupal_package Project module
+* @package Project module
 */
 
-// $Id: project.module,v 1.25.2.3 2002/11/16 17:05:08 kjartan Exp $
+// $Id: project.module,v 1.25.2.4 2002/12/11 16:52:18 kjartan Exp $
 
 // Drupal hooks
 function project_system($field) {
