@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.92 2005/04/01 16:09:27 dries Exp $ */
+/* $Id: issue.inc,v 1.93 2005/04/15 14:18:30 unconed Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -642,7 +642,7 @@ function project_issue_query_url($query = 0) {
     foreach ($query as $key => $value) {
       $url[] = "$key=$value";
     }
-    $url = implode('&amp;', $url);
+    $url = implode('&', $url);
   }
   return $url;
 }
