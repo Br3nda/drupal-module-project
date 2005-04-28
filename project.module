@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.186 2005/04/05 13:39:31 goba Exp $
+// $Id: project.module,v 1.187 2005/04/28 19:49:20 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -103,7 +103,7 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query(db_rewrite_sql('SELECT DISTINCT(n.nid), p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n USING(nid) WHERE n.status = 1 AND p.state = 2 AND n.changed < %d', 'p'), time() - 14 * 24 * 60 * 60);
+  $result = db_query(db_rewrite_sql('SELECT n.nid, p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n USING(nid) WHERE n.status = 1 AND p.state = 2 AND n.changed < %d', 'p'), time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
       $comment->$var = $node->$var;
@@ -226,10 +226,10 @@ function project_page() {
       break;
 
       if ($vid = db_result(db_query_range("SELECT vid FROM vocabulary WHERE INSTR(nodes, 'project_project') ORDER BY weight DESC", 0, 1))) {
-        $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid WHERE t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title"), $vid);
+        $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid WHERE t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title"), $vid);
       }
       else {
-        $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title FROM {node} n USING(nid) WHERE n.type = 'project_project' AND n.status = 1 ORDER BY title"));
+        $result = db_query(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n USING(nid) WHERE n.type = 'project_project' AND n.status = 1 ORDER BY title"));
       }
 
       $vocabulary = array(
@@ -280,10 +280,10 @@ function project_page_overview() {
     if ($term->description) {
       $output .= $term->description;
     }
-    $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
   }
   else {
-    $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
   }
 
   $header = array(
@@ -340,8 +340,8 @@ function project_page_user($arg = 0) {
     array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
   );
 
-  $result = db_query(db_rewrite_sql("SELECT DISTINCT(n.nid), n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid %s"), $user->uid, tablesort_sql($header));
-  
+  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid %s"), $user->uid, tablesort_sql($header));
+
   if (!db_num_rows($result)) {
     print theme('page', ($current_user ? t('You have no projects.') : t('This user has no projects.')));
     return;

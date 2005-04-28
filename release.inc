@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.47 2005/03/05 09:17:20 dries Exp $ */
+/* $Id: release.inc,v 1.48 2005/04/28 19:49:20 killes Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -40,7 +40,7 @@ function project_release_scan_parse($path = NULL) {
     list($filename, $name, $version) = $matches;
 
     if (!$projects[$name]) {
-      if ($project = db_fetch_object(db_query("SELECT n.nid, n.type, n.moderate FROM {node} n INNER JOIN {project_projects} p USING (nid) WHERE p.uri = '%s'", $name))) {
+      if ($project = db_fetch_object(db_query(db_rewrite_sql("SELECT n.nid, n.type, n.moderate FROM {node} n INNER JOIN {project_projects} p USING (nid) WHERE p.uri = '%s'"), $name))) {
         if ($releases = project_release_load($project, 0)) {
           $project->releases = array_flip($releases);
         }
@@ -161,7 +161,7 @@ function project_release_overview($arg = 0) {
 
   $header = array(t('Project'), t('Downloads'), t('Description'));
 
-  $result = db_query("SELECT DISTINCT(n.nid), n.title, n.teaser, r.tid FROM {node} n LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title");
+  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.teaser, r.tid FROM {node} n LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title"));
 
   while ($node = db_fetch_object($result)) {
     if ($tid != ($tid = $node->tid)) {
