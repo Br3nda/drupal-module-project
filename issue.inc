@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.94 2005/04/28 19:49:20 killes Exp $ */
+/* $Id: issue.inc,v 1.95 2005/04/29 12:50:52 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -411,7 +411,7 @@ function project_issue_delete($node) {
 function project_issue_access($op, $node) {
   switch ($op) {
     case 'view':
-      return user_access('access project issues');
+      return user_access('access project issues') || (user_access('access own project issues') && $node->uid == $user->uid);
     case 'create':
       return user_access('create project issues');
     case 'update':

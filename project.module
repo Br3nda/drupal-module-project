@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.187 2005/04/28 19:49:20 killes Exp $
+// $Id: project.module,v 1.188 2005/04/29 12:50:52 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -56,8 +56,10 @@ function project_perm() {
     'administer projects',
     'maintain projects',
     'access projects',
+    'access own projects',
     'create project issues',
-    'access project issues'
+    'access project issues',
+    'access own project issues'
   );
 }
 
