@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.95 2005/04/29 12:50:52 killes Exp $ */
+/* $Id: issue.inc,v 1.96 2005/05/03 01:28:19 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -9,54 +9,73 @@ function project_issue_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'search':
       $project = project_project_retrieve(arg(3));
-      if (node_access('view', $project)) {
-        print theme('page', project_issue_query($project, $query));
+      if ($project->nid && node_access('view', $project)) {
+        print theme('page', project_issue_query($project));
+      }
+      else {
+        print theme('page', project_issue_query());
       }
       break;
     case 'rss':
       $project = project_project_retrieve(arg(3));
-      if (node_access('view', $project)) {
+      if ($project->nid && node_access('view', $project)) {
         $query = new StdClass();
         $query->projects = array($project->nid);
 
         header('Content-Type: text/xml');
         print project_issue_query_result($query, 'rss');
       }
+      else {
+        header('Content-Type: text/xml');
+        print project_issue_query_result(NULL, 'rss');
+      }
       break;
     case 'add':
       $project = project_project_retrieve(arg(3));
       // We assume that a user may create issues for projects that he may view.
-      if (node_access('view', $project)) {
+      if ($project->nid && node_access('view', $project)) {
         drupal_goto("node/add/project_issue/$project->uri");
+      }
+      else {
+        drupal_goto("node/add/project_issue");
       }
       break;
     case 'statistics':
       $project = project_project_retrieve(arg(3));
-      if (node_access('view', $project)) {
+      if ($project->nid && node_access('view', $project)) {
         print theme('page', project_issue_statistics($project));
+      }
+      else {
+        print theme('page', project_issue_statistics());
       }
       break;
     case t('Subscribe'):
     case 'subscribe':
       $project = project_project_retrieve(arg(3));
-      if ($GLOBALS['user']->uid && node_access('view', $project)) {
+      if ($GLOBALS['user']->uid && $project->nid && node_access('view', $project)) {
         print theme('page', project_issue_subscribe($project));
+      }
+      else {
+        print theme('page', project_issue_subscribe());
       }
       break;
     case 'user':
        $_GET['users'] = $GLOBALS['user']->uid;
     default:
       $project = project_project_retrieve(arg(2));
-      if (node_access('view', $project)) {
+      if ($project->nid && node_access('view', $project)) {
         $query = new StdClass();
         $query->projects = array($project->nid);
 
         print theme('page', project_issue_query_result($query));
       }
+      else {
+        print theme('page', project_issue_query_result());
+      }
   }
 }
 
-function project_issue_statistics($project) {
+function project_issue_statistics($project = 0) {
   if ($project->nid) {
     $breadcrumb = array(
       l(t('Home'), NULL),
@@ -450,7 +469,7 @@ function project_issue_count($pid) {
   return $state;
 }
 
-function project_issue_query($project, $query) {
+function project_issue_query($project = 0, $query = NULL) {
   $categories = project_issue_category();
   if ($project->nid) {
     foreach ($project->components as $component) {
@@ -463,6 +482,9 @@ function project_issue_query($project, $query) {
     while ($node = db_fetch_object($result)) {
       $projects[$node->nid] = $node->title;
     }
+  }
+  if (is_null($query)) {
+    $query = new StdClass();
   }
 
   $states = project_issue_state();
