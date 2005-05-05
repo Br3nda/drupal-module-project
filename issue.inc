@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.96 2005/05/03 01:28:19 killes Exp $ */
+/* $Id: issue.inc,v 1.97 2005/05/05 16:49:21 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -95,14 +95,14 @@ function project_issue_statistics($project = 0) {
   $header = array(t('Category'), t('Overall'), t('Last month'));
   $rows = array();
   $duration = time() - 30 * 24 * 60 * 60;
-  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category', $filter);
+  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category', $filter);
   while ($stat = db_fetch_object($result)) {
     $i++;
     $rows[$i][0] = project_issue_category($stat->category);;
     $rows[$i][1] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
   }
 
-  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
+  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $j++;
     $rows[$j][2] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
@@ -113,15 +113,15 @@ function project_issue_statistics($project = 0) {
   $header = array(t('Status'), t('Overall'), '%', t('Last month'));
   $rows = array();
   // Activity overall
-  $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s'), $filter));
-  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s GROUP BY p.state'), $filter);
+  $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s'), $filter));
+  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s GROUP BY p.state'), $filter);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][0] = project_issue_state($stat->state);;
     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
   }
   // Activity this week
-  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n USING (nid) WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state'), $filter, $duration);
+  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state'), $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
@@ -200,7 +200,7 @@ function project_issue_subscribe($project = 0) {
     $rows = array($row);
     $nids = array();
 
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n USING (nid) WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title"), $user->uid);
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n ON n.nid = s.nid WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title"), $user->uid);
     while ($project = db_fetch_object($result)) {
       $row = array($project->title);
       foreach ($levels as $key => $level) {
@@ -233,7 +233,7 @@ function project_issue_form(&$node, &$param) {
 
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>'));
-  $result = db_query(db_rewrite_sql('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE n.status = 1 AND p.issues = 1'));
+  $result = db_query(db_rewrite_sql('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1'));
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
   }
@@ -462,7 +462,7 @@ function project_issue_category($category = 0, $plural = 1) {
 
 function project_issue_count($pid) {
   $state = array();
-  $result = db_query('SELECT p.state, count(p.state) AS count FROM {node} n INNER JOIN {project_issues} p USING (nid) WHERE n.status = 1 AND p.pid = %d GROUP BY p.state', $pid);
+  $result = db_query('SELECT p.state, count(p.state) AS count FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.nid WHERE n.status = 1 AND p.pid = %d GROUP BY p.state', $pid);
   while ($data = db_fetch_object($result)) {
     $state[$data->state] = $data->count;
   }
@@ -584,7 +584,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $result = pager_query(db_rewrite_sql($sql['sql'] . tablesort_sql($header)), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query(db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n USING (nid) INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header)), 20);
+    $result = pager_query(db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header)), 20);
   }
 
   if ($search) {

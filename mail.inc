@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.45 2005/04/28 19:49:20 killes Exp $ */
+/* $Id: mail.inc,v 1.46 2005/05/05 16:49:21 killes Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -332,7 +332,7 @@ function project_mail_notify($node) {
 
 function project_mail_reminder() {
   $projects = array();
-  $result = db_query(db_rewrite_sql('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE p.mail_reminder = 1 AND n.status = 1'));
+  $result = db_query(db_rewrite_sql('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON p.nid = n.nid WHERE p.mail_reminder = 1 AND n.status = 1'));
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
     $pids[] = "p.pid = $project->nid";
@@ -390,7 +390,7 @@ function project_mail_digest() {
     'List-Archive: <'. url('project/issues?priorities=1', NULL, NULL, 1) .'>',
   );
 
-  $result = db_query(db_rewrite_sql("SELECT n.nid, p.* FROM {project_projects} p INNER JOIN {node} n USING (nid) WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest"));
+  $result = db_query(db_rewrite_sql("SELECT n.nid, p.* FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest"));
   while ($project = db_fetch_object($result)) {
     $category = '';
     $result2 = db_query(db_rewrite_sql('SELECT n.nid, n.title, n.created, p.state, p.category, p.component, p.priority, p.assigned FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.state = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC'), $project->nid);
