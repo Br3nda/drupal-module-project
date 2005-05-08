@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.49 2005/05/05 16:49:21 killes Exp $ */
+/* $Id: release.inc,v 1.50 2005/05/08 13:47:56 killes Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -10,10 +10,10 @@ function project_release_scan() {
 function project_release_scan_directory($project = NULL) {
   if ($dir = file_create_path(variable_get('project_release_directory', ''))) {
     if ($project) {
-      $regexp = "($project)" .'-(.+)\.[tar.gz|zip]';
+      $regexp = "($project)" .'-(.+)\.(tar.gz|zip)';
     }
     else {
-      $regexp = '(.+)-(.+)\.[tar.gz|zip]';
+      $regexp = '(.+)-(.+)\.(tar.gz|zip)';
     }
     file_scan_directory($dir, $regexp, array('.', '..', 'CVS'), 'project_release_scan_parse');
 

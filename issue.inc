@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.97 2005/05/05 16:49:21 killes Exp $ */
+/* $Id: issue.inc,v 1.98 2005/05/08 13:47:56 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -132,7 +132,7 @@ function project_issue_statistics($project = 0) {
   if (!$project->nid) {
     $header = array_merge(array(t('Project')), project_issue_state(), array(t('Total')));
     $rows = array();
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.state, COUNT(p.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.state, COUNT(p.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state, n.title"));
 
     $orig = array('project' => array('data' => 0));
     foreach (project_issue_state() as $key => $value) {

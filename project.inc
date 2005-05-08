@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.48 2005/04/29 12:50:52 killes Exp $ */
+/* $Id: project.inc,v 1.49 2005/05/08 13:47:56 killes Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -333,7 +333,13 @@ function project_project_retrieve($key = 0) {
       $node = node_load(array('nid' => $key, 'type' => 'project_project'));
     }
     else {
-      $node = node_load(array('nid' => db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $key), 0), 'type' => 'project_project'));
+      $nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $key), 0);
+      if (!$nid) {
+        return new StdClass();
+      }
+      else {
+        $node = node_load(array('nid' => $nid, 'type' => 'project_project'));
+      }
     }
   }
   return $node;
