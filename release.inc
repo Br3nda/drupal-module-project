@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.50 2005/05/08 13:47:56 killes Exp $ */
+/* $Id: release.inc,v 1.51 2005/05/12 10:39:56 killes Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -272,7 +272,7 @@ function project_release_validate(&$edit) {
 
 function project_release_view($release, $project = 0) {
   if (!$project) {
-    $project = node_load(array('nid' => $project->nid));
+    $project = node_load(array('nid' => $release->nid));
   }
 
   $links = array();
