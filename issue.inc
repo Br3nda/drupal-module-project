@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.98 2005/05/08 13:47:56 killes Exp $ */
+/* $Id: issue.inc,v 1.99 2005/05/13 18:05:29 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -191,7 +191,7 @@ function project_issue_subscribe($project = 0) {
     $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "][$project->nid", $level, $levels);
   }
   else {
-    $headers = array_merge(t('Project'), $levels);
+    $headers = array_merge(array(t('Project')), $levels);
 
     $row = array(t('All projects'));
     foreach ($levels as $key => $level) {
@@ -253,7 +253,7 @@ function project_issue_form(&$node, &$param) {
         $components[$component] = $component;
       }
     }
-    $categories = array_merge(t('<none>'), project_issue_category(0, 0));
+    $categories = array_merge(array(t('<none>')), project_issue_category(0, 0));
     $priorities = project_issue_priority();
     $states = project_issue_state();
 
