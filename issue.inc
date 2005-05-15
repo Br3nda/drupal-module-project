@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.100 2005/05/15 18:56:08 killes Exp $ */
+/* $Id: issue.inc,v 1.101 2005/05/15 19:02:20 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -200,7 +200,7 @@ function project_issue_subscribe($project = 0) {
     $rows = array($row);
     $nids = array();
 
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n ON n.nid = s.nid WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title"), $user->uid);
+    $result = db_query(db_rewrite_sql("SELECT s.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n ON n.nid = s.nid WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title", 's'), $user->uid);
     while ($project = db_fetch_object($result)) {
       $row = array($project->title);
       foreach ($levels as $key => $level) {
@@ -233,7 +233,7 @@ function project_issue_form(&$node, &$param) {
 
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>'));
-  $result = db_query(db_rewrite_sql('SELECT n.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1'));
+  $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
   while ($project = db_fetch_object($result)) {
     $projects[$project->nid] = $project->title;
   }
@@ -584,7 +584,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $result = pager_query(db_rewrite_sql($sql['sql'] . tablesort_sql($header)), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query(db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header)), 20);
+    $result = pager_query(db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 'p'), 20);
   }
 
   if ($search) {
