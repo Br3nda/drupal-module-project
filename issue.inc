@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.99 2005/05/13 18:05:29 killes Exp $ */
+/* $Id: issue.inc,v 1.100 2005/05/15 18:56:08 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -795,12 +795,12 @@ function project_issue_query_sql($query) {
   }
 
   if (!$comments) {
-    return array('sql' => db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'));
+    return array('sql' => db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'), 'p');
   }
   else {
     return array(
-      'sql' => db_rewrite_sql('SELECT n.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'),
-      'count' => db_rewrite_sql('SELECT COUNT(n.nid) FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')')
+      'sql' => db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')', 'p'),
+      'count' => db_rewrite_sql('SELECT COUNT(p.nid) FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid LEFT JOIN {project_comments} c ON c.nid = p.nid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')', 'p')
     );
   }
 }
