@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.41 2005/02/06 12:32:41 dries Exp $ */
+/* $Id: comment.inc,v 1.42 2005/05/17 06:21:20 unconed Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -19,7 +19,7 @@ function project_comment_page() {
         $breadcrumb[] = l($node->title, "node/$node->nid");
         drupal_set_breadcrumb($breadcrumb);
         drupal_set_title(t('New comment'));
-        print theme('page', $output);
+        return $output;
       }
       break;
     case t('Preview'):
@@ -28,7 +28,7 @@ function project_comment_page() {
         $edit->type = 'project_issue';
         $edit = project_comment_validate($edit);
 
-        print theme('page', node_preview($edit, $error));
+        return node_preview($edit);
       }
       break;
     case t('Submit'):
@@ -37,7 +37,7 @@ function project_comment_page() {
         $edit = project_comment_validate($edit);
         if (form_get_errors()) {
           $edit->type = 'project_issue';
-          print theme('page', node_preview($edit, $error));
+          return node_preview($edit);
         }
         else {
           $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));

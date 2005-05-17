@@ -1,10 +1,10 @@
 <?php
-/* $Id: release.inc,v 1.51 2005/05/12 10:39:56 killes Exp $ */
+/* $Id: release.inc,v 1.52 2005/05/17 06:21:20 unconed Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
   drupal_set_title(t('Release directory scan'));
-  print theme('page', t('Scan successful.'));
+  return t('Scan successful.');
 }
 
 function project_release_scan_directory($project = NULL) {
@@ -93,7 +93,7 @@ function project_release_submit() {
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
       drupal_set_breadcrumb($breadcrumb); 
-      print theme('page', $output, $title, $breadcrumb);
+      return $output;
       break;
     case 'edit':
       if ($release = project_release_load(arg(4))) {
@@ -101,7 +101,7 @@ function project_release_submit() {
         $output = project_release_view($release);
         $output .= form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
         drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
-        print theme('page', $output);
+        return $output;
       }
       break;
     case 'delete':
@@ -118,7 +118,7 @@ function project_release_submit() {
         $output = project_release_view($edit);
         $output .= form(project_release_form($edit, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
 
-        print theme('page', $output);
+        return $output;
       }
       break;
     case t('Submit'):
@@ -129,7 +129,7 @@ function project_release_submit() {
         if (form_get_errors()) {
           $output = project_release_form($edit, $param);
 
-          print theme('page', form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']));
+          return form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
         }
         else {
           // Save the release and re-direct to the overview page for the project
@@ -139,69 +139,6 @@ function project_release_submit() {
         }
       }
   }
-}
-
-function project_release_page() {
-  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
-    case 'view':
-      if ($release = project_release_load(arg(3))) {
-        $node = node_load(array('nid' => $release->nid));
-        drupal_set_title("$node->title $release->version");
-        print theme('page', project_release_view($release));
-      }
-      break;
-    default:
-      print theme('page', project_release_overview(arg(2)));
-  }
-}
-
-function project_release_overview($arg = 0) {
-  $output = '<div class="project">';
-  $output .= '<div class="downloads">';
-
-  $header = array(t('Project'), t('Downloads'), t('Description'));
-
-  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.teaser, r.tid FROM {node} n LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.type = 'project_project' AND n.status = 1 ORDER BY r.tid, n.title"));
-
-  while ($node = db_fetch_object($result)) {
-    if ($tid != ($tid = $node->tid)) {
-      if (count($rows)) {
-        $output .= "<h2>$term->name</h2>";
-        $output .= "<p style=\"color: #888;\"><small>$term->description</small></p>";
-        $output .= theme('table', $header, $rows);
-      }
-      $term = taxonomy_get_term($tid);
-      $rows = array();
-    }
-    $releases = array();
-    $version = variable_get('project_release_overview', -1);
-    if ($arg || $version != -1) {
-      $result2 = db_query("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, ($arg ? $arg : $version));
-    }
-    else {
-      $result2 = db_query("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid);
-    }
-    if (db_num_rows($result2)) {
-      while ($release = db_fetch_object($result2)) {
-        $releases[] = l($release->version, $release->path, array('class' => count($releases) ? 'project-old' : 'project-recent')) . ($release->changed > time() - 14 * 24 * 60 * 60 ? theme('mark') : '');
-      }
-      $rows[] = array(
-        array('class' => 'project-name', 'data' => l($node->title, "node/$node->nid")),
-        array('class' => 'project-download', 'data' => theme('item_list', $releases)),
-        array('class' => 'project-teaser', 'data' => check_output($node->teaser)),
-      );
-    }
-  }
-  if (count($rows)) {
-    $output .= "<h2>$term->name</h2>";
-    $output .= "<p style=\"color: #888;\"><small>$term->description</small></p>";
-    $output .= theme('table', $header, $rows);
-  }
-
-  $output .= '</div>';
-  $output .= '</div>';
-
-  return $output;
 }
 
 function project_release_form(&$release, &$param) {

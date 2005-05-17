@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.49 2005/05/08 13:47:56 killes Exp $ */
+/* $Id: project.inc,v 1.50 2005/05/17 06:21:20 unconed Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -246,6 +246,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
         #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
         $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
         $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
+        $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
       }
 
       if ($node->cvs) {
@@ -278,7 +279,8 @@ function project_project_releases() {
 
   $output = project_release_list($node);
 
-  print theme('page', $output, $node->title);
+  drupal_set_title(check_plain($node->title));
+  return $output;
 }
 
 function project_project_load($node) {
@@ -349,7 +351,7 @@ function project_developers($nid = 0) {
   if ($project = node_load(array('nid' => $nid))) {
     $output = module_invoke('cvs', 'get_project_contributors', $nid);
     drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
-    print theme('page', $output);
+    return $output;
   }
   else {
     drupal_not_found();
@@ -361,7 +363,7 @@ function project_cvs($nid = 0) {
     $_REQUEST['nid'] = $nid;
     $output = module_invoke('cvs', 'show_messages');
     drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
-    print theme('page', $output);
+    return $output;
   }
   else {
     drupal_not_found();
