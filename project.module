@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195 2005/05/24 20:38:45 unconed Exp $
+// $Id: project.module,v 1.195.2.1 2005/05/24 21:01:57 unconed Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -162,7 +162,7 @@ function project_menu($may_cache) {
                          'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
                          'weight' => $term->weight,
                          'callback arguments' => array($term->name));
-        
+
         if ($releases) {
           $j = 0;
           if (variable_get('project_release_overview', -1) == -1) {
@@ -185,13 +185,13 @@ function project_menu($may_cache) {
     }
 
     $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-   
+
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
-    
+
     // CVS messages:
     $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
-    
+
     // Create projects
     $access = user_access('maintain projects');
     $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
@@ -344,14 +344,14 @@ function project_page_overview($termname = NULL, $version = NULL) {
       if ($node->issues) {
         $project->links[] = l(t('Bugs and feature requests'), "project/issues/$node->nid");
       }
-      
+
       $rows[] = array(theme('project_summary', $project));
     }
   }
 
   $output .= '<div class="project">'. theme('table', $header, $rows, array('id' => 'project-overview')) .'</div>';
 
-  return $output;
+  print theme('page', $output);
 }
 
 function project_user($type, $edit, &$user, $category = NULL) {
@@ -375,9 +375,10 @@ function project_page_user($arg = 0) {
     global $user;
     $current_user = TRUE;
   }
-  
+
   if (!$user->uid) {
-    return t('You need to log in to see your projects.');
+    print theme('page', t('You need to log in to see your projects.'));
+    return;
   }
 
   $header = array(
@@ -389,7 +390,8 @@ function project_page_user($arg = 0) {
   $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
 
   if (!db_num_rows($result)) {
-    return ($current_user ? t('You have no projects.') : t('This user has no projects.'));
+    print theme('page', ($current_user ? t('You have no projects.') : t('This user has no projects.')));
+    return;
   }
 
   while ($node = db_fetch_object($result)) {
@@ -409,7 +411,7 @@ function project_page_user($arg = 0) {
 
   $output .= theme('box', t('issues'), project_issue_query_result($query, 'html', false));
 
-  return $output;
+  print theme('page', $output);
 }
 
 // Special project stuff
@@ -436,7 +438,7 @@ function project_file_download($file) {
  *
  * $project has the following fields:
  * - title: Title
- * - nid: Node id 
+ * - nid: Node id
  * - body: Filtered description
  * - term: String with the selected term name
  * - version: String with the version

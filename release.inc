@@ -1,10 +1,10 @@
 <?php
-/* $Id: release.inc,v 1.52 2005/05/17 06:21:20 unconed Exp $ */
+/* $Id: release.inc,v 1.52.2.1 2005/05/24 21:01:57 unconed Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
   drupal_set_title(t('Release directory scan'));
-  return t('Scan successful.');
+  print theme('page', t('Scan successful.'));
 }
 
 function project_release_scan_directory($project = NULL) {

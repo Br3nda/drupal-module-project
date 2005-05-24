@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.14 2004/05/25 19:42:39 kjartan Exp $
+-- $Id: project.mysql,v 1.14.4.1 2005/05/24 21:01:57 unconed Exp $
 
 --
 -- Table structure for table 'project_projects'

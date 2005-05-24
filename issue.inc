@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102 2005/05/17 06:21:20 unconed Exp $ */
+/* $Id: issue.inc,v 1.102.2.1 2005/05/24 21:01:56 unconed Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -10,10 +10,10 @@ function project_issue_page() {
     case 'search':
       $project = project_project_retrieve(arg(3));
       if ($project->nid && node_access('view', $project)) {
-        return project_issue_query($project);
+        print theme('page', project_issue_query($project));
       }
       else {
-        return project_issue_query();
+        print theme('page', project_issue_query());
       }
       break;
     case 'rss':
@@ -43,20 +43,20 @@ function project_issue_page() {
     case 'statistics':
       $project = project_project_retrieve(arg(3));
       if ($project->nid && node_access('view', $project)) {
-        return project_issue_statistics($project);
+        print theme('page', project_issue_statistics($project));
       }
       else {
-        return project_issue_statistics();
+        print theme('page', project_issue_statistics());
       }
       break;
     case t('Subscribe'):
     case 'subscribe':
       $project = project_project_retrieve(arg(3));
       if ($GLOBALS['user']->uid && $project->nid && node_access('view', $project)) {
-        return project_issue_subscribe($project);
+        print theme('page', project_issue_subscribe($project));
       }
       else {
-        return project_issue_subscribe();
+        print theme('page', project_issue_subscribe());
       }
       break;
     case 'user':
@@ -67,10 +67,10 @@ function project_issue_page() {
         $query = new StdClass();
         $query->projects = array($project->nid);
 
-        return project_issue_query_result($query);
+        print theme('page', project_issue_query_result($query));
       }
       else {
-        return project_issue_query_result();
+        print theme('page', project_issue_query_result());
       }
   }
 }
