@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.193 2005/05/17 06:21:20 unconed Exp $
+// $Id: project.module,v 1.194 2005/05/24 20:32:53 unconed Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -184,7 +184,7 @@ function project_menu($may_cache) {
       }
     }
 
-    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
    
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
