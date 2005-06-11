@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102 2005/05/17 06:21:20 unconed Exp $ */
+/* $Id: issue.inc,v 1.103 2005/06/11 01:14:25 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -113,8 +113,8 @@ function project_issue_statistics($project = 0) {
   $header = array(t('Status'), t('Overall'), '%', t('Last month'));
   $rows = array();
   // Activity overall
-  $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s'), $filter));
-  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s GROUP BY p.state'), $filter);
+  $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s', 'p'), $filter));
+  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s GROUP BY p.state', 'p'), $filter);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][0] = project_issue_state($stat->state);;
     $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
@@ -132,7 +132,7 @@ function project_issue_statistics($project = 0) {
   if (!$project->nid) {
     $header = array_merge(array(t('Project')), project_issue_state(), array(t('Total')));
     $rows = array();
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.state, COUNT(p.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state, n.title"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.state, COUNT(n.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state, n.title"));
 
     $orig = array('project' => array('data' => 0));
     foreach (project_issue_state() as $key => $value) {
@@ -795,7 +795,7 @@ function project_issue_query_sql($query) {
   }
 
   if (!$comments) {
-    return array('sql' => db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')'), 'p');
+    return array('sql' => db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON p.assigned = u.uid WHERE n.status = 1 AND ('. implode(' AND ', $sql) .')', 'p'));
   }
   else {
     return array(
