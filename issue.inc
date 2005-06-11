@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.103 2005/06/11 01:14:25 killes Exp $ */
+/* $Id: issue.inc,v 1.104 2005/06/11 01:17:22 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -121,7 +121,7 @@ function project_issue_statistics($project = 0) {
     $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
   }
   // Activity this week
-  $result = db_query(db_rewrite_sql('SELECT COUNT(n.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state'), $filter, $duration);
+  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state', 'p'), $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
