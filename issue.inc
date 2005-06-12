@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.105 2005/06/11 20:59:44 killes Exp $ */
+/* $Id: issue.inc,v 1.106 2005/06/12 17:48:12 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -581,7 +581,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
 
   if ($query) {
     $sql = project_issue_query_sql($query);
-    $result = pager_query(db_rewrite_sql($sql['sql'] . tablesort_sql($header)), 20, 0, $sql['count']);
+    $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
   }
   else {
     $result = pager_query(db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 'p'), 20, 0,
