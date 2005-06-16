@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.48 2005/05/26 01:56:21 unconed Exp $ */
+/* $Id: mail.inc,v 1.49 2005/06/16 15:00:16 killes Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -235,7 +235,8 @@ function project_mail_notify($node) {
   }
 
   // Create link to related node
-  $links = t('Issue status update for %link', array('%link' => url("node/$node->nid", NULL, NULL, 1))) ."\n";
+  $links = t('Issue status update for %link', array('%link' => "\n". url("node/$node->nid", NULL, NULL, 1))) ."\n";
+  $links .= t('Post a follow up: %link', array('%link' => "\n". url("project/comments/add/$node->nid", NULL, NULL, 1))) ."\n";
 
   // Mail summary (status values)
   foreach ($fields as $field => $text) {
