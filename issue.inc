@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.107 2005/06/16 13:38:36 killes Exp $ */
+/* $Id: issue.inc,v 1.108 2005/06/16 16:02:35 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -247,6 +247,7 @@ function project_issue_form(&$node, &$param) {
     if ($releases = project_release_load($project)) {
       $releases = array(t('<none>')) + $releases;
     }
+    $components = array();
     if ($project->components) {
       $components = array(t('<none>'));
       foreach ($project->components as $component) {
@@ -471,6 +472,7 @@ function project_issue_count($pid) {
 
 function project_issue_query($project = 0, $query = NULL) {
   $categories = project_issue_category();
+  $components = array();
   if ($project->nid) {
     foreach ($project->components as $component) {
       $components[$component] = $component;
