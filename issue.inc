@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.106 2005/06/12 17:48:12 killes Exp $ */
+/* $Id: issue.inc,v 1.107 2005/06/16 13:38:36 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -625,7 +625,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   }
   elseif (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load($node);
+      $node = node_load((array)$node);
       $row = array();
       $number++;
       $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->state";
@@ -827,7 +827,7 @@ function project_issue_query_rss($projects, $result) {
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load($node);
+      $node = node_load((array)$node);
 
       $body = $node->teaser ? $node->teaser : $node->body;
 
