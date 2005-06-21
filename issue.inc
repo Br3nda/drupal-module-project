@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.108 2005/06/16 16:02:35 killes Exp $ */
+/* $Id: issue.inc,v 1.109 2005/06/21 15:11:20 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -233,9 +233,25 @@ function project_issue_form(&$node, &$param) {
 
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>'));
-  $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
-  while ($project = db_fetch_object($result)) {
-    $projects[$project->nid] = $project->title;
+  if (module_exist('taxonomy') && $vocabularies = taxonomy_get_vocabularies('project_project')) {
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid WHERE n.status = 1 AND p.issues = 1 GROUP BY n.title ORDER BY d.weight, n.title', 'p'));
+    while ($project = db_fetch_object($result)) {
+      if (isset($project->name)) {
+        if (!isset($projects[$project->name])) {
+          $projects[$project->name] = array();
+        }
+        $projects[$project->name][$project->nid] = $project->title;
+      }
+      else {
+        $projects[$project->nid] = $project->title;
+      }
+    }
+  }
+  else {
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
+    while ($project = db_fetch_object($result)) {
+      $projects[$project->nid] = $project->title;
+    }
   }
 
   if ($node->pid) {
