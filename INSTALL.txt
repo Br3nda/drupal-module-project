@@ -27,11 +27,11 @@ Upgrading
 0. Make sure you backup your database!
 
 1. Load the new SQL definitions.
-     mysql -u username -p drupal < project.mysql
+     mysql -u username -p drupal < update-project-yyyy-mm-dd.mysql
+     (similar for pgsql)
+   for all dates yyyy-mm-dd.
 
-2. Copy update-project.php to the root directory of your Drupal site.
+2. Copy new files to modules/project
 
-3. Point the browser to http://example.com/drupal/upgrade-project.php
-
-4. Delete update-project.php and the old project and projects table
-   from SQL.
+3. Configure the status messages at admin/settings/project/status
+   and admin/access.

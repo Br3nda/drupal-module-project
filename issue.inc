@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.110 2005/06/23 20:16:20 killes Exp $ */
+/* $Id: issue.inc,v 1.111 2005/06/23 22:45:21 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -607,7 +607,7 @@ function project_issue_admin_states() {
 }
 
 function project_issue_admin_states_page() {
-  switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
+  switch ($_POST['op'] ? $_POST['op'] : arg(4)) {
     case 'save':
     case t('Save'):
       project_issue_admin_save_states();
@@ -667,7 +667,7 @@ function project_issue_admin_save_states() {
 }
 
 function project_issue_admin_delete_state() {
-  $sid = arg(4);
+  $sid = arg(5);
   $edit = $_POST['edit'];
   if (!$sid) {
     $sid = $edit['sid'];
@@ -683,10 +683,11 @@ function project_issue_admin_delete_state() {
     drupal_goto('admin/settings/project/status');
   }
   else {
+    $extra = '';
     if($edit['new_sid'] == $sid) {
       form_set_error('new_sid', t('Choose a new issue status for existing issues of status %name.', array('%name' => $name)));
     }
-    $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(nid) AS total FROM {project_issues} WHERE sid = %d'), $sid));
+    $total = db_result(db_query('SELECT COUNT(nid) AS total FROM {project_issues} WHERE sid = %d', $sid));
     if ($total > 0) {
       $extra .= form_select(t('Reassign status'), 'new_sid', $sid, $states, t('There are %total existing issues with the status of %name. Please select a new status for these issues.', array('%total' => $total, '%name' => $name)));
     }
