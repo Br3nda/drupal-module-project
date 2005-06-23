@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.42 2005/05/17 06:21:20 unconed Exp $ */
+/* $Id: comment.inc,v 1.43 2005/06/23 20:16:20 killes Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -7,7 +7,7 @@ function project_comment_page() {
       if (user_access('create project issues')) {
         $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
-        foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
+        foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
           $comment->$var = $node->$var;
         }
 
@@ -103,7 +103,7 @@ function project_comment_view($node, $main = 0) {
     'category' => 'Category',
     'priority' => 'Priority',
     'assigned' => 'Assigned to',
-    'state' => 'Status'
+    'sid' => 'Status'
   );
 
   $result = db_query('SELECT p.*, u.name FROM {project_comments} p INNER JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
@@ -130,7 +130,7 @@ function project_comment_view($node, $main = 0) {
       if ($summary || $comment->body) {
         $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => format_name($comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($node->nid, $node->changed))));
         if ($summary) {
-          $rows[] = array(array('class' => 'summary', 'data' => theme('table', NULL, $summary)));
+          $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
         }
         if ($comment->body) {
           $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
@@ -141,7 +141,7 @@ function project_comment_view($node, $main = 0) {
       }
     }
     $output = '<div class="project">';
-    $output .= theme('table', NULL, $rows);
+    $output .= theme('table', array(), $rows);
     $output .= '</div>';
 
     return theme('box', t('Updates'), $output);
@@ -168,7 +168,7 @@ function project_comment_save($edit) {
     $node = node_load(array('nid' => $edit->nid, 'type' => 'project_issue'));
 
     // Check if comment changed any of the state values and update the node if necessary
-    foreach (array('pid', 'rid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
+    foreach (array('pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
       if ($node->$var != $edit->$var) {
         $data['old']->$var = $node->$var;
         $data['new']->$var = $edit->$var;

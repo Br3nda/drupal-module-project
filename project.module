@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195 2005/05/24 20:38:45 unconed Exp $
+// $Id: project.module,v 1.196 2005/06/23 20:16:20 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -40,6 +40,15 @@ function project_help($section) {
       return t('Add a new issue (bug report, feature request, etc) to an existing project.');
     case 'node/add/project_project':
       return variable_get('project_help_node_add', '');
+    case 'admin/settings/project/status':
+      return t('<p>Use this page to add new status options for project issues or to change or delete existing options.<dl>
+      <dt>Adding</dt><dd>To add a new status option, put its name in one of the blank places at the bottom of the form and assign it a weight.</dd></p>
+      <dt>Updating</dt><dd>When renaming existing issues, keep in mind that issues with the existing name will receive the new one.</dd>
+      <dt>Deleting</dt><dd>If you delete an existing issue status, you will be prompted for a new status to assign to existing issues with the deleted status.</dd>
+      <dt>Weight</dt><dd>The weight of an issue determines the order it appears in lists, like in the select box where users designate a status for their issue.</dd>
+      <dt>Author may set</dt><dd>Check this option to give the original poster of an issue the right to set a status option, even if she or he isn\'t part of a role with this permission.  You may wish, for example, to allow issue authors to close their own issues.</dd>
+      <dt>Default</dt><dd>The default status option will be used for new issues, and all users with the permission to create issues will automatically have permission to set this status.  The default issue status cannot be deleted.  If you wish to delete this status, first set a different status to default.</dd>
+      </dl></p>');
   }
 }
 
@@ -52,7 +61,7 @@ function project_node_types() {
 }
 
 function project_perm() {
-  return array(
+  $perms = array(
     'administer projects',
     'maintain projects',
     'access projects',
@@ -61,9 +70,15 @@ function project_perm() {
     'access project issues',
     'access own project issues'
   );
+  $states = project_issue_state();
+  foreach($states as $key => $value) {
+    $perms[] = "set issue status ". str_replace("'", "", $value);
+  }
+  return $perms;
 }
 
 function project_settings() {
+
   if (!file_check_directory(file_create_path(variable_get('project_directory_issues', 'issues')))) {
     $error['project_directory_issues'] = theme('error', t('Directory does not exist, or is not writable.'));
   }
@@ -106,9 +121,9 @@ function project_cron() {
     project_mail_reminder();
   }
 
-  $result = db_query(db_rewrite_sql('SELECT p.nid, p.pid, p.category, p.component, p.priority, p.assigned, p.state, n.title FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.state = 2 AND n.changed < %d', 'p'), time() - 14 * 24 * 60 * 60);
+  $result = db_query(db_rewrite_sql('SELECT p.nid, p.pid, p.category, p.component, p.priority, p.assigned, p.sid, n.title FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.sid = 2 AND n.changed < %d', 'p'), time() - 14 * 24 * 60 * 60);
   while ($node = db_fetch_object($result)) {
-    foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'state', 'title') as $var) {
+    foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
       $comment->$var = $node->$var;
     }
     $comment->state = 7;
@@ -209,7 +224,14 @@ function project_menu($may_cache) {
     $access = user_access('create project issues');
     $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
 
+    // Administer issue status settings
+    $access = user_access('administer projects');
+    $items[] = array('path' => 'admin/settings/project/status', 'title' => t('status options'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'admin/settings/project/status/save', 'title' => t('save'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'admin/settings/project/status/delete', 'title' => t('delete'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_CALLBACK);
+
     // Comments
+    $access = user_access('create project issues');
     $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_CALLBACK);
 
     // Releases
@@ -386,7 +408,7 @@ function project_page_user($arg = 0) {
     array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
   );
 
-  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.state IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
+  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.sid IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
 
   if (!db_num_rows($result)) {
     return ($current_user ? t('You have no projects.') : t('This user has no projects.'));
