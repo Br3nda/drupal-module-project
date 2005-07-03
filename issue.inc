@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.111 2005/06/23 22:45:21 killes Exp $ */
+/* $Id: issue.inc,v 1.112 2005/07/03 10:11:49 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -789,7 +789,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       form_hidden('users', $query->users) . form_submit(t('Search')),
       l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
     ));
-    $form .= form(theme('table', '', $rows));
+    $form .= form(theme('table', array(), $rows));
   }
 
   $rows = array();
