@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.196 2005/06/23 20:16:20 killes Exp $
+// $Id: project.module,v 1.197 2005/07/04 10:59:55 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -177,7 +177,7 @@ function project_menu($may_cache) {
                          'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
                          'weight' => $term->weight,
                          'callback arguments' => array($term->name));
-        
+
         if ($releases) {
           $j = 0;
           if (variable_get('project_release_overview', -1) == -1) {
@@ -200,13 +200,13 @@ function project_menu($may_cache) {
     }
 
     $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-   
+
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
-    
+
     // CVS messages:
     $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
-    
+
     // Create projects
     $access = user_access('maintain projects');
     $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
@@ -366,7 +366,7 @@ function project_page_overview($termname = NULL, $version = NULL) {
       if ($node->issues) {
         $project->links[] = l(t('Bugs and feature requests'), "project/issues/$node->nid");
       }
-      
+
       $rows[] = array(theme('project_summary', $project));
     }
   }
@@ -397,7 +397,7 @@ function project_page_user($arg = 0) {
     global $user;
     $current_user = TRUE;
   }
-  
+
   if (!$user->uid) {
     return t('You need to log in to see your projects.');
   }
