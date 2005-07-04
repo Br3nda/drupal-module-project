@@ -59,7 +59,7 @@ CREATE TABLE project_issues (
   priority smallint NOT NULL default '0',
   rid int NOT NULL default '0',
   assigned int NOT NULL default '0',
-  state smallint NOT NULL default '0',
+  sid int NOT NULL default '0',
   file_path varchar(255) NOT NULL default '',
   file_mime varchar(255) default '' NOT NULL,
   file_size int default 0 NOT NULL,
@@ -102,3 +102,33 @@ CREATE INDEX project_subscriptions_nic_uid_level_idx ON project_subscriptions(ni
 
 CREATE SEQUENCE project_cid_seq INCREMENT 1 START 1;
 CREATE SEQUENCE project_rid_seq INCREMENT 1 START 1;
+
+
+--
+-- Table structure for table 'project_issue_state'
+--
+
+CREATE TABLE project_issue_state (
+  sid SERIAL,
+  name varchar(32) NOT NULL default '',
+  weight smallint DEFAULT '0' NOT NULL,
+  author_has smallint DEFAULT '0' NOT NULL,
+  PRIMARY KEY  (sid)
+) TYPE=MyISAM;
+
+--
+-- Data for table 'project_issue_state'
+--
+
+INSERT INTO project_issue_state VALUES (1, 'active', -13, 0);
+INSERT INTO project_issue_state VALUES (2, 'applied', 1, 0);
+INSERT INTO project_issue_state VALUES (3, 'duplicate', 4, 0);
+INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0);
+INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0);
+INSERT INTO project_issue_state VALUES (6, 'by design', 11, 0);
+INSERT INTO project_issue_state VALUES (7, 'closed', 13, 1);
+INSERT INTO project_issue_state VALUES (8, 'patch', -8, 0);
+INSERT INTO project_issue_state VALUES (9, 'needs work', -11, 0);
+INSERT INTO project_issue_state VALUES (10, 'testers needed', -6, 0);
+INSERT INTO project_issue_state VALUES (11, 'reviewed', -3, 0);
+INSERT INTO project_issue_state VALUES (12, 'ready to commit', -1, 0);

@@ -8,19 +8,17 @@ Wish list
 --------
 
 General
- ? Improve themeability of listings and issues.
- ? Make sure everything is translatable.
- ? RSS feeds for projects, new releases, etc.
+ - Improve themeability of listings and issues.
+ - RSS feeds for projects, new releases, etc.
 
 Projects
- ? Integrate image module galleries for screenshots.
- ? Integrate projects to contrib/feature.module.
+ - Integrate image module galleries for screenshots.
 
 Issues (bug reports, etc)
- ? Add method for project owner to assign bugs to others.
- ? Tool for administrators to be able to update the status of several
+ - Add method for project owner to assign bugs to others.
+ - Tool for administrators to be able to update the status of several
    issues at once (mass closing).
- ? Allow projects to specify their own categories (bug report, feature
+ - Allow projects to specify their own categories (bug report, feature
    request, etc).
- ? Make components sub-projects with their own defaults.
- ? Enable taxonomy support.
+ - Make components sub-projects with their own defaults.
+ - Enable taxonomy support.

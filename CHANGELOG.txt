@@ -1,3 +1,8 @@
+23. June 2005
+-------------
+
+Made issues configurable (Nedjo Rogers)
+
 27. February 2004
 -----------------
 - Added issue search interface for (Kartan):

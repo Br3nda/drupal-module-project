@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.47.2.1 2005/05/24 21:01:56 unconed Exp $ */
+/* $Id: mail.inc,v 1.47.2.2 2005/07/04 10:59:09 killes Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -22,7 +22,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
         'priority' => t('Priority'),
         'rid' => t('Version'),
         'assigned' => t('Assigned to'),
-        'state' => t('Status')
+        'sid' => t('Status')
       );
 
       /*
@@ -68,9 +68,9 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
                 $entry->assigned = $user->uid;
               }
               break;
-            case 'state':
+            case 'sid':
               if (($state = array_search($node->$text, project_issue_state()))) {
-                $entry->state = $state;
+                $entry->sid = $state;
               }
               break;
             case 'component':
@@ -85,7 +85,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
       }
 
       if (empty($entry->nid)) {
-        $entry->state = 1;
+        $entry->sid = 1;
         $entry->type = 'project_issue';
         $entry = node_validate($entry, $error);
         $error or ($entry->nid = node_save($entry));
@@ -150,6 +150,8 @@ function project_mail_output(&$body, $html = 1, $format = FILTER_FORMAT_DEFAULT)
     $body = preg_replace('!</?(b|strong)>!i', '*', $body);
     $body = preg_replace("@<br />(?!\n)@i", "\n", $body);
     $body = preg_replace("@</p>(?!\n\n)@i", "\n\n", $body);
+    $body = preg_replace("@<li>@i", "* ", $body);
+    $body = preg_replace("@</li>\n?@i", "\n", $body);
     $body = strip_tags($body);
     $body = decode_entities($body);
     $body = wordwrap($body, 72);
@@ -177,7 +179,7 @@ function project_mail_summary($field, $value) {
     case 'assigned':
       $user = user_load(array('uid' => $value));
       return $user->name;
-    case 'state':
+    case 'sid':
       return $value ? project_issue_state($value) : t('<none>');
     default:
       return $value;
@@ -200,7 +202,7 @@ function project_mail_notify($node) {
     'assigned' => t('Assigned to'),
     'name' => t('Reported by'),
     'updator' => t('Updated by'),
-    'state' => t('Status')
+    'sid' => t('Status')
   );
 
   // Create complete history of the bug report
@@ -233,7 +235,8 @@ function project_mail_notify($node) {
   }
 
   // Create link to related node
-  $links = t('Issue status update for %link', array('%link' => url("node/$node->nid", NULL, NULL, 1))) ."\n";
+  $links = t('Issue status update for %link', array('%link' => "\n". url("node/$node->nid", NULL, NULL, 1))) ."\n";
+  $links .= t('Post a follow up: %link', array('%link' => "\n". url("project/comments/add/$node->nid", NULL, NULL, 1))) ."\n";
 
   // Mail summary (status values)
   foreach ($fields as $field => $text) {
@@ -321,7 +324,7 @@ function project_mail_notify($node) {
     return;
   }
 
-  if (count($project->mail_copy_filter_state) && !$project->mail_copy_filter_state[$node->state]) {
+  if (count($project->mail_copy_filter_state) && !$project->mail_copy_filter_state[$node->sid]) {
     return;
   }
 
@@ -342,7 +345,7 @@ function project_mail_reminder() {
     $sender->name = variable_get('site_name', '');
     $sender->mail = variable_get('site_mail', '');
 
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.*, p.*, u.name, u.mail FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE n.status = 1 AND u.status = 1 AND ('. implode(' OR ', $pids) .") AND u.mail <> '' AND (p.state = 1 OR p.state = 2) ORDER BY u.uid, p.pid, p.component, p.state, n.changed DESC", 'p'));
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.*, p.*, u.name, u.mail FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE n.status = 1 AND u.status = 1 AND ('. implode(' OR ', $pids) .") AND u.mail <> '' AND (p.sid = 1 OR p.sid = 2) ORDER BY u.uid, p.pid, p.component, p.sid, n.changed DESC", 'p'));
 
     while (($node = db_fetch_object($result)) || !empty($body)) {
       if ($body && $mail && ((!$node) || ($mail != $node->mail))) {
@@ -372,7 +375,7 @@ function project_mail_reminder() {
         if ($node->assigned && $assigned = user_load(array('uid' => $node->assigned))) {
           $body .= "  assigned: $assigned->name\n";
         }
-        $body .= '  state: '. project_issue_state($node->state) ."\n";
+        $body .= '  state: '. project_issue_state($node->sid) ."\n";
         $body .= '  age: '. format_interval(time() - $node->created) ."\n";
         $body .= '  url: '. url("node/$node->nid", NULL, NULL, 1) ."\n";
         $body .= "\n";
@@ -393,7 +396,7 @@ function project_mail_digest() {
   $result = db_query(db_rewrite_sql("SELECT p.nid, p.* FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest", 'p'));
   while ($project = db_fetch_object($result)) {
     $category = '';
-    $result2 = db_query(db_rewrite_sql('SELECT p.nid, n.title, n.created, p.state, p.category, p.component, p.priority, p.assigned FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.state = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC', 'p'), $project->nid);
+    $result2 = db_query(db_rewrite_sql('SELECT p.nid, n.title, n.created, p.sid, p.category, p.component, p.priority, p.assigned FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.sid = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC', 'p'), $project->nid);
     while ($node = db_fetch_object($result2)) {
       if ($category != $node->category) {
         $category = $node->category;

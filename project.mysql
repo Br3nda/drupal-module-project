@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.14.4.1 2005/05/24 21:01:57 unconed Exp $
+-- $Id: project.mysql,v 1.14.4.2 2005/07/04 10:59:09 killes Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -70,6 +70,7 @@ ALTER TABLE project_issues DROP fid;
 ALTER TABLE project_issues ADD file_path varchar(255) NOT NULL default '';
 ALTER TABLE project_issues ADD file_mime varchar(255) NOT NULL default '';
 ALTER TABLE project_issues ADD file_size int NOT NULL default 0;
+ALTER TABLE project_issues CHANGE state sid int(10) unsigned NOT NULL default '0';
 
 --
 -- Table structure for table 'project_comments'
@@ -104,3 +105,32 @@ CREATE TABLE project_subscriptions (
   level tinyint(3) unsigned NOT NULL default '0',
   KEY project_subscriptions_nid_uid_level (nid, uid, level)
 ) TYPE=MyISAM;
+
+--
+-- Table structure for table 'project_issue_state'
+--
+
+CREATE TABLE project_issue_state (
+  sid int(10) unsigned NOT NULL auto_increment,
+  name varchar(32) NOT NULL default '',
+  weight tinyint(2) DEFAULT '0' NOT NULL,
+  author_has tinyint(2) DEFAULT '0' NOT NULL,
+  PRIMARY KEY  (sid)
+) TYPE=MyISAM;
+
+--
+-- Data for table 'project_issue_state'
+--
+
+INSERT INTO project_issue_state VALUES (1, 'active', -13, 0);
+INSERT INTO project_issue_state VALUES (2, 'applied', 1, 0);
+INSERT INTO project_issue_state VALUES (3, 'duplicate', 4, 0);
+INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0);
+INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0);
+INSERT INTO project_issue_state VALUES (6, 'by design', 11, 0);
+INSERT INTO project_issue_state VALUES (7, 'closed', 13, 1);
+INSERT INTO project_issue_state VALUES (8, 'patch', -8, 0);
+INSERT INTO project_issue_state VALUES (9, 'needs work', -11, 0);
+INSERT INTO project_issue_state VALUES (10, 'testers needed', -6, 0);
+INSERT INTO project_issue_state VALUES (11, 'reviewed', -3, 0);
+INSERT INTO project_issue_state VALUES (12, 'ready to commit', -1, 0);

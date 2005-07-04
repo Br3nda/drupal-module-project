@@ -1,8 +1,25 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.4 2005/06/12 17:50:44 killes Exp $ */
+/* $Id: issue.inc,v 1.102.2.5 2005/07/04 10:59:09 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
+}
+
+function project_issue_nodeapi(&$node, $op, $arg) {
+  global $user;
+  switch ($op) {
+    case 'validate':
+      $result = db_query('SELECT * FROM {project_issue_state} WHERE sid = %d ORDER BY weight', $node->sid);
+      $state = db_fetch_object($result);
+
+      // Check if user has access, or if status is default status and therefore available to all,
+      // or if user is original issue poster and poster is granted access.
+      // If none of these is true, set error.
+      if (!(user_access('set issue status '. str_replace("'", "", $state->name)) || ($node->sid == variable_get('project_issue_default_state', 1)) || ($state->author_has && ($user->uid == $node->uid)))) {
+        form_set_error('sid', t('Invalid issue status %status: you do not have permission to set this status', array('%status' => "<em>$state</em>")));
+      }
+      break;
+  }
 }
 
 function project_issue_page() {
@@ -95,14 +112,14 @@ function project_issue_statistics($project = 0) {
   $header = array(t('Category'), t('Overall'), t('Last month'));
   $rows = array();
   $duration = time() - 30 * 24 * 60 * 60;
-  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.state > 1 GROUP BY p.category', $filter);
+  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.sid > 1 GROUP BY p.category', $filter);
   while ($stat = db_fetch_object($result)) {
     $i++;
     $rows[$i][0] = project_issue_category($stat->category);;
     $rows[$i][1] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
   }
 
-  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.state > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
+  $result = db_query('SELECT p.category, SUM(n.changed - n.created) / COUNT(p.category) AS duration FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND p.sid > 1 AND n.created > %d GROUP BY p.category', $filter, $duration);
   while ($stat = db_fetch_object($result)) {
     $j++;
     $rows[$j][2] = array('data' => format_interval($stat->duration, 2), 'class' => 'numeric');
@@ -114,16 +131,16 @@ function project_issue_statistics($project = 0) {
   $rows = array();
   // Activity overall
   $total = db_result(db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s', 'p'), $filter));
-  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s GROUP BY p.state', 'p'), $filter);
+  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.sid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s GROUP BY p.sid', 'p'), $filter);
   while ($stat = db_fetch_object($result)) {
-    $rows[$stat->state][0] = project_issue_state($stat->state);;
-    $rows[$stat->state][1] = array('data' => $stat->total, 'class' => 'project-numeric');
-    $rows[$stat->state][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
+    $rows[$stat->sid][0] = project_issue_state($stat->sid);;
+    $rows[$stat->sid][1] = array('data' => $stat->total, 'class' => 'project-numeric');
+    $rows[$stat->sid][2] = array('data' => number_format($stat->total / $total * 100) .'%', 'class' => 'project-numeric2');
   }
   // Activity this week
-  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.state FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND n.changed > %d GROUP BY p.state', 'p'), $filter, $duration);
+  $result = db_query(db_rewrite_sql('SELECT COUNT(p.nid) AS total, p.sid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1%s AND n.changed > %d GROUP BY p.sid', 'p'), $filter, $duration);
   while ($stat = db_fetch_object($result)) {
-    $rows[$stat->state][3] = array('data' => $stat->total, 'class' => 'project-numeric');
+    $rows[$stat->sid][3] = array('data' => $stat->total, 'class' => 'project-numeric');
   }
   $output .= '<h2>'. t('Issue activity') .'</h2>';
   $output .= theme('table', $header, $rows);
@@ -132,7 +149,7 @@ function project_issue_statistics($project = 0) {
   if (!$project->nid) {
     $header = array_merge(array(t('Project')), project_issue_state(), array(t('Total')));
     $rows = array();
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.state, COUNT(n.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.state, n.title"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.sid, COUNT(n.nid) AS total FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.pid WHERE n.type = 'project_project' AND n.status = 1 GROUP BY n.nid, p.sid, n.title"));
 
     $orig = array('project' => array('data' => 0));
     foreach (project_issue_state() as $key => $value) {
@@ -146,7 +163,7 @@ function project_issue_statistics($project = 0) {
         $rows[$stat->nid]['project']['data'] = l($stat->title, "node/$stat->nid");
       }
       $rows[$stat->nid]['total']['data'] += $stat->total;
-      $rows[$stat->nid][$stat->state]['data'] = $stat->total;
+      $rows[$stat->nid][$stat->sid]['data'] = $stat->total;
     }
     usort($rows, create_function('$a,$b', 'return $a[1]["data"] < $b[1]["data"];'));
     $output .= '<h2>'. t('Project overview') .'</h2>';
@@ -228,14 +245,31 @@ function project_issue_subscribe($project = 0) {
 function project_issue_form(&$node, &$param) {
   global $user;
 
+  $default_state = variable_get('project_issue_default_state', 1);
   // Set form parameters so we can accept file uploads.
   $param['options'] = array('enctype' => 'multipart/form-data');
 
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>'));
-  $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
-  while ($project = db_fetch_object($result)) {
-    $projects[$project->nid] = $project->title;
+  if (module_exist('taxonomy') && $vocabularies = taxonomy_get_vocabularies('project_project')) {
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid WHERE n.status = 1 AND p.issues = 1 GROUP BY n.title ORDER BY d.weight, n.title', 'p'));
+    while ($project = db_fetch_object($result)) {
+      if (isset($project->name)) {
+        if (!isset($projects[$project->name])) {
+          $projects[$project->name] = array();
+        }
+        $projects[$project->name][$project->nid] = $project->title;
+      }
+      else {
+        $projects[$project->nid] = $project->title;
+      }
+    }
+  }
+  else {
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
+    while ($project = db_fetch_object($result)) {
+      $projects[$project->nid] = $project->title;
+    }
   }
 
   if ($node->pid) {
@@ -247,6 +281,7 @@ function project_issue_form(&$node, &$param) {
     if ($releases = project_release_load($project)) {
       $releases = array(t('<none>')) + $releases;
     }
+    $components = array();
     if ($project->components) {
       $components = array(t('<none>'));
       foreach ($project->components as $component) {
@@ -255,7 +290,7 @@ function project_issue_form(&$node, &$param) {
     }
     $categories = array_merge(array(t('<none>')), project_issue_category(0, 0));
     $priorities = project_issue_priority();
-    $states = project_issue_state();
+    $states = project_issue_state(0, true, $node->nid && ($node->uid == $user->uid));
 
     if ($user->uid == $node->assigned) {
       $assigned = array(0 => t('Unassign'), $user->uid => $user->name);
@@ -276,8 +311,13 @@ function project_issue_form(&$node, &$param) {
     $group2 = form_select(t('Category'), 'category', $node->category, $categories, NULL, 0, FALSE, TRUE);
     $group2 .= form_select(t('Priority'), 'priority', $node->priority, $priorities);
     $group2 .= form_select(t('Assigned'), 'assigned', $node->assigned, $assigned);
-    $group2 .= form_select(t('Status'), 'state', $node->state, $states);
-
+    if (count($states) > 1) {
+      $group2 .= form_select(t('Status'), 'sid', $node->sid ? $node->sid : $default_state, $states);
+    }
+    else {
+      $group2 .= form_hidden('sid', $default_state);
+      $group2 .= form_item(t('Status'), project_issue_state($default_state));
+    }
     $output .= '</div>';
     $output .= '<div class="admin">';
     $output .= '<div class="options">'. form_group(t('Project information'), $group1) .'</div>';
@@ -325,7 +365,7 @@ function project_issue_validate(&$node) {
       }
       empty($node->priority) and $node->priority = 2;
       empty($node->category) and $node->category = arg(4);
-      empty($node->state) and $node->state = 1;
+      empty($node->sid) and $node->sid = 1;
 
       if (isset($node->title)) {
         empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
@@ -369,7 +409,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     $rows[] = array(t('Category:'), check_plain($node->category));
     $rows[] = array(t('Priority:'), project_issue_priority($node->priority));
     $rows[] = array(t('Assigned:'), $assigned);
-    $rows[] = array(t('Status:'), project_issue_state($node->state));
+    $rows[] = array(t('Status:'), project_issue_state($node->sid));
     if ($node->file_path && file_exists($node->file_path)) {
       $rows[] = array(t('Attachment:'), '<a href="'. file_create_url($node->file_path). '">'. basename($node->file_path) .'</a> ('. format_size($node->file_size) .')');
     }
@@ -405,7 +445,7 @@ function project_issue_insert($node) {
     $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
   }
 
-  db_query("INSERT INTO {project_issues} (nid, pid, category, component, priority, rid, assigned, state, file_path, file_mime, file_size) VALUES (%d, %d, '%s', '%s', %d, %d, %d, %d, '%s', '%s', %d)", $node->nid, $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->filepath, $file->filemime, $file->filesize);
+  db_query("INSERT INTO {project_issues} (nid, pid, category, component, priority, rid, assigned, sid, file_path, file_mime, file_size) VALUES (%d, %d, '%s', '%s', %d, %d, %d, %d, '%s', '%s', %d)", $node->nid, $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->sid, $file->filepath, $file->filemime, $file->filesize);
   project_mail_notify($node);
 }
 
@@ -414,10 +454,10 @@ function project_issue_update($node) {
     // Remove old file.
     file_delete(db_result(db_query('SELECT file_path FROM {project_issues} WHERE nid = %d', $node->nid)));
     $file = file_save_upload($node->file, variable_get('project_directory_issues', 'issues'));
-    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d, file_path = '%s', file_mime = '%s', file_size = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $file->filepath, $file->filemime, $file->filesize, $node->nid);
+    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, sid = %d, file_path = '%s', file_mime = '%s', file_size = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->sid, $file->filepath, $file->filemime, $file->filesize, $node->nid);
   }
   else {
-    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, state = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->state, $node->nid);
+    db_query("UPDATE {project_issues} SET pid = %d, category = '%s', component = '%s', priority = %d, rid = %d, assigned = %d, sid = %d WHERE nid = %d", $node->pid, $node->category, $node->component, $node->priority, $node->rid, $node->assigned, $node->sid, $node->nid);
   }
   project_mail_notify($node);
 }
@@ -440,9 +480,30 @@ function project_issue_access($op, $node) {
 }
 
 // Support stuff
-function project_issue_state($state = 0) {
-  $states = array(1 => t('active'), 2 => t('fixed'), 8=> t('patch'), 3 => t('duplicate'), 4 => t('postponed'), 5 => t("won't fix"), 6 => t('by design'), 7 => t('closed'));
-  return $state ? $states[$state] : $states;
+function project_issue_state($sid = 0, $restrict = false, $is_author = false) {
+  static $options;
+
+  if (!$options) {
+    $result = db_query('SELECT * FROM {project_issue_state} ORDER BY weight');
+    while ($state = db_fetch_object($result)) {
+      $options[] = $state;
+    }
+  }
+
+  foreach($options as $state) {
+    if ($restrict) {
+      // Check if user has access, or if status is default status and therefore available to all,
+      // or if user is original issue poster and poster is granted access
+      if (user_access('set issue status '. str_replace("'", "", $state->name)) || ($state->sid == variable_get('project_issue_default_state', 1)) || ($state->author_has && $is_author)) {
+        $states[$state->sid] = $state->name;
+      }
+    }
+    else {
+      $states[$state->sid] = $state->name;
+    }
+  }
+
+  return $sid ? $states[$sid] : $states;
 }
 
 function project_issue_priority($priority = 0) {
@@ -462,15 +523,16 @@ function project_issue_category($category = 0, $plural = 1) {
 
 function project_issue_count($pid) {
   $state = array();
-  $result = db_query('SELECT p.state, count(p.state) AS count FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.nid WHERE n.status = 1 AND p.pid = %d GROUP BY p.state', $pid);
+  $result = db_query('SELECT p.sid, count(p.sid) AS count FROM {node} n INNER JOIN {project_issues} p ON n.nid = p.nid WHERE n.status = 1 AND p.pid = %d GROUP BY p.sid', $pid);
   while ($data = db_fetch_object($result)) {
-    $state[$data->state] = $data->count;
+    $state[$data->sid] = $data->count;
   }
   return $state;
 }
 
 function project_issue_query($project = 0, $query = NULL) {
   $categories = project_issue_category();
+  $components = array();
   if ($project->nid) {
     foreach ($project->components as $component) {
       $components[$component] = $component;
@@ -529,6 +591,118 @@ function project_issue_query($project = 0, $query = NULL) {
   return $output;
 }
 
+function project_issue_admin_states() {
+  $result = db_query('SELECT * FROM {project_issue_state} ORDER BY weight');
+  $default_state = variable_get('project_issue_default_state', 1);
+  while ($state = db_fetch_object($result)) {
+    $rows[] = array($state->sid, 
+                    form_textfield(NULL, 'status][' . $state->sid .'][name', $state->name, 20, 255),
+                    form_weight(NULL, 'status][' . $state->sid .'][weight', $state->weight, 15),
+                    form_checkbox('', 'status][' . $state->sid .'][author_has', 1, $state->author_has),
+                    form_radio('', 'default_state', $state->sid, ($state->sid == $default_state) ? 1 : 0),
+                    ($state->sid != $default_state) ? l(t('delete'), 'admin/settings/project/status/delete/'. $state->sid) : '');
+  }
+  $rows[] = array(NULL, form_textfield(NULL, 'status_add][name', '', 20, 255), form_weight(NULL, 'status_add][weight', 0, 15), NULL, NULL, NULL);
+  return $rows;
+}
+
+function project_issue_admin_states_page() {
+  switch ($_POST['op'] ? $_POST['op'] : arg(4)) {
+    case 'save':
+    case t('Save'):
+      project_issue_admin_save_states();
+      break;
+    case 'delete':
+    case t('Delete'):
+      return project_issue_admin_delete_state();
+      break;
+    default:
+      $header = array(
+        array('data' => t('ID')),
+        array('data' => t('Name')),
+        array('data' => t('Weight')),
+        array('data' => t('Author may set')),
+        array('data' => t('Default')),
+        array('data' => t('Operations'))
+      );
+    
+      $output = '<div>' . theme('table', $header, project_issue_admin_states()) . '</div>';
+      $output .= form_submit(t('Save'));
+ 
+      return form($output);
+      break;
+  }      
+}
+
+function project_issue_admin_save_states() {
+  // Check for and apply changes or additions to project issue status options.
+  $edit = $_POST['edit'];
+  if (isset($edit['default_state'])) {
+    variable_set('project_issue_default_state', $edit['default_state']);
+  }
+  // Update existing status options.
+  if($edit['status']) {
+    foreach ($edit['status'] as $sid => $value) {
+      $state = db_fetch_object(db_query('SELECT name, weight, author_has FROM {project_issue_state} WHERE sid = %d', $sid));
+      // Check to see whether the record needs updating.
+      if (($state->name != $value['name']) || ($state->weight != $value['weight']) || ($state->author_has != $value['author_has'])) {
+        db_query("UPDATE {project_issue_state} SET name = '%s', weight = %d, author_has = %d WHERE sid = %d", $value['name'], $value['weight'], $value['author_has'], $sid);
+      }
+    }
+  }
+  // Add any new status options.
+  if($edit['status_add']) {
+    if($edit['status_add']['name']) {
+      // Check to see whether the state already exists:
+      $name = db_result(db_query("SELECT name FROM {project_issue_state} WHERE name = '%s'", $edit['status_add']['name']));
+      if (!db_num_rows($name)) {
+        db_query("INSERT INTO {project_issue_state} SET name = '%s', weight = %d, author_has = %d", $edit['status_add']['name'], $edit['status_add']['weight'], $edit['status_add']['author_has']);
+      }
+      else {
+        drupal_set_message (t('Status %status already exists.', array ('%status' => $edit['status_add']['name'])));
+      }
+    }
+  }
+  drupal_goto('admin/settings/project/status');
+}
+
+function project_issue_admin_delete_state() {
+  $sid = arg(5);
+  $edit = $_POST['edit'];
+  if (!$sid) {
+    $sid = $edit['sid'];
+  }
+  $states = project_issue_state();
+  $name = $states[$sid];
+  if ($edit['confirm'] && ($edit['new_sid'] != $sid)) {
+    if ($edit['new_sid']) {
+      db_query('UPDATE {project_issues} SET sid = %d WHERE sid = %d', $edit['new_sid'], $sid);
+    }
+    db_query('DELETE FROM {project_issue_state} WHERE sid = %d', $sid);
+    drupal_set_message(t('Project issue status %issue deleted.', array('%issue' => $name)));
+    drupal_goto('admin/settings/project/status');
+  }
+  else {
+    $extra = '';
+    if($edit['new_sid'] == $sid) {
+      form_set_error('new_sid', t('Choose a new issue status for existing issues of status %name.', array('%name' => $name)));
+    }
+    $total = db_result(db_query('SELECT COUNT(nid) AS total FROM {project_issues} WHERE sid = %d', $sid));
+    if ($total > 0) {
+      $extra .= form_select(t('Reassign status'), 'new_sid', $sid, $states, t('There are %total existing issues with the status of %name. Please select a new status for these issues.', array('%total' => $total, '%name' => $name)));
+    }
+    $extra .= form_hidden('sid', $sid);
+    $output = theme('confirm',
+      t('Are you sure you want to delete the status option "%name"?', array('%name' => $name)),
+      'admin/settings/project/status',
+      t('This action cannot be undone.'),
+      t('Delete'),
+      t('Cancel'),
+      $extra);
+    return $output;
+  }
+}
+
 function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
   $query = project_issue_query_parse($query);
 
@@ -569,7 +743,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $header[] = array('data' => t('Project'), 'field' => 'p.pid');
   }
   $header[] = array('data' => t('Summary'), 'field' => 'n.title');
-  $header[] = array('data' => t('Status'), 'field' => 'p.state');
+  $header[] = array('data' => t('Status'), 'field' => 'p.sid');
   $header[] = array('data' => t('Pri'), 'field' => 'p.priority');
   $header[] = array('data' => t('Category'), 'field' => 'p.category');
   if (count($releases)) {
@@ -584,8 +758,8 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
   }
   else {
-    $result = pager_query(db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)'. tablesort_sql($header), 'p'), 20, 0,
-                          db_rewrite_sql('SELECT COUNT(p.nid) FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.state = 1 OR p.state = 2)', 'p'));
+    $result = pager_query(db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.sid = 1 OR p.sid = 2)'. tablesort_sql($header), 'p'), 20, 0,
+                          db_rewrite_sql('SELECT COUNT(p.nid) FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.sid = 1 OR p.sid = 2)', 'p'));
   }
 
   if ($search) {
@@ -625,15 +799,15 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   }
   elseif (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load($node);
+      $node = node_load((array)$node);
       $row = array();
       $number++;
-      $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->state";
+      $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->sid";
       if (!$project->nid) {
         $row[] = l($projects[$node->pid], "project/issues/$node->pid");
       }
       $row[] = l(substr($node->title, 0, 50), "node/$node->nid") .  theme('mark', node_mark($node->nid, $node->changed));
-      $row[] = $states[$node->state];
+      $row[] = $states[$node->sid];
       $row[] = $priorities[$node->priority];
       $row[] = t($node->category);
       if (count($releases)) {
@@ -765,7 +939,7 @@ function project_issue_query_sql($query) {
         $sql[] = project_issue_query_sql_field('p.rid', $value);
         break;
       case 'states':
-        $sql[] = project_issue_query_sql_field('p.state', $value);
+        $sql[] = project_issue_query_sql_field('p.sid', $value);
         break;
       case 'priorities':
         $sql[] = project_issue_query_sql_field('p.priority', $value);
@@ -827,7 +1001,7 @@ function project_issue_query_rss($projects, $result) {
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load($node);
+      $node = node_load((array)$node);
 
       $body = $node->teaser ? $node->teaser : $node->body;
 
