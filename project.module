@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.175.2.1 2005/01/13 23:20:58 unconed Exp $
+// $Id: project.module,v 1.175.2.2 2005/07/05 23:01:37 drumm Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -262,7 +262,7 @@ function project_page() {
 
 function project_page_overview() {
   if (function_exists('taxonomy_get_vocabularies')) {
-    $vocabulary = current(taxonomy_get_vocabularies('project'));
+    $vocabulary = current(taxonomy_get_vocabularies('project_project'));
     $terms = taxonomy_get_tree($vocabulary->vid);
     
     if (arg(1)) {

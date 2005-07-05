@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.84.2.1 2005/01/13 23:20:58 unconed Exp $ */
+/* $Id: issue.inc,v 1.84.2.2 2005/07/05 23:01:37 drumm Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -785,7 +785,7 @@ function project_issue_query_user($value) {
 }
 
 function project_issue_query_rss($projects, $result) {
-  global $languages;
+  global $locale;
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
@@ -815,8 +815,7 @@ function project_issue_query_rss($projects, $result) {
   if (!$channel['title']) $channel['title'] = variable_get('site_name', 'drupal') .' - '. t('issues');
   if (!$channel['link']) $channel['link'] = url();
   if (!$channel['description']) $channel['description'] = variable_get('site_mission', '');
-  foreach ($languages as $key => $value) break;
-  if (!$channel['language']) $channel['language'] = $key ? $key : 'en';
+  if (!$channel['language']) $channel['language'] = $locale;
   $output .= "<rss version=\"$channel[version]\">\n";
   $output .= format_rss_channel($channel['title'], $channel['link'], $channel['description'], $items, $channel['language']);
   $output .= "</rss>\n";
