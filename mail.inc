@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.51 2005/07/04 11:14:19 killes Exp $ */
+/* $Id: mail.inc,v 1.52 2005/07/18 17:13:05 thox Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -291,7 +291,7 @@ function project_mail_notify($node) {
       }
       project_mail_output($entry->body, 1, $entry->format);
       $body .= "\n$hr\n\n";
-      $body .= gmdate($entry->created, 'r') ." : $entry->name\n\n";
+      $body .= gmdate('r', $entry->created) ." : $entry->name\n\n";
       if ($entry->file_path && file_exists($entry->file_path)) {
         $body .= t('Attachment') .': '. file_create_url($entry->file_path) .' ('. format_size($entry->file_size) .")\n\n";
       }
