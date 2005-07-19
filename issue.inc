@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.5 2005/07/04 10:59:09 killes Exp $ */
+/* $Id: issue.inc,v 1.102.2.6 2005/07/19 20:59:51 killes Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -413,7 +413,7 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
     if ($node->file_path && file_exists($node->file_path)) {
       $rows[] = array(t('Attachment:'), '<a href="'. file_create_url($node->file_path). '">'. basename($node->file_path) .'</a> ('. format_size($node->file_size) .')');
     }
-    $output .= '<div class="summary">'. theme('table', NULL, $rows) .'</div>';
+    $output .= '<div class="summary">'. theme('table', array(), $rows) .'</div>';
 
     $output .= '<p>'. t('Description') .'</p>';
     $output .= '<p>'. $node->body .'</p>';
@@ -585,7 +585,7 @@ function project_issue_query($project = 0, $query = NULL) {
   );
 
   $output = '<div class="project">';
-  $output .= form(theme('table', NULL, $rows), 'post', url($project->uri ? "project/issues/$project->uri" : 'project/issues'));
+  $output .= form(theme('table', array(), $rows), 'post', url($project->uri ? "project/issues/$project->uri" : 'project/issues'));
   $output .= '</div>';
 
   return $output;
@@ -789,7 +789,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       form_hidden('users', $query->users) . form_submit(t('Search')),
       l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
     ));
-    $form .= form(theme('table', '', $rows));
+    $form .= form(theme('table', array(), $rows));
   }
 
   $rows = array();
