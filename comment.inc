@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.44 2005/08/15 00:08:54 dries Exp $ */
+/* $Id: comment.inc,v 1.45 2005/08/15 00:20:46 dries Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -133,7 +133,7 @@ function project_comment_view($node, $main = 0) {
           $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
         }
         if ($comment->body) {
-          $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_output($comment->body) .'</p>'));
+          $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_markup($comment->body) .'</p>'));
         }
         if ($comment->fid) {
           $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));

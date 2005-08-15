@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.198 2005/07/18 17:29:50 unconed Exp $
+// $Id: project.module,v 1.199 2005/08/15 00:20:46 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -358,7 +358,7 @@ function project_page_overview($termname = NULL, $version = NULL) {
       $project->title = $node->title;
       $project->term = $termname;
       $project->version = $version;
-      $project->body = check_output($node->teaser, $node->format, false);
+      $project->body = check_markup($node->teaser, $node->format, false);
 
       $project->links = array();
       $project->links[] = l(t('Download'), $release->path);
