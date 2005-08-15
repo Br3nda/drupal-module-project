@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.112 2005/07/03 10:11:49 killes Exp $ */
+/* $Id: issue.inc,v 1.113 2005/08/15 00:08:31 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -806,7 +806,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       if (!$project->nid) {
         $row[] = l($projects[$node->pid], "project/issues/$node->pid");
       }
-      $row[] = l(substr($node->title, 0, 50), "node/$node->nid") .  theme('mark', node_mark($node->nid, $node->changed));
+      $row[] = l(substr($node->title, 0, 50), "node/$node->nid") . theme('mark', node_mark($node->nid, $node->changed));
       $row[] = $states[$node->sid];
       $row[] = $priorities[$node->priority];
       $row[] = t($node->category);
@@ -814,7 +814,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
         $row[] = $releases[$node->rid];
       }
       $row[] = array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right');
-      $row[] = ($node->assigned) ? format_name(user_load(array('uid' => $node->assigned))) : '';
+      $row[] = ($node->assigned) ? theme('user', user_load(array('uid' => $node->assigned))) : '';
 
       $row = array('data' => $row, 'class' => $class);
 
