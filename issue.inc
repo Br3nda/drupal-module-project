@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.113 2005/08/15 00:08:31 dries Exp $ */
+/* $Id: issue.inc,v 1.114 2005/08/15 09:57:48 dries Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -814,7 +814,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
         $row[] = $releases[$node->rid];
       }
       $row[] = array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right');
-      $row[] = ($node->assigned) ? theme('user', user_load(array('uid' => $node->assigned))) : '';
+      $row[] = ($node->assigned) ? theme('username', user_load(array('uid' => $node->assigned))) : '';
 
       $row = array('data' => $row, 'class' => $class);
 
