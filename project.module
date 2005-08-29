@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.199 2005/08/15 00:20:46 dries Exp $
+// $Id: project.module,v 1.200 2005/08/29 20:32:58 chx Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -52,12 +52,10 @@ function project_help($section) {
   }
 }
 
-function project_node_name($field) {
-  return t('project');
-}
-
-function project_node_types() {
-  return array('project_project', 'project_issue');
+function project_node_info() {
+  return array(
+    'project_project' => array('name' => t('project'), 'base' => 'project_project'),
+    'project_issue' => array('name' => t('issue'), 'base' => 'project_issue'));
 }
 
 function project_perm() {

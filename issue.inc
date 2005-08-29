@@ -1,9 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.114 2005/08/15 09:57:48 dries Exp $ */
-
-function project_issue_node_name() {
-  return t('issue');
-}
+/* $Id: issue.inc,v 1.115 2005/08/29 20:32:58 chx Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;

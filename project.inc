@@ -1,11 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.51 2005/06/16 12:11:01 killes Exp $ */
-
-function project_project_node_name() {
-  return t('project');
-
-  return $info[$field];
-}
+/* $Id: project.inc,v 1.52 2005/08/29 20:32:58 chx Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
