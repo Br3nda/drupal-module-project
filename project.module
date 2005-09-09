@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.200 2005/08/29 20:32:58 chx Exp $
+// $Id: project.module,v 1.201 2005/09/09 20:07:26 ax Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -7,12 +7,13 @@
 // issue nodes      -> project_issues
 // issue comments   -> project_comments
 
-if (file_exists('modules/project/project.inc')) {
-  require_once 'modules/project/project.inc';
-  require_once 'modules/project/release.inc';
-  require_once 'modules/project/issue.inc';
-  require_once 'modules/project/comment.inc';
-  require_once 'modules/project/mail.inc';
+$path = drupal_get_path('module', 'project');
+if (file_exists("$path/project.inc")) {
+  require_once "$path/project.inc";
+  require_once "$path/release.inc";
+  require_once "$path/issue.inc";
+  require_once "$path/comment.inc";
+  require_once "$path/mail.inc";
 }
 
 function project_help($section) {
@@ -154,7 +155,7 @@ function project_link($type, $node = 0, $main = 0) {
 function project_menu($may_cache) {
   $items = array();
 
-  drupal_set_html_head('<style type="text/css">@import url('. $GLOBALS[base_url] .'/modules/project/project.css);</style>');
+  drupal_set_html_head(theme('stylesheet_import', drupal_get_path('module', 'project') .'/project.css'));
 
   if ($may_cache) {
     // User pages:
@@ -325,11 +326,11 @@ function project_page_overview($termname = NULL, $version = NULL) {
     if ($term->description) {
       $output .= $term->description;
     }
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.teaser, n.format, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, r.teaser, r.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} r ON n.vid = r.vid INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
   }
   // Fetch all projects
   else {
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.teaser, n.format, n.changed, p.issues FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, r.teaser, r.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} r ON n.vid = r.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
   }
 
   $header = array(
