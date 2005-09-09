@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.2 2005/07/04 10:59:09 killes Exp $
+// $Id: project.module,v 1.195.2.3 2005/09/09 20:15:43 ax Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -7,12 +7,13 @@
 // issue nodes      -> project_issues
 // issue comments   -> project_comments
 
-if (file_exists('modules/project/project.inc')) {
-  require_once 'modules/project/project.inc';
-  require_once 'modules/project/release.inc';
-  require_once 'modules/project/issue.inc';
-  require_once 'modules/project/comment.inc';
-  require_once 'modules/project/mail.inc';
+$path = drupal_get_path('module', 'project');
+if (file_exists("$path/project.inc")) {
+  require_once "$path/project.inc";
+  require_once "$path/release.inc";
+  require_once "$path/issue.inc";
+  require_once "$path/comment.inc";
+  require_once "$path/mail.inc";
 }
 
 function project_help($section) {
@@ -156,7 +157,7 @@ function project_link($type, $node = 0, $main = 0) {
 function project_menu($may_cache) {
   $items = array();
 
-  drupal_set_html_head('<style type="text/css">@import url('. $GLOBALS[base_url] .'/modules/project/project.css);</style>');
+  drupal_set_html_head(theme('stylesheet_import', drupal_get_path('module', 'project') .'/project.css'));
 
   if ($may_cache) {
     // User pages:
