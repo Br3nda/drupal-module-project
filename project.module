@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.201 2005/09/09 20:07:26 ax Exp $
+// $Id: project.module,v 1.202 2005/09/12 07:37:07 ax Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -326,11 +326,11 @@ function project_page_overview($termname = NULL, $version = NULL) {
     if ($term->description) {
       $output .= $term->description;
     }
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, r.teaser, r.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} r ON n.vid = r.vid INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
   }
   // Fetch all projects
   else {
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, r.teaser, r.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} r ON n.vid = r.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
   }
 
   $header = array(
