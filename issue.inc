@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.115 2005/08/29 20:32:58 chx Exp $ */
+/* $Id: issue.inc,v 1.116 2005/09/19 20:42:54 killes Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -94,7 +94,8 @@ function project_issue_statistics($project = 0) {
       l(t('Home'), NULL),
       l(t('Projects'), 'project')
     );
-    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($project->nid))) {
+    $taxonomy_terms = taxonomy_node_get_terms($project->nid);
+    if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
       $breadcrumb[] = l($term->name, 'project/'. $term->name);
     }
     $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
@@ -419,7 +420,8 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
 
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-    if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->pid))) {
+    $taxonomy_terms = taxonomy_node_get_terms($node->pid);
+    if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
       $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
     }
     $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
@@ -777,14 +779,12 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     }
 
     // Make quick search form:
-    $rows = array(array(
-      form_select(t('Project'), 'projects', $query->projects, $projects),
-      form_select(t('Status'), 'states', $query->states, $states),
-      form_select(t('Priority'), 'priorities', $query->priorities, $priorities),
-      form_select(t('Category'), 'categories', $query->categories, $categories),
-      form_hidden('users', $query->users) . form_submit(t('Search')),
-      l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""))
-    ));
+    $form .= form_select(t('Project'), 'projects', $query->projects, $projects);
+    $form .= form_select(t('Category'), 'categories', $query->categories, $categories);
+    $form .= form_select(t('Priority'), 'priorities', $query->priorities, $priorities);
+    $form .= form_hidden('users', $query->users) . form_submit(t('Search'));
+    $form .= form_select(t('Status'), 'states', $query->states, $states);
+    $form .= l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : ""));
     $form .= form(theme('table', array(), $rows));
   }
 

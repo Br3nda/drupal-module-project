@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.202 2005/09/12 07:37:07 ax Exp $
+// $Id: project.module,v 1.203 2005/09/19 20:42:54 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -164,7 +164,8 @@ function project_menu($may_cache) {
     $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
     // Project browsing pages
-    if (module_exist('taxonomy') && $vocabulary = current(taxonomy_get_vocabularies('project_project'))) {
+    $vocabs = taxonomy_get_vocabularies('project_project');
+    if (module_exist('taxonomy') && $vocabulary = current($vocabs)) {
       $terms = taxonomy_get_tree($vocabulary->vid);
       $releases = variable_get('project_browse_releases', 1);
 
@@ -309,7 +310,8 @@ function project_page() {
 
 function project_page_overview($termname = NULL, $version = NULL) {
   // If browsing by taxonomy, only fetch projects for this term
-  if (function_exists('taxonomy_get_vocabularies') && ($vocabulary = current(taxonomy_get_vocabularies('project_project')))) {
+  $vocabs = taxonomy_get_vocabularies('project_project');
+  if (function_exists('taxonomy_get_vocabularies') && ($vocabulary = current($vocabs))) {
     $terms = taxonomy_get_tree($vocabulary->vid);
 
     if ($termname) {

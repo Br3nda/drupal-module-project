@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.52 2005/08/29 20:32:58 chx Exp $ */
+/* $Id: project.inc,v 1.53 2005/09/19 20:42:54 killes Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
@@ -160,7 +160,8 @@ function project_project_set_location(&$node, $extra = array()) {
   $breadcrumb = array();
 
   $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-  if (function_exists('taxonomy_node_get_terms') && $term = reset(taxonomy_node_get_terms($node->nid))) {
+  $taxonomy_terms = taxonomy_node_get_terms($node->nid);
+  if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
     $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
   }
   $breadcrumb = array_merge($breadcrumb, $extra);
