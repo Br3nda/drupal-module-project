@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.203 2005/09/19 20:42:54 killes Exp $
+// $Id: project.module,v 1.204 2005/09/20 01:02:09 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -125,7 +125,7 @@ function project_cron() {
     foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
       $comment->$var = $node->$var;
     }
-    $comment->state = 7;
+    $comment->sid = 7;
     project_comment_save($comment);
   }
 }
