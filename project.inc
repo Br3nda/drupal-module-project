@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.53 2005/09/19 20:42:54 killes Exp $ */
+/* $Id: project.inc,v 1.54 2005/09/24 18:48:04 nedjo Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
@@ -197,67 +197,66 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       if (count($releases) > 1) {
         $links[] = l(t('View older releases'), 'node/'. $node->nid .'/release');
       }
-      if (node_access('update', $node) && !variable_get('project_release_directory', '')) {
-        $links[] = l(t('Add new release'), 'node/'. $node->nid .'/release/add');
+    }
+    if (node_access('update', $node) && !variable_get('project_release_directory', '')) {
+      $links[] = l(t('Add new release'), 'node/'. $node->nid .'/release/add');
+    }
+    if ($links) {
+      $output .= theme('item_list', $links, t('Releases'));
+    }
+    
+    // Misc section
+    $links = array();
+    
+    foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
+      if (!empty($node->$uri)) {
+        $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
       }
-      if ($links) {
-        $output .= theme('item_list', $links, t('Releases'));
-      }
-
-      // Misc section
-      $links = array();
-
-      foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
-        if (!empty($node->$uri)) {
-          $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
-        }
-      }
-
-      if ($links) {
-        $output .= theme('item_list', $links, t('Resources'));
-      }
-
-      // Support section
-      $links = array();
-
-      $links[] = l(t('Support forum'), variable_get('project_support_forum', 'forum/18'));
-
-      if ($node->issues) {
-        #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
-        $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
-        $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
-        $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
-        $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
-      }
-
-      if ($links) {
-        $output .= theme('item_list', $links, t('Support'));
-      }
-
-      // Developer section
-      $links = array();
-
-      if ($node->issues) {
-        #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
-        $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
-        $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
-        $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
-      }
-
-      if ($node->cvs) {
-        $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
-      }
-      
-      if (module_exist('cvs')) {
-        $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
-        $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
-      }
-      
-      if ($links) {
-        $output .= theme('item_list', $links, t('Development'));
-      }
-   }
-
+    }
+    
+    if ($links) {
+      $output .= theme('item_list', $links, t('Resources'));
+    }
+    
+    // Support section
+    $links = array();
+    
+    $links[] = l(t('Support forum'), variable_get('project_support_forum', 'forum/18'));
+    
+    if ($node->issues) {
+      #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
+      $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
+      $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+      $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
+      $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
+    }
+    
+    if ($links) {
+      $output .= theme('item_list', $links, t('Support'));
+    }
+    
+    // Developer section
+    $links = array();
+    
+    if ($node->issues) {
+      #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
+      $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
+      $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
+      $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
+    }
+    
+    if ($node->cvs) {
+      $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
+    }
+    
+    if (module_exist('cvs')) {
+      $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
+      $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
+    }
+    
+    if ($links) {
+      $output .= theme('item_list', $links, t('Development'));
+    }
     $node->body .= $output;
   }
 }
