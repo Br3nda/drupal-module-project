@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.117 2005/09/22 17:07:59 nedjo Exp $ */
+/* $Id: issue.inc,v 1.118 2005/09/25 22:26:18 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -326,6 +326,7 @@ function project_issue_form(&$node, &$param) {
       $output .= implode('', taxonomy_node_form($node->type, $node));
     }
 
+    $output .= form_textfield(t('Title'), 'title', $node->title, 60, 128, NULL, NULL, TRUE);
     $output .= form_textarea('Description', 'body', $node->body, 60, 20, NULL, NULL, !$node->comment);
     $output .= filter_form('format', $node->format);
     $output .= form_file(t('File attachment'), 'file_issue', 40, ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')));
@@ -350,6 +351,7 @@ function project_issue_validate(&$node) {
 
   // Validate the rest of the form when we have a project.
   if (!$node->validated) {
+    node_validate_title($node);
     if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
       if ($releases = project_release_load($project)) {
         if (!$node->rid || !$releases[$node->rid]) {
