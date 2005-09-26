@@ -104,6 +104,10 @@
   vertical-align: bottom;
 }
 
+.project .quick-search #edit-projects, #edit-states {
+  width: 150px;
+}
+
 .node-form .project fieldset {
   display: block;
 }
