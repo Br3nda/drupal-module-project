@@ -1,4 +1,4 @@
--- $Id: update-project-2005-06-23.pgsql,v 1.1 2005/06/23 22:45:21 killes Exp $
+-- $Id: update-project-2005-06-23.pgsql,v 1.2 2005/09/27 15:50:26 nedjo Exp $
 
 ALTER TABLE project_issues RENAME state TO sid;
 ALTER TABLE project_issues ALTER COLUMN sid SET smallint;
@@ -25,8 +25,6 @@ INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0);
 INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0);
 INSERT INTO project_issue_state VALUES (6, 'by design', 11, 0);
 INSERT INTO project_issue_state VALUES (7, 'closed', 13, 1);
-INSERT INTO project_issue_state VALUES (8, 'patch', -8, 0);
-INSERT INTO project_issue_state VALUES (9, 'needs work', -11, 0);
-INSERT INTO project_issue_state VALUES (10, 'testers needed', -6, 0);
-INSERT INTO project_issue_state VALUES (11, 'reviewed', -3, 0);
-INSERT INTO project_issue_state VALUES (12, 'ready to commit', -1, 0);
+INSERT INTO project_issue_state VALUES (8, 'patch (code needs review)', -8, 0);
+INSERT INTO project_issue_state VALUES (13, 'patch (code needs work)', -6, 0);
+INSERT INTO project_issue_state VALUES (14, 'patch (ready to commit)', -2, 0);
