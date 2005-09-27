@@ -1,4 +1,4 @@
--- $Id: update-project-2005-06-23.mysql,v 1.2 2005/09/27 15:50:26 nedjo Exp $
+-- $Id: update-project-2005-06-23.mysql,v 1.3 2005/09/27 21:49:00 nedjo Exp $
 
 ALTER TABLE project_issues CHANGE state sid int(10) unsigned NOT NULL default '0';
 
@@ -11,7 +11,7 @@ CREATE TABLE project_issue_state (
 ) TYPE=MyISAM;
 
 INSERT INTO project_issue_state VALUES (1, 'active', -13, 0);
-INSERT INTO project_issue_state VALUES (2, 'applied', 1, 0);
+INSERT INTO project_issue_state VALUES (2, 'fixed', 1, 0);
 INSERT INTO project_issue_state VALUES (3, 'duplicate', 4, 0);
 INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0);
 INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0);

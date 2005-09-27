@@ -121,7 +121,7 @@ CREATE TABLE project_issue_state (
 --
 
 INSERT INTO project_issue_state VALUES (1, 'active', -13, 0);
-INSERT INTO project_issue_state VALUES (2, 'applied', 1, 0);
+INSERT INTO project_issue_state VALUES (2, 'fixed', 1, 0);
 INSERT INTO project_issue_state VALUES (3, 'duplicate', 4, 0);
 INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0);
 INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0);
