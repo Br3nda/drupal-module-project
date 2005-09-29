@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.122 2005/09/29 19:36:12 nedjo Exp $ */
+/* $Id: issue.inc,v 1.123 2005/09/29 21:30:05 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -789,7 +789,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       array('data'=> form_hidden('users', $query->users) . form_submit(t('Search'))),
       array('data'=> l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : "")))
     );
-    $form = form(theme('table', array(), $rows));
+    $form .= form(theme('table', array(), $rows));
   }
 
   $rows = array();
