@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.205 2005/09/28 18:12:54 killes Exp $
+// $Id: project.module,v 1.206 2005/09/29 03:23:41 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -410,7 +410,7 @@ function project_page_user($arg = 0) {
     array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
   );
 
-  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.sid IN (1,2,8) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
+  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.sid IN (1,2,8,13,14) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
 
   if (!db_num_rows($result)) {
     return ($current_user ? t('You have no projects.') : t('This user has no projects.'));
