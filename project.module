@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.207 2005/09/29 18:03:39 nedjo Exp $
+// $Id: project.module,v 1.208 2005/09/29 23:15:44 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -272,40 +272,6 @@ function project_page() {
     default:
       project_page_overview();
       break;
-
-      if ($vid = db_result(db_query_range("SELECT vid FROM vocabulary WHERE INSTR(nodes, 'project_project') ORDER BY weight DESC", 0, 1))) {
-        $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, t.tid, t.name, t.weight FROM {node} n INNER JOIN {term_node} l ON n.nid = l.nid INNER JOIN {term_data} t ON l.tid = t.tid WHERE t.vid = %d AND n.type = 'project_project' AND n.status = 1 ORDER BY t.weight, n.title"), $vid);
-      }
-      else {
-        $result = db_query(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE n.type = 'project_project' AND n.status = 1 ORDER BY n.title"));
-      }
-
-      $vocabulary = array(
-          'nodes' => array('project_project'),
-          'name' => 'Projects',
-          'hierarchy' => 1
-          );
-#$vocabulary = taxonomy_save_vocabulary($vocabulary);
-      $vocabulary['vid'] = 5;
-      while ($project = db_fetch_object($result)) {
-        if ($project->name != $last) {
-          print "$project->name<br />";
-          $last = $project->name;
-          $term = array(
-              'name' => $last,
-              'weight' => $project->weight,
-              'vid' => $vocabulary['vid']
-              );
-#$parent = taxonomy_save_term($term)
-          ++$parent['tid'];
-        }
-        $term = array(
-            'name' => $project->title,
-            'parent' => $parent['tid'],
-            'vid' => $vocabulary['vid']
-            );
-        var_dump($term);
-      }
   }
 }
 
