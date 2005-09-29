@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.121 2005/09/29 03:23:41 nedjo Exp $ */
+/* $Id: issue.inc,v 1.122 2005/09/29 19:36:12 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -393,7 +393,7 @@ function project_issue_content($node, $teaser = false) {
 function project_issue_view(&$node, $teaser = false, $page = false) {
   $node = project_issue_content($node, $teaser);
 
-  if (!$teaser) {
+  if (!$teaser && $page) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     $release = project_release_load($node->rid);
     $assigned = ($node->assigned && ($account = user_load(array('uid' => $node->assigned))) ? $account->name : t('Unassigned'));
