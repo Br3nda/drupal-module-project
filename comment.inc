@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.46 2005/08/15 09:57:48 dries Exp $ */
+/* $Id: comment.inc,v 1.47 2005/09/30 02:29:14 nedjo Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -13,7 +13,7 @@ function project_comment_page() {
 
         $comment = project_comment_validate($comment);
         $output .= form(project_comment_form($comment, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
-        $output .= node_view($node);
+        $output .= node_view($node, NULL, TRUE);
 
         $breadcrumb = drupal_get_breadcrumb();
         $breadcrumb[] = l($node->title, "node/$node->nid");
