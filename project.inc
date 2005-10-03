@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.55 2005/09/25 22:26:18 nedjo Exp $ */
+/* $Id: project.inc,v 1.56 2005/10/03 15:48:10 nedjo Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
@@ -187,10 +187,10 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $links = array();
       
       if ($release->version == 'cvs') {
-        $links[] = l(t('Download latest release (%version)', array('%version' => $release->version)), $release->path);
+        $links[] = '<a href="' . $release->path . '">' . t('Download latest release (%version)', array('%version' => $release->version)) . '</a>';
       }
       else {
-        $links[] = l(t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small'))), $release->path);
+        $links[] = '<a href="' . $release->path . '">' . t('Download latest release (%version, %date)', array('%version' => $release->version, '%date' => format_date($release->created, 'small')))  . '</a>';
       }
       if ($release->changes) {
         $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);

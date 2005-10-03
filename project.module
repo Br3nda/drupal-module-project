@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.208 2005/09/29 23:15:44 nedjo Exp $
+// $Id: project.module,v 1.209 2005/10/03 15:48:10 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -326,7 +326,7 @@ function project_page_overview($termname = NULL, $version = NULL) {
 
     $project->links = array();
     if ($release = db_fetch_object($result2)) {
-      $project->links[] = l(t('Download'), $release->path);
+      $project->links[] = '<a href="' . $release->path . '">' . t('Download') . '</a>';
     }
     $project->links[] = l(t('Find out more'), "node/$node->nid");
     if ($node->issues) {

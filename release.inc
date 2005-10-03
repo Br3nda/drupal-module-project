@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.53 2005/09/19 20:42:54 killes Exp $ */
+/* $Id: release.inc,v 1.54 2005/10/03 15:48:10 nedjo Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -220,11 +220,11 @@ function project_release_view($release, $project = 0) {
   }
 
   if ($release->path) {
-    $output .= '<small>Download: '. l(basename($release->path), $release->path) .'</small><br />';
+    $output .= '<small>Download: <a href="' . $release->path . '">' . $release->path . '</a>' . '</small><br />';
   }
 
   if ($release->created) {
-    $output .= '<small>Released: '. format_date($release->created) .'</small><br />';
+    $output .= '<small>Released: ' . format_date($release->created) . '</small><br />';
   }
 
   $output .= $release->changes;
