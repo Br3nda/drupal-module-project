@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.124 2005/10/03 15:35:37 nedjo Exp $ */
+/* $Id: issue.inc,v 1.125 2005/10/03 15:41:49 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -350,7 +350,7 @@ function project_issue_validate(&$node) {
   }
 
   // Validate the rest of the form when we have a project.
-  if (!$node->validated) {
+  if (isset($node->title) && !$node->validated) {
     node_validate_title($node);
     if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
       if ($releases = project_release_load($project)) {
@@ -366,16 +366,14 @@ function project_issue_validate(&$node) {
       empty($node->category) and $node->category = arg(4);
       empty($node->sid) and $node->sid = 1;
 
-      if (isset($node->title)) {
-        empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
-        empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
-        empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
-      }
+      empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
+      empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
+      empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
 
       $file = file_check_upload('file_issue');
       $node->file = file_save_upload($file);
     }
-    else {
+    elseif (isset($node->pid)) {
       form_set_error('pid', t('You have to specify a valid project.'));
     }
   }
