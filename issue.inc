@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.123 2005/09/29 21:30:05 nedjo Exp $ */
+/* $Id: issue.inc,v 1.124 2005/10/03 15:35:37 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -202,7 +202,7 @@ function project_issue_subscribe($project = 0) {
 
     $output = '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>';
 
-    $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "][$project->nid", $level, $levels);
+    $output .= form_radios(t('Subscribe to %project issues', array('%project' => $project->title)), "$project->nid", $level, $levels);
   }
   else {
     $headers = array_merge(array(t('Project')), $levels);
@@ -727,14 +727,16 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     $releases = project_release_load($project, 0);
     $query->projects = $project->nid;
     $links = array(
-      l(t('submit'), "node/add/project_issue/$project->uri"),
-      l(t('statistics'), "project/issues/statistics/$project->uri"),
+      l(t('submit'), "node/add/project_issue/$project->uri", array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri)))),
+      l(t('statistics'), "project/issues/statistics/$project->uri", array('title' => t('See statistics about %project issues.', array('%project' => $project->uri)))),
+      l(t('subscribe'), "project/issues/subscribe/$project->uri", array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri)))),
     );
   }
   else {
     $links = array(
-      l(t('submit'), "node/add/project_issue"),
-      l(t('statistics'), "project/issues/statistics"),
+      l(t('submit'), "node/add/project_issue", array('title' => t('Submit a new issue.'))),
+      l(t('statistics'), "project/issues/statistics", array('title' => t('See statistics about issues.'))),
+      l(t('subscribe'), "project/issues/subscribe", array('title' => t('Receive email updates about issues.'))),
     );
   }
 
