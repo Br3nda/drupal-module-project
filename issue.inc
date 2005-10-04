@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.125 2005/10/03 15:41:49 nedjo Exp $ */
+/* $Id: issue.inc,v 1.126 2005/10/04 02:54:49 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -333,6 +333,8 @@ function project_issue_form(&$node, &$param) {
   }
   else {
     $output = form_select(t('Project'), 'pid', $node->pid, $projects);
+    // Add a field indicating that this is a multi-stage submission.
+    $output .= form_hidden('wizard', 1);
   }
 
   return $output;
@@ -348,11 +350,26 @@ function project_issue_validate(&$node) {
       $node->pid = db_result(db_query(db_rewrite_sql("SELECT p.nid FROM {project_projects} p WHERE p.uri = '%s'", 'p'), $arg), 0);
     }
   }
+  // If this is the second in a two-stage submission, bail for a preview but test for a submit.
+  if ($node->wizard) {
+    if (empty($node->pid)) {
+      form_set_error('pid', t('You have to specify a valid project.'));
+    }
+    else {
+      switch ($_POST['op']) {
+        case t('Preview'):
+          return;
+        case t('Submit'):
+          form_set_error('title', t('You have to specify a valid title and other required fields.'));
+          return $node;
+      }
+    }
+  }
 
-  // Validate the rest of the form when we have a project.
-  if (isset($node->title) && !$node->validated) {
-    node_validate_title($node);
+  // Otherwise, validate the rest of the form if it has been previously submitted.
+  elseif (isset($node->title) && !$node->validated) {
     if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
+      node_validate_title($node);
       if ($releases = project_release_load($project)) {
         if (!$node->rid || !$releases[$node->rid]) {
           $node->rid = $project->version;
