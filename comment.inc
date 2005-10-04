@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.47 2005/09/30 02:29:14 nedjo Exp $ */
+/* $Id: comment.inc,v 1.48 2005/10/04 02:56:50 nedjo Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -54,7 +54,6 @@ function project_comment_page() {
 function project_comment_form(&$edit, &$param) {
   $output = '<div class="node-form">';
   $output .= '<div class="standard">';
-  $output .= form_textfield(t('Title'), 'title', $edit->title, 60, 128, NULL, NULL, TRUE);
   $output .= project_issue_form($edit, $param);
   $output .= '</div></div>';
 
