@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.209 2005/10/03 15:48:10 nedjo Exp $
+// $Id: project.module,v 1.210 2005/10/05 04:35:39 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -312,8 +312,12 @@ function project_page_overview($termname = NULL, $version = NULL) {
     // If browsing by version, see if this project has a release for this version. If so, get the latest.
     if ($version != -1) {
       $result2 = db_query_range("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, $version, 0, 1);
+      // Skip to the next item if there is no matching release.
+      if (!db_num_rows($result2)) {
+        continue;
+      }
     }
-    // Otherwise display any project with at least one release. Get the latest release.
+    // Otherwise, get the latest release, if there is one.
     else {
       $result2 = db_query_range("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid, 0, 1);
     }
