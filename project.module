@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.210 2005/10/05 04:35:39 nedjo Exp $
+// $Id: project.module,v 1.211 2005/10/05 16:59:31 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -40,7 +40,38 @@ function project_help($section) {
     case 'node/add#project_issue':
       return t('Add a new issue (bug report, feature request, etc) to an existing project.');
     case 'node/add/project_project':
-      return variable_get('project_help_node_add', '');
+      if (module_exist('taxonomy')) {
+        $tree = taxonomy_get_tree(_project_get_vid());
+        $pass = 0;
+        // Extract the different project types, and, for the first type, up to three categories.
+        $pass = 0;
+        foreach ($tree as $term) {
+          if ($term->depth == 0) {
+            $types[] = $term->name;
+            $pass++;
+          }
+          elseif (($term->depth == 1) && ($pass == 1) && (count($categories)< 3)) {
+            $categories[] = $term->name;
+          }
+        }
+        if (count($categories)) {
+          $help = t('<p>Properly categorizing your project will help ensure that users can find it easily.  Please follow these steps:</p>
+          <ul>
+            <li>Select <em>one</em> of the first-level terms (%types) as the project type.</li>
+            <li>Then choose <em>one or more</em> categories below this term to classify your project.  For example, for %type, you would choose from the various %type types: %categories, and so on.</li>
+          </ul>', array('%types' => implode (', ', $types), '%type' => $types[0], '%categories' => implode (', ', $categories)));
+        }
+      }
+      $help .= variable_get('project_help_node_add', '');
+      return $help;
+    case 'admin/settings/project':
+      if (module_exist('taxonomy')) {
+        $vid = _project_get_vid();
+        return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, "Projects", has been created automatically.</p>
+        <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., "modules", "themes", "translations".</p>
+        <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, "modules" might have sub-terms including "mail" and "XML".</p>
+        <p>Use the <a href="%taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('%taxonomy-admin' => url('admin/taxonomy/' . $vid)));
+      }
     case 'admin/settings/project/status':
       return t('<p>Use this page to add new status options for project issues or to change or delete existing options.<dl>
       <dt>Adding</dt><dd>To add a new status option, put its name in one of the blank places at the bottom of the form and assign it a weight.</dd></p>
@@ -153,6 +184,41 @@ function project_link($type, $node = 0, $main = 0) {
   return $links;
 }
 
+/**
+ * Returns the vocabulary id for projects.
+ */
+function _project_get_vid() {
+  $vid = variable_get('project_vocabulary', '');
+  if (empty($vid)) {
+    // Check to see if a project module vocabulary exists.
+    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module='%s'", 'project'));
+    if (!$vid) {
+      $edit = array('name' => t('Projects'), 'multiple' => 1, 'required' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project', 'nodes' => array('project_project'));
+      // If there is already a vocabulary assigned to 'project_project' nodes, use it.
+      if ($vocabularies = taxonomy_get_vocabularies('project_project')) {
+        $edit['vid'] = $vocabularies[0]->vid;
+      }
+      taxonomy_save_vocabulary($edit);
+      $vid = $edit['vid'];
+    }
+    variable_set('project_vocabulary', $vid);
+  }
+
+  return $vid;
+}
+
+/**
+ * Implementation of hook_taxonomy().
+ */
+function project_taxonomy($op, $type, $object) {
+  if ($op == 'delete' && $type == 'vocabulary' && $object->vid == _project_get_vid())  {
+    variable_del('project_vocabulary');
+  }
+  elseif ($type == 'term' && $object->vid == _project_get_vid()) {
+    menu_rebuild();
+  }
+}
+
 function project_menu($may_cache) {
   $items = array();
 
@@ -165,36 +231,38 @@ function project_menu($may_cache) {
     $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
     // Project browsing pages
-    $vocabs = taxonomy_get_vocabularies('project_project');
-    if (module_exist('taxonomy') && $vocabulary = current($vocabs)) {
-      $terms = taxonomy_get_tree($vocabulary->vid);
+    if (module_exist('taxonomy')) {
+      $terms = taxonomy_get_tree(_project_get_vid());
       $releases = variable_get('project_browse_releases', 1);
 
       foreach ($terms as $i => $term) {
-        $items[] = array('path' => 'project/'. $term->name,
-                         'title' => $term->name,
-                         'callback' => 'project_page_overview',
-                         'access' => $access,
-                         'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
-                         'weight' => $term->weight,
-                         'callback arguments' => array($term->name));
-
-        if ($releases) {
-          $j = 0;
-          if (variable_get('project_release_overview', -1) == -1) {
-            $items[] = array('path' => 'project/'. $term->name .'/all',
-                             'title' => t('all'),
-                             'type' => MENU_DEFAULT_LOCAL_TASK,
-                             'weight' => $j++);
-          }
-          foreach (project_releases_list() as $v => $version) {
-            $items[] = array('path' => 'project/'. $term->name .'/'. $v,
-                             'title' => $version,
-                             'callback' => 'project_page_overview',
-                             'access' => $access,
-                             'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
-                             'weight' => $j++,
-                             'callback arguments' => array($term->name, $v));
+        // Only use the first-level terms.
+        if ($term->depth == 0) {
+          $items[] = array('path' => 'project/'. $term->name,
+                           'title' => $term->name,
+                           'callback' => 'project_page_overview',
+                           'access' => $access,
+                           'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
+                           'weight' => $term->weight,
+                           'callback arguments' => array($term->name));
+  
+          if ($releases) {
+            $j = 0;
+            if (variable_get('project_release_overview', -1) == -1) {
+              $items[] = array('path' => 'project/'. $term->name .'/all',
+                               'title' => t('all'),
+                               'type' => MENU_DEFAULT_LOCAL_TASK,
+                               'weight' => $j++);
+            }
+            foreach (project_releases_list() as $v => $version) {
+              $items[] = array('path' => 'project/'. $term->name .'/'. $v,
+                               'title' => $version,
+                               'callback' => 'project_page_overview',
+                               'access' => $access,
+                               'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
+                               'weight' => $j++,
+                               'callback arguments' => array($term->name, $v));
+            }
           }
         }
       }
@@ -277,10 +345,8 @@ function project_page() {
 
 function project_page_overview($termname = NULL, $version = NULL) {
   // If browsing by taxonomy, only fetch projects for this term
-  $vocabs = taxonomy_get_vocabularies('project_project');
-  if (function_exists('taxonomy_get_vocabularies') && ($vocabulary = current($vocabs))) {
-    $terms = taxonomy_get_tree($vocabulary->vid);
-
+  if (module_exist('taxonomy')) {
+    $terms = taxonomy_get_tree(_project_get_vid());
     if ($termname) {
       foreach ($terms as $term) {
         if ($term->name == $termname) {
