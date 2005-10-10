@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.55 2005/10/10 21:34:44 nedjo Exp $ */
+/* $Id: release.inc,v 1.56 2005/10/10 23:07:12 nedjo Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -214,8 +214,7 @@ function project_release_validate(&$edit) {
     if ($release = db_fetch_object($result)) {
       if ($edit->rid != $release->rid) {
         if ($release->status) {
-          //form_set_error('version', t('This version already exists for this project.'));
-          drupal_set_message('yep, already there');
+          form_set_error('version', t('This version already exists for this project.'));
         }
         else {
           $edit->rid = $release->rid;
@@ -309,6 +308,8 @@ function project_release_save($release) {
   if (empty($release->rid)) {
 
     // Make sure this release version doesn't already exist for the given project.
+    // This test should not be needed, but duplicate releases on drupal.org suggest
+    // that an unidentified problem is causing duplicate versions to be saved.
     if (db_num_rows(db_fetch_object(db_query("SELECT rid FROM {project_releases} WHERE nid = %d AND version = '%s'", $release->nid, $release->version)))) {
       return FALSE;
     }
