@@ -1,10 +1,13 @@
 <?php
-/* $Id: release.inc,v 1.54 2005/10/03 15:48:10 nedjo Exp $ */
+/* $Id: release.inc,v 1.55 2005/10/10 21:34:44 nedjo Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
   drupal_set_title(t('Release directory scan'));
-  return t('Scan successful.');
+  foreach (project_release_scan_directory_results() as $type => $count) {
+    drupal_set_message(t('Releases %type: %count.', array('%type' => $type, '%count' => $count)));
+  }
+  return t('Scan completed.');
 }
 
 function project_release_scan_directory($project = NULL) {
@@ -17,14 +20,29 @@ function project_release_scan_directory($project = NULL) {
     }
     file_scan_directory($dir, $regexp, array('.', '..', 'CVS'), 'project_release_scan_parse');
 
+    // If any releases were previously present but are no longer, unpublish them.
     foreach (project_release_scan_parse() as $project) {
       if ($project->releases) {
         foreach ($project->releases as $rid) {
           project_release_delete($rid);
+          project_release_scan_directory_results(t('unpublished'));
         }
       }
     }
   }
+}
+
+function project_release_scan_directory_results($type = NULL) {
+  static $results;
+  if ($type) {
+    if (!$results[$type]) {
+      $results[$type] = 1;
+    }
+    else {
+      $results[$type]++;
+    }
+  }
+  return $results;
 }
 
 function project_release_scan_parse($path = NULL) {
@@ -39,9 +57,12 @@ function project_release_scan_parse($path = NULL) {
     preg_match('/^(.+?)-([0-9.]+(?:-.*)|[^-]+)\.(tar.gz$|zip$)/', $file, $matches);
     list($filename, $name, $version) = $matches;
 
+    // If the project was not previously loaded, load its data, including previous releases.
     if (!$projects[$name]) {
       if ($project = db_fetch_object(db_query(db_rewrite_sql("SELECT n.nid, n.type, n.moderate FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE p.uri = '%s'"), $name))) {
         if ($releases = project_release_load($project, 0)) {
+          // Releases are loaded in an array where the key is the rid and the value the version.
+          // We flip the array to more readily test for releases.
           $project->releases = array_flip($releases);
         }
         // Unmoderate nodes that have gotten releases
@@ -61,10 +82,20 @@ function project_release_scan_parse($path = NULL) {
 
     $release->scan = 1;
     $release->nid = $project->nid;
-    $release->rid = $project->releases[$version];
+    // If the current version was previously released, add its rid value, so that
+    // it will be updated rather than inserted by project_release_save();
+    if (is_array($project->releases) && array_key_exists($version, $project->releases)) {
+      $release->rid = $project->releases[$version];
+      project_release_scan_directory_results(t('updated'));
+    }
+    else {
+      project_release_scan_directory_results(t('created'));
+    }
     $release->version = $version;
     $release->path = $path;
     project_release_save($release);
+    // This release version has been resaved, so take it out of the array.
+    // That way, any releases no longer present can be unpublished in project_release_scan_directory().
     if ($project->releases[$version]) {
       unset($project->releases[$version]);
     }
@@ -183,7 +214,8 @@ function project_release_validate(&$edit) {
     if ($release = db_fetch_object($result)) {
       if ($edit->rid != $release->rid) {
         if ($release->status) {
-          form_set_error('version', t('This version already exists for this project.'));
+          //form_set_error('version', t('This version already exists for this project.'));
+          drupal_set_message('yep, already there');
         }
         else {
           $edit->rid = $release->rid;
@@ -263,36 +295,50 @@ function project_release_load($rid, $status = 1) {
 }
 
 function project_release_save($release) {
-  $fields = array('rid', 'nid', 'fid', 'path', 'created', 'changed', 'version', 'changes', 'status');
+  $fields = array('rid' => '%d', 'nid' => '%d', 'fid' => '%d',
+                    'path' => "'%s'", 'created' => '%d',
+                    'changed' => '%d', 'version' => "'%s'",
+                    'changes' => "'%s'", 'status' => '%d');
+
   $node = node_load(array('nid' => $release->nid));
 
   /* TODO: pending final fileapi
   $file = check_file('file');
   */
+  // If the version was not previously released, insert it.
   if (empty($release->rid)) {
-    watchdog('special', "project: added release '$release->version' to $node->title", l('view', "node/$release->nid"));
+
+    // Make sure this release version doesn't already exist for the given project.
+    if (db_num_rows(db_fetch_object(db_query("SELECT rid FROM {project_releases} WHERE nid = %d AND version = '%s'", $release->nid, $release->version)))) {
+      return FALSE;
+    }
     $release->rid = db_next_id('project_rid');
     if (!variable_get('project_release_directory', '') && $file->filename) {
       $release->fid = drupal_file_save($file);
     }
-
-    $release->created = ($release->version == 'cvs') ? 0 : time();
-    $release->changed = time();
+    if ($release->path) {
+      $release->created = ($release->version == 'cvs') ? 0 : filectime($release->path);
+      $release->changed = filemtime($release->path);
+    }
+    else {
+      $release->created = ($release->version == 'cvs') ? 0 : time();
+      $release->changed = time();
+    }
 
     // Prepare the query:
     foreach ($release as $key => $value) {
-      if (in_array($key, $fields)) {
-        $k[] = db_escape_string($key);
-        $v[] = $value;
-        $s[] = "'%s'";
+      if (in_array($key, array_keys($fields))) {
+        $input[db_escape_string($key)] = $fields[$key];
+        $values[] = $value;
       }
     }
 
     // Insert the node into the database:
-    db_query('INSERT INTO {project_releases} ('. implode(', ', $k) .') VALUES('. implode(', ', $s) .')', $v);
+    db_query('INSERT INTO {project_releases} ('. implode(', ', array_keys($input)) .') VALUES('. implode(', ', $input) .')', $values);
+    watchdog('special', t("project: added release '%version' to %project.", array('%version' => $release->version, '%project' => $node->title)));
   }
+  // Otherwise, update the existing record.
   else {
-    watchdog('special', "project: updated release '$node->title $release->version'", l('view', "node/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get('project_release_directory', '') && $file->filename) {
@@ -303,13 +349,14 @@ function project_release_save($release) {
 
     unset($release->created);
     if (!$release->scan) {
-      $release->changed = time();
+      $release->changed = filemtime($release->path);
     }
 
     // Prepare the query:
     foreach ($release as $key => $value) {
-      if (in_array($key, $fields)) {
-        $q[] = db_escape_string($key) ." = '%s'";
+
+      if (in_array($key, array_keys($fields))) {
+        $q[] = db_escape_string($key) ." = " . $fields[$key];
         $v[] = $value;
       }
     }
@@ -317,12 +364,14 @@ function project_release_save($release) {
     $v[] = $release->rid;
 
     db_query('UPDATE {project_releases} SET '. implode(', ', $q) .' WHERE nid = %d AND rid = %d', $v);
+    watchdog('special', t("project: updated release '%project %version'", array('%project' => $node->title, '%version' => $release->version)));
   }
   return $release->rid;
 }
 
 function project_release_delete($rid) {
-  watchdog('special', "project: deleted release '$release->version'", l('view', "node/$release->nid"));
+  $release = project_release_load($rid);
+  watchdog('special', t("project: unpublished release '%version'", array('%version' => $release->version)));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 
