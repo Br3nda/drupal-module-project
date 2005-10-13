@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.212 2005/10/13 13:33:09 dries Exp $
+// $Id: project.module,v 1.213 2005/10/13 13:35:16 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -21,7 +21,7 @@ function project_help($section) {
     case 'admin/modules#description':
       return t('Enables teams to track outstanding items which need resolution.');
     case 'admin/help#project':
-      $help = '<h3>Mailhandler support</h3>'.
+      $help = t('<h3>Mailhandler support</h3>'.
               '<p>Basic mail format:</p>'.
               '<pre>'.
               "Type: project\n".
@@ -33,7 +33,7 @@ function project_help($section) {
               "Component: code\n\n".
               "Whatever I type here will be the body of the node.\n".
               '</pre>'.
-              "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n";
+              "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n");
       return $help;
     case 'node/add#project_project':
       return t('A project enables teams to track outstanding items which need resolution');
