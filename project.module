@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.211 2005/10/05 16:59:31 nedjo Exp $
+// $Id: project.module,v 1.212 2005/10/13 13:33:09 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -245,7 +245,7 @@ function project_menu($may_cache) {
                            'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
                            'weight' => $term->weight,
                            'callback arguments' => array($term->name));
-  
+
           if ($releases) {
             $j = 0;
             if (variable_get('project_release_overview', -1) == -1) {
@@ -311,7 +311,7 @@ function project_menu($may_cache) {
   }
   else {
     if (arg(0) == 'node' && is_numeric(arg(1))) {
-      $node = node_load(array('nid' => arg(1)));
+      $node = node_load(arg(1));
       if ($node->type == 'project_project') {
         $items[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('releases'), 'callback' => 'project_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
 
@@ -493,7 +493,7 @@ function project_file_download($file) {
  *
  * $project has the following fields:
  * - title: Title
- * - nid: Node id 
+ * - nid: Node id
  * - body: Filtered description
  * - term: String with the selected term name
  * - version: String with the version

@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.128 2005/10/10 15:50:19 nedjo Exp $ */
+/* $Id: issue.inc,v 1.129 2005/10/13 13:33:09 dries Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -375,7 +375,7 @@ function project_issue_validate(&$node) {
 
   // Otherwise, validate the rest of the form if it has been previously submitted.
   elseif (isset($node->title) && !$node->validated) {
-    if ($node->pid && $project = node_load(array('nid' => $node->pid))) {
+    if ($node->pid && $project = node_load($node->pid)) {
       node_validate_title($node);
       if ($releases = project_release_load($project)) {
         if (!$node->rid || !$releases[$node->rid]) {
@@ -614,7 +614,7 @@ function project_issue_admin_states() {
   $result = db_query('SELECT * FROM {project_issue_state} ORDER BY weight');
   $default_state = variable_get('project_issue_default_state', 1);
   while ($state = db_fetch_object($result)) {
-    $rows[] = array($state->sid, 
+    $rows[] = array($state->sid,
                     form_textfield(NULL, 'status][' . $state->sid .'][name', $state->name, 20, 255),
                     form_weight(NULL, 'status][' . $state->sid .'][weight', $state->weight, 15),
                     form_checkbox('', 'status][' . $state->sid .'][author_has', 1, $state->author_has),
@@ -644,13 +644,13 @@ function project_issue_admin_states_page() {
         array('data' => t('Default')),
         array('data' => t('Operations'))
       );
-    
+
       $output = '<div>' . theme('table', $header, project_issue_admin_states()) . '</div>';
       $output .= form_submit(t('Save'));
- 
+
       return form($output);
       break;
-  }      
+  }
 }
 
 function project_issue_admin_save_states() {
@@ -738,7 +738,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   // Load active project
   if (!$project) {
     if (count($query->projects) == 1) {
-      $project = node_load(array('nid' => $query->projects[0]));
+      $project = node_load($query->projects[0]);
     }
   }
 
@@ -820,7 +820,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   }
   elseif (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load((array)$node);
+      $node = node_load($node->nid);
       $row = array();
       $number++;
       $class = 'state_'. ($number % 2 ? 'light' : 'dark') ."_$node->sid";
@@ -1022,7 +1022,7 @@ function project_issue_query_rss($projects, $result) {
 
   if (db_num_rows($result)) {
     while ($node = db_fetch_object($result)) {
-      $node = node_load((array)$node);
+      $node = node_load($node->nid);
 
       $body = $node->teaser ? $node->teaser : $node->body;
 

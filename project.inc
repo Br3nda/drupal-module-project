@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.56 2005/10/03 15:48:10 nedjo Exp $ */
+/* $Id: project.inc,v 1.57 2005/10/13 13:33:09 dries Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
@@ -178,14 +178,14 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
     $breadcrumb = project_project_set_location($node, $breadcrumb);
     menu_set_location($breadcrumb);
-    
+
     if ($releases = project_release_load($node)) {
       list($rid, $version) = each($releases);
       $release = project_release_load($rid);
 
       // Download section
       $links = array();
-      
+
       if ($release->version == 'cvs') {
         $links[] = '<a href="' . $release->path . '">' . t('Download latest release (%version)', array('%version' => $release->version)) . '</a>';
       }
@@ -205,25 +205,25 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     if ($links) {
       $output .= theme('item_list', $links, t('Releases'));
     }
-    
+
     // Misc section
     $links = array();
-    
+
     foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
       if (!empty($node->$uri)) {
         $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
       }
     }
-    
+
     if ($links) {
       $output .= theme('item_list', $links, t('Resources'));
     }
-    
+
     // Support section
     $links = array();
-    
+
     $links[] = l(t('Support forum'), variable_get('project_support_forum', 'forum/18'));
-    
+
     if ($node->issues) {
       #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
       $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
@@ -231,30 +231,30 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
       $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
     }
-    
+
     if ($links) {
       $output .= theme('item_list', $links, t('Support'));
     }
-    
+
     // Developer section
     $links = array();
-    
+
     if ($node->issues) {
       #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
       $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
       $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
       $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
     }
-    
+
     if ($node->cvs) {
       $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
     }
-    
+
     if (module_exist('cvs')) {
       $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
       $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
     }
-    
+
     if ($links) {
       $output .= theme('item_list', $links, t('Development'));
     }
@@ -263,7 +263,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
 }
 
 function project_project_releases() {
-  $node = node_load(array('nid' => arg(1)));
+  $node = node_load(arg(1));
 
   // Breadcrumb navigation
   $breadcrumb[] = array('path' => 'node/'. $node->nid .'/', 'title' => $node->title);
@@ -344,7 +344,7 @@ function project_project_retrieve($key = 0) {
 }
 
 function project_developers($nid = 0) {
-  if ($project = node_load(array('nid' => $nid))) {
+  if ($project = node_load($nid)) {
     $output = module_invoke('cvs', 'get_project_contributors', $nid);
     drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
     return $output;
@@ -355,7 +355,7 @@ function project_developers($nid = 0) {
 }
 
 function project_cvs($nid = 0) {
-  if ($project = node_load(array('nid' => $nid))) {
+  if ($project = node_load($nid)) {
     $_REQUEST['nid'] = $nid;
     $output = module_invoke('cvs', 'show_messages');
     drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
