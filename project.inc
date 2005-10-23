@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.57 2005/10/13 13:33:09 dries Exp $ */
+/* $Id: project.inc,v 1.58 2005/10/23 13:03:04 dries Exp $ */
 
 function project_project_form(&$node) {
   if (count($node->components)) {
@@ -241,7 +241,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
 
     if ($node->issues) {
       #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
-      $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8', null);
+      $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
       $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
       $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
     }
