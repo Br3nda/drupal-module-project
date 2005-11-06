@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.131 2005/11/06 06:03:13 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.132 2005/11/06 07:09:06 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -174,6 +174,7 @@ function project_issue_statistics($project = 0) {
 function project_issue_subscribe_execute($form_id, $form_values) {
   
   global $user;
+  $all = $_POST['all'];
   
   $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
 
@@ -185,11 +186,11 @@ function project_issue_subscribe_execute($form_id, $form_values) {
       db_query('DELETE FROM {project_subscriptions} WHERE uid = %d', $user->uid);
     }
 
-    if ($form_values['all']) {
-      $_level = array_search($_POST['all'], $levels);
+    if ($all) {
+      $_level = array_search($all, $levels);
     }
 
-    foreach ($_POST['edit'] as $nid => $level) {
+    foreach ($form_values['options'] as $nid => $level) {
       if ($_level !== 0 && $level !== 0) {
         db_query('INSERT INTO {project_subscriptions} (nid, uid, level) VALUES (%d, %d, %d)', $nid, $user->uid, $_level ? $_level : $level);
       }
@@ -208,12 +209,12 @@ function project_issue_subscribe($project = 0) {
     $level = db_result(db_query('SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $user->uid));
     $form['single'] = array('#type' => 'value', '#value' => $project->nid);
     $form['subscribe'] = array('#type' => 'markup', '#value' => '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>');
-    $form[$project->nid] = array('#type' => 'radios', '#title' => t('Subscribe to %project issues', array('%project' => $project->title)), '#default_value' => $level, '#options' => $levels);
+    $form['options']['#tree'] = TRUE;
+    $form['options'][$project->nid] = array('#type' => 'radios', '#title' => t('Subscribe to %project issues', array('%project' => $project->title)), '#default_value' => $level, '#options' => $levels);
     
   }
   else {
 
-    $form['multiple'] = array('#type' => 'value', '#value' => TRUE);
     $form['buttons']['all'] = array('#type' => 'markup', '#value' => t('All projects'));
     foreach ($levels as $key => $level) {
       $form['buttons'][$level] = array('#type' => 'submit', '#name' => 'all', '#value' => $level);
@@ -236,11 +237,12 @@ function project_issue_subscribe($project = 0) {
       $form['project'][$project->nid]['title'] = array('#type' => 'markup', '#value' => $project->title);
       $nids[] = $project->nid;
     }
-  }
-  foreach ($nids as $nid) {
-    $form['options'][$nid] = array('#type' => 'radios', '#default_value' => $status[$nid], '#options' => $levels);
-  }
 
+    foreach ($nids as $nid) {
+      $form['options']['#tree'] = TRUE;
+      $form['options'][$nid] = array('#type' => 'radios', '#default_value' => $status[$nid], '#options' => $levels);
+    }
+  }
   $form['submit'] = array('#type' => 'submit', '#value' => t('Subscribe'));
   return drupal_get_form('project_issue_subscribe', $form);
 }
@@ -250,7 +252,7 @@ function theme_project_issue_subscribe($form) {
 
   $output = '';
     
-  if ($form['multiple']) {
+  if (!$form['single']) {
     $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
     $headers = array_merge(array(t('Project')), $levels);
 
@@ -263,7 +265,7 @@ function theme_project_issue_subscribe($form) {
     foreach (element_children($form['project']) as $key) {
       $row = array(form_render($form['project'][$key]['title']));
       foreach ($levels as $level => $name) {
-        $row[] = form_render($form['options'][key][$level]) . $name;
+        $row[] = form_render($form['options'][$key][$level]);
       }
       $rows[] = $row;
     }
@@ -307,7 +309,7 @@ function project_issue_form(&$node, &$param) {
       $projects[$project->nid] = $project->title;
     }
   }
-  $pid = $_POST['edit']['pid'];
+  $pid = $node->pid ? $node->pid : $_POST['edit']['pid'];
   if ($pid) {
     // Load the project and initialize some support arrays.
     $project = node_load(array('nid' => $pid, 'type' => 'project_project'));
@@ -382,7 +384,7 @@ function project_issue_form(&$node, &$param) {
     $form['issue_info']['priority'] = array(
       '#type' => 'select',
       '#title' => t('Priority'),
-      '#default_value' => $node->priority,
+      '#default_value' => $node->priority ? $node->priority : 2,
       '#options' => $priorities,
     );
     $form['issue_info']['assigned'] = array(
@@ -432,14 +434,13 @@ function project_issue_form(&$node, &$param) {
       '#cols' => 10,
       '#required' => !$node->comment,
     );
+    $form['issue_details']['format'] = filter_form($node->format);
     $form['issue_details']['file_issue'] = array(
       '#type' => 'file',
       '#title' => t('File attachment'),
       '#size' => 40,
       '#description' => ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')),
     );
-
-    $form['format'] = filter_form($node->format);
 
   }
   else {
@@ -453,7 +454,7 @@ function project_issue_form(&$node, &$param) {
     );
     // Add a field indicating that this is a multi-stage submission.
     $form['wizard'] = array(
-      '#type' => 'hidden',
+      '#type' => 'value',
       '#value' => 1,
     );
   }
