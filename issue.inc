@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.130 2005/11/06 01:06:36 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.131 2005/11/06 06:03:13 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -271,7 +271,7 @@ function theme_project_issue_subscribe($form) {
   }
 
   $output .= form_render($form);
-  return form($output);
+  return $output;
 }
 
 /**
@@ -307,10 +307,10 @@ function project_issue_form(&$node, &$param) {
       $projects[$project->nid] = $project->title;
     }
   }
-
-  if ($node->pid) {
+  $pid = $_POST['edit']['pid'];
+  if ($pid) {
     // Load the project and initialize some support arrays.
-    $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
+    $project = node_load(array('nid' => $pid, 'type' => 'project_project'));
     if (trim($project->help)) {
       drupal_set_message($project->help);
     }
@@ -416,9 +416,6 @@ function project_issue_form(&$node, &$param) {
       '#type' => 'fieldset',
       '#title' => t('Issue Details'),
     );
-    if (function_exists('taxonomy_node_form')) {
-      $form['issue_details']['taxonomy'] = taxonomy_node_form($node);
-    }
     $form['issue_details']['title'] = array(
       '#type' => 'textfield',
       '#title' => t('Title'),
@@ -446,6 +443,7 @@ function project_issue_form(&$node, &$param) {
 
   }
   else {
+    
     $form['pid'] = array(
       '#type' => 'select',
       '#title' => t('Project'),
