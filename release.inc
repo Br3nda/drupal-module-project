@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.57 2005/10/13 13:33:09 dries Exp $ */
+/* $Id: release.inc,v 1.58 2005/11/06 01:06:36 thehunmonkgroup Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -121,7 +121,7 @@ function project_release_submit() {
       $breadcrumb[] = l($node->title, "node/$node->nid");
       $error = 1;
       $release->nid = $node->nid;
-      $output = form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+      $output = drupal_get_form('project_release', project_release_form($release, $param));
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
       drupal_set_breadcrumb($breadcrumb);
@@ -131,7 +131,7 @@ function project_release_submit() {
       if ($release = project_release_load(arg(4))) {
         $node = node_load($release->nid);
         $output = project_release_view($release);
-        $output .= form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+        $output = drupal_get_form('project_release', project_release_form($release, $param));
         drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
         return $output;
       }
@@ -148,7 +148,7 @@ function project_release_submit() {
       if (node_access('update', $node)) {
         project_release_validate($edit);
         $output = project_release_view($edit);
-        $output .= form(project_release_form($edit, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+        $output = drupal_get_form('project_release', project_release_form($release, $param));
 
         return $output;
       }
@@ -159,9 +159,9 @@ function project_release_submit() {
       if (node_access('update', $node)) {
         project_release_validate($edit);
         if (form_get_errors()) {
-          $output = project_release_form($edit, $param);
-
-          return form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+          $output = drupal_get_form('project_release', project_release_form($release, $param));
+          
+          return $output;
         }
         else {
           // Save the release and re-direct to the overview page for the project
@@ -173,30 +173,44 @@ function project_release_submit() {
   }
 }
 
+/**
+ * Implementation of hook_form().
+ */
 function project_release_form(&$release, &$param) {
   /* TODO: pending final fileapi
   // Set form parameters so we can accept file uploads.
   $param['options'] = array('enctype' => 'multipart/form-data');
   */
 
-  $output = form_textfield(t('Version'), 'version', $release->version, 40, 255, null, null, true);
-  $output .= form_textarea(t('Changes'), 'changes', $release->changes, 40, 10, null, null, true);
+  $form['version'] = array('#type' => 'textfield', '#title' => t('Version'), '#default_value' => $release->version, '#size' => 40, '#maxlength' => 255, '#required' => TRUE);
+  $form['changes'] = array('#type' => 'textarea', '#title' => t('Changes'), '#default_value' => $release->changes, '#rows' => 10, '#cols' => 40, '#required' => TRUE);
   if (!variable_get('project_release_directory', '')) {
-  /* TODO: pending final fileapi
-  $output .= form_file(t('File'), 'file', 40, ($release->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . $error['file'], $release->fid);
-  */
+    $form['file'] = array('#type' => 'file', '#title' => t('File'), '#size' => 40, '#description' => ($release->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . $error['file'], '#required' => $release->fid);
   }
   if ($release->rid) {
-    $output .= form_hidden('rid', $release->rid);
+    $form['rid'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $release->rid,
+    );
   }
-  $output .= form_hidden('nid', $release->nid);
-
-  $output .= form_submit(t('Preview'));
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#default_value' => $release->nid,
+  );
+  
+  $form['preview'] = array(
+    '#type' => 'submit',
+    '#value' => t('Preview'),
+  );
+  
   if (!form_get_errors()) {
-    $output .= form_submit(t('Submit'));
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+    );
   }
 
-  return $output;
+  return $form;
 }
 
 function project_release_validate(&$edit) {

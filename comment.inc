@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.50 2005/10/04 15:48:01 nedjo Exp $ */
+/* $Id: comment.inc,v 1.51 2005/11/06 01:06:36 thehunmonkgroup Exp $ */
 
 function project_comment_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
@@ -52,22 +52,18 @@ function project_comment_page() {
 }
 
 function project_comment_form(&$edit, &$param) {
-  $output = '<div class="node-form">';
-  $output .= '<div class="standard">';
-  $output .= project_issue_form($edit, $param);
-  $output .= '</div></div>';
 
+  $form['project_issue_form']['#prefix'] = '<div class="node-form"><div class="standard">';
+  $form['project_issue_form']['#suffix'] = '</div></div>';
+  $form['project_issue_form'] = project_issue_form($edit, $param);
   if ($edit->cid) {
-    $output .= form_hidden('cid', $edit->cid);
+    $form['cid']= array('#type' => 'hidden', '#value' => $edit->cid);
   }
-
-  $output .= form_submit(t('Preview'));
-
+  $form['preview'] = array('#type' => 'submit', '#value' => t('Preview'));
   if (!form_get_errors()) {
-    $output .= form_submit(t('Submit'));
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'));
   }
-
-  return $output;
+  return drupal_get_form('project_comment_form', $form);
 }
 
 function project_comment_validate($edit) {
