@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.132 2005/11/06 07:09:06 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.133 2005/11/06 19:36:37 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -430,8 +430,7 @@ function project_issue_form(&$node, &$param) {
       '#type' => 'textarea',
       '#title' => t('Description'),
       '#default_value' => $node->body,
-      '#rows' => 40,
-      '#cols' => 10,
+      '#rows' => 10,
       '#required' => !$node->comment,
     );
     $form['issue_details']['format'] = filter_form($node->format);
