@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.60 2005/11/06 03:20:13 webchick Exp $ */
+/* $Id: project.inc,v 1.61 2005/11/06 03:31:29 webchick Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -20,7 +20,7 @@ function project_project_form(&$node) {
       $node->$field = $_GET['edit'][$field];
     }
   }
-   
+  
   $form['#prefix'] = '<div class="project">';
 
   /* Project properties */
@@ -187,9 +187,9 @@ function project_project_form(&$node) {
       '#title' => t('Categories'),
       '#description' => t('Which issue categories to e-mail. If none are checked all categories will be posted.'),
     );
-    $form['email']['categories']['mail_copy_filter']['#tree'] = TRUE;
+    $form['email']['mail_copy_filter']['#tree'] = TRUE;
     foreach ($options as $key => $choice) {
-      $form['email']['categories']['mail_copy_filter'][$key] = array(
+      $form['email']['mail_copy_filter'][$key] = array(
         '#type' => 'checkbox',
         '#title' => $choice,
         '#return_value' => $key,
@@ -203,9 +203,9 @@ function project_project_form(&$node) {
       '#title' => t('States'),
       '#description' => t('Which issue states to e-mail. If none are checked all states will be posted.'),
     );
-    $form['email']['states']['mail_copy_filter_state']['#tree'] = TRUE;
+    $form['email']['mail_copy_filter_state']['#tree'] = TRUE;
     foreach ($options as $key => $choice) {
-      $form['email']['states']['mail_copy_filter_state'][$key] = array(
+      $form['email']['mail_copy_filter_state'][$key] = array(
         '#type' => 'checkbox',
         '#title' => $choice,
         '#return_value' => $key,
