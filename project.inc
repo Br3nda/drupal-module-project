@@ -1,8 +1,11 @@
 <?php
-/* $Id: project.inc,v 1.59 2005/11/06 01:06:36 thehunmonkgroup Exp $ */
+/* $Id: project.inc,v 1.60 2005/11/06 03:20:13 webchick Exp $ */
 
+/**
+ * Implementation of hook_form().
+ */
 function project_project_form(&$node) {
-  if (count($node->components)) {
+  if (is_array($node->components)) {
     $node->components = implode("\n", $node->components);
   }
   else {
@@ -17,56 +20,213 @@ function project_project_form(&$node) {
       $node->$field = $_GET['edit'][$field];
     }
   }
+   
+  $form['#prefix'] = '<div class="project">';
 
-  if (function_exists('taxonomy_node_form')) {
-    $form['taxonomy'] = taxonomy_node_form($node);
-  }
+  /* Project properties */
+  $form['project'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Project information'),
+  );
+  $form['project']['title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Full project name'),
+    '#default_value' => $node->title,
+    '#maxlength' => 128,
+    '#required' => TRUE,
+  );
+  $form['project']['body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Full description'),
+    '#default_value' => $node->body,
+    '#cols' => 40,
+    '#rows' => 10,
+    '#required' => TRUE,
+  );
+  $form['project']['format'] = filter_form($node->format); 
+  $form['project']['uri'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Short project name'),
+    '#default_value' => $node->uri,
+    '#size' => 40,
+    '#maxlength' => 50,
+    '#description' => t('This will be used to generate a /project/<shortname>/ URL for your project.'),
+    '#required' => TRUE,
+  );
+  $form['project']['mail'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Project e-mail'),
+    '#default_value' => $node->mail,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('E-mail address where the project owners can be contacted.'),
+    '#required' => TRUE,
+  );
+  $form['project']['homepage'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Homepage'),
+    '#default_value' => $node->homepage,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to project homepage.'),
+  );
+  $form['project']['documentation'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Documentation'),
+    '#default_value' => $node->documentation,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to project documentation.'),
+  );
+  $form['project']['license'] = array(
+    '#type' => 'textfield',
+    '#title' => t('License'),
+    '#default_value' => $node->license,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to project license.'),
+  );
+  $form['project']['screenshots'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Screenshots'),
+    '#default_value' => $node->screenshots,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to project screenshots.'),
+  );
+  $form['project']['changelog'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Changelog'),
+    '#default_value' => $node->changelog,
+     '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to changelog.'),
+  );
+  $form['project']['cvs'] = array(
+    '#type' => 'textfield',
+    '#title' => t('CVS tree'),
+    '#default_value' => $node->cvs,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to webcvs/viewcvs.'),
+  );
+  $form['project']['demo'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Demo site'),
+    '#default_value' => $node->demo,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#description' => t('Link to a live demo.'),
+  );
 
-/* project information - style class was div.project */
-  $form['project'] = array('#type' => 'fieldset', '#title' => t('Project information'), '#collapsible' => TRUE, '#collapsed' => FALSE);
-  $form['project']['title']         = array('#type' => 'textfield', '#title' => t('Full project name'), '#default_value' => $node->title, '#size' => 60, '#maxlength' => 128, '#required' => TRUE);
-  $form['project']['body']          = array('#type' => 'textarea', '#title' => t('Full description'), '#default_value' => $node->body, '#rows' => 10, '#cols' => 40, '#required' => TRUE);
-  $form['format']                   = filter_form('format', $node->format);
-  $form['project']['uri']           = array('#type' => 'textfield', '#title' => t('Short project name'), '#default_value' => $node->uri, '#size' => 40, '#maxlength' => 50, '#description' => t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'), '#required' => TRUE);
-  $form['project']['mail']          = array('#type' => 'textfield', '#title' => t('Project e-mail'), '#default_value' => $node->mail, '#size' => 20, '#maxlength' => 255, '#description' => t('E-mail address where the project owners can be contacted.'), '#required' => TRUE);
-  $form['project']['homepage']      = array('#type' => 'textfield', '#title' => t('Homepage'), '#default_value' => $node->homepage, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to project homepage.'));
-  $form['project']['documentation'] = array('#type' => 'textfield', '#title' => t('Documentation'), '#default_value' => $node->documentation, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to project documentation.'));
-  $form['project']['license']       = array('#type' => 'textfield', '#title' => t('License'), '#default_value' => $node->license, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to project license.'));
-  $form['project']['screenshots']   = array('#type' => 'textfield', '#title' => t('Screenshots'), '#default_value' => $node->screenshots, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to project screenshots.'));
-  $form['project']['changelog']     = array('#type' => 'textfield', '#title' => t('Changelog'), '#default_value' => $node->changelog, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to changelog.'));
-  $form['project']['cvs']           = array('#type' => 'textfield', '#title' => t('CVS tree'), '#default_value' => $node->cvs, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to webcvs/viewcvs.'));
-  $form['project']['demo']          = array('#type' => 'textfield', '#title' => t('Demo site'), '#default_value' => $node->demo, '#size' => 40, '#maxlength' => 255, '#description' => t('Link to a live demo.'));
-
-  /* issue information - style class was div.project */
-  $form['issue'] = array('#type' => 'fieldset', '#title' => t('Issue information'), '#collapsible' => TRUE, '#collapsed' => TRUE);
-  $form['issue']['issues'] = array('#type' => 'checkbox', '#title' => t('Enable issue tracker'), '#return_value' => 1, '#default_value' => $node->issues, '#description' => t('Let users submit bug requests, patches, feature requests, support requests, etc.'));
+  /* Issue properties */
+  $form['issue'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Issue information'),
+  );
+  $form['issue']['issue'] = array(
+    '#type' => 'item',
+    '#title' => t('Issue tracker'),
+  );
+  $form['issue']['issues'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable issue tracker'),
+    '#return_value' => 1,
+    '#default_value' => $node->issues,
+    '#description' => t('Let users submit bug requests, patches, feature requests, support requests, etc.'),
+  );
   if ($releases = project_release_load($node)) {
-    $form['issue']['version'] = array('#type' => 'select', '#title' => t('Default version'), '#default_value' => $node->version, '#options' => $releases, '#description' => t('Default version for issues.'));
+    $form['issue']['version'] = array(
+      '#type' => 'select',
+      '#title' => t('Default version'),
+      '#default_value' => $node->version,
+      '#options' => $releases,
+      '#description' => t('Default version for issues.'),
+    );
   }
-  $form['issue']['components']  = array('#type' => 'textarea', '#title' => t('Components'), '#default_value' => $node->components, '#rows' => 5, '#cols' => 20);
-  $form['issue']['help']        = array('#type' => 'textarea', '#title' => t('Submission guidelines'), '#default_value' => $node->help, '#rows' => 5, '#cols' => 20);
+  $form['issue']['components'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Components'),
+    '#default_value' => $node->components,
+    '#cols' => 20,
+    '#rows' => 5,
+  );
+  $form['issue']['help'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Submission guidelines'),
+    '#default_value' => $node->help,
+    '#cols' => 20,
+    '#rows' => 5,
+  );
 
-  /* email information - style class was div.project */
-  $form['email']                = array('#type' => 'fieldset', '#title' => t('E-mail options'), '#collapsible' => TRUE, '#collapsed' => TRUE);
-  $form['email']['mail_digest'] = array('#type' => 'textfield', '#title' => t('Weekly critical issues report'), '#default_value' => $node->mail_digest, '#size' => 20, '#maxlength' => 255, '#description' => t('To get a weekly digest of critical issues specify an e-mail address.'));
-  $form['email']['mail_copy']   = array('#type' => 'textfield', '#title' => t('Issues e-mail address'), '#default_value' => $node->mail_copy, '#size' => 20, '#maxlength' => 255, '#description' => t('If you wish to receive a copy of all the issues to a central location specify an address here.'));
+  /* E-mail options */
+  $form['email'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('E-mail options')
+  );
+  $form['email']['mail_digest'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Weekly critical issues report'),
+    '#default_value' => $node->mail_digest,
+    '#size' => 20,
+    '#maxlength' => 255,
+    '#description' => t('To get a weekly digest of critical issues specify an e-mail address.'),
+  );
+  $form['email']['mail_copy'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Issues e-mail address'),
+    '#default_value' => $node->mail_copy,
+    '#size' => 20,
+    '#maxlength' => 255,
+    '#description' => t('If you wish to receive a copy of all the issues to a central location specify an address here.'),
+  );
   if (user_access('administer projects')) {
     $options = project_issue_category();
-    $form['email']['categories'] = array('#type' => 'fieldset', '#title' => t('Categories'), '#description' => t('Which issue categories to e-mail. If none are checked all categories will be posted.'));
-    $form['email']['mail_copy_filter']['#tree'] = TRUE;
+    $form['email']['categories'] = array(
+      '#type' => 'item',
+      '#title' => t('Categories'),
+      '#description' => t('Which issue categories to e-mail. If none are checked all categories will be posted.'),
+    );
+    $form['email']['categories']['mail_copy_filter']['#tree'] = TRUE;
     foreach ($options as $key => $choice) {
-      $form['email']['mail_copy_filter'][$key] = array('#type' => 'checkbox', '#title' => $choice, '#return_value' => $key, '#default_value' => ($key == $node->mail_copy_filter[$key]));
+      $form['email']['categories']['mail_copy_filter'][$key] = array(
+        '#type' => 'checkbox',
+        '#title' => $choice,
+        '#return_value' => $key,
+        '#default_value' => $node->mail_copy_filter[$key],
+      );
     }
 
     $options = project_issue_state();
-    $form['email']['states'] = array('#type' => 'fieldset', '#title' => t('States'), '#description' => t('Which issue states to e-mail. If none are checked all states will be posted.'));
-    $form['email']['mail_copy_filter_state']['#tree'] = TRUE;
+    $form['email']['states'] = array(
+      '#type' => 'item',
+      '#title' => t('States'),
+      '#description' => t('Which issue states to e-mail. If none are checked all states will be posted.'),
+    );
+    $form['email']['states']['mail_copy_filter_state']['#tree'] = TRUE;
     foreach ($options as $key => $choice) {
-      $form['email']['mail_copy_filter_state'][$key] = array('#type' => 'checkbox', '#title' => $choice, '#return_value' => $key, '#default_value' => ($key == $node->mail_copy_filter_state[$key]));
-    }
-    $form['email']['mail_reminder'] = array('#type' => 'checkbox', '#title' => t('Send monthly reminders to users'), '#return_value' => 1, '#default_value' => $node->mail_reminder, '#description' => t('Enabling this will send a monthly reminder to users that have open issues registered.'));
-  }
+      $form['email']['states']['mail_copy_filter_state'][$key] = array(
+        '#type' => 'checkbox',
+        '#title' => $choice,
+        '#return_value' => $key,
+        '#default_value' => $node->mail_copy_filter_state[$key],
+      );
+    } 
 
+    $form['email']['reminder'] = array(
+      '#type' => 'item',
+      '#title' => t('Monthly reminder'),
+    );
+    $form['email']['mail_reminder'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Send monthly reminders to users'),
+      '#return_value' => 1,
+      '#default_value' => $node->mail_reminder,
+      '#description' => t('Enabling this will send a monthly reminder to users that have open issues registered.'),
+    );
+  }
+    
+  $form['#suffix'] = '</div>';
   return $form;
 }
 
