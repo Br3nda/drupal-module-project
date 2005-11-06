@@ -1,1 +1,117 @@
-.project td {  padding: 0.4em 0.1em;}.project td {  vertical-align: top;}.project .links {  font-size: 0.8em;}.project .author {  color: #999;  font-size: 0.8em;}.project table {  width: auto;}.project table tr {  border: 0;}.project tr.state_light_1 {  background-color: #fff;}.project tr.state_dark_1 {  background-color: #f6f6f6;}.project tr.state_light_2,.project tr.state_dark_2 {  background-color: #c0ffc0;}.project tr.state_light_3, .project tr.state_light_4, .project tr.state_light_5, .project tr.state_light_6,.project tr.state_dark_3, .project tr.state_dark_4, .project tr.state_dark_5, .project tr.state_dark_6 {  background-color: #c0c0ff;}.project tr.state_light_7,.project tr.state_dark_7 {  background-color: #ffc0c0;}.project tr.state_light_8,.project tr.state_dark_8 {  background-color: #ffff99;}.project .header {  font-weight: bold;}.project .summary table {  border-collapse: collapse;  width: auto;}.project .summary table td {  color: #333;  font-size: 90%;  padding: 0em 0.2em;}.content .project table td {  border: 0;}.project .downloads td {  border-bottom: 1px solid #ccc;  padding-bottom: 1em;}.project .downloads ul {  margin: 0px;}.project .downloads li {  list-style-type: none;  margin: 0px;}.project .project-name {  width: 125px;}.project .project-teaser {}.project-recent {}.project-old {  font-size: smaller;}.project-numeric {  text-align: right;}.project-numeric2 {  text-align: right;  color: #999;}.project .quick-search tr td .form-item, .project .quick-search tr td input {  margin: 0;  padding: 0;}.project .quick-search tr td {  vertical-align: bottom;}.project .quick-search #edit-projects, #edit-states {  width: 150px;}.node-form .project fieldset {  display: block;}.node-form .project .form-checkbox {  display: inline;}
+.project td {
+  padding: 0.4em 0.1em;
+}
+.project td {
+  vertical-align: top;
+}
+.project .links {
+  font-size: 0.8em;
+}
+.project .author {
+  color: #999;
+  font-size: 0.8em;
+}
+
+.project table {
+  width: auto;
+}
+
+.project table tr {
+  border: 0;
+}
+
+.project tr.state_light_1 {
+  background-color: #fff;
+}
+.project tr.state_dark_1 {
+  background-color: #f6f6f6;
+}
+
+.project tr.state_light_2,
+.project tr.state_dark_2 {
+  background-color: #c0ffc0;
+}
+
+.project tr.state_light_3, .project tr.state_light_4, .project tr.state_light_5, .project tr.state_light_6,
+.project tr.state_dark_3, .project tr.state_dark_4, .project tr.state_dark_5, .project tr.state_dark_6 {
+  background-color: #c0c0ff;
+}
+
+.project tr.state_light_7,
+.project tr.state_dark_7 {
+  background-color: #ffc0c0;
+}
+
+.project tr.state_light_8,
+.project tr.state_dark_8 {
+  background-color: #ffff99;
+}
+
+.project .header {
+  font-weight: bold;
+}
+
+.project .summary table {
+  border-collapse: collapse;
+  width: auto;
+}
+.project .summary table td {
+  color: #333;
+  font-size: 90%;
+  padding: 0em 0.2em;
+}
+
+.content .project table td {
+  border: 0;
+}
+
+.project .downloads td {
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 1em;
+}
+.project .downloads ul {
+  margin: 0px;
+}
+.project .downloads li {
+  list-style-type: none;
+  margin: 0px;
+}
+.project .project-name {
+  width: 125px;
+}
+.project .project-teaser {
+}
+.project-recent {
+}
+.project-old {
+  font-size: smaller;
+}
+
+.project-numeric {
+  text-align: right;
+}
+.project-numeric2 {
+  text-align: right;
+  color: #999;
+}
+
+.project .quick-search tr td .form-item, .project .quick-search tr td input {
+  margin: 0;
+  padding: 0;
+}
+
+.project .quick-search tr td {
+  vertical-align: bottom;
+}
+
+.project .quick-search #edit-projects, #edit-states {
+  width: 150px;
+}
+
+.node-form .project fieldset {
+  display: block;
+}
+
+.node-form .project .form-checkbox {
+  display: inline;
+}

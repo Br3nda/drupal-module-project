@@ -1,4 +1,4 @@
--- $Id: update-project-2005-06-23.pgsql,v 1.4 2005/11/06 01:06:36 thehunmonkgroup Exp $
+-- $Id: update-project-2005-06-23.pgsql,v 1.5 2005/11/06 19:45:39 killes Exp $
 
 ALTER TABLE project_issues RENAME state TO sid;
 ALTER TABLE project_issues ALTER COLUMN sid SET smallint;
