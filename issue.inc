@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.135 2005/11/07 01:24:42 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.136 2005/11/07 04:42:29 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -514,6 +514,58 @@ function project_issue_node_form_validate($form_id, $form) {
     }
   }
 }
+
+
+
+
+function project_issue_comment_validate(&$node) {
+
+  // Set default values.
+  empty($node->priority) and $node->priority = 2;
+  empty($node->category) and $node->category = arg(4);
+  empty($node->sid) and $node->sid = 1;
+
+  // Try to find the active project
+  if (empty($node->pid) && $arg = arg(3)) {
+    if (is_numeric($arg)) {
+      $node->pid = db_result(db_query(db_rewrite_sql('SELECT p.nid FROM {project_projects} p WHERE p.nid = %d', 'p'), $arg), 0);
+    }
+    else {
+      $node->pid = db_result(db_query(db_rewrite_sql("SELECT p.nid FROM {project_projects} p WHERE p.uri = '%s'", 'p'), $arg), 0);
+    }
+  }
+
+  // Validate the rest of the form.
+  if (isset($node->title) && !$node->validated) {
+    if ($node->pid && $project = node_load($node->pid)) {
+      node_validate_title($node);
+      if ($releases = project_release_load($project)) {
+        if (!$node->rid || !$releases[$node->rid]) {
+          $node->rid = $project->version;
+        }
+        empty($node->rid) and form_set_error('rid', t('You have to specify a valid version.'));
+      }
+      if ($node->component && !in_array($node->component, $project->components)) {
+        $node->component = 0;
+      }
+
+      empty($node->component) and form_set_error('component', t('You have to specify a valid component.'));
+      empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
+      empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
+
+      $file = file_check_upload('file_issue');
+      $node->file = file_save_upload($file);
+    }
+    elseif (isset($node->pid)) {
+      form_set_error('pid', t('You have to specify a valid project.'));
+    }
+  }
+
+  return $node;
+}
+
+
+
 
 /**
  * Implementation of hook_content().
