@@ -1,50 +1,44 @@
 <?php
-/* $Id: comment.inc,v 1.52 2005/11/06 19:38:36 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.53 2005/11/07 04:41:35 thehunmonkgroup Exp $ */
 
 function project_comment_page() {
+  if (user_access('create project issues')) {
+    $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
+
+    if ($_POST['op'] == t('Preview') || $_POST['op'] == t('Submit')) {
+      $comment = project_comment_validate(array2object($_POST['edit']));
+    } else {
+      foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
+        $comment->$var = $node->$var;
+      }
+      $comment = project_comment_validate($comment);
+    }
+    $output .= project_comment_form($comment, $param);
+
+    $breadcrumb = drupal_get_breadcrumb();
+    $breadcrumb[] = l($node->title, "node/$node->nid");
+    drupal_set_breadcrumb($breadcrumb);
+    drupal_set_title(t('New comment'));
+  }
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
     case 'add':
-      if (user_access('create project issues')) {
-        $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
-
-        foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
-          $comment->$var = $node->$var;
-        }
-
-        $comment = project_comment_validate($comment);
-        $output .= project_comment_form($comment, $param);
-        $output .= node_view($node, NULL, TRUE);
-
-        $breadcrumb = drupal_get_breadcrumb();
-        $breadcrumb[] = l($node->title, "node/$node->nid");
-        drupal_set_breadcrumb($breadcrumb);
-        drupal_set_title(t('New comment'));
-        return $output;
-      }
+      $output .= node_view($node, NULL, TRUE);
+      return $output;
       break;
     case t('Preview'):
-      if (user_access('create project issues')) {
-        $edit = array2object($_POST['edit']);
-        $edit->type = 'project_issue';
-        $edit = project_comment_validate($edit);
-
-        return node_preview($edit);
+      if (user_access('create project issues')) {       
+        return $output;
       }
       break;
     case t('Submit'):
       if (user_access('create project issues')) {
-        $edit = array2object($_POST['edit']);
-        $edit = project_comment_validate($edit);
-        if (form_get_errors()) {
-          $edit->type = 'project_issue';
-          return node_preview($edit);
-        }
-        else {
-          $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
+        if (!form_get_errors()) {
           $edit->nid = $node->nid;
 
           project_comment_save($edit);
           drupal_goto("node/$node->nid");
+        } else {
+          return $output;
         }
       }
       break;
@@ -63,6 +57,9 @@ function project_comment_form(&$edit, &$param) {
   if (!form_get_errors()) {
     $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'));
   }
+  if ($op == t('Preview') || form_get_errors()) {
+    $form['#post_process'] = 'node_form_add_preview';
+  }
   return drupal_get_form('project_comment_form', $form);
 }
 
@@ -80,7 +77,7 @@ function project_comment_validate($edit) {
 
   $edit->comment = true;
 
-  $edit = project_issue_validate($edit);
+  $edit = project_issue_comment_validate($edit);
   $edit->validated = true;
 
   return $edit;
