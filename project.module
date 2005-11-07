@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.215 2005/11/06 06:03:13 thehunmonkgroup Exp $
+// $Id: project.module,v 1.216 2005/11/07 06:34:50 thehunmonkgroup Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -264,6 +264,7 @@ function project_taxonomy($op, $type, $object = NULL) {
 
 function project_menu($may_cache) {
   $items = array();
+  global $user;
 
   drupal_set_html_head(theme('stylesheet_import', drupal_get_path('module', 'project') .'/project.css'));
 
@@ -311,7 +312,7 @@ function project_menu($may_cache) {
       }
     }
 
-    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'callback arguments' => $user->uid, 'access' => $user->uid && $access, 'type' => MENU_NORMAL_ITEM);
 
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
