@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.134 2005/11/06 21:10:20 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.135 2005/11/07 01:24:42 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -377,7 +377,7 @@ function project_issue_form(&$node, &$param) {
     $form['issue_info']['category'] = array(
       '#type' => 'select',
       '#title' => t('Category'),
-      '#default_value' => $node->category,
+      '#default_value' => $node->category ? $node->category : arg(4),
       '#options' => $categories,
       '#required' => TRUE,
     );
@@ -440,6 +440,12 @@ function project_issue_form(&$node, &$param) {
       '#size' => 40,
       '#description' => ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')),
     );
+    // Add a field indicating that this is a multi-stage submission.
+    $form['wizard'] = array(
+      '#type' => 'hidden',
+      '#value' => 'two',
+    );
+    
 
   }
   else {
@@ -451,10 +457,10 @@ function project_issue_form(&$node, &$param) {
       '#options' => $projects,
        '#required' => TRUE,
     );
-    // Add a field indicating that this is a multi-stage submission.
+    // Add a field indicating that this is the first stage of a multi-stage submission.
     $form['wizard'] = array(
-      '#type' => 'value',
-      '#value' => 1,
+      '#type' => 'hidden',
+      '#value' => 'one',
     );
   }
 
@@ -462,72 +468,51 @@ function project_issue_form(&$node, &$param) {
 }
 
 function project_issue_node_form_form_alter(&$form) {
-  // Alter the buttons.
-  if (!$_POST['op']) {
+  $op = $_POST['op'];
+  // Alter the buttons, and auto validate required fields for first page
+  if ($form['wizard']['#value'] == 'one') {
     $form['preview'] = array('#type' => 'button', '#value' => t('Next'), '#weight' => 19);
     $form['submit'] = array('#type' => 'value', '#value' => 'hidden');
+  } elseif ($op == t('Next')) {
+    $form['project_info']['rid']['#validated'] = TRUE;
+    $form['project_info']['component'] ['#validated'] = TRUE;
+    $form['issue_info']['category']['#validated'] = TRUE;
+    $form['issue_details']['title']['#validated'] = TRUE;
+    $form['issue_details']['body']['#validated'] = TRUE;
+    $form['issue_details']['format']['format'][variable_get('filter_default_format', 1)]['#value'] = 1;
   }
 }
 
-function project_issue_validate(&$node) {
-
-  // Set default values.
-  empty($node->priority) and $node->priority = 2;
-  empty($node->category) and $node->category = arg(4);
-  empty($node->sid) and $node->sid = 1;
-
-  // Try to find the active project
-  if (empty($node->pid) && $arg = arg(3)) {
-    if (is_numeric($arg)) {
-      $node->pid = db_result(db_query(db_rewrite_sql('SELECT p.nid FROM {project_projects} p WHERE p.nid = %d', 'p'), $arg), 0);
-    }
-    else {
-      $node->pid = db_result(db_query(db_rewrite_sql("SELECT p.nid FROM {project_projects} p WHERE p.uri = '%s'", 'p'), $arg), 0);
-    }
-  }
-  // If this is the second in a two-stage submission, bail for a preview but test for a submit.
-  if ($node->wizard) {
-    if (empty($node->pid)) {
-      form_set_error('pid', t('You have to specify a valid project.'));
-    }
-    else {
-      switch ($_POST['op']) {
-        case t('Next'):
-          return;
-        case t('Submit'):
-          form_set_error('title', t('You have to specify a valid title and other required fields.'));
-          return $node;
-      }
-    }
+function project_issue_node_form_validate($form_id, $form) {
+  global $form_values;
+  $edit = $_POST['edit'];
+  if (!$form_values['pid']) {
+    form_set_error('pid', t('You have to specify a valid project.'));
   }
 
   // Otherwise, validate the rest of the form if it has been previously submitted.
-  elseif (isset($node->title) && !$node->validated) {
-    if ($node->pid && $project = node_load($node->pid)) {
+  if (($edit['wizard'] == 'two')) {
+    if ($form_values['pid'] && $project = node_load($form_values['pid'])) {
+      $node->title = $form_values['title'];
       node_validate_title($node);
       if ($releases = project_release_load($project)) {
-        if (!$node->rid || !$releases[$node->rid]) {
-          $node->rid = $project->version;
+        if (!$form_values['rid'] || !$releases[$form_values['rid']]) {
+          $form_values['rid'] = $project->version;
         }
-        empty($node->rid) and form_set_error('rid', t('You have to specify a valid version.'));
+        empty($form_values['rid']) and form_set_error('rid', t('You have to specify a valid version.'));
       }
-      if ($node->component && !in_array($node->component, $project->components)) {
-        $node->component = 0;
+      if ($form_values['component'] && !in_array($form_values['component'], $project->components)) {
+        $form_values['component'] = 0;
       }
 
-      empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
-      empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
-      empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
+      empty($form_values['component']) and form_set_error('component', t('You have to specify a valid component.'));
+      empty($form_values['category']) and form_set_error('category', t('You have to specify a valid category.'));
+      empty($form_values['body']) and form_set_error('body', t('You have to specify a valid description.'));
 
       $file = file_check_upload('file_issue');
-      $node->file = file_save_upload($file);
-    }
-    elseif (isset($node->pid)) {
-      form_set_error('pid', t('You have to specify a valid project.'));
+      $form_values['file'] = file_save_upload($file);
     }
   }
-
-  return $node;
 }
 
 /**
