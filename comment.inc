@@ -1,12 +1,13 @@
 <?php
-/* $Id: comment.inc,v 1.53 2005/11/07 04:41:35 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.54 2005/11/07 05:15:29 thehunmonkgroup Exp $ */
 
 function project_comment_page() {
+  $edit = array2object($_POST['edit']);
   if (user_access('create project issues')) {
     $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
     if ($_POST['op'] == t('Preview') || $_POST['op'] == t('Submit')) {
-      $comment = project_comment_validate(array2object($_POST['edit']));
+      $comment = project_comment_validate($edit);
     } else {
       foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
         $comment->$var = $node->$var;
