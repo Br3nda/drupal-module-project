@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.54 2005/11/07 05:15:29 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.55 2005/11/07 06:14:36 thehunmonkgroup Exp $ */
 
 function project_comment_page() {
   $edit = array2object($_POST['edit']);
@@ -47,6 +47,7 @@ function project_comment_page() {
 }
 
 function project_comment_form(&$edit, &$param) {
+  $op = $_POST['op'];
   $form = array('#method' => ($param['method'] ? $param['method'] : 'post'), '#action' => $param['action'], '#attributes' => $param['options']);
   $form['project_issue_form']['#prefix'] = '<div class="node-form"><div class="standard">';
   $form['project_issue_form']['#suffix'] = '</div></div>';
