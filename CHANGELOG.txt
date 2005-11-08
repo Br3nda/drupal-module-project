@@ -1,7 +1,10 @@
+08. November 2005
+-----------------
+- Updated to Drupal 4.7 forms API (hunmonk and webchick)
+
 23. June 2005
 -------------
-
-Made issues configurable (Nedjo Rogers)
+- Made issues configurable (Nedjo Rogers)
 
 27. February 2004
 -----------------

@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.56 2005/11/08 07:16:10 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.57 2005/11/08 08:08:45 webchick Exp $ */
 
 function project_comment_page() {
   
@@ -46,7 +46,11 @@ function project_comment_page() {
 function project_comment_form(&$edit, &$param) {
   $op = $_POST['op'];
   if (isset($param)) {
-    $form = array('#method' => $param['method'], '#action' => $param['action'], '#attributes' => $param['options']);
+    $form = array(
+      '#method' => $param['method'],
+      '#action' => $param['action'],
+      '#attributes' => $param['options'],
+    );
   } else {
     $form['#attributes'] = array('enctype' => 'multipart/form-data');
   }

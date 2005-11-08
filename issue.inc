@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.136 2005/11/07 04:42:29 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.137 2005/11/08 08:08:45 webchick Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -207,23 +207,44 @@ function project_issue_subscribe($project = 0) {
 
   if ($project) {
     $level = db_result(db_query('SELECT level FROM {project_subscriptions} WHERE nid = %d AND uid = %d', $project->nid, $user->uid));
-    $form['single'] = array('#type' => 'value', '#value' => $project->nid);
-    $form['subscribe'] = array('#type' => 'markup', '#value' => '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>');
+    $form['single'] = array(
+      '#type' => 'value',
+      '#value' => $project->nid,
+    );
+    $form['subscribe'] = array(
+      '#type' => 'markup',
+      '#value' => '<p>'. t('Subscribe to receive e-mail notification when an issue for this project is updated.') .'</p>',
+    );
     $form['options']['#tree'] = TRUE;
-    $form['options'][$project->nid] = array('#type' => 'radios', '#title' => t('Subscribe to %project issues', array('%project' => $project->title)), '#default_value' => $level, '#options' => $levels);
+    $form['options'][$project->nid] = array(
+      '#type' => 'radios',
+      '#title' => t('Subscribe to %project issues', array('%project' => $project->title)),
+      '#default_value' => $level,
+      '#options' => $levels,
+    );
     
   }
   else {
 
-    $form['buttons']['all'] = array('#type' => 'markup', '#value' => t('All projects'));
+    $form['buttons']['all'] = array(
+      '#type' => 'markup',
+      '#value' => t('All projects'),
+    );
     foreach ($levels as $key => $level) {
-      $form['buttons'][$level] = array('#type' => 'submit', '#name' => 'all', '#value' => $level);
+      $form['buttons'][$level] = array(
+        '#type' => 'submit',
+        '#name' => 'all',
+        '#value' => $level,
+      );
     }
     $nids = array();
 
     $result = db_query(db_rewrite_sql("SELECT s.nid, n.title, s.level FROM {project_subscriptions} s INNER JOIN {node} n ON n.nid = s.nid WHERE n.type = 'project_project' AND n.status = 1 AND s.uid = %d ORDER BY n.title", 's'), $user->uid);
     while ($project = db_fetch_object($result)) {
-      $form['project'][$project->nid]['title'] = array('#type' => 'markup', '#value' => $project->title);
+      $form['project'][$project->nid]['title'] = array(
+        '#type' => 'markup',
+        '#value' => $project->title,
+      );
       foreach ($levels as $key => $level) {
         if ($project->level == $key) {
           $status[$project->nid] = $key;
@@ -234,16 +255,26 @@ function project_issue_subscribe($project = 0) {
 
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title FROM {node} n WHERE n.type = 'project_project' AND n.status = 1". ($nids ?  " AND n.nid NOT IN (%s)" : "") ." ORDER BY n.title"), implode(',', $nids));
     while ($project = db_fetch_object($result)) {
-      $form['project'][$project->nid]['title'] = array('#type' => 'markup', '#value' => $project->title);
+      $form['project'][$project->nid]['title'] = array(
+        '#type' => 'markup',
+        '#value' => $project->title,
+      );
       $nids[] = $project->nid;
     }
 
     foreach ($nids as $nid) {
       $form['options']['#tree'] = TRUE;
-      $form['options'][$nid] = array('#type' => 'radios', '#default_value' => $status[$nid], '#options' => $levels);
+      $form['options'][$nid] = array(
+        '#type' => 'radios',
+        '#default_value' => $status[$nid],
+        '#options' => $levels,
+      );
     }
   }
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Subscribe'));
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Subscribe'),
+  );
   return drupal_get_form('project_issue_subscribe', $form);
 }
 
@@ -340,10 +371,13 @@ function project_issue_form(&$node, &$param) {
       );
     }
 
-    /* Project information fieldset - style used to be div.admin div.options */
+    $form['#prefix'] = '</div><div class="admin">';
+
     $form['project_info'] = array(
       '#type' => 'fieldset',
       '#title' => t('Project information'),
+      '#prefix' => '<div class="options">',
+      '#suffix' => '</div>',
     );
     $form['project_info']['pid'] = array(
       '#type' => 'select',
@@ -369,10 +403,11 @@ function project_issue_form(&$node, &$param) {
       '#required' => TRUE,
     );
 
-    /* Issue information fieldset - style used to be div.admin div.options */
     $form['issue_info'] = array(
       '#type' => 'fieldset',
       '#title' => t('Issue information'),
+      '#prefix' => '<div class="options">',
+      '#suffix' => '</div>',
     );
     $form['issue_info']['category'] = array(
       '#type' => 'select',
@@ -413,10 +448,10 @@ function project_issue_form(&$node, &$param) {
       );
     }
 
-    /* 'Issue Details' fieldset - style used to be div.standard  */
     $form['issue_details'] = array(
       '#type' => 'fieldset',
       '#title' => t('Issue Details'),
+      '#prefix' => '</div><div class="standard">',
     );
     $form['issue_details']['title'] = array(
       '#type' => 'textfield',
@@ -455,7 +490,7 @@ function project_issue_form(&$node, &$param) {
       '#title' => t('Project'),
       '#default_value' => $node->pid,
       '#options' => $projects,
-       '#required' => TRUE,
+      '#required' => TRUE,
     );
     // Add a field indicating that this is the first stage of a multi-stage submission.
     $form['wizard'] = array(
@@ -471,8 +506,15 @@ function project_issue_node_form_form_alter(&$form) {
   $op = $_POST['op'];
   // Alter the buttons, and auto validate required fields for first page
   if ($form['wizard']['#value'] == 'one') {
-    $form['preview'] = array('#type' => 'button', '#value' => t('Next'), '#weight' => 19);
-    $form['submit'] = array('#type' => 'value', '#value' => 'hidden');
+    $form['preview'] = array(
+      '#type' => 'button',
+      '#value' => t('Next'),
+      '#weight' => 19,
+    );
+    $form['submit'] = array(
+      '#type' => 'value',
+      '#value' => 'hidden',
+    );
   } elseif ($op == t('Next')) {
     $form['project_info']['rid']['#validated'] = TRUE;
     $form['project_info']['component'] ['#validated'] = TRUE;
@@ -738,25 +780,103 @@ function project_issue_query($project = 0, $query = NULL) {
   $priorities = project_issue_priority();
   
   $form['#action'] = url($project->uri ? "project/issues/$project->uri" : 'project/issues');
-  $form['text'] = array('#type' => 'textfield', '#title' => t('Search for'), '#default_value' => $query->summary, '#maxlength' => 255);
-  $form['attachment'] = array('#type' => 'checkbox', '#title' => t('Has attachment.'), '#default_value' => $query->attachment);
+  $form['text'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Search for'),
+    '#default_value' => $query->summary,
+    '#maxlength' => 255,
+  );
+  $form['attachment'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Has attachment.'),
+    '#default_value' => $query->attachment,
+  );
 
   if ($projects) {
 
-    $form['projects'] = array('#type' => 'select', '#title' => t('Projects'), '#default_value' => $query->projects, '#options' => $projects, '#attributes' => 'size="5"', '#multiple' => TRUE);
-    $form['categories'] = array('#type' => 'select', '#title' => t('Categories'), '#default_value' => $query->categories, '#options' => $categories, '#attributes' => 'size="5"', '#multiple' => TRUE);
+    $form['projects'] = array(
+      '#type' => 'select',
+      '#title' => t('Projects'),
+      '#default_value' => $query->projects,
+      '#options' => $projects,
+      '#attributes' => 'size="5"',
+      '#multiple' => TRUE,
+    );
+    $form['categories'] = array(
+      '#type' => 'select',
+      '#title' => t('Categories'),
+      '#default_value' => $query->categories,
+      '#options' => $categories,
+      '#attributes' => 'size="5"',
+      '#multiple' => TRUE,
+    );
   }
   else {
-    $form['versions'] = array('#type' => 'select', '#title' => t('Versions'), '#default_value' => $query->versions, '#options' => $versions, '#attributes' => 'size="5"', '#multiple' => TRUE);
-    $form['components'] = array('#type' => 'select', '#title' => t('Components'), '#default_value' => $query->components, '#options' => $components, '#attributes' => 'size="5"', '#multiple' => TRUE);
-    $form['categories'] = array('#type' => 'select', '#title' => t('Categories'), '#default_value' => $query->categories, '#options' => $categories, '#attributes' => 'size="5"', '#multiple' => TRUE);
+    $form['versions'] = array(
+      '#type' => 'select',
+      '#title' => t('Versions'),
+      '#default_value' => $query->versions,
+      '#options' => $versions,
+      '#attributes' => 'size="5"',
+      '#multiple' => TRUE,
+    );
+    $form['components'] = array(
+      '#type' => 'select',
+      '#title' => t('Components'),
+      '#default_value' => $query->components,
+      '#options' => $components, '#attributes' => 'size="5"',
+      '#multiple' => TRUE,
+    );
+    $form['categories'] = array(
+      '#type' => 'select',
+      '#title' => t('Categories'),
+      '#default_value' => $query->categories,
+      '#options' => $categories,
+      '#attributes' => 'size="5"',
+      '#multiple' => TRUE,
+    );
   }
-  $form['priorities'] = array('#type' => 'select', '#title' => t('Priorities'), '#default_value' => $query->priorities, '#options' => $priorities, '#attributes' => 'size="5"', '#multiple' => TRUE);
-  $form['states'] = array('#type' => 'select', '#title' => t('Status'), '#default_value' => ($query->states) ? $query->states : array(1, 2, 8, 13, 14), '#options' => $states, '#attributes' => 'size="5"', '#multiple' => TRUE);
-  $form['submitted'] = array('#type' => 'textfield', '#title' => t('Submitted by'), '#default_value' => $query->submitted, '#size' => 20, '#maxlength' => 255);  
-  $form['assigned'] = array('#type' => 'textfield', '#title' => t('Assigned'), '#default_value' => $query->assigned, '#size' => 20, '#maxlength' => 255);
-  $form['participated'] = array('#type' => 'textfield', '#title' => t('Participant'), '#default_value' => $query->users, '#size' => 20, '#maxlength' => 255);
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Search'));
+  $form['priorities'] = array(
+    '#type' => 'select',
+    '#title' => t('Priorities'),
+    '#default_value' => $query->priorities,
+    '#options' => $priorities,
+    '#attributes' => 'size="5"',
+    '#multiple' => TRUE,
+  );
+  $form['states'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#default_value' => ($query->states) ? $query->states : array(1, 2, 8, 13, 14),
+    '#options' => $states,
+    '#attributes' => 'size="5"',
+    '#multiple' => TRUE,
+  );
+  $form['submitted'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Submitted by'),
+    '#default_value' => $query->submitted,
+    '#size' => 20,
+    '#maxlength' => 255,
+  );  
+  $form['assigned'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Assigned'),
+    '#default_value' => $query->assigned,
+    '#size' => 20,
+    '#maxlength' => 255,
+  );
+  $form['participated'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Participant'),
+    '#default_value' => $query->users,
+    '#size' => 20,
+    '#maxlength' => 255,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
 
   return drupal_get_form('project_issue_query', $form);
 }
@@ -846,17 +966,52 @@ function project_issue_admin_states_page() {
       $form['status']['#tree'] = TRUE;
       while ($state = db_fetch_object($result)) {
         $options[$state->sid] = '';
-        $form['status'][$state->sid]['sid'] = array('#type' => 'markup', '#value' => $state->sid);
-        $form['status'][$state->sid]['name'] = array('#type' => 'textfield', '#default_value' => $state->name, '#size' => 20, '#maxlength' => 255);
-        $form['status'][$state->sid]['weight'] = array('#type' => 'weight', '#default_value' => $state->weight, '#delta' => 15);
-        $form['status'][$state->sid]['author_has'] = array('#type' => 'checkbox', '#default_value' => $state->author_has);
-        $form['delete'][$state->sid] = array('#type' => 'markup', '#value' => ($state->sid != $default_state) ? l(t('delete'), 'admin/settings/project/status/delete/'. $state->sid) : '');
+        $form['status'][$state->sid]['sid'] = array(
+          '#type' => 'markup',
+          '#value' => $state->sid,
+        );
+        $form['status'][$state->sid]['name'] = array(
+          '#type' => 'textfield',
+          '#default_value' => $state->name,
+          '#size' => 20,
+          '#maxlength' => 255,
+        );
+        $form['status'][$state->sid]['weight'] = array(
+          '#type' => 'weight',
+          '#default_value' => $state->weight,
+          '#delta' => 15,
+        );
+        $form['status'][$state->sid]['author_has'] = array(
+          '#type' => 'checkbox',
+          '#default_value' => $state->author_has,
+        );
+        $form['delete'][$state->sid] = array(
+          '#type' => 'markup',
+          '#value' => ($state->sid != $default_state) ? 
+            l(t('delete'), 'admin/settings/project/status/delete/'. $state->sid) :
+            '',
+        );
       }
-      $form['default_state'] = array('#type' => 'radios', '#options' => $options, '#default_value' => $default_state);
+      $form['default_state'] = array(
+        '#type' => 'radios',
+        '#options' => $options,
+        '#default_value' => $default_state,
+      );
       $form['status_add']['#tree'] = TRUE;
-      $form['status_add']['name'] = array('#type' => 'textfield', '#size' => 20, '#maxlength' => 255);
-      $form['status_add']['weight'] = array('#type' => 'weight', '#default_value' => 0, '#delta' => 15);
-      $form['submit'] = array('#type' => 'submit', '#value' => t('Save'));
+      $form['status_add']['name'] = array(
+        '#type' => 'textfield',
+        '#size' => 20,
+        '#maxlength' => 255,
+      );
+      $form['status_add']['weight'] = array(
+        '#type' => 'weight',
+        '#default_value' => 0,
+        '#delta' => 15,
+      );
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Save'),
+      );
 
       return drupal_get_form('project_issue_admin_states_page', $form);
       break;
@@ -1022,13 +1177,42 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     }
 
     // Make quick search form:
-      $form['projects'] = array('#type'=> 'select', '#title' => t('Project'), '#default_value' => $query->projects, '#options' => $projects);
-      $form['states'] = array('#type'=> 'select', '#title' => t('Status'), '#default_value' => $query->states, '#options' => $states);
-      $form['categories'] = array('#type'=> 'select', '#title' => t('Category'), '#default_value' => $query->categories, '#options' => $categories);
-      $form['priorities'] = array('#type'=> 'select', '#title' => t('Priority'), '#default_value' => $query->priorities, '#options' => $priorities);
-      $form['users'] = array('#type'=> 'hidden', '#value' => $query->users);
-      $form['submit'] = array('#type' => 'submit', '#value' => t('Search'));
-      $form['advanced_search'] = array('#type' => 'markup', '#value'=> l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : "")));
+      $form['projects'] = array(
+        '#type'=> 'select',
+        '#title' => t('Project'),
+        '#default_value' => $query->projects,
+        '#options' => $projects,
+      );
+      $form['states'] = array(
+        '#type'=> 'select',
+        '#title' => t('Status'),
+        '#default_value' => $query->states,
+        '#options' => $states,
+      );
+      $form['categories'] = array(
+        '#type'=> 'select',
+        '#title' => t('Category'),
+        '#default_value' => $query->categories,
+        '#options' => $categories,
+      );
+      $form['priorities'] = array(
+        '#type'=> 'select',
+        '#title' => t('Priority'),
+        '#default_value' => $query->priorities,
+        '#options' => $priorities,
+      );
+      $form['users'] = array(
+        '#type'=> 'hidden',
+        '#value' => $query->users,
+      );
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Search'),
+      );
+      $form['advanced_search'] = array(
+        '#type' => 'markup',
+        '#value'=> l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : "")),
+      );
     $group .= drupal_get_form('project_issue_query_result_quick_search', $form);
   }
 

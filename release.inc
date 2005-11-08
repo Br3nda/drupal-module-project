@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.59 2005/11/06 06:03:13 thehunmonkgroup Exp $ */
+/* $Id: release.inc,v 1.60 2005/11/08 08:08:45 webchick Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -182,10 +182,32 @@ function project_release_form(&$release, &$param) {
   $param['options'] = array('enctype' => 'multipart/form-data');
   */
 
-  $form['version'] = array('#type' => 'textfield', '#title' => t('Version'), '#default_value' => $release->version, '#size' => 40, '#maxlength' => 255, '#required' => TRUE);
-  $form['changes'] = array('#type' => 'textarea', '#title' => t('Changes'), '#default_value' => $release->changes, '#rows' => 10, '#cols' => 40, '#required' => TRUE);
+  $form['version'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Version'),
+    '#default_value' => $release->version,
+    '#size' => 40,
+    '#maxlength' => 255,
+    '#required' => TRUE,
+  );
+  $form['changes'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Changes'),
+    '#default_value' => $release->changes,
+    '#rows' => 10,
+    '#cols' => 40,
+    '#required' => TRUE,
+  );
   if (!variable_get('project_release_directory', '')) {
-    $form['path'] = array('#type' => 'file', '#title' => t('File'), '#size' => 40, '#description' => ($release->fid) ? t('A file already exists, if you upload another file the current file will be replaced.') : '' . $error['file'], '#required' => $release->fid);
+    $form['path'] = array(
+      '#type' => 'file',
+      '#title' => t('File'),
+      '#size' => 40,
+      '#description' => ($release->fid) ?
+        t('A file already exists, if you upload another file the current file will be replaced.') :
+        '' . $error['file'],
+      '#required' => $release->fid,
+    );
   }
   if ($release->rid) {
     $form['rid'] = array(
