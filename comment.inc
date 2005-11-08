@@ -1,54 +1,55 @@
 <?php
-/* $Id: comment.inc,v 1.55 2005/11/07 06:14:36 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.56 2005/11/08 07:16:10 thehunmonkgroup Exp $ */
 
 function project_comment_page() {
-  $edit = array2object($_POST['edit']);
+  
   if (user_access('create project issues')) {
+    $edit = array2object($_POST['edit']);
     $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
     if ($_POST['op'] == t('Preview') || $_POST['op'] == t('Submit')) {
-      $comment = project_comment_validate($edit);
+      $edit = project_comment_validate($edit);
     } else {
       foreach (array('nid', 'type', 'pid', 'rid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
         $comment->$var = $node->$var;
       }
-      $comment = project_comment_validate($comment);
+      $edit = project_comment_validate($comment);
     }
-    $output .= project_comment_form($comment, $param);
+    $output .= project_comment_form($edit, $param);
 
     $breadcrumb = drupal_get_breadcrumb();
     $breadcrumb[] = l($node->title, "node/$node->nid");
     drupal_set_breadcrumb($breadcrumb);
     drupal_set_title(t('New comment'));
-  }
-  switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
-    case 'add':
-      $output .= node_view($node, NULL, TRUE);
-      return $output;
-      break;
-    case t('Preview'):
-      if (user_access('create project issues')) {       
+    switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
+      case 'add':
+        $output .= node_view($node, NULL, TRUE);
         return $output;
-      }
-      break;
-    case t('Submit'):
-      if (user_access('create project issues')) {
-        if (!form_get_errors()) {
-          $edit->nid = $node->nid;
-
-          project_comment_save($edit);
-          drupal_goto("node/$node->nid");
-        } else {
+        break;
+      case t('Preview'):      
           return $output;
-        }
-      }
-      break;
+        break;
+      case t('Submit'):
+          if (!form_get_errors()) {
+            $edit->nid = $node->nid;
+
+            project_comment_save($edit);
+            drupal_goto("node/$node->nid");
+          } else {
+            return $output;
+          }
+        break;
+    }
   }
 }
 
 function project_comment_form(&$edit, &$param) {
   $op = $_POST['op'];
-  $form = array('#method' => ($param['method'] ? $param['method'] : 'post'), '#action' => $param['action'], '#attributes' => $param['options']);
+  if (isset($param)) {
+    $form = array('#method' => $param['method'], '#action' => $param['action'], '#attributes' => $param['options']);
+  } else {
+    $form['#attributes'] = array('enctype' => 'multipart/form-data');
+  }
   $form['project_issue_form']['#prefix'] = '<div class="node-form"><div class="standard">';
   $form['project_issue_form']['#suffix'] = '</div></div>';
   $form['project_issue_form'] = project_issue_form($edit, $param);
@@ -59,7 +60,7 @@ function project_comment_form(&$edit, &$param) {
   if (!form_get_errors()) {
     $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'));
   }
-  if ($op == t('Preview') || form_get_errors()) {
+  if ($op == t('Preview')) {
     $form['#post_process'] = 'node_form_add_preview';
   }
   return drupal_get_form('project_comment_form', $form);
