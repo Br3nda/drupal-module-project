@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.138 2005/11/08 17:41:07 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.139 2005/11/08 18:23:01 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -511,26 +511,28 @@ function project_issue_form(&$node, &$param) {
   return $form;
 }
 
-function project_issue_node_form_form_alter(&$form) {
-  $op = $_POST['op'];
-  // Alter the buttons, and auto validate required fields for first page
-  if ($form['wizard']['#value'] == 'one') {
-    $form['preview'] = array(
-      '#type' => 'button',
-      '#value' => t('Next'),
-      '#weight' => 19,
-    );
-    $form['submit'] = array(
-      '#type' => 'value',
-      '#value' => 'hidden',
-    );
-  } elseif ($op == t('Next')) {
-    $form['project_info']['rid']['#validated'] = TRUE;
-    $form['project_info']['component'] ['#validated'] = TRUE;
-    $form['issue_info']['category']['#validated'] = TRUE;
-    $form['issue_details']['title']['#validated'] = TRUE;
-    $form['issue_details']['body']['#validated'] = TRUE;
-    $form['issue_details']['format']['format'][variable_get('filter_default_format', 1)]['#value'] = 1;
+function project_form_alter($form_id, &$form) {
+  if ($form_id == 'project_issue_node_form') {
+    $op = $_POST['op'];
+    // Alter the buttons, and auto validate required fields for first page
+    if ($form['wizard']['#value'] == 'one') {
+      $form['preview'] = array(
+        '#type' => 'button',
+        '#value' => t('Next'),
+        '#weight' => 19,
+      );
+      $form['submit'] = array(
+        '#type' => 'value',
+        '#value' => 'hidden',
+      );
+    } elseif ($op == t('Next')) {
+      $form['project_info']['rid']['#validated'] = TRUE;
+      $form['project_info']['component'] ['#validated'] = TRUE;
+      $form['issue_info']['category']['#validated'] = TRUE;
+      $form['issue_details']['title']['#validated'] = TRUE;
+      $form['issue_details']['body']['#validated'] = TRUE;
+      $form['issue_details']['format']['format'][variable_get('filter_default_format', 1)]['#value'] = 1;
+    }
   }
 }
 
