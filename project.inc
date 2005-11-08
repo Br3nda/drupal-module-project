@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.61 2005/11/06 03:31:29 webchick Exp $ */
+/* $Id: project.inc,v 1.62 2005/11/08 19:36:59 webchick Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -50,7 +50,7 @@ function project_project_form(&$node) {
     '#default_value' => $node->uri,
     '#size' => 40,
     '#maxlength' => 50,
-    '#description' => t('This will be used to generate a /project/<shortname>/ URL for your project.'),
+    '#description' => t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'),
     '#required' => TRUE,
   );
   $form['project']['mail'] = array(
