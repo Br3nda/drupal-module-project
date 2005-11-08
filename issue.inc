@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.137 2005/11/08 08:08:45 webchick Exp $ */
+/* $Id: issue.inc,v 1.138 2005/11/08 17:41:07 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -338,6 +338,15 @@ function project_issue_form(&$node, &$param) {
     $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
     while ($project = db_fetch_object($result)) {
       $projects[$project->nid] = $project->title;
+    }
+  }
+  // Try to find the active project
+  if (empty($node->pid) && $arg = arg(3)) {
+    if (is_numeric($arg)) {
+      $node->pid = db_result(db_query(db_rewrite_sql('SELECT p.nid FROM {project_projects} p WHERE p.nid = %d', 'p'), $arg), 0);
+    }
+    else {
+      $node->pid = db_result(db_query(db_rewrite_sql("SELECT p.nid FROM {project_projects} p WHERE p.uri = '%s'", 'p'), $arg), 0);
     }
   }
   $pid = $node->pid ? $node->pid : $_POST['edit']['pid'];
