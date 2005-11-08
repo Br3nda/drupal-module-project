@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.60 2005/11/08 08:08:45 webchick Exp $ */
+/* $Id: release.inc,v 1.61 2005/11/08 20:53:59 thehunmonkgroup Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -121,7 +121,7 @@ function project_release_submit() {
       $breadcrumb[] = l($node->title, "node/$node->nid");
       $error = 1;
       $release->nid = $node->nid;
-      $output = drupal_get_form('project_release', project_release_form($release, $param));
+      $output = drupal_get_form('project_release_form', project_release_form($release, $param));
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
       drupal_set_breadcrumb($breadcrumb);
@@ -131,7 +131,7 @@ function project_release_submit() {
       if ($release = project_release_load(arg(4))) {
         $node = node_load($release->nid);
         $output = project_release_view($release);
-        $output = drupal_get_form('project_release', project_release_form($release, $param));
+        $output = drupal_get_form('project_release_form', project_release_form($release, $param));
         drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
         return $output;
       }
@@ -148,7 +148,7 @@ function project_release_submit() {
       if (node_access('update', $node)) {
         project_release_validate($edit);
         $output = project_release_view($edit);
-        $output = drupal_get_form('project_release', project_release_form($release, $param));
+        $output = drupal_get_form('project_release_form', project_release_form($release, $param));
 
         return $output;
       }
@@ -159,7 +159,7 @@ function project_release_submit() {
       if (node_access('update', $node)) {
         project_release_validate($edit);
         if (form_get_errors()) {
-          $output = drupal_get_form('project_release', project_release_form($release, $param));
+          $output = drupal_get_form('project_release_form', project_release_form($release, $param));
           
           return $output;
         }
