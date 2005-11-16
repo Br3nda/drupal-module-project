@@ -114,7 +114,7 @@ CREATE TABLE project_issue_state (
   weight smallint DEFAULT '0' NOT NULL,
   author_has smallint DEFAULT '0' NOT NULL,
   PRIMARY KEY  (sid)
-) TYPE=MyISAM;
+);
 
 --
 -- Data for table 'project_issue_state'
