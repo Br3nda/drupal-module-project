@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.139 2005/11/08 18:23:01 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.140 2005/12/14 19:05:10 dries Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1475,7 +1475,6 @@ function project_issue_query_rss($projects, $result) {
   $description = variable_get('site_mission', '');
 
   $output .= "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-  $output .= "<!DOCTYPE rss [<!ENTITY % HTMLlat1 PUBLIC \"-//W3C//ENTITIES Latin 1 for XHTML//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent\">]>\n";
   $output .= "<rss version=\"0.92\" xml:base=\"". $base_url ."\">\n";
   $output .= format_rss_channel($title, $link, $description, $items, $locale);
   $output .= "</rss>\n";
