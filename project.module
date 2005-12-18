@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.216 2005/11/07 06:34:50 thehunmonkgroup Exp $
+// $Id: project.module,v 1.217 2005/12/18 02:24:22 weitzman Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -266,8 +266,6 @@ function project_menu($may_cache) {
   $items = array();
   global $user;
 
-  drupal_set_html_head(theme('stylesheet_import', drupal_get_path('module', 'project') .'/project.css'));
-
   if ($may_cache) {
     // User pages:
     $access = user_access('access projects');
@@ -354,6 +352,7 @@ function project_menu($may_cache) {
     }
   }
   else {
+    theme_add_style(drupal_get_path('module', 'project') .'/project.css');
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       if ($node->type == 'project_project') {
