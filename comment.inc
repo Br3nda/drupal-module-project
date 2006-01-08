@@ -1,10 +1,10 @@
 <?php
-/* $Id: comment.inc,v 1.58 2005/11/21 17:05:16 thehunmonkgroup Exp $ */
+/* $Id: comment.inc,v 1.59 2006/01/08 04:39:24 nedjo Exp $ */
 
 function project_comment_page() {
   
   if (user_access('create project issues')) {
-    $edit = array2object($_POST['edit']);
+    $edit = (object) $_POST['edit'];
     $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
 
     if ($_POST['op'] == t('Preview') || $_POST['op'] == t('Submit')) {

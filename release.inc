@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.62 2005/11/08 21:03:25 thehunmonkgroup Exp $ */
+/* $Id: release.inc,v 1.63 2006/01/08 04:39:24 nedjo Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -143,7 +143,7 @@ function project_release_submit() {
       }
       break;
     case t('Submit'):
-      $edit = array2object($_POST['edit']);
+      $edit = (object) $_POST['edit'];
       $node = node_load($edit->nid);
       if (node_access('update', $node)) {
         project_release_validate($edit);
