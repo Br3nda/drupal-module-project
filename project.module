@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.218 2006/01/14 04:25:18 nedjo Exp $
+// $Id: project.module,v 1.219 2006/01/15 20:27:39 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -238,8 +238,10 @@ function _project_get_vid() {
     if (!$vid) {
       $edit = array('name' => t('Projects'), 'multiple' => 1, 'required' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project', 'nodes' => array('project_project' => 1));
       // If there is already a vocabulary assigned to 'project_project' nodes, use it.
-      if ($vocabularies = taxonomy_get_vocabularies('project_project')) {
-        $edit['vid'] = $vocabularies[0]->vid;
+      $vocabularies = taxonomy_get_vocabularies('project_project');
+      if (count($vocabularies)) {
+        $vocabulary = reset($vocabularies);
+        $edit['vid'] = $vocabulary->vid;
       }
       taxonomy_save_vocabulary($edit);
       $vid = $edit['vid'];
@@ -248,6 +250,13 @@ function _project_get_vid() {
   }
 
   return $vid;
+}
+
+/**
+ * Implementation of hook_term_path().
+ */
+function project_term_path($term) {
+  return 'project/';
 }
 
 /**
