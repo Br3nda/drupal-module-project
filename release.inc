@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.64 2006/01/16 20:21:13 nedjo Exp $ */
+/* $Id: release.inc,v 1.65 2006/01/16 20:35:36 nedjo Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -272,11 +272,15 @@ function project_release_view($release, $project = 0) {
   }
 
   if ($release->path) {
-    $output .= '<small>Download: <a href="' . $release->path . '">' . $release->path . '</a>' . '</small><br />';
+    $output .= '<small>' . t('Download: <a href="%path">%path</a>', array('%path' => $release->path)) . '</small><br />';
+    $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize($release->path)))) . '</small><br />';
+    $output .= '<small>' . t('md5_file hash: %hash', array('%hash' => $release->hash)) . '</small><br />';
   }
-
   if ($release->created) {
-    $output .= '<small>Released: ' . format_date($release->created) . '</small><br />';
+    $output .= '<small>' . t('First released: %created', array('%created' => format_date($release->created))) . '</small><br />';
+  }
+  if ($release->changed  && ($release->changed != $release->created)) {
+    $output .= '<small>' . t('Last updated: %changed', array('%changed' => format_date($release->changed))) . '</small><br />';
   }
 
   $output .= $release->changes;
@@ -317,7 +321,7 @@ function project_release_load($rid, $status = 1) {
 function project_release_save($release) {
   $fields = array('rid' => '%d', 'nid' => '%d', 'fid' => '%d',
                     'path' => "'%s'", 'created' => '%d',
-                    'changed' => '%d', 'version' => "'%s'",
+                    'changed' => '%d', 'hash' => '"%s"', 'version' => "'%s'",
                     'changes' => "'%s'", 'status' => '%d');
 
   $node = node_load($release->nid);
@@ -341,6 +345,7 @@ function project_release_save($release) {
     if ($release->path) {
       $release->created = ($release->version == 'cvs') ? 0 : filectime($release->path);
       $release->changed = filemtime($release->path);
+      $release->hash = md5_file($release->path);
     }
     else {
       $release->created = ($release->version == 'cvs') ? 0 : time();
@@ -370,8 +375,19 @@ function project_release_save($release) {
     */
 
     unset($release->created);
-    if (!$release->scan) {
-      $release->changed = filemtime($release->path);
+    if($release->path) {
+      if ($release->scan) {
+        // Load previous md5_file hash value, and test it agains the current one to see if the file has changed.
+        $previous = db_fetch_object(db_query("SELECT hash FROM {project_releases} WHERE rid = %d", $release->rid));
+        if (md5_file($release->path) != $previous->hash) {
+          $release->hash = md5_file($release->path);
+          $release->changed = time();
+        }
+      }
+      else {
+        $release->hash = md5_file($release->path);
+        $release->changed = filemtime($release->path);
+      }
     }
 
     // Prepare the query:

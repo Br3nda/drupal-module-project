@@ -37,6 +37,7 @@ CREATE TABLE project_releases (
   fid int NOT NULL default '0',
   path varchar(255) NOT NULL default '',
   created int NOT NULL default '0',
+  hash varchar(32) NOT NULL default '',
   version varchar(255) NOT NULL default '',
   changes text,
   weight smallint NOT NULL default '0',

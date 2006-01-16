@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.19 2005/11/06 19:45:39 killes Exp $
+-- $Id: project.mysql,v 1.20 2006/01/16 20:35:36 nedjo Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -47,6 +47,7 @@ CREATE TABLE project_releases (
   KEY project_releases_nid (nid)
 ) TYPE=MyISAM;
 ALTER TABLE project_releases ADD status tinyint(1) unsigned NOT NULL default '1';
+ALTER TABLE project_releases ADD hash varchar(32) NOT NULL default '';
 
 --
 -- Table structure for table 'project_issues'
