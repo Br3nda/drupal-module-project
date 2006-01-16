@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.140 2005/12/14 19:05:10 dries Exp $ */
+/* $Id: issue.inc,v 1.141 2006/01/16 20:21:13 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -318,28 +318,8 @@ function project_issue_form(&$node, &$param) {
   $form['#attributes'] = array('enctype' => 'multipart/form-data');
 
   // Fetch a list of all projects to make swapping simpler
-  $projects = array(t('<none>'));
-  if (module_exist('taxonomy')) {
-    $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
-    while ($project = db_fetch_object($result)) {
-      if (isset($project->name)) {
-        if (!isset($projects[$project->name])) {
-          $projects[$project->name] = array();
-        }
-        $projects[$project->name][$project->nid] = $project->title;
-      }
-      else {
-        $projects[$project->nid] = $project->title;
-      }
-    }
-  }
-  else {
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
-    while ($project = db_fetch_object($result)) {
-      $projects[$project->nid] = $project->title;
-    }
-  }
+  $projects = array_merge(array(t('<none>')), project_projects_select_options());
+
   // Try to find the active project
   if (empty($node->pid) && $arg = arg(3)) {
     if (is_numeric($arg)) {
@@ -1279,17 +1259,17 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
 }
 
 function theme_project_issue_query_result_quick_search($form) {
-$rows[] = array(
-      form_render($form['projects']),
-      form_render($form['states']),
-      form_render($form['categories']),
-      form_render($form['priorities']),
-      form_render($form['users']) . form_render($form['submit']),
-      form_render($form['advanced_search']),
-    );
-    $output = theme('table', array(), $rows);
-    $output .= form_render($form);
-    return $output;
+  $rows[] = array(
+    form_render($form['projects']),
+    form_render($form['states']),
+    form_render($form['categories']),
+    form_render($form['priorities']),
+    form_render($form['users']) . form_render($form['submit']),
+    form_render($form['advanced_search']),
+  );
+  $output = theme('table', array(), $rows);
+  $output .= form_render($form);
+  return $output;
 }
 
 function project_issue_query_url($query = 0) {

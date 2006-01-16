@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.219 2006/01/15 20:27:39 nedjo Exp $
+// $Id: project.module,v 1.220 2006/01/16 20:21:13 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -42,15 +42,12 @@ function project_help($section) {
     case 'node/add/project_project':
       if (module_exist('taxonomy')) {
         $tree = taxonomy_get_tree(_project_get_vid());
-        $pass = 0;
         // Extract the different project types, and, for the first type, up to three categories.
-        $pass = 0;
-        foreach ($tree as $term) {
+        foreach ($tree as $index => $term) {
           if ($term->depth == 0) {
             $types[] = $term->name;
-            $pass++;
           }
-          elseif (($term->depth == 1) && ($pass == 1) && (count($categories)< 3)) {
+          elseif (($term->depth == 1) && ($index == 1) && (count($categories)< 3)) {
             $categories[] = $term->name;
           }
         }
@@ -81,6 +78,23 @@ function project_help($section) {
       <dt>Author may set</dt><dd>Check this option to give the original poster of an issue the right to set a status option, even if she or he isn\'t part of a role with this permission.  You may wish, for example, to allow issue authors to close their own issues.</dd>
       <dt>Default</dt><dd>The default status option will be used for new issues, and all users with the permission to create issues will automatically have permission to set this status.  The default issue status cannot be deleted.  If you wish to delete this status, first set a different status to default.</dd>
       </dl></p>');
+  }
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function project_block($op = 'list', $delta = 0) {
+  if ($op == 'list') {
+    $blocks[0]['info'] = t('Project navigation');
+    return $blocks;
+  }
+  else if ($op == 'view') {
+    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options('node/'));
+    $block['subject'] = t('Project navigation');
+    $block['content'] = drupal_get_form('project_quick_navigate_form', project_quick_navigate_form($projects));
+
+    return $block;
   }
 }
 
@@ -118,7 +132,8 @@ function project_settings() {
   }
 
   $versions = array(-1 => t('all')) + project_releases_list();
-
+  $sort_methods = drupal_map_assoc(array_keys(module_invoke_all('project_sort_methods', 'methods')));
+  
   $form['project_release_directory'] = array(
     '#type' => 'textfield',
     '#title' => t('Release Directory'),
@@ -139,7 +154,7 @@ function project_settings() {
     '#type' => 'checkbox',
     '#title' => t('Browse projects by releases'),
     '#default_value' => variable_get('project_browse_releases', 1),
-    '#description' => t('Checking this box will cause the project browsing page to have version subtabs.'),
+    '#description' => t('Checking this box will cause the project browsing page to have a version select.'),
   );
 
   $form['project_release_overview'] = array(
@@ -150,6 +165,14 @@ function project_settings() {
     '#description' => t('Default release version to list on the overview page'),
   );
 
+  $form['project_sort_method'] = array(
+    '#type' => 'radios',
+    '#title' => t('Default sort option'),
+    '#default_value' => variable_get('project_sort_method', 'category'),
+    '#options' => $sort_methods,
+    '#description' => t('Default sorting option to use on the overview page'),
+  );
+  
   $form['project_directory_issues']  = array(
     '#type' => 'textfield',
     '#title' => t('Issue directory'),
@@ -175,7 +198,9 @@ function project_settings() {
     );
 
   }
-
+  
+  // If the project_sort_method setting has changed, the menu will need to be rebuilt.
+  menu_rebuild();
   return $form;
 }
 
@@ -256,7 +281,22 @@ function _project_get_vid() {
  * Implementation of hook_term_path().
  */
 function project_term_path($term) {
-  return 'project/';
+  // The path must include the first-level term name for this term.
+  $tree = taxonomy_get_tree(_project_get_vid());
+  $parents = taxonomy_get_parents_all($term->tid);
+  foreach($parents as $parent) {
+  $ancestors[] = $parent->tid;
+  }
+  foreach ($tree as $t) {
+    if (in_array($t->tid, $ancestors) && $t->depth == 0) {
+      $termname = $t->name;
+      if ($term->name == $termname) {
+        return "project/$termname";
+      }
+      break;
+    }
+  }
+  return "project/$termname/category/$term->tid";
 }
 
 /**
@@ -279,41 +319,43 @@ function project_menu($may_cache) {
     // User pages:
     $access = user_access('access projects');
 
-    $items[] = array('path' => 'project', 'title' => t('projects'), 'callback' => 'project_page_overview', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project',
+      'title' => t('projects'),
+      'callback' => 'project_page_overview',
+      'access' => $access,
+      'type' => MENU_NORMAL_ITEM);
+
+    $items[] = array('path' => 'project/goto',
+      'title' => t('project navigation'),
+      'callback' => 'project_goto',
+      'access' => $access,
+      'type' => MENU_CALLBACK);
 
     // Project browsing pages
     if (module_exist('taxonomy')) {
       $terms = taxonomy_get_tree(_project_get_vid());
       $releases = variable_get('project_browse_releases', 1);
 
+      $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       foreach ($terms as $i => $term) {
         // Only use the first-level terms.
         if ($term->depth == 0) {
           $items[] = array('path' => 'project/'. $term->name,
                            'title' => $term->name,
-                           'callback' => 'project_page_overview',
                            'access' => $access,
-                           'type' => $i == 0 ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK,
+                           'type' => MENU_NORMAL_ITEM,
                            'weight' => $term->weight,
                            'callback arguments' => array($term->name));
+          $j = 0;
+          foreach (array_keys($sort_methods) as $sort_method) {
+            $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
+                 'title' => t('browse by %sort_method', array('%sort_method' => $sort_method)),
+                 'access' => $access,
+                 'type' => ($sort_method == variable_get('project_sort_method', 'category') ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
+                 'weight' => ($sort_method == variable_get('project_sort_method', 'category')) ? -10 : $j,
+                 'callback arguments' => array($term->name, $sort_method));
+            $j++;
 
-          if ($releases) {
-            $j = 0;
-            if (variable_get('project_release_overview', -1) == -1) {
-              $items[] = array('path' => 'project/'. $term->name .'/all',
-                               'title' => t('all'),
-                               'type' => MENU_DEFAULT_LOCAL_TASK,
-                               'weight' => $j++);
-            }
-            foreach (project_releases_list() as $v => $version) {
-              $items[] = array('path' => 'project/'. $term->name .'/'. $v,
-                               'title' => $version,
-                               'callback' => 'project_page_overview',
-                               'access' => $access,
-                               'type' => ($v == variable_get('project_release_overview', -1) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
-                               'weight' => $j++,
-                               'callback arguments' => array($term->name, $v));
-            }
           }
         }
       }
@@ -385,6 +427,19 @@ function project_menu($may_cache) {
   return $items;
 }
 
+/**
+ * Callback used in the project block to navigate to a requested project, or back to the requested page if no project specified.
+ */
+function project_goto() {
+  if (!empty($_REQUEST['edit']['project_goto'])) {
+    unset($_REQUEST['edit']['destination']);
+    drupal_goto($_REQUEST['edit']['project_goto']);
+  }
+  else {
+    drupal_goto();
+  }
+}
+
 function project_page() {
   global $user;
 
@@ -395,29 +450,202 @@ function project_page() {
   }
 }
 
-function project_page_overview($termname = NULL, $version = NULL) {
-  // If browsing by taxonomy, only fetch projects for this term
+function project_page_overview($termname = NULL, $sort_method = NULL) {
+  global $form_values;
+
+  $breadcrumb = array(l(t('Home'), NULL));
+  $sort_methods = module_invoke_all('project_sort_methods', 'methods');
+
+
+  // Read in requested version, if any.
+  if ($_POST['edit']['rid']) {
+    $version = $_POST['edit']['rid'];
+  }
+  else if ($_SESSION['project_version']) {
+    $version = $_SESSION['project_version'];
+  }
+  else {
+    $version = variable_get('project_release_overview', -1);
+  }
+
+  $version_form = drupal_get_form('project_version_filter_form', project_version_filter_form($version));
+  if ($_POST['edit']['rid']) {
+    $_SESSION['project_version'] = $form_values['rid'];
+  }
+  if (variable_get('project_browse_releases', 1)) {
+    $output .= $version_form;
+  }
+
+  // If browsing by taxonomy, only fetch projects for this term.
   if (module_exist('taxonomy')) {
-    $terms = taxonomy_get_tree(_project_get_vid());
+    $vid = _project_get_vid();
     if ($termname) {
-      foreach ($terms as $term) {
-        if ($term->name == $termname) {
-          break;
+
+      $term = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE vid = %d AND name = '%s'", 't', 'tid'), $vid, $termname));
+
+      $breadcrumb[] = l(t('projects'), 'project', array('title' => t('Browse projects')));
+      $sort_method = $sort_method ? $sort_method : variable_get('project_sort_method', 'category');
+
+      if ($term->description) {
+        $output .= '<p>' . check_plain($term->description) . '</p>';
+      }
+
+      $module = $sort_methods[$sort_method];
+      if (module_invoke($module, 'project_sort_methods', 'set term', $sort_method)) {
+
+        $tree = taxonomy_get_tree(_project_get_vid(), $term->tid);
+     
+        $terms = array();
+        if ($tree) {
+          $tids = array();
+          if (variable_get('project_browse_releases', 1) && $version != -1) {
+            // Find all terms associated with the requested version.
+            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
+            $tids = array();
+            while ($item = db_fetch_object($result)) {
+              $tids[$item->tid] = $item->count;
+            }
+          }
+          foreach ($tree as $cterm) {
+            if (!variable_get('project_browse_releases', 1) || ($version == -1) || array_key_exists($cterm->tid, $tids)) {
+              if ($tids[$cterm->tid]) {
+                $cterm->count = $tids[$cterm->tid];
+              }
+              else {
+                // We don't use taxonomy_term_count_nodes() because it includes child terms' counts.
+                $result = db_query(db_rewrite_sql('SELECT t.tid, COUNT(n.nid) AS c FROM {term_node} t INNER JOIN {node} n ON t.nid = n.nid WHERE n.status = 1 AND t.tid = %d GROUP BY t.tid'), $cterm->tid);
+                $term = db_fetch_object($result);
+                $cterm->count = $term->c;
+              }
+              $terms[] = $cterm;
+            }
+          }
+        }
+
+        $tid = (arg(3) && is_numeric(arg(3))) ? arg(3) : project_default_tid();
+        $term = taxonomy_get_term($tid);
+
+      }
+
+      // Set the default elements that will be used to construct the SQL statement.
+      $sql_elements = array(
+        'fields' => array(
+          'prefix' => 'SELECT ',
+          'glue' => ', ',
+          'pieces' => array(
+            'DISTINCT(n.nid)',
+            'n.title',
+            'nr.teaser',
+            'nr.format',
+            'p.issues'
+          )
+        ),
+        'from' => array(
+          'prefix' => ' FROM ',
+          'glue' => NULL,
+          'pieces' => array(
+            '{node} n '
+          )
+        ),
+        'joins' => array(
+          'prefix' => '',
+          'glue' => ' ',
+          'pieces' => array(
+            'INNER JOIN {node_revisions} nr ON n.vid = nr.vid',
+            'INNER JOIN {project_projects} p ON n.nid = p.nid',
+            'LEFT JOIN {term_node} r ON n.nid = r.nid'
+          )
+        ),
+        'wheres' => array(
+          'prefix' => ' WHERE ',
+          'glue' => ' AND ',
+          'pieces' => array(
+            'n.status = 1',
+            'r.tid = %d'
+          )
+        ),
+        'group_bys' => array(
+          'prefix' => ' GROUP BY ',
+          'glue' => ', ',
+          'pieces' => array(
+          )
+        ),
+        'order_bys' => array(
+          'prefix' => ' ORDER BY ',
+          'glue' => ', ',
+          'pieces' => array(
+          )
+        ),
+        'parameters' => array(
+          'prefix' => NULL,
+          'glue' => NULL,
+          'pieces' => array(
+            $term->tid
+          )
+        )
+      );
+
+      $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
+
+      if (variable_get('project_browse_releases', 1) != -1) {
+        $release_settings = array(
+          'fields' => array('pr.path', 'pr.version', 'MAX(pr.changed) AS changed'),
+          'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
+          'wheres' => array('pr.status = 1', "pr.path <> ''"),
+          'group_bys' => array('pr.nid'),
+          'parameters' => array($version)
+        );
+        if ($version != -1) {
+          $release_settings['wheres'][] = "pr.version LIKE '%s%%'";
+        }
+        $sql_settings = array_merge($sql_settings, $release_settings);
+      }
+
+      foreach(array_keys($sql_elements) as $key) {
+        // Add elements to the arrays only  if they're not aleady there.
+        if (!in_array($sql_settings[$key], $sql_elements[$key]['pieces'])) {
+          $sql_elements[$key]['pieces'] = array_merge($sql_elements[$key]['pieces'], $sql_settings[$key]);
+        }
+      }
+
+      $parameters = $sql_elements['parameters']['pieces'];
+
+      $sql = project_build_query($sql_elements);
+
+      if ($pager) {
+        $first_field = array_shift($sql_elements['fields']['pieces']);
+        array_shift($sql_elements['fields']['pieces'], "COUNT($first_field)");
+        $sql_count = project_build_query($sql_elements);
+        $result = pager_query($sql, variable_get('default_nodes_main', 10), 0, $sql_count, $parameters);
+      }
+      else {
+        $result = db_query($sql, $parameters);
+      }
+
+      // If we've just switched versions, we may have a term requested but no matching projects.
+      // In that case, we returned an uncollapsed fieldset.
+      if (module_invoke($module, 'project_sort_methods', 'set term', $sort_method)) {
+        $output .= theme('fieldset', array('#title' => t('Categories'), '#collapsible' => TRUE, '#collapsed' =>  (arg(3) && db_num_rows($result)) ? TRUE : FALSE, '#children' => theme('project_term_list', $terms, "project/$termname/$sort_method")));
+        if (!arg(3) || !db_num_rows($result)) {
+          return $output;
         }
       }
     }
+    // If taxonomy is enabled but no termname is selected, show a list of terms to choose from.
     else {
-      $term = current($terms);
+      $tree = taxonomy_get_tree($vid, 0, -1, 1);
+      $items = array();
+      foreach ($tree as $term) {
+        $items[] = theme('project_type', $term);
+      }
+      drupal_set_breadcrumb($breadcrumb);
+      drupal_set_title(t('Project types'));
+      return theme('item_list', $items);
     }
-
-    if ($term->description) {
-      $output .= $term->description;
-    }
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {term_node} r ON n.nid = r.nid WHERE n.status = 1 AND r.tid = %d ORDER BY n.title ASC"), $term->tid);
   }
-  // Fetch all projects
+  // If taxonomy is not enabled, fetch all projects
   else {
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, n.changed, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
   }
 
   $header = array(
@@ -425,42 +653,50 @@ function project_page_overview($termname = NULL, $version = NULL) {
   );
 
   $rows = array();
-  while ($node = db_fetch_object($result)) {
-    $version = $version ? $version : variable_get('project_release_overview', -1);
-    // If browsing by version, see if this project has a release for this version. If so, get the latest.
-    if ($version != -1) {
-      $result2 = db_query_range("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND path <> '' AND version LIKE '%s%%' ORDER BY created DESC", $node->nid, $version, 0, 1);
-      // Skip to the next item if there is no matching release.
-      if (!db_num_rows($result2)) {
-        continue;
+  while ($project = db_fetch_object($result)) {
+    $project->term = $termname;
+    $project->body = check_markup($project->teaser, $project->format, FALSE);
+
+    $project->terms = array();
+    foreach (taxonomy_node_get_terms($project->nid) as $term) {
+      if ($term->name != $termname) {
+        $project->terms[] = l($term->name, project_term_path($term));
       }
     }
-    // Otherwise, get the latest release, if there is one.
-    else {
-      $result2 = db_query_range("SELECT path, version, changed FROM {project_releases} WHERE nid = %d AND status = 1 AND created > 0 AND path <> '' ORDER BY created DESC", $node->nid, 0, 1);
-    }
-    $project = new StdClass();
-    $project->nid = $node->nid;
-    $project->title = $node->title;
-    $project->term = $termname;
-    $project->version = $version;
-    $project->body = check_markup($node->teaser, $node->format, false);
 
     $project->links = array();
-    if ($release = db_fetch_object($result2)) {
-      $project->links[] = '<a href="' . $release->path . '">' . t('Download') . '</a>';
-    }
-    $project->links[] = l(t('Find out more'), "node/$node->nid");
-    if ($node->issues) {
-      $project->links[] = l(t('Bugs and feature requests'), "project/issues/$node->nid");
-    }
 
+    if ($project->path) {
+      $project->links[] = '<a href="' . $project->path . '">' . t('Download') . '</a>';
+    }
+    $project->links[] = l(t('Find out more'), "node/$project->nid");
+
+    // This test doesn't currently work when taxonomy is enabled, since taxonomy_select_nodes doesn't load the issues setting from project_project
+    if ($project->issues) {
+      $project->links[] = l(t('Bugs and feature requests'), "project/issues/$project->nid");
+    }
+    if (module_invoke($module, 'project_sort_methods', 'group by date', $sort_method) && $date = _project_date($project->changed)) {
+      $rows[] = array("<h3>$date</h3>");
+    }
     $rows[] = array(theme('project_summary', $project));
   }
 
-  $output .= '<div class="project">'. theme('table', $header, $rows, array('id' => 'project-overview')) .'</div>';
+  $output .= '<div class="project">' . theme('table', $header, $rows, array('id' => 'project-overview')) .'</div>';
 
+  if ($pager) {
+    $output .= theme('pager', NULL, variable_get('default_nodes_main', 10));
+  }
+  drupal_set_breadcrumb($breadcrumb);
   return $output;
+}
+
+function project_build_query($sql_elements) {
+  foreach ($sql_elements as $key => $sql_element) {
+    if ($key != 'parameters' && count($sql_element['pieces'])) {
+      $sql .= $sql_element['prefix'] . implode($sql_element['glue'], $sql_element['pieces']);
+    }
+  }
+  return db_rewrite_sql($sql);
 }
 
 function project_user($type, $edit, &$user, $category = NULL) {
@@ -538,7 +774,177 @@ function project_file_download($file) {
   }
 }
 
+/**
+ * Provide settings data related to methods for sorting projects.
+ *
+ */
+function project_project_sort_methods($op, $method = NULL) {
+  switch ($op) {
+    // A listing of the available sorting methods.
+    // The array values are the name of the module (in this case, 'project').
+    case 'methods':
+      return array('category' => 'project', 'date' => 'project', 'name' => 'project');
+    case 'sql_settings' :
+      switch ($method) {
+        case 'category':
+          return array(
+            'order_bys' => array('n.sticky DESC', 'n.title ASC')
+          );
+        case 'date':
+          return array(
+            'fields' => array('MAX(pr.changed) AS changed'),
+            'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
+            'group_bys' => array('pr.nid'),
+            'order_bys' => array('pr.changed DESC', 'n.sticky DESC', 'n.title ASC')
+          );
+        case 'name':
+          return array(
+            'order_bys' => array('n.title ASC', 'n.sticky DESC', 'n.title ASC')
+          );
+        default:
+          return;
+      }
+    // Does this method reset the $term variable, and output term information?
+    case 'set term':
+      switch ($method) {
+        case 'category':
+          return TRUE;
+        default:
+          return;
+      }
+    // Does this method page results?
+    case 'pager':
+      switch ($method) {
+        case 'category':
+        case 'date':
+          return TRUE;
+        case 'name':
+          return FALSE;
+      }
+    // Does this method group results by date?
+    case 'group by date':
+      switch ($method) {
+        case 'category':
+          return FALSE;
+        case 'date':
+          return TRUE;
+        case 'name':
+          return FALSE;
+        default:
+          return;
+      }
+  }
+  return;
+}
+
+function project_default_tid() {
+  static $tid;
+  if ($tid === NULL) {
+    if (variable_get('project_release_overview', -1) != -1) {
+      $tid = db_result(db_query("SELECT t.tid FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid WHERE (p.version LIKE '%s%%')", $version));
+    }
+    else {
+      $tid = db_result(db_query("SELECT t.tid FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid"));
+    }
+  }
+  return $tid;
+}
+
+/**
+ * Helper function for grouping nodes by date.
+ */
+function _project_date($timestamp) {
+  static $last;
+  $date = format_date($timestamp, 'custom', 'F j, Y');
+  if ($date != $last) {
+    $last = $date;
+    return $date;
+  }
+}
+
+function project_projects_select_options($key_prefix = NULL) {
+  if (module_exist('taxonomy')) {
+    $vid = _project_get_vid();
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
+    while ($project = db_fetch_object($result)) {
+      if (isset($project->name)) {
+        if (!isset($projects[$project->name])) {
+          $projects[$project->name] = array();
+        }
+        $projects[$project->name][$key_prefix . $project->nid] = $project->title;
+      }
+      else {
+        $projects[$key_prefix . $project->nid] = $project->title;
+      }
+    }
+  }
+  else {
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
+    while ($project = db_fetch_object($result)) {
+      $projects[$key_prefix . $project->nid] = $project->title;
+    }
+  }
+  return $projects;
+}
+
+function project_version_filter_form($version) {
+
+  $releases = array(-1 => t('<all>')) + project_releases_list();
+  $form['#attributes'] = array('id' => 'version-filter-form');
+  $form['rid'] = array(
+    '#type' => 'select',
+    '#default_value' => $version,
+    '#options' => $releases
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Go')
+  );
+  return $form;
+}
+
+function theme_project_version_filter_form($form) {
+  $rows[] = array(
+    t('Filter by version:'),
+    form_render($form['rid']),
+    form_render($form['submit'])
+  );
+  $output = theme('table', array(), $rows);
+  $output .= form_render($form);
+  return $output;
+}
+
+function project_quick_navigate_form($projects) {
+  $form = array();
+  $form['project_goto'] = array(
+    '#type' => 'select',
+    '#default_value' => '0',
+    '#options' => $projects
+  );
+  $form['destination'] = array(
+    '#type' => 'hidden',
+    '#value' => $_REQUEST['q']
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Go')
+  );
+  $form['#action'] = url('project/goto');
+  return $form;
+}
+
 // Themables
+
+function theme_project_term_list($terms, $path) {
+  $depth = 0;
+  $output = "\n<ul class=\"project-terms\">\n";
+  foreach ($terms as $term) {
+    $link = l(t('%name (%count)', array('%name' => $term->name, '%count' => $term->count)), check_url("$path/$term->tid"));
+    $output .= '<li class="leaf">' . $link . "</li>\n";
+  }
+  $output .= "\n</ul>\n";
+  return $output;
+}
 
 /**
  * Theme a compact project view/summary.
@@ -553,9 +959,27 @@ function project_file_download($file) {
  */
 function theme_project_summary($project) {
   $output = '<h2>'. l($project->title, "node/$project->nid") .'</h2>';
+  if ($project->changed) {
+    $output .= '<p><small>' . t('Last changed: %interval ago', array('%interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
+  }
   $output .= $project->body;
   $output .= theme('links', $project->links);
+  if ($project->terms) {
+    $output .= '<br />' . theme('links', $project->terms);
+  }
   return $output;
 }
 
+/**
+ * Theme a project type item.
+ *
+ */
+function theme_project_type($term) {
+  $link = l($term->name, check_url('project/'. $term->name));
+  $output = "<div>$link</div>\n";
+  if ($term->description) {
+    $output .= '<p>' . check_plain($term->description) . '</p>';
+  }
+  return $output;
+}
 ?>

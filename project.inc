@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.62 2005/11/08 19:36:59 webchick Exp $ */
+/* $Id: project.inc,v 1.63 2006/01/16 20:21:13 nedjo Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -323,10 +323,10 @@ function project_project_set_location(&$node, $extra = array()) {
   $breadcrumb = array();
 
   $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-  $taxonomy_terms = taxonomy_node_get_terms($node->nid);
-  if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
-    $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
-  }
+  $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = "" AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
+  $term = db_fetch_object($result);
+  $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
+
   $breadcrumb = array_merge($breadcrumb, $extra);
 
   return $breadcrumb;
@@ -334,7 +334,6 @@ function project_project_set_location(&$node, $extra = array()) {
 
 function project_project_view(&$node, $teaser = false, $page = false) {
   $node = project_project_content($node, $teaser);
-
   if ($page) {
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
@@ -420,6 +419,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     if ($links) {
       $output .= theme('item_list', $links, t('Development'));
     }
+
     $node->body .= $output;
   }
 }
