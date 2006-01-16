@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.141 2006/01/16 20:21:13 nedjo Exp $ */
+/* $Id: issue.inc,v 1.142 2006/01/16 20:53:56 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -790,7 +790,7 @@ function project_issue_query($project = 0, $query = NULL) {
       '#title' => t('Projects'),
       '#default_value' => $query->projects,
       '#options' => $projects,
-      '#attributes' => 'size="5"',
+      '#attributes' => array('size' => 5),
       '#multiple' => TRUE,
     );
     $form['categories'] = array(
@@ -798,7 +798,7 @@ function project_issue_query($project = 0, $query = NULL) {
       '#title' => t('Categories'),
       '#default_value' => $query->categories,
       '#options' => $categories,
-      '#attributes' => 'size="5"',
+      '#attributes' => array('size' => 5),
       '#multiple' => TRUE,
     );
   }
@@ -808,14 +808,15 @@ function project_issue_query($project = 0, $query = NULL) {
       '#title' => t('Versions'),
       '#default_value' => $query->versions,
       '#options' => $versions,
-      '#attributes' => 'size="5"',
+      '#attributes' => array('size' => 5),
       '#multiple' => TRUE,
     );
     $form['components'] = array(
       '#type' => 'select',
       '#title' => t('Components'),
       '#default_value' => $query->components,
-      '#options' => $components, '#attributes' => 'size="5"',
+      '#options' => $components,
+      '#attributes' => array('size' => 5),
       '#multiple' => TRUE,
     );
     $form['categories'] = array(
@@ -823,7 +824,7 @@ function project_issue_query($project = 0, $query = NULL) {
       '#title' => t('Categories'),
       '#default_value' => $query->categories,
       '#options' => $categories,
-      '#attributes' => 'size="5"',
+      '#attributes' => array('size' => 5),
       '#multiple' => TRUE,
     );
   }
@@ -832,7 +833,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#title' => t('Priorities'),
     '#default_value' => $query->priorities,
     '#options' => $priorities,
-    '#attributes' => 'size="5"',
+    '#attributes' => array('size' => 5),
     '#multiple' => TRUE,
   );
   $form['states'] = array(
@@ -840,7 +841,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#title' => t('Status'),
     '#default_value' => ($query->states) ? $query->states : array(1, 2, 8, 13, 14),
     '#options' => $states,
-    '#attributes' => 'size="5"',
+    '#attributes' => array('size' => 5),
     '#multiple' => TRUE,
   );
   $form['submitted'] = array(
