@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.64 2006/01/16 20:35:36 nedjo Exp $ */
+/* $Id: project.inc,v 1.65 2006/01/24 22:10:51 nedjo Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -8,10 +8,9 @@ function project_project_form(&$node) {
   if (is_array($node->components)) {
     $node->components = implode("\n", $node->components);
   }
-  else {
+  elseif (empty($node->components)) {
     $node->components = "Code\nDocumentation\nMiscellaneous\nUser interface";
   }
-
   /*
   ** Allow the following fields to be initialized via $_GET
   */
@@ -300,16 +299,6 @@ function project_project_validate(&$node) {
       form_set_error($uri, t('%field is not a valid URL.', array('%field' => t(ucfirst($uri)))));
     }
   }
-
-  // Transform components into array.
-  if (!is_array($node->components)) {
-    if ($node->components) {
-      $node->components = explode("\n", str_replace("\r", '', $node->components));
-    }
-    else {
-      $node->components = array();
-    }
-  }
 }
 
 /**
@@ -437,16 +426,16 @@ function project_project_releases() {
 }
 
 function project_project_load($node) {
-  $node = db_fetch_object(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
+  $project = db_fetch_object(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
+  $project->components = unserialize($project->components);
+  $project->mail_copy_filter = unserialize($project->mail_copy_filter);
+  $project->mail_copy_filter_state = unserialize($project->mail_copy_filter_state);
 
-  $node->components = unserialize($node->components);
-  $node->mail_copy_filter = unserialize($node->mail_copy_filter);
-  $node->mail_copy_filter_state = unserialize($node->mail_copy_filter_state);
-
-  return $node;
+  return $project;
 }
 
 function project_project_insert($node) {
+  project_project_convert_components($node);
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
   $node->mail_copy_filter_state = serialize($node->mail_copy_filter_state);
@@ -456,6 +445,7 @@ function project_project_insert($node) {
 }
 
 function project_project_update($node) {
+  project_project_convert_components($node);
   $node->components = serialize($node->components);
   $node->mail_copy_filter = serialize($node->mail_copy_filter);
   $node->mail_copy_filter_state = serialize($node->mail_copy_filter_state);
@@ -480,6 +470,18 @@ function project_project_access($op, $node) {
     case 'update':
     case 'delete':
       return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+  }
+}
+
+function project_project_convert_components(&$node);
+  // Transform components into array.
+  if (!is_array($node->components)) {
+    if ($node->components) {
+      $node->components = explode("\n", str_replace("\r", '', $node->components));
+    }
+    else {
+      $node->components = array();
+    }
   }
 }
 
