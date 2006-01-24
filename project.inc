@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.65 2006/01/24 22:10:51 nedjo Exp $ */
+/* $Id: project.inc,v 1.66 2006/01/24 23:33:54 nedjo Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -184,9 +184,10 @@ function project_project_form(&$node) {
     $form['email']['categories'] = array(
       '#type' => 'item',
       '#title' => t('Categories'),
-      '#description' => t('Which issue categories to e-mail. If none are checked all categories will be posted.'),
+      '#description' => t('Which issue categories to e-mail. If none is checked all categories will be posted.'),
     );
     $form['email']['mail_copy_filter']['#tree'] = TRUE;
+
     foreach ($options as $key => $choice) {
       $form['email']['mail_copy_filter'][$key] = array(
         '#type' => 'checkbox',
@@ -195,12 +196,11 @@ function project_project_form(&$node) {
         '#default_value' => $node->mail_copy_filter[$key],
       );
     }
-
     $options = project_issue_state();
     $form['email']['states'] = array(
       '#type' => 'item',
       '#title' => t('States'),
-      '#description' => t('Which issue states to e-mail. If none are checked all states will be posted.'),
+      '#description' => t('Which issue states to e-mail. If none is checked all states will be posted.'),
     );
     $form['email']['mail_copy_filter_state']['#tree'] = TRUE;
     foreach ($options as $key => $choice) {
@@ -473,7 +473,7 @@ function project_project_access($op, $node) {
   }
 }
 
-function project_project_convert_components(&$node);
+function project_project_convert_components(&$node) {
   // Transform components into array.
   if (!is_array($node->components)) {
     if ($node->components) {
