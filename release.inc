@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.65 2006/01/16 20:35:36 nedjo Exp $ */
+/* $Id: release.inc,v 1.66 2006/01/25 11:47:39 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -18,6 +18,7 @@ function project_release_scan_directory($project = NULL) {
     else {
       $regexp = '(.+)-(.+)\.(tar.gz|zip)';
     }
+
     file_scan_directory($dir, $regexp, array('.', '..', 'CVS'), 'project_release_scan_parse');
 
     // If any releases were previously present but are no longer, unpublish them.
@@ -55,6 +56,7 @@ function project_release_scan_parse($path = NULL) {
   else {
     $dir = dirname($path);
     $file = basename($path);
+    //preg_match('/^(.+?)-([0-9.]+(?:-.*)|[^-]+)\.(tar\.gz|zip)$/', $file, $matches);
     preg_match('/^(.+?)-([0-9.]+(?:-.*)|[^-]+)\.(tar.gz$|zip$)/', $file, $matches);
     list($filename, $name, $version) = $matches;
 
@@ -268,7 +270,7 @@ function project_release_view($release, $project = 0) {
   $links = array();
   if ($release->rid && node_access('update', $project)) {
     $links[] = l('edit', "node/$project->nid/release/edit/$release->rid");
-    $links[] = l('delete', "node/$project->nid/release/delete/$release->rid");
+    //$links[] = l('delete', "node/$project->nid/release/delete/$release->rid");
   }
 
   if ($release->path) {
@@ -306,7 +308,7 @@ function project_release_list($project, $main = 0) {
 function project_release_load($rid, $status = 1) {
   if ($rid->type == 'project_project') {
     $status = $status ? 'AND status = 1' : '';
-    $result = db_query("SELECT rid,version FROM {project_releases} WHERE nid = %d $status ORDER BY created DESC", $rid->nid);
+    $result = db_query("SELECT rid,version FROM {project_releases} WHERE nid = %d $status ORDER BY version DESC", $rid->nid);
     $releases = array();
     while ($release = db_fetch_object($result)) {
       $releases[$release->rid] = $release->version;
