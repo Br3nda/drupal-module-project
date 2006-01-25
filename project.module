@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.221 2006/01/24 21:21:48 nedjo Exp $
+// $Id: project.module,v 1.222 2006/01/25 00:49:31 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -647,12 +647,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   else {
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
   }
-
-  $header = array(
-    array('data' => t('Projects'))
-  );
-
-  $rows = array();
+  $class = 'even';
   while ($project = db_fetch_object($result)) {
     $project->term = $termname;
     $project->body = check_markup($project->teaser, $project->format, FALSE);
@@ -676,12 +671,14 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $project->links[] = l(t('Bugs and feature requests'), "project/issues/$project->nid");
     }
     if (module_invoke($module, 'project_sort_methods', 'group by date', $sort_method) && $date = _project_date($project->changed)) {
-      $rows[] = array("<h3>$date</h3>");
+      $projects .= "<h3>$date</h3>";
     }
-    $rows[] = array(theme('project_summary', $project));
+    $project->class = ($class == 'even') ? 'odd': 'even';
+    $projects .= theme('project_summary', $project);
+    $class = $project->class;
   }
 
-  $output .= '<div class="project">' . theme('table', $header, $rows, array('id' => 'project-overview')) .'</div>';
+  $output .= '<div class="project" id="project-overview">' . $projects . '</div>';
 
   if ($pager) {
     $output .= theme('pager', NULL, variable_get('default_nodes_main', 10));
@@ -905,13 +902,7 @@ function project_version_filter_form($version) {
 }
 
 function theme_project_version_filter_form($form) {
-  $rows[] = array(
-    t('Filter by version:'),
-    form_render($form['rid']),
-    form_render($form['submit'])
-  );
-  $output = theme('table', array(), $rows);
-  $output .= form_render($form);
+  $output = '<div class="container-inline">' . t('Filter by version:') . form_render($form) . '</div>';
   return $output;
 }
 
@@ -959,7 +950,8 @@ function theme_project_term_list($terms, $path) {
  * - links: Array of links
  */
 function theme_project_summary($project) {
-  $output = '<h2>'. l($project->title, "node/$project->nid") .'</h2>';
+  $output = '<div class="' . $project->class . '">';
+  $output .= '<h2>'. l($project->title, "node/$project->nid") .'</h2>';
   if ($project->changed) {
     $output .= '<p><small>' . t('Last changed: %interval ago', array('%interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
   }
@@ -968,6 +960,7 @@ function theme_project_summary($project) {
   if ($project->terms) {
     $output .= '<br />' . theme('links', $project->terms);
   }
+  $output .= '</div>';
   return $output;
 }
 
