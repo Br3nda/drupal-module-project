@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.20 2006/01/16 20:35:36 nedjo Exp $
+-- $Id: project.mysql,v 1.21 2006/01/25 11:45:26 dries Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -43,6 +43,7 @@ CREATE TABLE project_releases (
   changes text,
   weight tinyint(3) unsigned NOT NULL default '0',
   changed int(10) unsigned NOT NULL default '0',
+  UNIQUE(path),
   PRIMARY KEY (`rid`),
   KEY project_releases_nid (nid)
 ) TYPE=MyISAM;
