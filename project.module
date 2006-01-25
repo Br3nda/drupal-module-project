@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.222 2006/01/25 00:49:31 nedjo Exp $
+// $Id: project.module,v 1.223 2006/01/25 00:52:01 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -612,6 +612,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
       $sql = project_build_query($sql_elements);
 
+      $pager = module_invoke($module, 'project_sort_methods', 'pager', $sort_method);
       if ($pager) {
         $first_field = array_shift($sql_elements['fields']['pieces']);
         array_shift($sql_elements['fields']['pieces'], "COUNT($first_field)");
