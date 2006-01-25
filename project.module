@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.223 2006/01/25 00:52:01 nedjo Exp $
+// $Id: project.module,v 1.224 2006/01/25 05:38:36 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -181,6 +181,10 @@ function project_settings() {
     '#maxlength' => 255,
     '#description' => t("Subdirectory in the directory '%dir' where attachment to issues will be stored.", array('%dir' => variable_get('file_directory_path', 'files') . '/')),
   );
+
+  if (module_exist('forum')) {
+    $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
+  }
 
   if (module_exist('mailhandler')) {
     // TODO: move this stuff to mailhandler.module ?
@@ -615,7 +619,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $pager = module_invoke($module, 'project_sort_methods', 'pager', $sort_method);
       if ($pager) {
         $first_field = array_shift($sql_elements['fields']['pieces']);
-        array_shift($sql_elements['fields']['pieces'], "COUNT($first_field)");
+        array_unshift($sql_elements['fields']['pieces'], "COUNT($first_field)");
         $sql_count = project_build_query($sql_elements);
         $result = pager_query($sql, variable_get('default_nodes_main', 10), 0, $sql_count, $parameters);
       }

@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.66 2006/01/24 23:33:54 nedjo Exp $ */
+/* $Id: project.inc,v 1.67 2006/01/25 05:38:36 nedjo Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -19,7 +19,7 @@ function project_project_form(&$node) {
       $node->$field = $_GET['edit'][$field];
     }
   }
-  
+
   $form['#prefix'] = '<div class="project">';
 
   /* Project properties */
@@ -210,7 +210,7 @@ function project_project_form(&$node) {
         '#return_value' => $key,
         '#default_value' => $node->mail_copy_filter_state[$key],
       );
-    } 
+    }
 
     $form['email']['reminder'] = array(
       '#type' => 'item',
@@ -224,7 +224,7 @@ function project_project_form(&$node) {
       '#description' => t('Enabling this will send a monthly reminder to users that have open issues registered.'),
     );
   }
-    
+
   $form['#suffix'] = '</div>';
   return $form;
 }
@@ -368,7 +368,9 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     // Support section
     $links = array();
 
-    $links[] = l(t('Support forum'), variable_get('project_support_forum', 'forum/18'));
+    if (module_exist('forum') && ($support_forum = variable_get('project_support_forum', ''))) {
+      $links[] = l(t('Support forum'), 'forum/' . $support_forum);
+    }
 
     if ($node->issues) {
       #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
