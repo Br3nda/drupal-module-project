@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.224 2006/01/25 05:38:36 nedjo Exp $
+// $Id: project.module,v 1.225 2006/01/25 06:16:45 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -491,7 +491,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $sort_method = $sort_method ? $sort_method : variable_get('project_sort_method', 'category');
 
       if ($term->description) {
-        $output .= '<p>' . check_plain($term->description) . '</p>';
+        $output .= '<p>' . filter_xss($term->description) . '</p>';
       }
 
       $module = $sort_methods[$sort_method];
@@ -977,7 +977,7 @@ function theme_project_type($term) {
   $link = l($term->name, check_url('project/'. $term->name));
   $output = "<div>$link</div>\n";
   if ($term->description) {
-    $output .= '<p>' . check_plain($term->description) . '</p>';
+    $output .= '<p>' . filter_xss($term->description) . '</p>';
   }
   return $output;
 }
