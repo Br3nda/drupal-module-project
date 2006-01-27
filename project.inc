@@ -1,10 +1,12 @@
 <?php
-/* $Id: project.inc,v 1.67 2006/01/25 05:38:36 nedjo Exp $ */
+/* $Id: project.inc,v 1.68 2006/01/27 05:51:11 nedjo Exp $ */
 
 /**
  * Implementation of hook_form().
  */
 function project_project_form(&$node) {
+  global $user;
+
   if (is_array($node->components)) {
     $node->components = implode("\n", $node->components);
   }
@@ -55,7 +57,7 @@ function project_project_form(&$node) {
   $form['project']['mail'] = array(
     '#type' => 'textfield',
     '#title' => t('Project e-mail'),
-    '#default_value' => $node->mail,
+    '#default_value' => $node->mail ? $node->mail : $user->mail,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('E-mail address where the project owners can be contacted.'),
