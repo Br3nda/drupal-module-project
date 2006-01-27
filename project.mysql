@@ -1,4 +1,4 @@
--- $Id: project.mysql,v 1.21 2006/01/25 11:45:26 dries Exp $
+-- $Id: project.mysql,v 1.22 2006/01/27 17:45:12 nedjo Exp $
 
 --
 -- Table structure for table 'project_projects'
@@ -22,7 +22,7 @@ CREATE TABLE project_projects (
   mail_reminder tinyint(4) NOT NULL default '0',
   PRIMARY KEY (`nid`),
   KEY project_projects_uri (uri(8))
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 ALTER TABLE project_projects ADD help text;
 ALTER TABLE project_projects ADD screenshots varchar(255) not null default '';
 ALTER TABLE project_projects ADD mail_copy_filter_state varchar(255) not null default '';
@@ -46,7 +46,7 @@ CREATE TABLE project_releases (
   UNIQUE(path),
   PRIMARY KEY (`rid`),
   KEY project_releases_nid (nid)
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 ALTER TABLE project_releases ADD status tinyint(1) unsigned NOT NULL default '1';
 ALTER TABLE project_releases ADD hash varchar(32) NOT NULL default '';
 
@@ -66,7 +66,7 @@ CREATE TABLE project_issues (
   state tinyint(3) unsigned NOT NULL default '0',
   PRIMARY KEY (`nid`),
   KEY project_issues_pid (pid)
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 ALTER TABLE project_issues DROP fid;
 ALTER TABLE project_issues ADD file_path varchar(255) NOT NULL default '';
@@ -90,7 +90,7 @@ CREATE TABLE project_comments (
   data blob,
   PRIMARY KEY (`cid`),
   KEY project_comments_nid (nid)
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 ALTER TABLE project_comments DROP fid;
 ALTER TABLE project_comments ADD file_path varchar(255) NOT NULL default '';
@@ -106,7 +106,7 @@ CREATE TABLE project_subscriptions (
   uid int(10) unsigned NOT NULL default '0',
   level tinyint(3) unsigned NOT NULL default '0',
   KEY project_subscriptions_nid_uid_level (nid, uid, level)
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 --
 -- Table structure for table 'project_issue_state'
@@ -118,7 +118,7 @@ CREATE TABLE project_issue_state (
   weight tinyint(2) DEFAULT '0' NOT NULL,
   author_has tinyint(2) DEFAULT '0' NOT NULL,
   PRIMARY KEY  (sid)
-) TYPE=MyISAM;
+) TYPE=MyISAM; /*!40100 DEFAULT CHARACTER SET utf8 */;
 
 --
 -- Data for table 'project_issue_state'
