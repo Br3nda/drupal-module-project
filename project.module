@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.225 2006/01/25 06:16:45 nedjo Exp $
+// $Id: project.module,v 1.226 2006/01/27 18:33:56 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -868,7 +868,7 @@ function project_projects_select_options($key_prefix = NULL) {
   $projects = array();
   if (module_exist('taxonomy')) {
     $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
+    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
     while ($project = db_fetch_object($result)) {
       if (isset($project->name)) {
         if (!isset($projects[$project->name])) {
