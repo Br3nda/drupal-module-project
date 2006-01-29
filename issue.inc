@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.142 2006/01/16 20:53:56 nedjo Exp $ */
+/* $Id: issue.inc,v 1.143 2006/01/29 19:33:54 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -747,8 +747,6 @@ function project_issue_count($pid) {
   return $state;
 }
 
-
-
 function project_issue_query($project = 0, $query = NULL) {
   $categories = project_issue_category();
   $components = array();
@@ -848,6 +846,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#type' => 'textfield',
     '#title' => t('Submitted by'),
     '#default_value' => $query->submitted,
+    '#autocomplete_path' => 'user/autocomplete',
     '#size' => 20,
     '#maxlength' => 255,
   );  
@@ -855,6 +854,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#type' => 'textfield',
     '#title' => t('Assigned'),
     '#default_value' => $query->assigned,
+    '#autocomplete_path' => 'user/autocomplete',
     '#size' => 20,
     '#maxlength' => 255,
   );
@@ -862,6 +862,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#type' => 'textfield',
     '#title' => t('Participant'),
     '#default_value' => $query->users,
+    '#autocomplete_path' => 'user/autocomplete',
     '#size' => 20,
     '#maxlength' => 255,
   );
