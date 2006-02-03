@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.227 2006/01/29 19:09:11 nedjo Exp $
+// $Id: project.module,v 1.228 2006/02/03 11:20:19 killes Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -596,7 +596,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'fields' => array('pr.path', 'pr.version', 'MAX(pr.changed) AS changed'),
           'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
           'wheres' => array('pr.status = 1', "pr.path <> ''"),
-          'group_bys' => array('pr.nid'),
+          'group_bys' => array('n.nid'),
           'parameters' => array($version)
         );
         if ($version != -1) {
