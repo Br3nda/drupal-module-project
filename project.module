@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.229 2006/02/06 04:15:59 nedjo Exp $
+// $Id: project.module,v 1.230 2006/02/06 18:17:57 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -589,6 +589,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         )
       );
 
+      // Only the 'pieces' are returned; the prefix and glue elements remain unchanged.
       $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
 
       if (variable_get('project_browse_releases', 0)) {
@@ -602,14 +603,13 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         if ($version != -1) {
           $release_settings['wheres'][] = "pr.version LIKE '%s%%'";
         }
-        $sql_settings = array_merge($sql_settings, $release_settings);
+        $sql_settings = array_merge_recursive($sql_settings, $release_settings);
       }
 
-      foreach(array_keys($sql_elements) as $key) {
-        // Add elements to the arrays only  if they're not aleady there.
-        if (!in_array($sql_settings[$key], $sql_elements[$key]['pieces'])) {
-          $sql_elements[$key]['pieces'] = array_merge($sql_elements[$key]['pieces'], $sql_settings[$key]);
-        }
+      // Merge in $sql_elements
+      foreach(array_keys($sql_settings) as $key) {
+        $sql_elements[$key]['pieces'] = array_merge($sql_elements[$key]['pieces'], $sql_settings[$key]);
+        $sql_elements[$key]['pieces'] = array_unique($sql_elements[$key]['pieces']);
       }
 
       $parameters = $sql_elements['parameters']['pieces'];
@@ -800,7 +800,7 @@ function project_project_sort_methods($op, $method = NULL) {
           return array(
             'fields' => array('MAX(pr.changed) AS changed'),
             'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
-            'group_bys' => array('pr.nid'),
+            'group_bys' => array('n.nid'),
             'order_bys' => array('pr.changed DESC', 'n.sticky DESC', 'n.title ASC')
           );
         case 'name':
