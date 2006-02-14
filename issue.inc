@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.143 2006/01/29 19:33:54 nedjo Exp $ */
+/* $Id: issue.inc,v 1.144 2006/02/14 22:46:35 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -685,6 +685,7 @@ function project_issue_delete($node) {
 }
 
 function project_issue_access($op, $node) {
+  global $user;
   switch ($op) {
     case 'view':
       return user_access('access project issues') || (user_access('access own project issues') && $node->uid == $user->uid);
