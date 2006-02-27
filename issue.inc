@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.144 2006/02/14 22:46:35 nedjo Exp $ */
+/* $Id: issue.inc,v 1.145 2006/02/27 12:20:39 dries Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1323,7 +1323,7 @@ function project_issue_query_sql_field($field, $values, $like = 0, $operator = '
     if ($callback) {
       $value = $callback($value);
     }
-    $sql[] = $like ? "$field LIKE '%$value%'" : "$field = '$value'";
+    $sql[] = ($like && $field != 'p.pid') ? "$field LIKE '%$value%'" : "$field = '$value'";
   }
   if ($sql) {
     return '('. implode($operator, $sql) .')';
