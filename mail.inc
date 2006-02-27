@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.57 2006/01/27 05:58:07 nedjo Exp $ */
+/* $Id: mail.inc,v 1.58 2006/02/27 12:46:17 dries Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -96,7 +96,7 @@ function project_mailhandler($node, $result, $i, $header, $mailbox) {
       }
     }
     else {
-      $error['user'] = message_access();
+      $error['user'] = t('You are not authorized to access this page.');
     }
 
     if ($error && $mailbox['replies']) {
