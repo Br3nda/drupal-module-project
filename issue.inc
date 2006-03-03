@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.149 2006/03/03 18:08:41 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.150 2006/03/03 18:27:18 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -318,7 +318,7 @@ function project_issue_form(&$node, &$param) {
   $form['#attributes'] = array('enctype' => 'multipart/form-data');
 
   // Fetch a list of all projects to make swapping simpler
-  $projects = array_merge(array(t('<none>')), project_projects_select_options());
+  $projects = array(t('<none>')) + project_projects_select_options();
 
   // Try to find the active project
   if (empty($node->pid) && $arg = arg(3)) {
