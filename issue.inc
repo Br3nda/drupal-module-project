@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.151 2006/03/03 18:48:17 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.152 2006/03/03 19:57:57 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -510,8 +510,11 @@ function project_form_alter($form_id, &$form) {
       $form['project_info']['rid']['#validated'] = TRUE;
       $form['project_info']['component'] ['#validated'] = TRUE;
       $form['issue_info']['category']['#validated'] = TRUE;
+      $form['issue_details']['body']['#validated'] = TRUE;
       $form['issue_details']['title']['#validated'] = TRUE;
-      $form['issue_details']['format'][$default_format]['#value'] = $default_format;
+      if (isset($form['issue_details']['format'][$default_format])) { 
+        $form['issue_details']['format'][$default_format]['#value'] = $default_format;
+      }
     }
   }
 }
