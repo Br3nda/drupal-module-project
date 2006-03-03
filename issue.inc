@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.148 2006/03/03 17:55:09 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.149 2006/03/03 18:08:41 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -171,7 +171,7 @@ function project_issue_statistics($project = 0) {
   return $output;
 }
 
-function project_issue_subscribe_execute($form_id, $form_values) {
+function project_issue_subscribe_submit($form_id, $form_values) {
 
   global $user;
   $all = $_POST['all'];
@@ -1077,7 +1077,7 @@ function project_issue_admin_delete_state_confirm() {
     );
 }
 
-function project_issue_admin_delete_state_execute($form_id, $form_values) {
+function project_issue_admin_delete_state_submit($form_id, $form_values) {
   if($form_values['new_sid'] == $form_values['sid']) {
       form_set_error('new_sid', t('Choose a new issue status for existing issues of status %name.', array('%name' => $form_values['name'])));
   } else {
