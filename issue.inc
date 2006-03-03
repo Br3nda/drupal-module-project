@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.7 2006/02/15 00:41:50 nedjo Exp $ */
+/* $Id: issue.inc,v 1.102.2.8 2006/03/03 00:54:21 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -630,7 +630,7 @@ function project_issue_admin_states_page() {
       $output = '<div>' . theme('table', $header, project_issue_admin_states()) . '</div>';
       $output .= form_submit(t('Save'));
  
-      return form($output);
+      print theme('page', form($output));
       break;
   }      
 }
@@ -700,7 +700,7 @@ function project_issue_admin_delete_state() {
       t('Delete'),
       t('Cancel'),
       $extra);
-    return $output;
+    print theme('page', $output);
   }
 }
 
