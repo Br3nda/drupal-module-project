@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.59 2006/01/08 04:39:24 nedjo Exp $ */
+/* $Id: comment.inc,v 1.60 2006/03/03 11:13:33 dries Exp $ */
 
 function project_comment_page() {
   
@@ -60,9 +60,9 @@ function project_comment_form(&$edit, &$param) {
   if ($edit->cid) {
     $form['cid']= array('#type' => 'hidden', '#value' => $edit->cid);
   }
-  $form['preview'] = array('#type' => 'submit', '#value' => t('Preview'));
+  $form['preview'] = array('#type' => 'button', '#value' => t('Preview'));
   if (!form_get_errors()) {
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Submit'));
+    $form['submit'] = array('#type' => 'button', '#value' => t('Submit'));
   }
   if ($op == t('Preview')) {
     $form['#after_build'] = 'node_form_add_preview';

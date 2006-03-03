@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.66 2006/01/25 11:47:39 dries Exp $ */
+/* $Id: release.inc,v 1.67 2006/03/03 11:13:33 dries Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -214,7 +214,7 @@ function project_release_form(&$release, &$param) {
   
   if (!form_get_errors()) {
     $form['submit'] = array(
-      '#type' => 'submit',
+      '#type' => 'button',
       '#value' => t('Submit'),
     );
   }

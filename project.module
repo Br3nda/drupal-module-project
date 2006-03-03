@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.230 2006/02/06 18:17:57 nedjo Exp $
+// $Id: project.module,v 1.231 2006/03/03 11:13:33 dries Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -897,14 +897,13 @@ function project_projects_select_options($key_prefix = NULL) {
 function project_version_filter_form($version) {
 
   $releases = array(-1 => t('<all>')) + project_releases_list();
-  $form['#attributes'] = array('id' => 'version-filter-form');
   $form['rid'] = array(
     '#type' => 'select',
     '#default_value' => $version,
     '#options' => $releases
   );
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type' => 'button',
     '#value' => t('Go')
   );
   return $form;
@@ -927,7 +926,7 @@ function project_quick_navigate_form($projects) {
     '#value' => $_REQUEST['q']
   );
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type' => 'button',
     '#value' => t('Go')
   );
   $form['#action'] = url('project/goto');

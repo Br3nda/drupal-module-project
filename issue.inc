@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.146 2006/03/03 08:27:15 dww Exp $ */
+/* $Id: issue.inc,v 1.147 2006/03/03 11:13:33 dries Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -232,7 +232,7 @@ function project_issue_subscribe($project = 0) {
     );
     foreach ($levels as $key => $level) {
       $form['buttons'][$level] = array(
-        '#type' => 'submit',
+        '#type' => 'button',
         '#name' => 'all',
         '#value' => $level,
       );
@@ -272,7 +272,7 @@ function project_issue_subscribe($project = 0) {
     }
   }
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type' => 'button',
     '#value' => t('Subscribe'),
   );
   return drupal_get_form('project_issue_subscribe', $form);
@@ -868,7 +868,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#maxlength' => 255,
   );
   $form['submit'] = array(
-    '#type' => 'submit',
+    '#type' => 'button',
     '#value' => t('Search'),
   );
 
@@ -1003,7 +1003,7 @@ function project_issue_admin_states_page() {
         '#delta' => 15,
       );
       $form['submit'] = array(
-        '#type' => 'submit',
+        '#type' => 'button',
         '#value' => t('Save'),
       );
 
@@ -1200,7 +1200,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
         '#value' => $query->users,
       );
       $form['submit'] = array(
-        '#type' => 'submit',
+        '#type' => 'button',
         '#value' => t('Search'),
       );
       $form['advanced_search'] = array(
