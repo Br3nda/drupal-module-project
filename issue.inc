@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.147 2006/03/03 11:13:33 dries Exp $ */
+/* $Id: issue.inc,v 1.148 2006/03/03 17:55:09 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -172,10 +172,10 @@ function project_issue_statistics($project = 0) {
 }
 
 function project_issue_subscribe_execute($form_id, $form_values) {
-  
+
   global $user;
   $all = $_POST['all'];
-  
+
   $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
 
     // Remove previous subscriptions for user.
@@ -222,7 +222,7 @@ function project_issue_subscribe($project = 0) {
       '#default_value' => $level,
       '#options' => $levels,
     );
-    
+
   }
   else {
 
@@ -282,7 +282,7 @@ function theme_project_issue_subscribe($form) {
   global $user;
 
   $output = '';
-    
+
   if (!$form['single']) {
     $levels = array(0 => t('None'), 1 => t('Own issues'), 2 => t('All issues'));
     $headers = array_merge(array(t('Project')), $levels);
@@ -292,7 +292,7 @@ function theme_project_issue_subscribe($form) {
       $row[] = form_render($form['buttons'][$key]);
     }
     $rows = array($row);
-    
+
     foreach (element_children($form['project']) as $key) {
       $row = array(form_render($form['project'][$key]['title']));
       foreach ($levels as $level => $name) {
@@ -469,11 +469,11 @@ function project_issue_form(&$node, &$param) {
       '#type' => 'hidden',
       '#value' => 'two',
     );
-    
+
 
   }
   else {
-    
+
     $form['pid'] = array(
       '#type' => 'select',
       '#title' => t('Project'),
@@ -510,8 +510,7 @@ function project_form_alter($form_id, &$form) {
       $form['project_info']['component'] ['#validated'] = TRUE;
       $form['issue_info']['category']['#validated'] = TRUE;
       $form['issue_details']['title']['#validated'] = TRUE;
-      $form['issue_details']['body']['#validated'] = TRUE;
-      $form['issue_details']['format']['format'][variable_get('filter_default_format', 1)]['#value'] = 1;
+      $form['issue_details']['format'][variable_get('filter_default_format', 1)]['#value'] = 1;
     }
   }
 }
@@ -768,7 +767,7 @@ function project_issue_query($project = 0, $query = NULL) {
   }
   $states = project_issue_state();
   $priorities = project_issue_priority();
-  
+
   $form['#action'] = url($project->uri ? "project/issues/$project->uri" : 'project/issues');
   $form['text'] = array(
     '#type' => 'textfield',
@@ -850,7 +849,7 @@ function project_issue_query($project = 0, $query = NULL) {
     '#autocomplete_path' => 'user/autocomplete',
     '#size' => 20,
     '#maxlength' => 255,
-  );  
+  );
   $form['assigned'] = array(
     '#type' => 'textfield',
     '#title' => t('Assigned'),
@@ -917,7 +916,7 @@ function theme_project_issue_query($form) {
   $output .= theme('table', array(), $rows);
   $output .= '</div>';
   $output .= form_render($form);
-  
+
   return $output;
 }
 
@@ -981,7 +980,7 @@ function project_issue_admin_states_page() {
         );
         $form['delete'][$state->sid] = array(
           '#type' => 'markup',
-          '#value' => ($state->sid != $default_state) ? 
+          '#value' => ($state->sid != $default_state) ?
             l(t('delete'), 'admin/settings/project/status/delete/'. $state->sid) :
             '',
         );
@@ -1048,7 +1047,7 @@ function project_issue_admin_delete_state_confirm() {
   $sid = arg(5);
   $states = project_issue_state();
   $name = $states[$sid];
-  
+
   $total = db_result(db_query('SELECT COUNT(nid) AS total FROM {project_issues} WHERE sid = %d', $sid));
   if ($total > 0) {
     $form['new_sid'] = array(
