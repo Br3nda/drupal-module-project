@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.153 2006/03/03 20:47:15 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.154 2006/03/06 16:35:59 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -506,13 +506,12 @@ function project_form_alter($form_id, &$form) {
         '#value' => 'hidden',
       );
     } elseif ($op == t('Next')) {
+
+      // At the moment, form api won't allow a default value to be set for radios/checkboxes
+      // on multipart forms.  This is a workaround to set the default value for filter format
+      // upon initial display of the second form.
       $default_format = variable_get('filter_default_format', 1);
-      $form['project_info']['rid']['#validated'] = TRUE;
-      $form['project_info']['component'] ['#validated'] = TRUE;
-      $form['issue_info']['category']['#validated'] = TRUE;
-      $form['issue_details']['body']['#validated'] = TRUE;
-      $form['issue_details']['title']['#validated'] = TRUE;
-      if (isset($form['issue_details']['format'][$default_format])) { 
+      if (isset($form['issue_details']['format'][$default_format])) {
         $form['issue_details']['format'][$default_format]['#value'] = $default_format;
       }
     }
