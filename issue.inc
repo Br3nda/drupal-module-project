@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.154 2006/03/06 16:35:59 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.155 2006/03/14 16:18:10 thehunmonkgroup Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -317,6 +317,9 @@ function project_issue_form(&$node, &$param) {
   // Set form parameters so we can accept file uploads.
   $form['#attributes'] = array('enctype' => 'multipart/form-data');
 
+  // Set the pre-render function for adjustments to the form stages
+  $form['#pre_render'] = array('project_issue_form_pre_render');
+
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>')) + project_projects_select_options();
 
@@ -464,12 +467,6 @@ function project_issue_form(&$node, &$param) {
       '#size' => 40,
       '#description' => ($node->file || $node->file_path ? t('A file already exists, if you upload another file the current file will be replaced.') : t('Optionally attach a file, for example a patch or a screenshot.')),
     );
-    // Add a field indicating that this is a multi-stage submission.
-    $form['wizard'] = array(
-      '#type' => 'hidden',
-      '#value' => 'two',
-    );
-
 
   }
   else {
@@ -483,7 +480,7 @@ function project_issue_form(&$node, &$param) {
     );
     // Add a field indicating that this is the first stage of a multi-stage submission.
     $form['wizard'] = array(
-      '#type' => 'hidden',
+      '#type' => 'value',
       '#value' => 'one',
     );
   }
@@ -491,9 +488,8 @@ function project_issue_form(&$node, &$param) {
   return $form;
 }
 
-function project_form_alter($form_id, &$form) {
+function project_issue_form_pre_render($form_id, &$form) {
   if ($form_id == 'project_issue_node_form') {
-    $op = $_POST['op'];
     // Alter the buttons, and auto validate required fields for first page
     if ($form['wizard']['#value'] == 'one') {
       $form['preview'] = array(
@@ -505,15 +501,6 @@ function project_form_alter($form_id, &$form) {
         '#type' => 'value',
         '#value' => 'hidden',
       );
-    } elseif ($op == t('Next')) {
-
-      // At the moment, form api won't allow a default value to be set for radios/checkboxes
-      // on multipart forms.  This is a workaround to set the default value for filter format
-      // upon initial display of the second form.
-      $default_format = variable_get('filter_default_format', 1);
-      if (isset($form['issue_details']['format'][$default_format])) {
-        $form['issue_details']['format'][$default_format]['#value'] = $default_format;
-      }
     }
   }
 }
