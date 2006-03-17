@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.155 2006/03/14 16:18:10 thehunmonkgroup Exp $ */
+/* $Id: issue.inc,v 1.156 2006/03/17 21:35:10 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -73,7 +73,7 @@ function project_issue_page() {
       }
       break;
     case 'user':
-       $_GET['users'] = $GLOBALS['user']->uid;
+       $_GET['participated'] = $GLOBALS['user']->uid;
     default:
       $project = project_project_retrieve(arg(2));
       if ($project->nid && node_access('view', $project)) {
