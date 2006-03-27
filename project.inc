@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.68 2006/01/27 05:51:11 nedjo Exp $ */
+/* $Id: project.inc,v 1.69 2006/03/27 01:06:07 unconed Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -142,7 +142,7 @@ function project_project_form(&$node) {
       '#title' => t('Default version'),
       '#default_value' => $node->version,
       '#options' => $releases,
-      '#description' => t('Default version for issues.'),
+      '#description' => t('Default version for downloading and for submitting issues.'),
     );
   }
   $form['issue']['components'] = array(
@@ -332,13 +332,12 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     menu_set_location($breadcrumb);
 
     if ($releases = project_release_load($node)) {
-      list($rid, $version) = each($releases);
-      $release = project_release_load($rid);
+      $release = project_release_load($node->version);
 
       // Download section
       $links = array();
 
-      $links[] = '<a href="' . $release->path . '">' . t('Download latest release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->changed, 'small'), '%size' => format_size(filesize($release->path))))  . '</a>';
+      $links[] = '<a href="'. base_path() . $release->path .'">' . t('Download latest release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->changed, 'small'), '%size' => format_size(filesize($release->path))))  . '</a>';
 
       if ($release->changes) {
         $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);

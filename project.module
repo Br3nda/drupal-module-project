@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.231 2006/03/03 11:13:33 dries Exp $
+// $Id: project.module,v 1.232 2006/03/27 01:06:07 unconed Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -594,7 +594,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
       if (variable_get('project_browse_releases', 0)) {
         $release_settings = array(
-          'fields' => array('pr.path', 'pr.version', 'MAX(pr.changed) AS changed'),
+          'fields' => array('pr.path', 'pr.version', 'MAX(pr.changed) AS changed', 'COUNT(*) AS release_count'),
           'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
           'wheres' => array('pr.status = 1', "pr.path <> ''"),
           'group_bys' => array('n.nid'),
@@ -668,10 +668,17 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
     }
 
+    // Make sure we have the latest release
+    if ($project->release_count > 1) {
+      $latest = db_fetch_object(db_query_range("SELECT path, version FROM {project_releases} WHERE nid = %d AND version LIKE '%s%%' ORDER BY version DESC", $project->nid, $version, 0, 1));
+      $project->path = $latest->path;
+      $project->version = $latest->version;
+    }
+
     $project->links = array();
 
     if ($project->path) {
-      $project->links[] = '<a href="' . $project->path . '">' . t('Download') . '</a>';
+      $project->links[] = '<a href="'. base_path() . $project->path .'">' . t('Download') . '</a>';
     }
     $project->links[] = l(t('Find out more'), "node/$project->nid");
 
@@ -805,7 +812,7 @@ function project_project_sort_methods($op, $method = NULL) {
           );
         case 'name':
           return array(
-            'order_bys' => array('n.title ASC', 'n.sticky DESC', 'n.title ASC')
+            'order_bys' => array('n.title ASC', 'n.sticky DESC')
           );
         default:
           return;
