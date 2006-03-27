@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.70 2006/03/27 06:25:22 unconed Exp $ */
+/* $Id: project.inc,v 1.71 2006/03/27 06:29:11 unconed Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -347,6 +347,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       }
       // Fallback to the latest
       if (!isset($release)) {
+        reset($releases);
         list($release) = each($releases);
       }
       $release = project_release_load($release);
