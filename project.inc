@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.69 2006/03/27 01:06:07 unconed Exp $ */
+/* $Id: project.inc,v 1.70 2006/03/27 06:25:22 unconed Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -332,7 +332,24 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     menu_set_location($breadcrumb);
 
     if ($releases = project_release_load($node)) {
-      $release = project_release_load($node->version);
+      // Determine most suitable release
+      $overview = variable_get('project_release_overview', -1);
+      foreach ($releases as $rid => $version) {
+        // If the project has a preferred release, choose that.
+        if ($rid == $node->version) {
+          $release = $rid;
+          break;
+        }
+        // If the version matches the default on the overview, prefer the first.
+        if (!isset($release) && strpos($version, $overview) === 0) {
+          $release = $rid;
+        }
+      }
+      // Fallback to the latest
+      if (!isset($release)) {
+        list($release) = each($releases);
+      }
+      $release = project_release_load($release);
 
       // Download section
       $links = array();
