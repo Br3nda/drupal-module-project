@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.232 2006/03/27 01:06:07 unconed Exp $
+// $Id: project.module,v 1.233 2006/03/27 19:23:20 yogadex Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -485,7 +485,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $vid = _project_get_vid();
     if ($termname) {
 
-      $term = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE vid = %d AND name = '%s'", 't', 'tid'), $vid, $termname));
+      $term = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE t.vid = %d AND t.name = '%s'", 't', 'tid'), $vid, $termname));
 
       $breadcrumb[] = l(t('projects'), 'project', array('title' => t('Browse projects')));
       $sort_method = $sort_method ? $sort_method : variable_get('project_sort_method', 'category');
