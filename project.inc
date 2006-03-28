@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.71 2006/03/27 06:29:11 unconed Exp $ */
+/* $Id: project.inc,v 1.72 2006/03/28 02:42:56 webchick Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -236,7 +236,6 @@ function project_project_cleanup($input) {
 }
 
 function project_project_validate(&$node) {
-  node_validate_title($node);
   // Bail if user hasn't done a preview yet.
   if (!isset($node->title)) {
     return $node;
