@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.157 2006/03/28 02:42:55 webchick Exp $ */
+/* $Id: issue.inc,v 1.158 2006/03/30 18:39:51 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -320,6 +320,11 @@ function project_issue_form(&$node, &$param) {
   // Set the pre-render function for adjustments to the form stages
   $form['#pre_render'] = array('project_issue_form_pre_render');
 
+  $form['page'] = array(
+    '#type' => 'hidden',
+    '#value' => isset($_POST['edit']['page']) ? $_POST['edit']['page'] : 1,
+  );
+
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>')) + project_projects_select_options();
 
@@ -478,11 +483,7 @@ function project_issue_form(&$node, &$param) {
       '#options' => $projects,
       '#required' => TRUE,
     );
-    // Add a field indicating that this is the first stage of a multi-stage submission.
-    $form['wizard'] = array(
-      '#type' => 'value',
-      '#value' => 'one',
-    );
+
   }
 
   return $form;
@@ -490,8 +491,17 @@ function project_issue_form(&$node, &$param) {
 
 function project_issue_form_pre_render($form_id, &$form) {
   if ($form_id == 'project_issue_node_form') {
-    // Alter the buttons, and auto validate required fields for first page
-    if ($form['wizard']['#value'] == 'one') {
+
+    // Only move to the next page if there were no form errors.  
+    // We don't want to keep incrementing page forever, since users
+    // can successfully preview many times...
+    if (!form_get_errors() && isset($_POST['edit']['page']) && $form['page']['#value'] < 2) {
+      $form['page']['#value'] = $form['page']['#value'] + 1;
+    }
+
+    // If we're on the first page, we want to convert 'preview' into a
+    // 'next' button and hide 'submit', otherwise, we want the default.
+    if ($form['page']['#value'] == 1) {
       $form['preview'] = array(
         '#type' => 'button',
         '#value' => t('Next'),
@@ -508,12 +518,12 @@ function project_issue_form_pre_render($form_id, &$form) {
 function project_issue_node_form_validate($form_id, $form) {
   global $form_values;
   $edit = $_POST['edit'];
+
   if (!$form_values['pid']) {
     form_set_error('pid', t('You have to specify a valid project.'));
   }
 
-  // Otherwise, validate the rest of the form if it has been previously submitted.
-  if (($edit['wizard'] == 'two')) {
+  if ($form_values['page'] == 2) {
     if ($form_values['pid'] && $project = node_load($form_values['pid'])) {
       $node->title = $form_values['title'];
       if ($releases = project_release_load($project)) {
@@ -525,19 +535,15 @@ function project_issue_node_form_validate($form_id, $form) {
       if ($form_values['component'] && !in_array($form_values['component'], $project->components)) {
         $form_values['component'] = 0;
       }
-
-      empty($form_values['component']) and form_set_error('component', t('You have to specify a valid component.'));
-      empty($form_values['category']) and form_set_error('category', t('You have to specify a valid category.'));
-      empty($form_values['body']) and form_set_error('body', t('You have to specify a valid description.'));
+      empty($form_values['component']) && form_set_error('component', t('You have to specify a valid component.'));
+      empty($form_values['category']) && form_set_error('category', t('You have to specify a valid category.'));
+      empty($form_values['body']) && form_set_error('body', t('You have to specify a valid description.'));
 
       $file = file_check_upload('file_issue');
       $form_values['file'] = file_save_upload($file);
     }
   }
 }
-
-
-
 
 function project_issue_comment_validate(&$node) {
 
