@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.158 2006/03/30 18:39:51 dww Exp $ */
+/* $Id: issue.inc,v 1.159 2006/03/31 15:43:13 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -577,7 +577,6 @@ function project_issue_comment_validate(&$node) {
 
       empty($node->component) and form_set_error('component', t('You have to specify a valid component.'));
       empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
-      empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
 
       $file = file_check_upload('file_issue');
       $node->file = file_save_upload($file);

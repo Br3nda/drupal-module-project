@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.60 2006/03/03 11:13:33 dries Exp $ */
+/* $Id: comment.inc,v 1.61 2006/03/31 15:43:13 nedjo Exp $ */
 
 function project_comment_page() {
   
@@ -57,6 +57,7 @@ function project_comment_form(&$edit, &$param) {
   $form['project_issue_form']['#prefix'] = '<div class="node-form"><div class="standard">';
   $form['project_issue_form']['#suffix'] = '</div></div>';
   $form['project_issue_form'] = project_issue_form($edit, $param);
+  $form['project_issue_form']['issue_details']['body']['#required'] = FALSE;
   if ($edit->cid) {
     $form['cid']= array('#type' => 'hidden', '#value' => $edit->cid);
   }
