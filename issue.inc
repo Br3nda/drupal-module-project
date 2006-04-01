@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.159 2006/03/31 15:43:13 nedjo Exp $ */
+/* $Id: issue.inc,v 1.160 2006/04/01 08:54:03 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -494,8 +494,11 @@ function project_issue_form_pre_render($form_id, &$form) {
 
     // Only move to the next page if there were no form errors.  
     // We don't want to keep incrementing page forever, since users
-    // can successfully preview many times...
-    if (!form_get_errors() && isset($_POST['edit']['page']) && $form['page']['#value'] < 2) {
+    // can successfully preview many times.  However, if we already
+    // have a value for 'Project' (via a submit with project in the
+    // URL), we'll already be on page 2 of the form and must increment
+    // our page or we'll display the wrong buttons.
+    if (!form_get_errors() && $form['page']['#value'] < 2 && (isset($_POST['edit']['page']) || isset($form['project_info']['pid']['#value']))) {
       $form['page']['#value'] = $form['page']['#value'] + 1;
     }
 
