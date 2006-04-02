@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.160 2006/04/01 08:54:03 dww Exp $ */
+/* $Id: issue.inc,v 1.161 2006/04/02 12:12:01 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -677,6 +677,7 @@ function project_issue_update($node) {
 function project_issue_delete($node) {
   file_delete($node->file_path);
   db_query('DELETE FROM {project_issues} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {project_comments} WHERE nid = %d', $node->nid);
 }
 
 function project_issue_access($op, $node) {
