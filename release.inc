@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.52.2.1 2005/05/24 21:01:57 unconed Exp $ */
+/* $Id: release.inc,v 1.52.2.2 2006/04/07 19:19:58 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -93,15 +93,16 @@ function project_release_submit() {
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
       drupal_set_breadcrumb($breadcrumb); 
-      return $output;
-      break;
+      print theme('page', $output);
+      return;
     case 'edit':
       if ($release = project_release_load(arg(4))) {
         $node = node_load(array('nid' => $release->nid));
         $output = project_release_view($release);
         $output .= form(project_release_form($release, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
         drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
-        return $output;
+        print theme('page', $output);
+        return;
       }
       break;
     case 'delete':
@@ -118,7 +119,8 @@ function project_release_submit() {
         $output = project_release_view($edit);
         $output .= form(project_release_form($edit, $param), ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
 
-        return $output;
+        print theme('page', $output);
+        return;
       }
       break;
     case t('Submit'):
@@ -129,7 +131,8 @@ function project_release_submit() {
         if (form_get_errors()) {
           $output = project_release_form($edit, $param);
 
-          return form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']);
+          print theme('page', form($output, ($param['method'] ? $param['method'] : 'post'), $param['action'], $param['options']));
+          return;
         }
         else {
           // Save the release and re-direct to the overview page for the project

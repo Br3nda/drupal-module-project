@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.2 2005/07/04 10:59:09 killes Exp $ */
+/* $Id: project.inc,v 1.50.2.3 2006/04/07 19:19:58 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -280,7 +280,7 @@ function project_project_releases() {
   $output = project_release_list($node);
 
   drupal_set_title(check_plain($node->title));
-  return $output;
+  print theme('page', $output);
 }
 
 function project_project_load($node) {
