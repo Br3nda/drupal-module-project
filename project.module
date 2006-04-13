@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.234 2006/04/13 04:40:10 nedjo Exp $
+// $Id: project.module,v 1.235 2006/04/13 04:49:50 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -155,6 +155,13 @@ function project_settings() {
     '#title' => t('Browse projects by releases'),
     '#default_value' => variable_get('project_browse_releases', 0),
     '#description' => t('Checking this box will cause the project browsing page to have a version select.'),
+  );
+
+  $form['project_browse_nodes'] = array(
+    '#type' => 'select', '#title' => t('Number of projects to list in paged browsing'),
+    '#default_value' => variable_get('project_browse_nodes', 30),
+    '#options' =>  drupal_map_assoc(array(5, 10, 15, 20, 25, 30, 35, 40, 45, 50)),
+    '#description' => t('The default maximum number of projects to list when browsing lists, e.g., by category.')
   );
 
   $form['project_release_overview'] = array(
@@ -625,7 +632,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         }
         $sql_elements['fields']['pieces'] = array("COUNT($first_field)");
         $count_query = project_build_query($sql_elements);
-        $result = pager_query($sql, variable_get('default_nodes_main', 10), 0, $count_query, $parameters);
+        $result = pager_query($sql, variable_get('project_browse_nodes', 30), 0, $count_query, $parameters);
       }
       else {
         $result = db_query($sql, $parameters);
@@ -698,7 +705,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $output .= '<div class="project" id="project-overview">' . $projects . '</div>';
 
   if ($pager) {
-    $output .= theme('pager', NULL, variable_get('default_nodes_main', 10));
+    $output .= theme('pager', NULL, variable_get('project_browse_nodes', 30));
   }
   drupal_set_breadcrumb($breadcrumb);
   return $output;
