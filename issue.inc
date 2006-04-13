@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.162 2006/04/10 19:53:07 unconed Exp $ */
+/* $Id: issue.inc,v 1.163 2006/04/13 04:47:36 nedjo Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -232,7 +232,7 @@ function project_issue_subscribe($project = 0) {
     );
     foreach ($levels as $key => $level) {
       $form['buttons'][$level] = array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#name' => 'all',
         '#value' => $level,
       );
@@ -272,7 +272,7 @@ function project_issue_subscribe($project = 0) {
     }
   }
   $form['submit'] = array(
-    '#type' => 'button',
+    '#type' => 'submit',
     '#value' => t('Subscribe'),
   );
   return drupal_get_form('project_issue_subscribe', $form);
