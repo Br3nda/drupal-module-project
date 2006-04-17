@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.236 2006/04/13 15:10:46 nedjo Exp $
+// $Id: project.module,v 1.237 2006/04/17 01:36:30 nedjo Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -169,7 +169,8 @@ function project_settings() {
     '#description' => t('Default release version to list on the overview page'),
   );
 
-  $form['browsing'] = array('#type' => 'fieldset',
+  $form['browsing'] = array(
+   '#type' => 'fieldset',
     '#title' => t('Browsing options'),
     '#collapsible' => TRUE,
   );
@@ -182,6 +183,21 @@ function project_settings() {
     '#description' => t('Default sorting option to use on the overview page'),
   );
 
+  $form['browsing']['sort_methods'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Enabled sorting options'),
+  );
+
+  $tree = taxonomy_get_tree(_project_get_vid(), 0 , -1, 1);
+  foreach ($tree as $term) {
+    $form['browsing']['sort_methods']['project_sort_method_used_' . $term->tid] = array(
+      '#type' => 'checkboxes',
+      '#title' => $term->name,
+      '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
+      '#options' => $sort_methods,
+      '#description' => t('Sorting options to enable for %term', array('%term' => $term->name))
+    );
+  }
   $form['browsing']['project_browse_nodes'] = array(
     '#type' => 'select', '#title' => t('Number of projects to list in paged browsing'),
     '#default_value' => variable_get('project_browse_nodes', 30),
@@ -367,11 +383,12 @@ function project_menu($may_cache) {
                            'weight' => $term->weight,
                            'callback arguments' => array($term->name));
           $j = 0;
-          foreach (array_keys($sort_methods) as $sort_method) {
+          $term_methods = array_filter(variable_get('project_sort_method_used_' . $term->tid, $sort_methods));
+          foreach ($term_methods as $sort_method) {
             $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
                  'title' => t('browse by %sort_method', array('%sort_method' => $sort_method)),
                  'access' => $access,
-                 'type' => ($sort_method == variable_get('project_sort_method', 'category') ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
+                 'type' => (($sort_method == variable_get('project_sort_method', 'category') || (($j == 0) && !in_array(variable_get('project_sort_method', 'category'), $term_methods))) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
                  'weight' => ($sort_method == variable_get('project_sort_method', 'category')) ? -10 : $j,
                  'callback arguments' => array($term->name, $sort_method));
             $j++;
@@ -476,7 +493,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $breadcrumb = array(l(t('Home'), NULL));
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
-
   // Read in requested version, if any.
   if ($_POST['edit']['rid']) {
     $version = $_POST['edit']['rid'];
@@ -504,7 +520,12 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $term = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE t.vid = %d AND t.name = '%s'", 't', 'tid'), $vid, $termname));
 
       $breadcrumb[] = l(t('projects'), 'project', array('title' => t('Browse projects')));
-      $sort_method = $sort_method ? $sort_method : variable_get('project_sort_method', 'category');
+
+      if (!$sort_method) {
+        // For the default, we use the overall default if enabled for this term, and if not we use the first enabled method.
+        $term_methods = array_filter(variable_get('project_sort_method_used_' . $term->tid, $sort_methods));
+        $sort_method = in_array(variable_get('project_sort_method', 'category'), $term_methods) ? variable_get('project_sort_method', 'category') : array_shift($term_methods);
+      }
 
       if ($term->description) {
         $output .= '<p>' . filter_xss($term->description) . '</p>';
@@ -623,9 +644,11 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
 
       // Merge in $sql_elements
-      foreach(array_keys($sql_settings) as $key) {
-        $sql_elements[$key]['pieces'] = array_merge($sql_elements[$key]['pieces'], $sql_settings[$key]);
-        $sql_elements[$key]['pieces'] = array_unique($sql_elements[$key]['pieces']);
+      if (is_array($sql_settings)) {
+        foreach(array_keys($sql_settings) as $key) {
+          $sql_elements[$key]['pieces'] = array_merge($sql_elements[$key]['pieces'], $sql_settings[$key]);
+          $sql_elements[$key]['pieces'] = array_unique($sql_elements[$key]['pieces']);
+        }
       }
 
       $parameters = $sql_elements['parameters']['pieces'];
