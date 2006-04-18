@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.163 2006/04/13 04:47:36 nedjo Exp $ */
+/* $Id: issue.inc,v 1.164 2006/04/18 16:12:18 leafishpaul Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1236,7 +1236,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     }
     $query = project_issue_query_pager($query);
 
-    $rss = theme('xml_icon', url('project/issues/rss', project_issue_query_url($query)));
+    $rss = theme('feed_icon', url('project/issues/rss', project_issue_query_url($query)));
     $link = l(t('#'), 'project/issues', array('title' => t('Permalink to search query.')), project_issue_query_url($query));
 
     if ($pager = theme("pager", NULL, 20, 0, $query + tablesort_pager())) {
