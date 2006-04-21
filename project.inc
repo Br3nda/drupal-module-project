@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.72 2006/03/28 02:42:56 webchick Exp $ */
+/* $Id: project.inc,v 1.73 2006/04/21 02:33:08 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -28,6 +28,7 @@ function project_project_form(&$node) {
   $form['project'] = array(
     '#type' => 'fieldset',
     '#title' => t('Project information'),
+    '#collapsible' => TRUE,
   );
   $form['project']['title'] = array(
     '#type' => 'textfield',
@@ -124,6 +125,7 @@ function project_project_form(&$node) {
   $form['issue'] = array(
     '#type' => 'fieldset',
     '#title' => t('Issue information'),
+    '#collapsible' => TRUE,
   );
   $form['issue']['issue'] = array(
     '#type' => 'item',
@@ -163,7 +165,9 @@ function project_project_form(&$node) {
   /* E-mail options */
   $form['email'] = array(
     '#type' => 'fieldset',
-    '#title' => t('E-mail options')
+    '#title' => t('E-mail options'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $form['email']['mail_digest'] = array(
     '#type' => 'textfield',
