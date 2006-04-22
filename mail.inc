@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.47.2.2 2005/07/04 10:59:09 killes Exp $ */
+/* $Id: mail.inc,v 1.47.2.3 2006/04/22 21:20:40 dww Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -182,7 +182,7 @@ function project_mail_summary($field, $value) {
     case 'sid':
       return $value ? project_issue_state($value) : t('<none>');
     default:
-      return $value;
+      return check_plain($value);
   }
 }
 

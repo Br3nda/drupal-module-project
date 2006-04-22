@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.9 2006/03/03 08:09:34 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.10 2006/04/22 21:20:40 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -401,9 +401,9 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
 
     $output = '<div class="project">';
     $rows = array();
-    $rows[] = array('Project:', $project->title);
+    $rows[] = array('Project:', check_plain($project->title));
     if ($release->version) {
-      $rows[] = array('Version:', $release->version);
+      $rows[] = array('Version:', check_plain($release->version));
     }
     $rows[] = array(t('Component:'),  check_plain($node->component));
     $rows[] = array(t('Category:'), check_plain($node->category));
