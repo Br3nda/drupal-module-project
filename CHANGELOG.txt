@@ -1,3 +1,16 @@
+22. April 2006
+--------------
+- fixed bug #59092: it should be "other releases", not "older
+  releases" (Derek Wright)
+
+07. April 2006
+--------------
+- fixed bug #57174: Removed some blank pages (Derek Wright)
+
+
+TODO: There's a big gap in historical changes here. :(
+
+
 23. June 2005
 -------------
 
