@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.52.2.2 2006/04/07 19:19:58 dww Exp $ */
+/* $Id: release.inc,v 1.52.2.3 2006/04/22 21:20:16 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -272,7 +272,8 @@ function project_release_save($release) {
   $file = check_file('file');
   */
   if (empty($release->rid)) {
-    watchdog('special', "project: added release '$release->version' to $node->title", l('view', "node/$release->nid"));
+    watchdog('project', t("added release %version to %project.", array('%version' => theme('placeholder', $release->version), '%project' => theme('placeholder', $node->title))), WATCHDOG_NOTICE, l('view', "node/$release->nid"));
+
     $release->rid = db_next_id('project_rid');
     if (!variable_get('project_release_directory', '') && $file->filename) {
       $release->fid = drupal_file_save($file);
@@ -294,7 +295,7 @@ function project_release_save($release) {
     db_query('INSERT INTO {project_releases} ('. implode(', ', $k) .') VALUES('. implode(', ', $s) .')', $v);
   }
   else {
-    watchdog('special', "project: updated release '$node->title $release->version'", l('view', "node/$release->nid"));
+    watchdog('project', t("updated release %project %version", array('%project' => theme('placeholder', $node->title), '%version' => theme('placeholder', $release->version))), WATCHDOG_NOTICE, l('view', "node/$release->nid"));
     /* TODO: pending final fileapi
     // Replace current file if new file upload exists.
     if (!variable_get('project_release_directory', '') && $file->filename) {
@@ -324,7 +325,7 @@ function project_release_save($release) {
 }
 
 function project_release_delete($rid) {
-  watchdog('special', "project: deleted release '$release->version'", l('view', "node/$release->nid"));
+  watchdog('project', t("unpublished release %version", array('%version' => theme('placeholder', $release->version))));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 
