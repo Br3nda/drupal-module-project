@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.3 2006/04/07 19:19:58 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.4 2006/04/22 16:41:46 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -200,7 +200,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
         $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
       }
       if (count($releases) > 1) {
-        $links[] = l(t('View older releases'), 'node/'. $node->nid .'/release');
+        $links[] = l(t('View other releases'), 'node/'. $node->nid .'/release');
       }
       if (node_access('update', $node) && !variable_get('project_release_directory', '')) {
         $links[] = l(t('Add new release'), 'node/'. $node->nid .'/release/add');
