@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.62 2006/04/22 16:44:46 dww Exp $ */
+/* $Id: comment.inc,v 1.63 2006/04/22 21:09:40 dww Exp $ */
 
 function project_comment_page() {
   
@@ -176,7 +176,7 @@ function project_comment_save($edit) {
       }
     }
 
-    watchdog('special', "project: added comment '$edit->title'", l('view', "node/$node->nid"));
+    watchdog('content', t('project_issue: added comment %title', array('%title' => theme('placeholder', $edit->title))), WATCHDOG_NOTICE, l('view', "node/$node->nid"));
     $node->changed = time();
     db_query("INSERT INTO {project_comments} (cid, nid, uid, created, changed, body, data, file_path, file_mime, file_size) VALUES (%d, %d, %d, %d, %d, '%s', '%s', '%s', '%s', %d)", $edit->cid, $edit->nid, $edit->uid, $node->changed, $node->changed, $edit->body, serialize($data), $file->filepath, $file->filemime, $file->filesize);
 

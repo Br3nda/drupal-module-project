@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.69 2006/04/22 16:44:46 dww Exp $ */
+/* $Id: release.inc,v 1.70 2006/04/22 21:09:40 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -364,7 +364,7 @@ function project_release_save($release) {
 
     // Insert the node into the database:
     db_query('INSERT INTO {project_releases} ('. implode(', ', array_keys($input)) .') VALUES('. implode(', ', $input) .')', $values);
-    watchdog('special', t("project: added release '%version' to %project.", array('%version' => $release->version, '%project' => $node->title)));
+    watchdog('project', t("added release %version to %project.", array('%version' => theme('placeholder', $release->version), '%project' => theme('placeholder', $node->title))));
   }
   // Otherwise, update the existing record.
   else {
@@ -404,14 +404,14 @@ function project_release_save($release) {
     $v[] = $release->rid;
 
     db_query('UPDATE {project_releases} SET '. implode(', ', $q) .' WHERE nid = %d AND rid = %d', $v);
-    watchdog('special', t("project: updated release '%project %version'", array('%project' => $node->title, '%version' => $release->version)));
+    watchdog('project', t("updated release %project %version", array('%project' => theme('placeholder', $node->title), '%version' => theme('placeholder', $release->version))));
   }
   return $release->rid;
 }
 
 function project_release_delete($rid) {
   $release = project_release_load($rid);
-  watchdog('special', t("project: unpublished release '%version'", array('%version' => $release->version)));
+  watchdog('project', t("unpublished release %version", array('%version' => theme('placeholder', $release->version))));
   db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 
