@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.61 2006/03/31 15:43:13 nedjo Exp $ */
+/* $Id: comment.inc,v 1.62 2006/04/22 16:44:46 dww Exp $ */
 
 function project_comment_page() {
   
@@ -189,5 +189,3 @@ function project_comment_save($edit) {
 
   return $edit->cid;
 }
-
-?>

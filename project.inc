@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.74 2006/04/22 16:38:04 dww Exp $ */
+/* $Id: project.inc,v 1.75 2006/04/22 16:44:46 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -549,5 +549,3 @@ function project_cvs($nid = 0) {
     drupal_not_found();
   }
 }
-
-?>

@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.68 2006/03/27 01:06:07 unconed Exp $ */
+/* $Id: release.inc,v 1.69 2006/04/22 16:44:46 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -432,5 +432,3 @@ function project_releases_list($refresh = FALSE) {
 
   return $versions;
 }
-
-?>

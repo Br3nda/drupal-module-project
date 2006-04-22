@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.58 2006/02/27 12:46:17 dries Exp $ */
+/* $Id: mail.inc,v 1.59 2006/04/22 16:44:46 dww Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -420,5 +420,3 @@ function project_mail_digest() {
     user_mail($mailto, t('Release critical bugs for %date', array('%date' => date('F d, Y', time()))), $text, implode("\n", $header));
   }
 }
-
-?>

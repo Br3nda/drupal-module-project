@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.237 2006/04/17 01:36:30 nedjo Exp $
+// $Id: project.module,v 1.238 2006/04/22 16:44:46 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -1031,4 +1031,3 @@ function theme_project_type($term) {
   }
   return $output;
 }
-?>
