@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.63 2006/04/22 21:09:40 dww Exp $ */
+/* $Id: comment.inc,v 1.64 2006/04/24 14:33:09 dww Exp $ */
 
 function project_comment_page() {
   
@@ -66,7 +66,7 @@ function project_comment_form(&$edit, &$param) {
     $form['submit'] = array('#type' => 'button', '#value' => t('Submit'));
   }
   if ($op == t('Preview')) {
-    $form['#after_build'] = 'node_form_add_preview';
+    $form['#after_build'] = array('node_form_add_preview');
   }
   return drupal_get_form('project_comment_form', $form);
 }
