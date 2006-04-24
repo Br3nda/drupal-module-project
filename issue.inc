@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.167 2006/04/22 21:14:57 dww Exp $ */
+/* $Id: issue.inc,v 1.168 2006/04/24 18:34:45 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -389,7 +389,6 @@ function project_issue_form(&$node, &$param) {
         '#title' => t('Version'),
         '#default_value' => $node->rid,
         '#options' => $releases,
-        '#required' => TRUE,
       );
     }
     $form['project_info']['component'] = array(
@@ -397,7 +396,6 @@ function project_issue_form(&$node, &$param) {
       '#title' => t('Component'),
       '#default_value' => $node->component,
       '#options' => $components,
-      '#required' => TRUE,
     );
 
     $form['issue_info'] = array(
@@ -411,7 +409,6 @@ function project_issue_form(&$node, &$param) {
       '#title' => t('Category'),
       '#default_value' => $node->category ? $node->category : arg(4),
       '#options' => $categories,
-      '#required' => TRUE,
     );
     $form['issue_info']['priority'] = array(
       '#type' => 'select',
@@ -456,14 +453,12 @@ function project_issue_form(&$node, &$param) {
       '#default_value' => $node->title,
       '#size' => 60,
       '#maxlength' => 128,
-      '#required' => TRUE,
     );
     $form['issue_details']['body'] = array(
       '#type' => 'textarea',
       '#title' => t('Description'),
       '#default_value' => $node->body,
       '#rows' => 10,
-      '#required' => TRUE,
     );
     $form['issue_details']['format'] = filter_form($node->format);
     $form['issue_details']['file_issue'] = array(
@@ -502,9 +497,9 @@ function project_issue_form_pre_render($form_id, &$form) {
       $form['page']['#value'] = $form['page']['#value'] + 1;
     }
 
-    // If we're on the first page, we want to convert 'preview' into a
-    // 'next' button and hide 'submit', otherwise, we want the default.
     if ($form['page']['#value'] == 1) {
+      // If we're on the first page, we want to convert 'preview' into
+      // a 'next' button and hide 'submit'.
       $form['preview'] = array(
         '#type' => 'button',
         '#value' => t('Next'),
@@ -515,6 +510,45 @@ function project_issue_form_pre_render($form_id, &$form) {
         '#value' => 'hidden',
       );
     }
+    else {
+      /*
+        We're on page 2.  In this case, we want all the default
+        buttons.  Furthermore, we must now set the #required attribute
+        on all the fields that are now in the form (which are only
+        added once we know the project from page #1 or from a direct
+        link), so that when we now attempt to validate the input (and
+        display the form), these fields will be required.
+      */
+      _project_issue_form_add_required_fields($form, TRUE);
+    }
+  }
+}
+
+/**
+ * Private helper method to set the '#required' attribute to TRUE for
+ * all the fields that should be required on the issue form.  These
+ * fields can't be set to required from project_issue_form() because
+ * this is a 2 page form, and so the FAPI validation code would mark
+ * them all as an error as soon as the user lands on page 2.
+ * Therefore, they're set to required by the pre_render hook (after
+ * initially validating the page, but before it is displayed).  This
+ * This is a separate method so that it can also be called from
+ * comment.inc, which shares the project_issue_form() code, but
+ * doesn't use it as a 2-page form, so we want these fields to be
+ * required right away in that case.
+ *
+ * @param $form
+ *   Reference to the form to modify
+ * @param $needs_body
+ *   Boolean that specifies if the 'body' field should be required
+ */
+function _project_issue_form_add_required_fields(&$form, $needs_body) {
+  $form['project_info']['rid']['#required'] = TRUE;
+  $form['project_info']['component']['#required'] = TRUE;
+  $form['issue_info']['category']['#required'] = TRUE;
+  $form['issue_details']['title']['#required'] = TRUE;
+  if ($needs_body) {
+    $form['issue_details']['body']['#required'] = TRUE;
   }
 }
 
@@ -540,6 +574,7 @@ function project_issue_node_form_validate($form_id, $form) {
       }
       empty($form_values['component']) && form_set_error('component', t('You have to specify a valid component.'));
       empty($form_values['category']) && form_set_error('category', t('You have to specify a valid category.'));
+      empty($form_values['title']) && form_set_error('title', t('You have to specify a valid title.'));
       empty($form_values['body']) && form_set_error('body', t('You have to specify a valid description.'));
 
       $file = file_check_upload('file_issue');
