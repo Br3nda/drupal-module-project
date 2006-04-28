@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.168 2006/04/24 18:34:45 dww Exp $ */
+/* $Id: issue.inc,v 1.169 2006/04/28 15:40:26 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1136,10 +1136,8 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   }
 
   // Load active project
-  if (!$project) {
-    if (count($query->projects) == 1) {
-      $project = node_load($query->projects[0]);
-    }
+  if (count($query->projects) == 1) {
+    $project = node_load($query->projects[0]);
   }
 
   if ($project) {
