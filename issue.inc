@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.10 2006/04/22 21:20:40 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.11 2006/05/13 08:31:46 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -371,6 +371,24 @@ function project_issue_validate(&$node) {
         empty($node->component) and form_set_error($error['component'], t('You have to specify a valid component.'));
         empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
         empty($node->body) and !$node->comment and form_set_error('body', t('You have to specify a valid description.'));
+      }
+
+      // make sure this followup changes something or has a body
+      if (!empty($_POST) && empty($node->body)) {
+        if (is_numeric(arg(3))) { 
+          $issue = node_load(array('nid' => arg(3)));
+        }
+        if (isset($issue)
+            && $node->pid == $issue->pid
+            && $node->rid == $issue->rid
+            && $node->component == $issue->component
+            && $node->category == $issue->category
+            && $node->priority == $issue->priority
+            && $node->assigned == $issue->assigned
+            && $node->sid == $issue->sid
+            && $node->title == $issue->title) {
+          form_set_error('body', t('You must either specify a description or change something about this issue.'));
+        }
       }
 
       $file = file_check_upload('file_issue');
