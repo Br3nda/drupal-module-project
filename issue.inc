@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.169 2006/04/28 15:40:26 dww Exp $ */
+/* $Id: issue.inc,v 1.170 2006/05/13 08:20:08 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -615,6 +615,24 @@ function project_issue_comment_validate(&$node) {
 
       empty($node->component) and form_set_error('component', t('You have to specify a valid component.'));
       empty($node->category) and form_set_error('category', t('You have to specify a valid category.'));
+
+      // make sure this followup changes something or has a body
+      if (!empty($_POST) && empty($node->body)) {
+        if (is_numeric(arg(3))) { 
+          $issue = node_load(arg(3));
+        }
+        if (isset($issue)
+            && $node->pid == $issue->pid
+            && $node->rid == $issue->rid
+            && $node->component == $issue->component
+            && $node->category == $issue->category
+            && $node->priority == $issue->priority
+            && $node->assigned == $issue->assigned
+            && $node->sid == $issue->sid
+            && $node->title == $issue->title) {
+          form_set_error('body', t('You must either specify a description or change something about this issue.'));
+        }
+      }
 
       $file = file_check_upload('file_issue');
       $node->file = file_save_upload($file);
