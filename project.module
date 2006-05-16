@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.238 2006/04/22 16:44:46 dww Exp $
+// $Id: project.module,v 1.239 2006/05/16 08:15:17 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -140,7 +140,7 @@ function project_settings() {
   );
   $form['releases']['project_release_directory'] = array(
     '#type' => 'textfield',
-    '#title' => t('Release Directory'),
+    '#title' => t('Release directory'),
     '#default_value' => variable_get('project_release_directory', ''),
     '#size' => 50,
     '#maxlength' => 255,

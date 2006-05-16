@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.170 2006/05/13 08:20:08 dww Exp $ */
+/* $Id: issue.inc,v 1.171 2006/05/16 08:15:17 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -444,7 +444,7 @@ function project_issue_form(&$node, &$param) {
 
     $form['issue_details'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Issue Details'),
+      '#title' => t('Issue details'),
       '#prefix' => '</div><div class="standard">',
     );
     $form['issue_details']['title'] = array(
