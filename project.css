@@ -116,6 +116,22 @@
   display: inline;
 }
 
+.node-form .project .options fieldset .form-item {
+  float: left;
+  padding-right: 0.8em;
+  margin: 0.05em 0.1em;
+}
+
+.node-form .project .options fieldset:after {
+  content: ".";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+.node-form .project .options fieldset {display: inline-table;}
+
 ul.project-terms {
   padding-left: 1.5em;
 }

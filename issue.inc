@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.171 2006/05/16 08:15:17 dww Exp $ */
+/* $Id: issue.inc,v 1.172 2006/05/16 08:33:58 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -325,6 +325,9 @@ function project_issue_form(&$node, &$param) {
     '#value' => isset($_POST['edit']['page']) ? $_POST['edit']['page'] : 1,
   );
 
+  $form['#prefix'] = '<div class="project">';
+  $form['#suffix'] = '</div>';
+
   // Fetch a list of all projects to make swapping simpler
   $projects = array(t('<none>')) + project_projects_select_options();
 
@@ -367,8 +370,6 @@ function project_issue_form(&$node, &$param) {
         $user->uid => $user->name
       );
     }
-
-    //$form['#prefix'] = '</div><div class="admin">';
 
     $form['project_info'] = array(
       '#type' => 'fieldset',
