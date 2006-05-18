@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.66 2006/05/16 08:33:58 dww Exp $ */
+/* $Id: comment.inc,v 1.67 2006/05/18 19:20:17 dww Exp $ */
 
 function project_comment_page() {
   
@@ -66,7 +66,7 @@ function project_comment_form(&$edit, &$param) {
     $form['submit'] = array('#type' => 'button', '#value' => t('Submit'));
   }
   if ($op == t('Preview')) {
-    $form['#after_build'] = array('node_form_add_preview');
+    $form['#after_build'] = array('project_comment_form_add_preview');
   }
   return drupal_get_form('project_comment_form', $form);
 }
@@ -95,6 +95,38 @@ function project_comment_view($node, $main = 0) {
   global $user;
   $links = array();
   $rows = array();
+  $result = db_query('SELECT p.*, u.name FROM {project_comments} p INNER JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
+  if (db_num_rows($result)) {
+    $i = 0;
+    while ($comment = db_fetch_object($result)) {
+      $i++;
+      $rows = array_merge($rows, _project_comment_view_single($comment, $i));
+    }
+    $output = '<div class="project">';
+    $output .= theme('table', array(), $rows);
+    $output .= '</div>';
+
+    return theme('box', t('Updates'), $output);
+  }
+}
+
+/**
+ * Private method to view a single project comment (issue followup).
+ *
+ * @param $comment
+ *   An array or object of the comment to view.
+ * @param $count
+ *   The integer that shows what number of comment this is.
+ *
+ * @return
+ *   An array of validated output to theme/display.
+ *
+ */
+function _project_comment_view_single($comment, $count) {
+  $comment = (object)$comment;
+  $summary = array();
+  $rows = array();
+
   $fields = array(
     'title' => 'Title',
     'pid' => 'Project',
@@ -106,46 +138,52 @@ function project_comment_view($node, $main = 0) {
     'sid' => 'Status'
   );
 
-  $result = db_query('SELECT p.*, u.name FROM {project_comments} p INNER JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
-  if (db_num_rows($result)) {
-    $i = 0;
-    while ($comment = db_fetch_object($result)) {
-      $i++;
-      $data = unserialize($comment->data);
-      $summary = array();
-      foreach ($fields as $field => $text) {
-        if (isset($data['old']->$field) && isset($data['new']->$field)) {
-          $summary[] = array(
-            t($text) .':',
-            project_mail_summary($field, $data['old']->$field),
-            '&raquo; '. project_mail_summary($field, $data['new']->$field)
-          );
-        }
-      }
+  // If we got this from the DB, we'll have a $data field to unserialize.
+  $comment = drupal_unpack($comment);
 
-      if ($comment->file_path && file_exists($comment->file_path)) {
-        $summary[] = array(t('Attachment:'), '<a href="'. file_create_url($comment->file_path). '">'. basename($comment->file_path) .'</a> ('. format_size($comment->file_size) .')');
-      }
-
-      if ($summary || $comment->body) {
-        $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$i", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed))));
-        if ($summary) {
-          $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
-        }
-        if ($comment->body) {
-          $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_markup($comment->body) .'</p>'));
-        }
-        if ($comment->fid) {
-          $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
-        }
-      }
-    }
-    $output = '<div class="project">';
-    $output .= theme('table', array(), $rows);
-    $output .= '</div>';
-
-    return theme('box', t('Updates'), $output);
+  // Print out what changed about the issue with this comment. If the
+  // comment is in the DB, we'll have 'old' and 'new' fields from the
+  // 'data' field, which record exactly what changed. If not, we'll
+  // load the origial node and compare against that.
+  if (!isset($comment->data)) {
+    $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
   }
+  foreach ($fields as $field => $text) {
+    if (isset($comment->old->$field) && isset($comment->new->$field)) {
+      $summary[] = array(
+        t($text) .':',
+        project_mail_summary($field, $comment->old->$field),
+        '&raquo; '. project_mail_summary($field, $comment->new->$field)
+      );
+    }
+    elseif (isset($node->$field) && isset($comment->$field) && $node->$field != $comment->$field ) {
+      $summary[] = array(
+        t($text) .':',
+        project_mail_summary($field, $node->$field),
+        '&raquo; '. project_mail_summary($field, $comment->$field)
+      );
+    }
+  }
+
+  if ($comment->file_path && file_exists($comment->file_path)) {
+    $summary[] = array(t('Attachment:'), '<a href="'. file_create_url($comment->file_path). '">'. basename($comment->file_path) .'</a> ('. format_size($comment->file_size) .')');
+  }
+
+  if ($summary || $comment->body) {
+    if ($count) {
+      $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$count", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed))));
+    }
+    if ($summary) {
+      $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
+    }
+    if ($comment->body) {
+      $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_markup($comment->body) .'</p>'));
+    }
+    if ($comment->fid) {
+      $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
+    }
+  }
+  return $rows;
 }
 
 function project_comment_load($cid) {
@@ -188,4 +226,43 @@ function project_comment_save($edit) {
   }
 
   return $edit->cid;
+}
+
+/**
+ * Form API callback for previewing a project comment.
+ *
+ * @param $form
+ *   The form to add the preview information to.
+ * @param $edit
+ *   The form values for the comment to preview.
+ *
+ * @return
+ *   The modified form to render.
+ *
+ */
+function project_comment_form_add_preview($form, $edit) {
+  drupal_set_title(t('Preview comment'));
+  $edit = project_comment_validate($edit);
+
+  // Preview the comment with security check.
+  $output = '';
+  if (!form_get_errors()) {
+    $rows = _project_comment_view_single($edit, 0);
+    $output .= theme('table', array(), $rows);
+  }
+
+  $form['comment_preview'] = array(
+    '#value' => $output,
+    '#weight' => -100,
+    '#prefix' => '<div class="preview">',
+    '#suffix' => '</div>',
+  );
+
+  $output = '';
+  if (is_numeric(arg(3))) {
+    $node = node_load(array('nid' => arg(3), 'type' => 'project_issue'));
+    $output .= node_view($node, NULL, TRUE);
+    $form['comment_preview_below'] = array('#value' => $output, '#weight' => 100);
+  }
+  return $form;
 }
