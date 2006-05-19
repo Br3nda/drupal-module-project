@@ -15,10 +15,9 @@ Installation
       mysql -u user -p drupal < project.mysql
    Replace user with the MySQL username, and drupal with the table being used.
 
-3. Enable the project module under administer > configuration > modules.
+3. Enable the project module under administer >> modules
 
-4. Grant the proper access to user accounts under administer > accounts >
-   permissions.
+4. Grant the proper access to users under administer >> access control 
 
 
 Upgrading
