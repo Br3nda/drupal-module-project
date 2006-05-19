@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.68 2006/05/19 00:52:20 dww Exp $ */
+/* $Id: comment.inc,v 1.69 2006/05/19 08:42:44 dww Exp $ */
 
 function project_comment_page() {
   
@@ -80,7 +80,6 @@ function project_comment_validate($edit) {
   if ($edit->cid) {
     $comment = project_comment_load($edit->cid);
     $edit->nid = $comment->nid;
-    $edit->fid = $comment->fid;
   }
 
   $edit->comment = true;
@@ -178,9 +177,6 @@ function _project_comment_view_single($comment, $count) {
     }
     if ($comment->body) {
       $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_markup($comment->body) .'</p>'));
-    }
-    if ($comment->fid) {
-      $rows[] = array(l(t('download attachment'), "project/comments/download/$comment->cid"));
     }
   }
   return $rows;
