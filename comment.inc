@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.69 2006/05/19 08:42:44 dww Exp $ */
+/* $Id: comment.inc,v 1.70 2006/05/19 09:13:43 dww Exp $ */
 
 function project_comment_page() {
   
@@ -96,15 +96,13 @@ function project_comment_view($node, $main = 0) {
   $rows = array();
   $result = db_query('SELECT p.*, u.name FROM {project_comments} p INNER JOIN {users} u USING (uid) WHERE p.nid = %d ORDER BY p.created ASC', $node->nid);
   if (db_num_rows($result)) {
+    $output = '<div class="project">';
     $i = 0;
     while ($comment = db_fetch_object($result)) {
       $i++;
-      $rows = array_merge($rows, _project_comment_view_single($comment, $i));
+      $output .= _project_comment_view_single($comment, $i);
     }
-    $output = '<div class="project">';
-    $output .= theme('table', array(), $rows);
     $output .= '</div>';
-
     return theme('box', t('Updates'), $output);
   }
 }
@@ -118,13 +116,13 @@ function project_comment_view($node, $main = 0) {
  *   The integer that shows what number of comment this is.
  *
  * @return
- *   An array of validated output to theme/display.
+ *   A string of validated output to theme/display.
  *
  */
 function _project_comment_view_single($comment, $count) {
   $comment = (object)$comment;
   $summary = array();
-  $rows = array();
+  $output = '';
 
   $fields = array(
     'title' => 'Title',
@@ -170,16 +168,22 @@ function _project_comment_view_single($comment, $count) {
 
   if ($summary || $comment->body) {
     if ($count) {
-      $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$count", "node/$comment->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed))));
+      $output .= '<div class="header">';
+      $output .= t('%count submitted by %user on %date', array('%count' => l("#$count", "node/$comment->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed));
+      $output .= '</div>';
     }
     if ($summary) {
-      $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
+      $output .= '<div class="summary">';
+      $output .= theme('table', array(), $summary);
+      $output .= '</div>';
     }
     if ($comment->body) {
-      $rows[] = array(array('class' => 'content', 'data' => '<p>'. check_markup($comment->body) .'</p>'));
+      $output .= '<div class="content">';
+      $output .= check_markup($comment->body);
+      $output .= '</div>';
     }
   }
-  return $rows;
+  return $output;
 }
 
 function project_comment_load($cid) {
@@ -241,17 +245,15 @@ function project_comment_form_add_preview($form, $edit) {
   $edit = project_comment_validate($edit);
 
   // Preview the comment with security check.
-  $output = '';
   if (!form_get_errors()) {
-    $rows = _project_comment_view_single($edit, 0);
-    $output .= theme('table', array(), $rows);
+    $output = _project_comment_view_single($edit, 0);
   }
 
   $form['comment_preview'] = array(
     '#value' => $output,
     '#weight' => -100,
-    '#prefix' => '<div class="preview">',
-    '#suffix' => '</div>',
+    '#prefix' => '<div class="preview"><div class="comment">',
+    '#suffix' => '</div></div>',
   );
 
   $output = '';
