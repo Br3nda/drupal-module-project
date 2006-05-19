@@ -3,6 +3,8 @@ Installation
 
 1. Place these files in modules/project:
      project.module
+     project.install
+     project.update
      project.css
      project.inc
      release.inc
@@ -10,15 +12,9 @@ Installation
      comment.inc
      mail.inc
 
-2. Load the database definition using the tool of your choice. For mysql with
-   command line access use:
-      mysql -u user -p drupal < project.mysql
-   Replace user with the MySQL username, and drupal with the table being used.
+2. Enable the project module under administer >> modules
 
-3. Enable the project module under administer > configuration > modules.
-
-4. Grant the proper access to user accounts under administer > accounts >
-   permissions.
+3. Grant the proper access to users under administer >> access control
 
 
 Upgrading
@@ -26,12 +22,10 @@ Upgrading
 
 0. Make sure you backup your database!
 
-1. Load the new SQL definitions.
-     mysql -u username -p drupal < update-project-yyyy-mm-dd.mysql
-     (similar for pgsql)
-   for all dates yyyy-mm-dd.
+1. Copy new files to modules/project.
 
-2. Copy new files to modules/project
+2. Login as the site administrator (user #1) and run the update.php script.
 
 3. Configure the status messages at admin/settings/project/status
    and admin/access.
+
