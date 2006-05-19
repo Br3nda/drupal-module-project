@@ -1,5 +1,5 @@
 <?php
-/* $Id: comment.inc,v 1.67 2006/05/18 19:20:17 dww Exp $ */
+/* $Id: comment.inc,v 1.68 2006/05/19 00:52:20 dww Exp $ */
 
 function project_comment_page() {
   
@@ -171,7 +171,7 @@ function _project_comment_view_single($comment, $count) {
 
   if ($summary || $comment->body) {
     if ($count) {
-      $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$count", "node/$node->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed))));
+      $rows[] = array(array('class' => 'header', 'data' => t('%count submitted by %user on %date', array('%count' => l("#$count", "node/$comment->nid", array ('id' => "comment-$comment->cid", 'name' => "comment-$comment->cid"), NULL, "comment-$comment->cid"), '%user' => theme('username', $comment), '%date' => format_date($comment->created))) . theme('mark', node_mark($comment->nid, $comment->changed))));
     }
     if ($summary) {
       $rows[] = array(array('class' => 'summary', 'data' => theme('table', array(), $summary)));
