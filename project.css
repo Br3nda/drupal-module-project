@@ -49,6 +49,7 @@
 
 .project .header {
   font-weight: bold;
+  padding-top: 0.5em;
 }
 
 .project .summary table {
