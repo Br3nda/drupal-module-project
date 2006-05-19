@@ -1,3 +1,0 @@
-PROJECT MODULE
-M: Kjartan Mannes <kjartan-project@drupal.org>
-S: maintained
