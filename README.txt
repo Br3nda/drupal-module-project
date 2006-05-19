@@ -2,7 +2,8 @@ This module enables teams to track outstanding items which need
 resolution. It provides e-mail notifications to members about updates
 to items. Similar to many issue tracking systems.
 
-Send comments to kjartan-project@drupal.org
+Send feature requests and bug reports to the issue tracking system for
+the project module: http://drupal.org/node/add/project_issue/project.
 
 Wish list
 --------
