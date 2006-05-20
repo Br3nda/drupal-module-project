@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.52.2.3 2006/04/22 21:20:16 dww Exp $ */
+/* $Id: release.inc,v 1.52.2.4 2006/05/20 20:45:55 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -334,7 +334,7 @@ function project_releases_list() {
     $versions = unserialize($versions->data);
   }
   else {
-    $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 GROUP BY version ORDER BY created DESC;");
+    $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 GROUP BY version, created ORDER BY created DESC;");
     $versions = array();
     while ($object = db_fetch_object($result)) {
       $version = preg_replace('/^(.+?)\.?(?:\d+)?$/', '\1', $object->version);
