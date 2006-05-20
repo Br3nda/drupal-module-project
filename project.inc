@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75 2006/04/22 16:44:46 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.1 2006/05/20 20:45:45 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -317,7 +317,7 @@ function project_project_set_location(&$node, $extra = array()) {
   $breadcrumb = array();
 
   $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-  $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = "" AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
+  $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = 0 AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
   $term = db_fetch_object($result);
   $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
 
