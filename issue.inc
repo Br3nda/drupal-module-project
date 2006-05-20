@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.172 2006/05/16 08:33:58 dww Exp $ */
+/* $Id: issue.inc,v 1.173 2006/05/20 20:08:14 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -609,6 +609,13 @@ function project_issue_comment_validate(&$node) {
           $node->rid = $project->version;
         }
         empty($node->rid) and form_set_error('rid', t('You have to specify a valid version.'));
+      }
+      else {
+        // If there's no version defined, set this to 0 to match the
+        // value stored in the issue. Otherwise, project_comment_save()
+        // will think we've changed the version with this reply and
+        // will store extra data in the DB we don't want or need.
+        $node->rid = 0;
       }
       if ($node->component && !in_array($node->component, $project->components)) {
         $node->component = 0;
