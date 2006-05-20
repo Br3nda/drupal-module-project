@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239 2006/05/16 08:15:17 dww Exp $
+// $Id: project.module,v 1.240 2006/05/20 14:25:37 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -364,6 +364,12 @@ function project_menu($may_cache) {
     $items[] = array('path' => 'project/goto',
       'title' => t('project navigation'),
       'callback' => 'project_goto',
+      'access' => $access,
+      'type' => MENU_CALLBACK);
+
+    $items[] = array('path' => 'project/autocomplete',
+      'title' => t('autocomplete project'),
+      'callback' => 'project_autocomplete',
       'access' => $access,
       'type' => MENU_CALLBACK);
 
@@ -1030,4 +1036,34 @@ function theme_project_type($term) {
     $output .= '<p>' . filter_xss($term->description) . '</p>';
   }
   return $output;
+}
+
+/**
+ * Returns a string of valid project names formatted to be suitable
+ * for use with JS autocomplete fields. The user enters a
+ * comma-separated list of project names. We only autocomplete the
+ * last one. This code is stolen heavily from taxonomy_autocomplete().
+ */
+function project_autocomplete($string) {
+
+  // This regexp allows the following types of user input:
+  // this, "somecmpany, llc", "and ""this"" w,o.rks", foo bar
+  $regexp = '%(?:^|,\ *)("(?>[^"]*)(?>""[^"]* )*"|(?: [^",]*))%x';
+  preg_match_all($regexp, $string, $matches);
+  $array = $matches[1];
+
+  // Fetch last project
+  $last_string = trim(array_pop($array));
+
+  if ($last_string != '') {
+    $result = db_query_range("SELECT n.title FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE LOWER(n.title) LIKE LOWER('%%%s%%')", $last_string, 0, 10);
+    $prefix = count($array) ? implode(', ', $array) .', ' : '';
+    $matches = array();
+    while ($project = db_fetch_object($result)) {
+      $t = $project->title;
+      $matches[$prefix . $t] = check_plain($project->title);
+    }
+    print drupal_to_js($matches);
+    exit();
+  }
 }
