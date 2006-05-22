@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.1 2006/05/20 20:45:45 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.2 2006/05/22 19:44:28 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -490,7 +490,15 @@ function project_project_access($op, $node) {
     case 'view':
       return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
     case 'create':
-      return user_access('maintain projects') && $user->uid;
+      if ($user->uid && user_access('maintain projects')) {
+        if (module_exist('cvs') && variable_get('cvs_restrict_project_creation',0)) {
+          return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d", $user->uid), 0);
+        }
+        else {
+          return TRUE;
+        }
+      }
+      return FALSE;
     case 'update':
     case 'delete':
       return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
