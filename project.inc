@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.2 2006/05/22 19:44:28 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.3 2006/05/23 20:10:21 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -135,7 +135,7 @@ function project_project_form(&$node) {
     '#type' => 'checkbox',
     '#title' => t('Enable issue tracker'),
     '#return_value' => 1,
-    '#default_value' => $node->issues,
+    '#default_value' => isset($node->issues) ? $node->issues : 1,
     '#description' => t('Let users submit bug requests, patches, feature requests, support requests, etc.'),
   );
   if ($releases = project_release_load($node)) {
