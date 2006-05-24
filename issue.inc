@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.12 2006/05/24 17:39:07 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.13 2006/05/24 18:48:23 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -785,7 +785,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
 
   if ($search) {
     // Action links:
-    $form = theme('item_list', $links);
+    $form = theme('links', $links);
 
     // Convert array fields to single select form items. Some magic happens here.
     $fields = array('projects', 'states', 'priorities', 'categories', 'users');
