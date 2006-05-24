@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.173 2006/05/20 20:08:14 dww Exp $ */
+/* $Id: issue.inc,v 1.174 2006/05/24 17:38:56 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1173,6 +1173,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       l(t('submit'), "node/add/project_issue/$project->uri", array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri)))),
       l(t('statistics'), "project/issues/statistics/$project->uri", array('title' => t('See statistics about %project issues.', array('%project' => $project->uri)))),
       l(t('subscribe'), "project/issues/subscribe/$project->uri", array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri)))),
+      l(t('advanced search'), "project/issues/search/$project->uri", array('title' => t('Use the advanced search page to find %project issues.', array('%project' => $project->uri)))),
     );
   }
   else {
@@ -1180,6 +1181,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
       l(t('submit'), "node/add/project_issue", array('title' => t('Submit a new issue.'))),
       l(t('statistics'), "project/issues/statistics", array('title' => t('See statistics about issues.'))),
       l(t('subscribe'), "project/issues/subscribe", array('title' => t('Receive email updates about issues.'))),
+      l(t('advanced search'), "project/issues/search/", array('title' => t('Use the advanced search page for finding issues.'))),
     );
   }
 
@@ -1258,10 +1260,6 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
         '#type' => 'button',
         '#value' => t('Search'),
       );
-      $form['advanced_search'] = array(
-        '#type' => 'markup',
-        '#value'=> l(t('advanced search'), 'project/issues/search'. ($project->uri ? "/$project->uri" : "")),
-      );
     $group .= drupal_get_form('project_issue_query_result_quick_search', $form);
   }
 
@@ -1323,7 +1321,6 @@ function theme_project_issue_query_result_quick_search($form) {
     form_render($form['categories']),
     form_render($form['priorities']),
     form_render($form['users']) . form_render($form['submit']),
-    form_render($form['advanced_search']),
   );
   $output = theme('table', array(), $rows);
   $output .= form_render($form);
