@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.174 2006/05/24 17:38:56 dww Exp $ */
+/* $Id: issue.inc,v 1.175 2006/05/24 18:48:13 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -1211,7 +1211,7 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
 
   if ($search) {
     // Action links:
-    $group = theme('item_list', $links);
+    $group = theme('links', $links);
 
     // Convert array fields to single select form items. Some magic happens here.
     $fields = array('projects', 'states', 'priorities', 'categories', 'users');
