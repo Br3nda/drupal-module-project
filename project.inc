@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.78 2006/05/23 20:10:17 dww Exp $ */
+/* $Id: project.inc,v 1.79 2006/05/29 18:09:02 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -23,6 +23,62 @@ function project_project_form(&$node) {
   }
 
   $form['#prefix'] = '<div class="project">';
+
+  /* Project taxonomy */
+  if (project_use_taxonomy()) {
+    $tree = taxonomy_get_tree(_project_get_vid());
+    $top_level = array();
+    $options = array();
+    foreach ($tree as $i => $term) {
+      if ($term->parents[0] == 0) {
+        $last_top = $term->tid;
+        $top_level[$term->tid] = $term->name;
+      }
+      else {
+        $options[$last_top][$term->tid] = $term->name;
+      }
+    }
+    // See if there are any project specific taxonomy terms already
+    // saved in this node (i.e. we're editing an existing project) and
+    // if so, extract the right default values for our custom form
+    // elements... 
+    if ($node->taxonomy) {
+      foreach ($node->taxonomy as $tid => $obj) {
+        if ($top_level[$tid]) {
+          $current_top = $tid;
+        }
+        else {
+          $current_options[$tid] = $tid;
+        }
+      }
+    } 
+    $form['project_taxonomy'] = array(
+      '#type' => 'fieldset',
+      '#weight' => '-30',
+      '#title' => t('Project categories'),
+      '#collapsible' => TRUE,
+    );
+    $form['project_taxonomy']['project_type'] = array(
+      '#title' => t('Project type'),
+      '#type' => 'radios',
+      '#prefix' => '<div class="project-taxonomy-element">',
+      '#suffix' => '</div>',
+      '#options' => $top_level,
+      '#default_value' => $current_top,
+      '#required' => TRUE,
+    );
+    foreach ($options as $tid => $values) {
+      $form['project_taxonomy'][$tid] = array(
+        '#title' => t('%type categories', array('%type' => $top_level[$tid])),
+        '#type' => 'select',
+        '#multiple' => TRUE,
+        '#options' => $values,
+        '#default_value' => $current_options,
+        '#prefix' => '<div class="project-taxonomy-element">',
+        '#suffix' => '</div>',
+      );
+    }
+  }
 
   /* Project properties */
   $form['project'] = array(
@@ -235,6 +291,25 @@ function project_project_form(&$node) {
   return $form;
 }
 
+/**
+ * Implementation of form_alter. This removes the work of
+ * taxonomy.module's form_alter() so we can do our own taxonomy
+ * selection. 
+ */
+function project_form_alter($form_id, &$form) {
+  if ($form_id == 'project_project_node_form') {
+    $vid = _project_get_vid();
+    if (isset($form['taxonomy'][$vid])) {
+      unset($form['taxonomy'][$vid]);
+    }
+    // If there are no children elements, we should unset the entire
+    // thing so we don't end up with an empty fieldset.
+    if (!element_children($form['taxonomy'])) {
+      unset($form['taxonomy']);
+    }
+  }
+}
+
 function project_project_cleanup($input) {
   return $input;
 }
@@ -302,6 +377,24 @@ function project_project_validate(&$node) {
   foreach (array('homepage', 'changelog', 'cvs', 'demo') as $uri) {
     if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
       form_set_error($uri, t('%field is not a valid URL.', array('%field' => t(ucfirst($uri)))));
+    }
+  }
+
+  // Validate the project-specific sub-categories, if any...
+  if (project_use_taxonomy() && $node->project_type) {
+    $tree = taxonomy_get_tree(_project_get_vid());
+    $top_level = array();
+    foreach ($tree as $i => $term) {
+      if ($term->parents[0] == 0) {
+        $top_level[$term->tid] = $term->name;
+      }
+    }  
+    foreach ($top_level as $tid => $name) {
+      if ($node->project_type != $tid) {
+        if (!empty($node->$tid)) {
+          form_set_error($tid, t('Project type %project_type was selected, you can not use values from %invalid_type categories', array('%project_type' => theme('placeholder', $top_level[$node->project_type]), '%invalid_type' => theme('placeholder', $top_level[$tid]))));
+        }
+      }
     }
   }
 }
@@ -458,6 +551,21 @@ function project_project_load($node) {
   return $project;
 }
 
+function project_nodeapi(&$node, $op, $arg) {
+  switch ($op) {
+    case 'insert':
+      if ($node->type == 'project_project') {
+        _project_save_taxonomy($node);
+      }
+      break;
+    case 'update':
+      if ($node->type == 'project_project') {
+        _project_save_taxonomy($node);
+      }
+      break;
+  }
+}
+
 function project_project_insert($node) {
   project_project_convert_components($node);
   $node->components = serialize($node->components);
@@ -556,4 +664,31 @@ function project_cvs($nid = 0) {
   else {
     drupal_not_found();
   }
+}
+
+function _project_save_taxonomy(&$node) {
+  if (project_use_taxonomy() && $node->project_type) {
+    // First, clear out all terms from the project-specific taxonomy
+    // in this node. We'll re-add the right ones based on what's saved.
+    // This way, we're sure to clear out things that have been changed.
+    $vid = _project_get_vid();
+    $result = db_query('SELECT tid FROM {term_data} WHERE vid = %d', $vid);
+    $items = array();
+    while ($item = db_fetch_object($result)) {
+      $items[] = "tid = $item->tid";
+    }
+    if ($items) {
+      $sql = 'DELETE FROM {term_node} WHERE nid = %d AND ('. implode(' OR ', $items) . ')';
+      db_query($sql, $node->nid);
+    }
+    $tid = $node->project_type;
+    _project_db_save_taxonomy($node->nid, $tid);
+    foreach ($node->$tid as $tid) {
+      _project_db_save_taxonomy($node->nid, $tid);
+    }
+  }
+}
+
+function _project_db_save_taxonomy($nid, $tid) {
+  db_query('INSERT INTO {term_node} (nid, tid) VALUES (%d, %d)', $nid, $tid);
 }
