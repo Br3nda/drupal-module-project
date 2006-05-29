@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.241 2006/05/29 18:09:02 dww Exp $
+// $Id: project.module,v 1.242 2006/05/29 21:56:07 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -112,6 +112,7 @@ function project_perm() {
     'access own projects',
     'create project issues',
     'access project issues',
+    'edit own project issues',
     'access own project issues'
   );
   $states = project_issue_state();
