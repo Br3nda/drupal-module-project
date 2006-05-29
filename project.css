@@ -123,7 +123,7 @@
   margin: 0.05em 0.1em;
 }
 
-.node-form .project .options fieldset:after {
+.node-form .project fieldset:after {
   content: ".";
   display: block;
   height: 0;
@@ -132,6 +132,11 @@
 }
 
 .node-form .project .options fieldset {display: inline-table;}
+
+.node-form .project .project-taxonomy-element {
+  float: left;
+  padding-right: 2em;
+}
 
 ul.project-terms {
   padding-left: 1.5em;

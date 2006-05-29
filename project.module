@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.1 2006/05/20 14:28:32 dww Exp $
+// $Id: project.module,v 1.239.2.2 2006/05/29 18:09:08 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -297,7 +297,7 @@ function _project_get_vid() {
     // Check to see if a project module vocabulary exists.
     $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module='%s'", 'project'));
     if (!$vid) {
-      $edit = array('name' => t('Projects'), 'multiple' => 1, 'required' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project', 'nodes' => array('project_project' => 1));
+      $edit = array('name' => t('Projects'), 'multiple' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project', 'nodes' => array('project_project' => 1));
       // If there is already a vocabulary assigned to 'project_project' nodes, use it.
       $vocabularies = taxonomy_get_vocabularies('project_project');
       if (count($vocabularies)) {
@@ -1066,4 +1066,12 @@ function project_autocomplete($string) {
     print drupal_to_js($matches);
     exit();
   }
+}
+
+/**
+ * Returns whether or not the project module should use
+ * taxonomy-specific functionality.
+ */
+function project_use_taxonomy() {
+  return module_exist('taxonomy') && taxonomy_get_tree(_project_get_vid());
 }

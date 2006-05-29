@@ -191,3 +191,9 @@ function project_install() {
 function project_update_1() {
   return _system_update_utf8(array('project_projects', 'project_releases', 'project_issues', 'project_comments', 'project_subscriptions', 'project_issue_state'));
 }
+
+function project_update_2() {
+  $ret = array();
+  $ret[] = update_sql("UPDATE {system} SET weight = 2 WHERE name = 'project'");
+  return $ret;
+}
