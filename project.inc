@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.4 2006/05/29 18:09:08 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.5 2006/06/01 08:28:07 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -683,8 +683,10 @@ function _project_save_taxonomy(&$node) {
     }
     $tid = $node->project_type;
     _project_db_save_taxonomy($node->nid, $tid);
-    foreach ($node->$tid as $tid) {
-      _project_db_save_taxonomy($node->nid, $tid);
+    if (isset($node->$tid)) {
+      foreach ($node->$tid as $tid) {
+        _project_db_save_taxonomy($node->nid, $tid);
+      }
     }
   }
 }
