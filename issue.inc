@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.172.2.4 2006/05/29 21:57:13 dww Exp $ */
+/* $Id: issue.inc,v 1.172.2.5 2006/06/01 09:56:51 dww Exp $ */
 
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
@@ -94,8 +94,9 @@ function project_issue_statistics($project = 0) {
       l(t('Home'), NULL),
       l(t('Projects'), 'project')
     );
-    $taxonomy_terms = taxonomy_node_get_terms($project->nid);
-    if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
+    if (project_use_taxonomy()) {
+      $taxonomy_terms = taxonomy_node_get_terms($project->nid);
+      reset($taxonomy_terms);
       $breadcrumb[] = l($term->name, 'project/'. $term->name);
     }
     $breadcrumb[] = $project->nid ? l($project->title, "node/$project->nid") : l(t('All issues'), 'project/issues');
@@ -695,8 +696,9 @@ function project_issue_view(&$node, $teaser = false, $page = false) {
 
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-    $taxonomy_terms = taxonomy_node_get_terms($node->pid);
-    if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
+    if (project_use_taxonomy()) {
+      $taxonomy_terms = taxonomy_node_get_terms($node->pid);
+      $term = reset($taxonomy_terms);
       $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
     }
     $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);

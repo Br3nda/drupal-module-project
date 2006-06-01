@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.70.2.1 2006/05/20 20:45:45 dww Exp $ */
+/* $Id: release.inc,v 1.70.2.2 2006/06/01 09:56:51 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -117,8 +117,9 @@ function project_release_submit() {
     case 'add':
       $node = node_load(arg(1));
       $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
-      $taxonomy_terms = taxonomy_node_get_terms($node->nid);
-      if (function_exists('taxonomy_node_get_terms') && $term = reset($taxonomy_terms)) {
+      if (project_use_taxonomy()) {
+        $taxonomy_terms = taxonomy_node_get_terms($node->nid);
+        $term = reset($taxonomy_terms);
         $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
       }
       $breadcrumb[] = l($node->title, "node/$node->nid");
