@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.242 2006/05/29 21:56:07 dww Exp $
+// $Id: project.module,v 1.243 2006/06/01 09:56:43 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -40,7 +40,7 @@ function project_help($section) {
     case 'node/add#project_issue':
       return t('Add a new issue (bug report, feature request, etc) to an existing project.');
     case 'node/add/project_project':
-      if (module_exist('taxonomy')) {
+      if (project_use_taxonomy()) {
         $tree = taxonomy_get_tree(_project_get_vid());
         // Extract the different project types, and, for the first type, up to three categories.
         foreach ($tree as $index => $term) {
@@ -62,13 +62,14 @@ function project_help($section) {
       $help .= variable_get('project_help_node_add', '');
       return $help;
     case 'admin/settings/project':
-      if (module_exist('taxonomy')) {
+      if (project_use_taxonomy()) {
         $vid = _project_get_vid();
         return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, "Projects", has been created automatically.</p>
         <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., "modules", "themes", "translations".</p>
         <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, "modules" might have sub-terms including "mail" and "XML".</p>
         <p>Use the <a href="%taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('%taxonomy-admin' => url('admin/taxonomy/' . $vid)));
       }
+      break;
     case 'admin/settings/project/status':
       return t('<p>Use this page to add new status options for project issues or to change or delete existing options.<dl>
       <dt>Adding</dt><dd>To add a new status option, put its name in one of the blank places at the bottom of the form and assign it a weight.</dd></p>
@@ -176,28 +177,32 @@ function project_settings() {
     '#collapsible' => TRUE,
   );
 
-  $form['browsing']['project_sort_method'] = array(
-    '#type' => 'radios',
-    '#title' => t('Default sort option'),
-    '#default_value' => variable_get('project_sort_method', 'category'),
-    '#options' => $sort_methods,
-    '#description' => t('Default sorting option to use on the overview page'),
-  );
+  if (project_use_taxonomy()) {
 
-  $form['browsing']['sort_methods'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Enabled sorting options'),
-  );
-
-  $tree = taxonomy_get_tree(_project_get_vid(), 0 , -1, 1);
-  foreach ($tree as $term) {
-    $form['browsing']['sort_methods']['project_sort_method_used_' . $term->tid] = array(
-      '#type' => 'checkboxes',
-      '#title' => $term->name,
-      '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
+    // For now, date-based browsing doesn't work once you disable
+    // taxonomy (only because the code involved is rather complicated
+    // and needs to be majorly refactored and cleaned up).
+    $form['browsing']['project_sort_method'] = array(
+      '#type' => 'radios',
+      '#title' => t('Default sort option'),
+      '#default_value' => variable_get('project_sort_method', 'category'),
       '#options' => $sort_methods,
-      '#description' => t('Sorting options to enable for %term', array('%term' => $term->name))
+      '#description' => t('Default sorting option to use on the overview page'),
     );
+    $form['browsing']['sort_methods'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Enabled sorting options'),
+    );
+    $tree = taxonomy_get_tree(_project_get_vid(), 0 , -1, 1);
+    foreach ($tree as $term) {
+      $form['browsing']['sort_methods']['project_sort_method_used_' . $term->tid] = array(
+        '#type' => 'checkboxes',
+        '#title' => $term->name,
+        '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
+        '#options' => $sort_methods,
+        '#description' => t('Sorting options to enable for %term', array('%term' => $term->name))
+      );
+    }
   }
   $form['browsing']['project_browse_nodes'] = array(
     '#type' => 'select', '#title' => t('Number of projects to list in paged browsing'),
@@ -215,7 +220,7 @@ function project_settings() {
     '#description' => t("Subdirectory in the directory '%dir' where attachment to issues will be stored.", array('%dir' => variable_get('file_directory_path', 'files') . '/')),
   );
 
-  if (module_exist('forum')) {
+  if (module_exist('forum') && project_use_taxonomy()) {
     $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
   }
 
@@ -375,11 +380,10 @@ function project_menu($may_cache) {
       'type' => MENU_CALLBACK);
 
     // Project browsing pages
-    if (module_exist('taxonomy')) {
+    if (project_use_taxonomy()) {
+      $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       $terms = taxonomy_get_tree(_project_get_vid());
       $releases = variable_get('project_browse_releases', 0);
-
-      $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       foreach ($terms as $i => $term) {
         // Only use the first-level terms.
         if ($term->depth == 0) {
@@ -399,7 +403,6 @@ function project_menu($may_cache) {
                  'weight' => ($sort_method == variable_get('project_sort_method', 'category')) ? -10 : $j,
                  'callback arguments' => array($term->name, $sort_method));
             $j++;
-
           }
         }
       }
@@ -520,7 +523,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   }
 
   // If browsing by taxonomy, only fetch projects for this term.
-  if (module_exist('taxonomy')) {
+  if (project_use_taxonomy()) {
     $vid = _project_get_vid();
     if ($termname) {
 
@@ -705,7 +708,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $class = 'even';
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
-    if (module_exist('taxonomy')) {
+    if (project_use_taxonomy()) {
       $project->term = $termname;
       $project->terms = array();
       foreach (taxonomy_node_get_terms($project->nid) as $term) {
@@ -843,7 +846,13 @@ function project_project_sort_methods($op, $method = NULL) {
     // A listing of the available sorting methods.
     // The array values are the name of the module (in this case, 'project').
     case 'methods':
-      return array('category' => 'project', 'date' => 'project', 'name' => 'project');
+      $methods = array();
+      $methods['name'] = 'project';
+      $methods['date'] = 'project';
+      if (project_use_taxonomy()) {
+        $methods['category'] = 'project';
+      }
+      return $methods;
     case 'sql_settings' :
       switch ($method) {
         case 'category':
@@ -924,7 +933,7 @@ function _project_date($timestamp) {
 
 function project_projects_select_options($key_prefix = NULL) {
   $projects = array();
-  if (module_exist('taxonomy')) {
+  if (project_use_taxonomy()) {
     $vid = _project_get_vid();
     $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
     while ($project = db_fetch_object($result)) {
