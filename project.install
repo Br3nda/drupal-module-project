@@ -186,6 +186,8 @@ function project_install() {
   db_query("INSERT INTO project_issue_state VALUES (8, 'patch (code needs review)', -8, 0)");
   db_query("INSERT INTO project_issue_state VALUES (13, 'patch (code needs work)', -6, 0)");
   db_query("INSERT INTO project_issue_state VALUES (14, 'patch (ready to commit)', -2, 0)");
+
+  db_query("UPDATE {system} SET weight = 2 WHERE name = 'project'");
 }
 
 function project_update_1() {
