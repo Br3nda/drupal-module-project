@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.243 2006/06/01 09:56:43 dww Exp $
+// $Id: project.module,v 1.244 2006/06/06 10:06:56 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -417,7 +417,7 @@ function project_menu($may_cache) {
     $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
 
     // Create projects
-    $access = user_access('maintain projects');
+    $access = project_project_access('create', NULL); 
     $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
     // Issues
