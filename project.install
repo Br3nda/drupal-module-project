@@ -4,7 +4,7 @@ function project_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      db_query("CREATE TABLE project_projects (
+      db_query("CREATE TABLE {project_projects} (
           nid int(10) unsigned NOT NULL default '0',
           uri varchar(50) NOT NULL default '',
           homepage varchar(255) NOT NULL default '',
@@ -29,7 +29,7 @@ function project_install() {
           KEY project_projects_uri (uri(8))
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE project_releases (
+      db_query("CREATE TABLE {project_releases} (
           rid int(10) unsigned NOT NULL default '0',
           nid int(10) unsigned NOT NULL default '0',
           fid int(10) unsigned NOT NULL default '0',
@@ -46,7 +46,7 @@ function project_install() {
           KEY project_releases_nid (nid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE project_issues (
+      db_query("CREATE TABLE {project_issues} (
           nid int(10) unsigned NOT NULL default '0',
           pid int(10) unsigned NOT NULL default '0',
           category varchar(255) NOT NULL default '',
@@ -62,7 +62,7 @@ function project_install() {
           KEY project_issues_pid (pid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE project_comments (
+      db_query("CREATE TABLE {project_comments} (
           cid int(10) unsigned NOT NULL default '0',
           nid int(10) unsigned NOT NULL default '0',
           uid int(10) unsigned NOT NULL default '0',
@@ -78,14 +78,14 @@ function project_install() {
           KEY project_comments_nid (nid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE project_subscriptions (
+      db_query("CREATE TABLE {project_subscriptions} (
           nid int(10) unsigned NOT NULL default '0',
           uid int(10) unsigned NOT NULL default '0',
           level tinyint(3) unsigned NOT NULL default '0',
           KEY project_subscriptions_nid_uid_level (nid, uid, level)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE project_issue_state (
+      db_query("CREATE TABLE {project_issue_state} (
           sid int(10) unsigned NOT NULL auto_increment,
           name varchar(32) NOT NULL default '',
           weight tinyint(2) DEFAULT '0' NOT NULL,
@@ -96,7 +96,7 @@ function project_install() {
         break;
 
     case 'pgsql':
-      db_query("CREATE TABLE project_projects (
+      db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',
           uri varchar(50) NOT NULL default '',
           homepage varchar(255) NOT NULL default '',
@@ -119,7 +119,7 @@ function project_install() {
           license varchar(255) default '' not null,
           PRIMARY KEY (nid)
         );");
-      db_query("CREATE TABLE project_releases (
+      db_query("CREATE TABLE {project_releases} (
           rid int NOT NULL default '0',
           nid int NOT NULL default '0',
           fid int NOT NULL default '0',
@@ -133,7 +133,7 @@ function project_install() {
           status smallint default '1' not null,
           PRIMARY KEY (rid)
         );");
-      db_query("CREATE TABLE project_issues (
+      db_query("CREATE TABLE {project_issues} (
           nid int NOT NULL default '0',
           pid int NOT NULL default '0',
           category varchar(255) NOT NULL default '',
@@ -147,7 +147,7 @@ function project_install() {
           file_size int default 0 NOT NULL,
           PRIMARY KEY (nid)
         );");
-      db_query("CREATE TABLE project_comments (
+      db_query("CREATE TABLE {project_comments} (
           cid int NOT NULL default '0',
           nid int NOT NULL default '0',
           uid int NOT NULL default '0',
@@ -161,12 +161,12 @@ function project_install() {
           file_size int default 0 NOT NULL,
           PRIMARY KEY (cid)
         );");
-      db_query("CREATE TABLE project_subscriptions (
+      db_query("CREATE TABLE {project_subscriptions} (
           nid int NOT NULL default '0',
           uid int NOT NULL default '0',
           level smallint NOT NULL default '0'
         );");
-      db_query("CREATE TABLE project_issue_state (
+      db_query("CREATE TABLE {project_issue_state} (
           sid SERIAL,
           name varchar(32) NOT NULL default '',
           weight smallint DEFAULT '0' NOT NULL,
@@ -176,16 +176,16 @@ function project_install() {
       break;
   }
 
-  db_query("INSERT INTO project_issue_state VALUES (1, 'active', -13, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (2, 'fixed', 1, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (3, 'duplicate', 4, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (4, 'postponed', 6, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (5, 'won\'t fix', 9, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (6, 'by design', 11, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (7, 'closed', 13, 1)");
-  db_query("INSERT INTO project_issue_state VALUES (8, 'patch (code needs review)', -8, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (13, 'patch (code needs work)', -6, 0)");
-  db_query("INSERT INTO project_issue_state VALUES (14, 'patch (ready to commit)', -2, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (1, 'active', -13, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (2, 'fixed', 1, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (3, 'duplicate', 4, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (4, 'postponed', 6, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (5, 'won\'t fix', 9, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (6, 'by design', 11, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (7, 'closed', 13, 1)");
+  db_query("INSERT INTO {project_issue_state} VALUES (8, 'patch (code needs review)', -8, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (13, 'patch (code needs work)', -6, 0)");
+  db_query("INSERT INTO {project_issue_state} VALUES (14, 'patch (ready to commit)', -2, 0)");
 
   db_query("UPDATE {system} SET weight = 2 WHERE name = 'project'");
 }
