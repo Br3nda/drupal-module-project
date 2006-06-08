@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.5 2006/05/23 20:52:46 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.6 2006/06/08 06:37:39 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -313,7 +313,10 @@ function project_project_update($node) {
 
 function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {project_releases} WHERE nid = %d', $node->nid);
   db_query('DELETE FROM {project_issues} WHERE pid = %d', $node->nid);
+  db_query('DELETE FROM {project_comments} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {project_subscriptions} WHERE nid = %d', $node->nid);
 }
 
 function project_project_access($op, $node) {
