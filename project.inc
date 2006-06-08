@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.7 2006/06/06 10:07:24 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.8 2006/06/08 06:37:36 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -589,7 +589,10 @@ function project_project_update($node) {
 
 function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {project_releases} WHERE nid = %d', $node->nid);
   db_query('DELETE FROM {project_issues} WHERE pid = %d', $node->nid);
+  db_query('DELETE FROM {project_comments} WHERE nid = %d', $node->nid);
+  db_query('DELETE FROM {project_subscriptions} WHERE nid = %d', $node->nid);
 }
 
 function project_project_access($op, $node) {
