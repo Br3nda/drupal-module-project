@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.244 2006/06/06 10:06:56 dww Exp $
+// $Id: project.module,v 1.245 2006/06/09 16:18:46 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -278,14 +278,21 @@ function project_link($type, $node = 0, $main = 0) {
   switch ($type) {
     case 'page':
       if (user_access('access projects')) {
-        $links[] = l(t('projects'), 'project', array('title' => t('View all projects.')));
+        $links['project_view_all'] = array(
+          '#title' => t('projects'),
+          '#href' => 'project',
+          '#attributes' => array('title' => t('View all projects.'))
+        );
       }
       break;
     case 'node':
       if ($node->type == 'project_issue') {
         if (user_access('create project issues')) {
           $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
-          $links[] = l(t('follow up'), "project/comments/add/$node->nid");
+          $links['project_follow_up'] = array(
+            '#title' => t('follow up'),
+            '#href' => "project/comments/add/$node->nid"
+          );
         }
       }
       break;
@@ -728,13 +735,22 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $project->links = array();
 
     if ($project->path) {
-      $project->links[] = '<a href="'. base_path() . $project->path .'">' . t('Download') . '</a>';
+      $project->links['project_download'] = array(
+        '#title' => t('Download'),
+        '#href' => base_path() . $project->path,
+      );
     }
-    $project->links[] = l(t('Find out more'), "node/$project->nid");
+    $project->links['project_more_info'] = array(
+      '#title' => t('Find out more'),
+      '#href' => "node/$project->nid",
+    );
 
     // This test doesn't currently work when taxonomy is enabled, since taxonomy_select_nodes doesn't load the issues setting from project_project
     if ($project->issues) {
-      $project->links[] = l(t('Bugs and feature requests'), "project/issues/$project->nid");
+      $project->links['project_issues'] = array(
+        '#title' => t('Bugs and feature requests'),
+        '#href' => "project/issues/$project->nid",
+      );
     }
     if (module_invoke($module, 'project_sort_methods', 'group by date', $sort_method) && $date = _project_date($project->changed)) {
       $projects .= "<h3>$date</h3>";
