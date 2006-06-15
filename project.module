@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.5 2006/06/06 10:07:24 dww Exp $
+// $Id: project.module,v 1.239.2.6 2006/06/15 22:13:26 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -408,7 +408,7 @@ function project_menu($may_cache) {
       }
     }
 
-    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'callback arguments' => $user->uid, 'access' => $user->uid && $access, 'type' => MENU_NORMAL_ITEM);
+    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $user->uid && $access, 'type' => MENU_NORMAL_ITEM);
 
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
@@ -773,7 +773,14 @@ function project_user($type, $edit, &$user, $category = NULL) {
 function project_page_user($arg = 0) {
   $current_user = FALSE;
   if ($arg) {
-    $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE uid = %d OR name = '%s'", $arg, $arg));
+    $where = '';
+    if (is_numeric($arg)) {
+      $where = 'uid = %d';
+    }
+    else {
+      $where = "name = '%s'";
+    }
+    $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE $where", $arg));
     if ($user) {
       drupal_set_title(t('Projects by %user', array('%user' => $user->name)));
     }
