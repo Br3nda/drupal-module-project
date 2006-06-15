@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.5 2006/06/06 10:07:38 dww Exp $
+// $Id: project.module,v 1.195.2.6 2006/06/15 22:13:32 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -389,7 +389,14 @@ function project_user($type, $edit, &$user, $category = NULL) {
 function project_page_user($arg = 0) {
   $current_user = FALSE;
   if ($arg) {
-    $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE uid = %d OR name = '%s'", $arg, $arg));
+    $where = '';
+    if (is_numeric($arg)) {
+      $where = 'uid = %d';
+    }
+    else {
+      $where = "name = '%s'";
+    }
+    $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE $where", $arg));
     if ($user) {
       drupal_set_title(t('Projects by %user', array('%user' => $user->name)));
     }
