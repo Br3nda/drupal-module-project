@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.84 2006/06/16 07:25:24 dww Exp $ */
+/* $Id: project.inc,v 1.85 2006/06/16 12:27:04 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -568,18 +568,19 @@ function project_nodeapi(&$node, $op, $arg) {
     case 'insert':
       if ($node->type == 'project_project') {
         _project_save_taxonomy($node);
-      }
-      if (module_exist('path')) {
-        path_set_alias("node/$node->nid", "project/$node->uri");
+        if (module_exist('path')) {
+          path_set_alias("node/$node->nid", "project/$node->uri");
+        }
       }
       break;
+
     case 'update':
       if ($node->type == 'project_project') {
         _project_save_taxonomy($node);
-      }
-      if (module_exist('path')) {
-        path_set_alias("node/$node->nid");  // Clear existing alias.
-        path_set_alias("node/$node->nid", "project/$node->uri");
+        if (module_exist('path')) {
+          path_set_alias("node/$node->nid");  // Clear existing alias.
+          path_set_alias("node/$node->nid", "project/$node->uri");
+        }
       }
       break;
   }
