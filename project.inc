@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.83 2006/06/08 06:37:31 dww Exp $ */
+/* $Id: project.inc,v 1.84 2006/06/16 07:25:24 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -307,6 +307,20 @@ function project_form_alter($form_id, &$form) {
     if (!element_children($form['taxonomy'])) {
       unset($form['taxonomy']);
     }
+
+    // If the form has an element for specifying a URL alias, we want
+    // to alter it, since we're just going to automatically override
+    // the specified value.
+    if (isset($form['path'])) {
+      $url_alias = $form['path']['path']['#default_value'];
+      if (empty($url_alias)) {
+        unset($form['path']);
+      }
+      else {
+        unset($form['path']['path']);
+        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
+      }
+    }
   }
 }
 
@@ -339,9 +353,6 @@ function project_project_validate(&$node) {
     if (in_array($node->uri, array('user', 'issues', 'releases')) || db_num_rows(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
       form_set_error('uri', t('This project name is already in use.'));
     }
-  }
-  if (!$error['uri']) {
-    $node->path = "project/$node->uri";
   }
 
   // We need a description.
@@ -558,10 +569,17 @@ function project_nodeapi(&$node, $op, $arg) {
       if ($node->type == 'project_project') {
         _project_save_taxonomy($node);
       }
+      if (module_exist('path')) {
+        path_set_alias("node/$node->nid", "project/$node->uri");
+      }
       break;
     case 'update':
       if ($node->type == 'project_project') {
         _project_save_taxonomy($node);
+      }
+      if (module_exist('path')) {
+        path_set_alias("node/$node->nid");  // Clear existing alias.
+        path_set_alias("node/$node->nid", "project/$node->uri");
       }
       break;
   }
