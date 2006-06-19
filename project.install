@@ -199,3 +199,50 @@ function project_update_2() {
   $ret[] = update_sql("UPDATE {system} SET weight = 2 WHERE name = 'project'");
   return $ret;
 }
+
+/**
+ * Remove stale records from tables that weren't cleaned up properly
+ * when project nodes were deleted.  See http://drupal.org/node/67877
+ */
+function project_update_3() {
+  $ret = array();
+  $can_use_subselect = TRUE;
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      if (version_compare(mysql_get_server_info(), '4.1.0', '<')) {
+        $can_use_subselect = FALSE;
+      }
+      break;
+  }
+
+  $tables = array(
+    "{project_releases}",
+    "{project_comments}",
+    "{project_subscriptions}",
+  );
+
+  foreach ($tables as $table) {
+    $res = array();
+    if ($can_use_subselect) {
+      $res = update_sql("DELETE FROM $table WHERE nid NOT IN (SELECT nid FROM {node})");
+      $ret[] = $res;
+    }
+    else {
+      $result = db_query("SELECT p.nid FROM $table p LEFT JOIN {node} n ON p.nid = n.nid WHERE n.nid IS NULL");
+      $nids = array();
+      while ($nid = db_fetch_object($result)) {
+        $nids[] = $nid->nid;
+      }
+      if (!empty($nids)) {
+        $res = update_sql("DELETE FROM $table WHERE nid IN (" . implode(',', $nids) . ')');
+        $ret[] = $res;
+      }	
+    }
+    if ($res['success']) {
+       $num = db_affected_rows();
+       $ret[] = array('success' => TRUE, 'query' => check_plain("$num rows deleted from $table"));
+    }
+  }
+  return $ret;
+}
