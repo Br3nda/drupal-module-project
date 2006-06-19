@@ -1,6 +1,10 @@
 <?php
-/* $Id: issue.inc,v 1.178 2006/06/09 16:18:46 dww Exp $ */
+/* $Id: issue.inc,v 1.179 2006/06/19 09:05:10 dww Exp $ */
 
+/**
+ * hook_nodeapi() implementation specific for issue nodes.
+ * @see project_nodeapi().
+ */
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
   switch ($op) {
