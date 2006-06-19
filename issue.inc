@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.172.2.7 2006/06/19 09:24:49 dww Exp $ */
+/* $Id: issue.inc,v 1.172.2.8 2006/06/19 11:48:17 dww Exp $ */
 
 /**
  * hook_nodeapi() implementation specific for issue nodes.
@@ -1164,6 +1164,7 @@ function project_issue_admin_delete_state_submit($form_id, $form_values) {
 }
 
 function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
+  global $user;
   $query = project_issue_query_parse($query);
 
   $categories = array(0 => t('<all>')) + project_issue_category();
@@ -1184,20 +1185,26 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   if ($project) {
     $releases = project_release_load($project, 0);
     $query->projects = $project->nid;
-    $links = array(
-      l(t('submit'), "node/add/project_issue/$project->uri", array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri)))),
-      l(t('statistics'), "project/issues/statistics/$project->uri", array('title' => t('See statistics about %project issues.', array('%project' => $project->uri)))),
-      l(t('subscribe'), "project/issues/subscribe/$project->uri", array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri)))),
-      l(t('advanced search'), "project/issues/search/$project->uri", array('title' => t('Use the advanced search page to find %project issues.', array('%project' => $project->uri)))),
-    );
+    $links = array();
+    if (user_access('create project issues')) {
+      $links[] = l(t('submit'), "node/add/project_issue/$project->uri", array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri))));
+    }
+    $links[] = l(t('statistics'), "project/issues/statistics/$project->uri", array('title' => t('See statistics about %project issues.', array('%project' => $project->uri))));
+    if ($user->uid) {
+      $links[] = l(t('subscribe'), "project/issues/subscribe/$project->uri", array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri))));
+    }
+    $links[] = l(t('advanced search'), "project/issues/search/$project->uri", array('title' => t('Use the advanced search page to find %project issues.', array('%project' => $project->uri))));
   }
   else {
-    $links = array(
-      l(t('submit'), "node/add/project_issue", array('title' => t('Submit a new issue.'))),
-      l(t('statistics'), "project/issues/statistics", array('title' => t('See statistics about issues.'))),
-      l(t('subscribe'), "project/issues/subscribe", array('title' => t('Receive email updates about issues.'))),
-      l(t('advanced search'), "project/issues/search/", array('title' => t('Use the advanced search page for finding issues.'))),
-    );
+    $links = array();
+    if (user_access('create project issues')) {
+      $links[] = l(t('submit'), "node/add/project_issue", array('title' => t('Submit a new issue.')));
+    }
+    $links[] = l(t('statistics'), "project/issues/statistics", array('title' => t('See statistics about issues.')));
+    if ($user->uid) {
+      $links[] = l(t('subscribe'), "project/issues/subscribe", array('title' => t('Receive email updates about issues.')));
+    }
+    $links[] = l(t('advanced search'), "project/issues/search/", array('title' => t('Use the advanced search page for finding issues.')));
   }
 
   $header = array();
