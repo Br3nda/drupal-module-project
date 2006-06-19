@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.180 2006/06/19 09:24:43 dww Exp $ */
+/* $Id: issue.inc,v 1.181 2006/06/19 11:48:11 dww Exp $ */
 
 /**
  * hook_nodeapi() implementation specific for issue nodes.
@@ -1164,6 +1164,7 @@ function project_issue_admin_delete_state_submit($form_id, $form_values) {
 }
 
 function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
+  global $user;
   $query = project_issue_query_parse($query);
 
   $categories = array(0 => t('<all>')) + project_issue_category();
@@ -1185,21 +1186,25 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   if ($project) {
     $releases = project_release_load($project, 0);
     $query->projects = $project->nid;
-    $links['project_issue_submit'] = array(
-      '#title' => t('submit'),
-      '#href' => "node/add/project_issue/$project->uri",
-      '#attributes' => array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri))),
-    );
+    if (user_access('create project issues')) {
+      $links['project_issue_submit'] = array(
+        '#title' => t('submit'),
+        '#href' => "node/add/project_issue/$project->uri",
+        '#attributes' => array('title' => t('Submit a new issue for %project.', array('%project' => $project->uri))),
+      );
+    }
     $links['project_issue_statistics'] = array(
       '#title' => t('statistics'),
       '#href' => "project/issues/statistics/$project->uri",
       '#attributes' => array('title' => t('See statistics about %project issues.', array('%project' => $project->uri))),
     );
-    $links['project_issue_subscribe'] = array(
-      '#title' => t('subscribe'),
-      '#href' => "project/issues/subscribe/$project->uri",
-      '#attributes' => array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri))),
-    );
+    if ($user->uid) {
+      $links['project_issue_subscribe'] = array(
+        '#title' => t('subscribe'),
+        '#href' => "project/issues/subscribe/$project->uri",
+        '#attributes' => array('title' => t('Receive email updates about issues for %project.', array('%project' => $project->uri))),
+      );
+    }
     $links['project_issue_advanced_search'] = array(
       '#title' => t('advanced search'),
       '#href' => "project/issues/search/$project->uri",
@@ -1207,21 +1212,25 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
     );
   }
   else {
-    $links['project_issue_submit'] = array(
-      '#title' => t('submit'),
-      '#href' => "node/add/project_issue",
-      '#attributes' => array('title' => t('Submit a new issue.')),
-    );
+    if (user_access('create project issues')) {
+      $links['project_issue_submit'] = array(
+        '#title' => t('submit'),
+        '#href' => "node/add/project_issue",
+        '#attributes' => array('title' => t('Submit a new issue.')),
+      );
+    }
     $links['project_issue_statistics'] = array(
       '#title' => t('statistics'),
       '#href' => "project/issues/statistics",
       '#attributes' => array('title' => t('See statistics about issues.')),
     );
-    $links['project_issue_subscribe'] = array(
-      '#title' => t('subscribe'),
-      '#href' => "project/issues/subscribe",
-      '#attributes' => array('title' => t('Receive email updates about issues.')),
-    );
+    if ($user->uid) {
+      $links['project_issue_subscribe'] = array(
+        '#title' => t('subscribe'),
+        '#href' => "project/issues/subscribe",
+        '#attributes' => array('title' => t('Receive email updates about issues.')),
+      );
+    }
     $links['project_issue_advanced_search'] = array(
       '#title' => t('advanced search'),
       '#href' => "project/issues/search",
