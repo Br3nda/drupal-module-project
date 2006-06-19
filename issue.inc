@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.179 2006/06/19 09:05:10 dww Exp $ */
+/* $Id: issue.inc,v 1.180 2006/06/19 09:24:43 dww Exp $ */
 
 /**
  * hook_nodeapi() implementation specific for issue nodes.
@@ -866,14 +866,16 @@ function project_issue_query($project = 0, $query = NULL) {
     );
   }
   else {
-    $form['versions'] = array(
-      '#type' => 'select',
-      '#title' => t('Versions'),
-      '#default_value' => $query->versions,
-      '#options' => $versions,
-      '#attributes' => array('size' => 5),
-      '#multiple' => TRUE,
-    );
+    if (!empty($versions)) {
+      $form['versions'] = array(
+        '#type' => 'select',
+        '#title' => t('Versions'),
+        '#default_value' => $query->versions,
+        '#options' => $versions,
+        '#attributes' => array('size' => 5),
+        '#multiple' => TRUE,
+      );
+    }
     $form['components'] = array(
       '#type' => 'select',
       '#title' => t('Components'),
@@ -957,11 +959,17 @@ function theme_project_issue_query($form) {
       NULL,
     );
   }
-  else {
+  elseif ($form['versions']) {
     $rows[] = array(
       form_render($form['versions']),
       form_render($form['components']),
       form_render($form['categories']),
+    );
+  }
+  else {
+    $rows[] = array(
+      array('data' => form_render($form['components'])),
+      array('data' => form_render($form['categories']), 'colspan' => 2)
     );
   }
   $rows[] = array(
