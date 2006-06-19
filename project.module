@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.6 2006/06/15 22:13:26 dww Exp $
+// $Id: project.module,v 1.239.2.7 2006/06/19 09:05:17 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -472,6 +472,57 @@ function project_menu($may_cache) {
   }
 
   return $items;
+}
+
+/**
+ * Implementation of form_alter. This removes the work of
+ * taxonomy.module's form_alter() so we can do our own taxonomy
+ * selection. 
+ */
+function project_form_alter($form_id, &$form) {
+  if ($form_id == 'project_project_node_form') {
+    $vid = _project_get_vid();
+    if (isset($form['taxonomy'][$vid])) {
+      unset($form['taxonomy'][$vid]);
+    }
+    // If there are no children elements, we should unset the entire
+    // thing so we don't end up with an empty fieldset.
+    if (!element_children($form['taxonomy'])) {
+      unset($form['taxonomy']);
+    }
+
+    // If the form has an element for specifying a URL alias, we want
+    // to alter it, since we're just going to automatically override
+    // the specified value.
+    if (isset($form['path'])) {
+      $url_alias = $form['path']['path']['#default_value'];
+      if (empty($url_alias)) {
+        unset($form['path']);
+      }
+      else {
+        unset($form['path']['path']);
+        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
+      }
+    }
+  }
+}
+
+/**
+ * hook_nodeapi() implementation. This just decides what type of node
+ * is being passed, and calls the appropriate type-specific hook.
+ *
+ * @see project_project_nodeapi().
+ * @see project_issue_nodeapi().
+ */
+function project_nodeapi(&$node, $op, $arg) {
+  switch ($node->type) {
+    case 'project_project':
+      project_project_nodeapi(&$node, $op, $arg);
+      break;
+    case 'project_issue':
+      project_issue_nodeapi(&$node, $op, $arg);
+      break;
+  }
 }
 
 /**

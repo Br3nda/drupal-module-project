@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.10 2006/06/16 12:24:33 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.11 2006/06/19 09:05:17 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -291,39 +291,6 @@ function project_project_form(&$node) {
   return $form;
 }
 
-/**
- * Implementation of form_alter. This removes the work of
- * taxonomy.module's form_alter() so we can do our own taxonomy
- * selection. 
- */
-function project_form_alter($form_id, &$form) {
-  if ($form_id == 'project_project_node_form') {
-    $vid = _project_get_vid();
-    if (isset($form['taxonomy'][$vid])) {
-      unset($form['taxonomy'][$vid]);
-    }
-    // If there are no children elements, we should unset the entire
-    // thing so we don't end up with an empty fieldset.
-    if (!element_children($form['taxonomy'])) {
-      unset($form['taxonomy']);
-    }
-
-    // If the form has an element for specifying a URL alias, we want
-    // to alter it, since we're just going to automatically override
-    // the specified value.
-    if (isset($form['path'])) {
-      $url_alias = $form['path']['path']['#default_value'];
-      if (empty($url_alias)) {
-        unset($form['path']);
-      }
-      else {
-        unset($form['path']['path']);
-        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
-      }
-    }
-  }
-}
-
 function project_project_cleanup($input) {
   return $input;
 }
@@ -563,24 +530,24 @@ function project_project_load($node) {
   return $project;
 }
 
-function project_nodeapi(&$node, $op, $arg) {
+/**
+ * hook_nodeapi() implementation specific for project nodes.
+ * @see project_nodeapi().
+ */
+function project_project_nodeapi(&$node, $op, $arg) {
   switch ($op) {
     case 'insert':
-      if ($node->type == 'project_project') {
-        _project_save_taxonomy($node);
-        if (module_exist('path')) {
-          path_set_alias("node/$node->nid", "project/$node->uri");
-        }
+      _project_save_taxonomy($node);
+      if (module_exist('path')) {
+        path_set_alias("node/$node->nid", "project/$node->uri");
       }
       break;
 
     case 'update':
-      if ($node->type == 'project_project') {
-        _project_save_taxonomy($node);
-        if (module_exist('path')) {
-          path_set_alias("node/$node->nid");  // Clear existing alias.
-          path_set_alias("node/$node->nid", "project/$node->uri");
-        }
+      _project_save_taxonomy($node);
+      if (module_exist('path')) {
+        path_set_alias("node/$node->nid");  // Clear existing alias.
+        path_set_alias("node/$node->nid", "project/$node->uri");
       }
       break;
   }
