@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.6 2006/06/15 22:13:32 dww Exp $
+// $Id: project.module,v 1.195.2.7 2006/06/20 00:53:10 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -264,6 +264,24 @@ function project_menu($may_cache) {
   }
 
   return $items;
+}
+
+/**
+ * hook_nodeapi() implementation. This just decides what type of node
+ * is being passed, and calls the appropriate type-specific hook.
+ *
+ * @see project_project_nodeapi().
+ * @see project_issue_nodeapi().
+ */
+function project_nodeapi(&$node, $op, $arg) {
+  switch ($node->type) {
+    case 'project_project':
+      project_project_nodeapi(&$node, $op, $arg);
+      break;
+    case 'project_issue':
+      project_issue_nodeapi(&$node, $op, $arg);
+      break;
+  }
 }
 
 function project_page() {

@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.6 2006/06/08 06:37:39 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.7 2006/06/20 00:53:09 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -281,6 +281,14 @@ function project_project_releases() {
 
   drupal_set_title(check_plain($node->title));
   print theme('page', $output);
+}
+
+/**
+ * hook_nodeapi() implementation specific for project nodes.
+ * @see project_nodeapi().
+ */
+function project_project_nodeapi(&$node, $op, $arg) {
+  // Empty function at this point, just a stub.
 }
 
 function project_project_load($node) {

@@ -1,10 +1,14 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.15 2006/06/19 11:48:17 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.16 2006/06/20 00:53:09 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
 }
 
+/**
+ * hook_nodeapi() implementation specific for issue nodes.
+ * @see project_nodeapi().
+ */
 function project_issue_nodeapi(&$node, $op, $arg) {
   global $user;
   switch ($op) {
