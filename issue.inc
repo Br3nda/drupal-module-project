@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.172.2.9 2006/07/20 13:31:25 dww Exp $ */
+/* $Id: issue.inc,v 1.172.2.10 2006/07/20 14:17:50 dww Exp $ */
 
 /**
  * hook_nodeapi() implementation specific for issue nodes.
@@ -24,15 +24,6 @@ function project_issue_nodeapi(&$node, $op, $arg) {
 
 function project_issue_page() {
   switch ($_POST['op'] ? $_POST['op'] : arg(2)) {
-    case 'search':
-      $project = project_project_retrieve(arg(3));
-      if ($project->nid && node_access('view', $project)) {
-        return project_issue_query($project);
-      }
-      else {
-        return project_issue_query();
-      }
-      break;
     case 'rss':
       $project = project_project_retrieve(arg(3));
       if ($project->nid && node_access('view', $project)) {
@@ -813,6 +804,16 @@ function project_issue_count($pid) {
   return $state;
 }
 
+function project_issue_search_page($project_name = NULL, $query = NULL) {
+  $project = project_project_retrieve($project_name);
+  if ($project->nid && node_access('view', $project)) {
+     return project_issue_query($project, $query);
+  }
+  else {
+    return project_issue_query(0, $query);
+  }
+}
+
 function project_issue_query($project = 0, $query = NULL) {
   $categories = project_issue_category();
   $components = array();
@@ -941,8 +942,6 @@ function project_issue_query($project = 0, $query = NULL) {
 
   return drupal_get_form('project_issue_query', $form);
 }
-
-
 
 
 function theme_project_issue_query($form) {
