@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.172.2.8 2006/06/19 11:48:17 dww Exp $ */
+/* $Id: issue.inc,v 1.172.2.9 2006/07/20 13:31:25 dww Exp $ */
 
 /**
  * hook_nodeapi() implementation specific for issue nodes.
@@ -456,6 +456,7 @@ function project_issue_form(&$node, &$param) {
     $form['issue_details']['title'] = array(
       '#type' => 'textfield',
       '#title' => t('Title'),
+      '#description' => $node->title ? t('Note: modifying this value will change the title of the entire issue, not your follow-up comment.') : '',
       '#default_value' => $node->title,
       '#size' => 60,
       '#maxlength' => 128,
