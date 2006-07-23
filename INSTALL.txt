@@ -4,7 +4,6 @@ Installation
 1. Place these files in modules/project:
      project.module
      project.install
-     project.update
      project.css
      project.inc
      release.inc
