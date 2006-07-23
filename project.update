@@ -1,5 +1,0 @@
-<?php
-function project_update_1() {
-  return _system_update_utf8(array('project_projects', 'project_releases', 'project_issues', 'project_comments', 'project_subscriptions', 'project_issue_state'));
-}
-?> 
