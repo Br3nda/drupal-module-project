@@ -12,16 +12,8 @@ function project_install() {
           cvs varchar(255) NOT NULL default '',
           demo varchar(255) NOT NULL default '',
           release_directory varchar(255) NOT NULL default '',
-          issues tinyint(4) NOT NULL default '0',
-          components text,
           version int(10) unsigned NOT NULL default '0',
-          mail varchar(255) not null default '',
-          mail_digest varchar(255) not null default '',
-          mail_copy varchar(255) not null default '',
-          mail_copy_filter varchar(255) not null default '',
-          mail_copy_filter_state varchar(255) not null default '',
-          mail_reminder tinyint(4) NOT NULL default '0',
-          help text,
+          mail varchar(255) NOT NULL default '',
           documentation varchar(255) not null default '',
           screenshots varchar(255) not null default '',
           license varchar(255) not null default '',
@@ -46,55 +38,8 @@ function project_install() {
           KEY project_releases_nid (nid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_issues} (
-          nid int(10) unsigned NOT NULL default '0',
-          pid int(10) unsigned NOT NULL default '0',
-          category varchar(255) NOT NULL default '',
-          component varchar(255) NOT NULL default '',
-          priority tinyint(3) unsigned NOT NULL default '0',
-          rid int(10) unsigned NOT NULL default '0',
-          assigned int(10) unsigned NOT NULL default '0',
-          sid int(10) unsigned NOT NULL default '0',
-          file_path varchar(255) NOT NULL default '',
-          file_mime varchar(255) NOT NULL default '',
-          file_size int NOT NULL default 0,
-          PRIMARY KEY (`nid`),
-          KEY project_issues_pid (pid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_comments} (
-          cid int(10) unsigned NOT NULL default '0',
-          nid int(10) unsigned NOT NULL default '0',
-          uid int(10) unsigned NOT NULL default '0',
-          name varchar(255) NOT NULL default '',
-          created int(10) unsigned NOT NULL default '0',
-          changed int(10) unsigned NOT NULL default '0',
-          body blob,
-          data blob,
-          file_path varchar(255) NOT NULL default '',
-          file_mime varchar(255) NOT NULL default '',
-          file_size int NOT NULL default 0,
-          PRIMARY KEY (`cid`),
-          KEY project_comments_nid (nid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_subscriptions} (
-          nid int(10) unsigned NOT NULL default '0',
-          uid int(10) unsigned NOT NULL default '0',
-          level tinyint(3) unsigned NOT NULL default '0',
-          KEY project_subscriptions_nid_uid_level (nid, uid, level)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_issue_state} (
-          sid int(10) unsigned NOT NULL auto_increment,
-          name varchar(32) NOT NULL default '',
-          weight tinyint(2) DEFAULT '0' NOT NULL,
-          author_has tinyint(2) DEFAULT '0' NOT NULL,
-          PRIMARY KEY  (sid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
-        break;
-
+      break;
+	
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',
@@ -104,17 +49,9 @@ function project_install() {
           cvs varchar(255) NOT NULL default '',
           demo varchar(255) NOT NULL default '',
           release_directory varchar(255) NOT NULL default '',
-          issues smallint NOT NULL default '0',
-          components text,
           version int NOT NULL default '0',
           mail varchar(255) not null default '',
-          mail_digest varchar(255) not null default '',
-          mail_copy varchar(255) not null default '',
-          mail_copy_filter varchar(255) not null default '',
-          mail_reminder smallint NOT NULL default '0',
-          help text,
           screenshots varchar(255) default '' not null,
-          mail_copy_filter_state varchar(255) default '' not null,
           documentation varchar(255) default '' not null,
           license varchar(255) default '' not null,
           PRIMARY KEY (nid)
@@ -133,59 +70,8 @@ function project_install() {
           status smallint default '1' not null,
           PRIMARY KEY (rid)
         );");
-      db_query("CREATE TABLE {project_issues} (
-          nid int NOT NULL default '0',
-          pid int NOT NULL default '0',
-          category varchar(255) NOT NULL default '',
-          component varchar(255) NOT NULL default '',
-          priority smallint NOT NULL default '0',
-          rid int NOT NULL default '0',
-          assigned int NOT NULL default '0',
-          sid int NOT NULL default '0',
-          file_path varchar(255) NOT NULL default '',
-          file_mime varchar(255) default '' NOT NULL,
-          file_size int default 0 NOT NULL,
-          PRIMARY KEY (nid)
-        );");
-      db_query("CREATE TABLE {project_comments} (
-          cid int NOT NULL default '0',
-          nid int NOT NULL default '0',
-          uid int NOT NULL default '0',
-          name varchar(255) NOT NULL default '',
-          created int NOT NULL default '0',
-          changed int NOT NULL default '0',
-          body bytea,
-          data bytea,
-          file_path varchar(255) default '' NOT NULL,
-          file_mime varchar(255) default '' NOT NULL,
-          file_size int default 0 NOT NULL,
-          PRIMARY KEY (cid)
-        );");
-      db_query("CREATE TABLE {project_subscriptions} (
-          nid int NOT NULL default '0',
-          uid int NOT NULL default '0',
-          level smallint NOT NULL default '0'
-        );");
-      db_query("CREATE TABLE {project_issue_state} (
-          sid SERIAL,
-          name varchar(32) NOT NULL default '',
-          weight smallint DEFAULT '0' NOT NULL,
-          author_has smallint DEFAULT '0' NOT NULL,
-          PRIMARY KEY  (sid)
-        );");
       break;
   }
-
-  db_query("INSERT INTO {project_issue_state} VALUES (1, 'active', -13, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (2, 'fixed', 1, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (3, 'duplicate', 4, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (4, 'postponed', 6, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (5, 'won\'t fix', 9, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (6, 'by design', 11, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (7, 'closed', 13, 1)");
-  db_query("INSERT INTO {project_issue_state} VALUES (8, 'patch (code needs review)', -8, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (13, 'patch (code needs work)', -6, 0)");
-  db_query("INSERT INTO {project_issue_state} VALUES (14, 'patch (ready to commit)', -2, 0)");
 
   db_query("UPDATE {system} SET weight = 2 WHERE name = 'project'");
 }
@@ -246,3 +132,113 @@ function project_update_3() {
   }
   return $ret;
 }
+
+function project_update_4() {
+  $ret = array();
+
+  // PostgreSQL needs CREATE TABLE foobar _AS_ SELECT ...
+  $AS = ($GLOBALS['db_type'] == 'pgsql') ? 'AS' : '';
+
+  // Create temporary table to build the new {project_projects} and
+  // {project_issue_projects} tables from.
+  $ret[] = update_sql("CREATE TABLE {project_projects_tmp} $AS SELECT * FROM {project_projects}");
+
+  if (project_db_table_exists('project_issue_projects')) {
+    $ret[] = update_sql("DROP TABLE {project_issue_projects}");
+  }
+  $ret[] = update_sql("DROP TABLE {project_projects}");
+
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE {project_projects} (
+          nid int(10) unsigned NOT NULL default '0',
+          uri varchar(50) NOT NULL default '',
+          homepage varchar(255) NOT NULL default '',
+          changelog varchar(255) NOT NULL default '',
+          cvs varchar(255) NOT NULL default '',
+          demo varchar(255) NOT NULL default '',
+          release_directory varchar(255) NOT NULL default '',
+          version int(10) unsigned NOT NULL default '0',
+          mail varchar(255) NOT NULL default '',
+          documentation varchar(255) not null default '',
+          screenshots varchar(255) not null default '',
+          license varchar(255) not null default '',
+          PRIMARY KEY (`nid`),
+          KEY project_projects_uri (uri(8))
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      $ret[] = update_sql("CREATE TABLE {project_issue_projects} (
+          nid int(10) unsigned NOT NULL default '0',
+          issues tinyint(4) NOT NULL default '0',
+          components text,
+          help text,
+          mail_digest varchar(255) NOT NULL default '',
+          mail_copy varchar(255) NOT NULL default '',
+          mail_copy_filter varchar(255) NOT NULL default '',
+          mail_copy_filter_state varchar(255) NOT NULL default '',
+          mail_reminder tinyint(4) NOT NULL default '0',
+          PRIMARY KEY (nid)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+    case 'pgsql':
+      $ret[] = update_sql("CREATE TABLE {project_projects} (
+          nid int NOT NULL default '0',
+          uri varchar(50) NOT NULL default '',
+          homepage varchar(255) NOT NULL default '',
+          changelog varchar(255) NOT NULL default '',
+          cvs varchar(255) NOT NULL default '',
+          demo varchar(255) NOT NULL default '',
+          release_directory varchar(255) NOT NULL default '',
+          version int NOT NULL default '0',
+          mail varchar(255) not null default '',
+          screenshots varchar(255) default '' not null,
+          documentation varchar(255) default '' not null,
+          license varchar(255) default '' not null,
+          PRIMARY KEY (nid)
+        );");
+      $ret[] = update_sql("CREATE TABLE {project_issue_projects} (
+          nid int NOT NULL default '0',
+          issues smallint NOT NULL default '0',
+          components text,
+          help text,
+          mail_digest varchar(255) not null default '',
+          mail_copy varchar(255) not null default '',
+          mail_copy_filter varchar(255) not null default '',
+          mail_copy_filter_state varchar(255) default '' not null,
+          mail_reminder smallint NOT NULL default '0',
+          PRIMARY KEY (nid)
+        );");
+      break;
+  }
+
+  $ret[] = update_sql("INSERT INTO {project_projects} SELECT DISTINCT nid, uri, homepage, changelog, cvs, demo, release_directory, version, mail, documentation, screenshots, license FROM {project_projects_tmp}");
+  $ret[] = update_sql("INSERT INTO {project_issue_projects} SELECT DISTINCT nid, issues, components, help, mail_digest, mail_copy, mail_copy_filter, mail_copy_filter_state, mail_reminder FROM {project_projects_tmp}");
+
+  $ret[] = update_sql("DROP TABLE {project_projects_tmp}");
+
+  foreach (array('reply_to', 'digest_last', 'digest_interval', 'reminder_last', 'reminder_interval') as $varname) {
+    $val = variable_get("project_$varname", NULL);
+    if (isset($val)) {
+      variable_set("project_issue_$varname", $val);
+      $ret[] = update_sql("DELETE FROM {variable} WHERE name = 'project_" . $varname . "'");
+    }
+  }
+
+  return $ret;
+}
+
+function project_db_table_exists($table) {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      return db_num_rows(db_query("SHOW TABLES LIKE '{" . db_escape_table($table) . "}'"));
+      break;
+
+    case 'pgsql':
+      return db_num_rows(db_query("SELECT relname FROM pg_class WHERE relname = '{" . db_escape_table($table) . "}'"));
+      break;
+  }
+}
+

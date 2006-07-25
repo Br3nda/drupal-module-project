@@ -1,44 +1,21 @@
 <?php
-// $Id: project.module,v 1.249 2006/07/20 14:17:30 dww Exp $
+// $Id: project.module,v 1.250 2006/07/25 07:42:33 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
-
-// issue nodes      -> project_issues
-// issue comments   -> project_comments
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
   require_once "$path/project.inc";
   require_once "$path/release.inc";
-  require_once "$path/issue.inc";
-  require_once "$path/comment.inc";
-  require_once "$path/mail.inc";
 }
 
 function project_help($section) {
   switch ($section) {
     case 'admin/modules#description':
-      return t('Enables teams to track outstanding items which need resolution.');
-    case 'admin/help#project':
-      $help = t('<h3>Mailhandler support</h3>'.
-              '<p>Basic mail format:</p>'.
-              '<pre>'.
-              "Type: project\n".
-              "Project: chatbox\n".
-              "Category: bug report\n".
-              "Version: cvs\n".
-              "Priority: normal\n".
-              "Status: active\n".
-              "Component: code\n\n".
-              "Whatever I type here will be the body of the node.\n".
-              '</pre>'.
-              "<p>See the mailhandler help for more information on using the mailhandler module.</p>\n");
-      return $help;
+      return t('Provides a project node type and manages downloads of project releases.');
     case 'node/add#project_project':
-      return t('A project enables teams to track outstanding items which need resolution');
-    case 'node/add#project_issue':
-      return t('Add a new issue (bug report, feature request, etc) to an existing project.');
+      return t('A project is anything that has releases which can be downloaded');
     case 'node/add/project_project':
       if (project_use_taxonomy()) {
         $tree = taxonomy_get_tree(_project_get_vid());
@@ -70,15 +47,6 @@ function project_help($section) {
         <p>Use the <a href="%taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('%taxonomy-admin' => url('admin/taxonomy/' . $vid)));
       }
       break;
-    case 'admin/settings/project/status':
-      return t('<p>Use this page to add new status options for project issues or to change or delete existing options.<dl>
-      <dt>Adding</dt><dd>To add a new status option, put its name in one of the blank places at the bottom of the form and assign it a weight.</dd></p>
-      <dt>Updating</dt><dd>When renaming existing issues, keep in mind that issues with the existing name will receive the new one.</dd>
-      <dt>Deleting</dt><dd>If you delete an existing issue status, you will be prompted for a new status to assign to existing issues with the deleted status.</dd>
-      <dt>Weight</dt><dd>The weight of an issue determines the order it appears in lists, like in the select box where users designate a status for their issue.</dd>
-      <dt>Author may set</dt><dd>Check this option to give the original poster of an issue the right to set a status option, even if she or he isn\'t part of a role with this permission.  You may wish, for example, to allow issue authors to close their own issues.</dd>
-      <dt>Default</dt><dd>The default status option will be used for new issues, and all users with the permission to create issues will automatically have permission to set this status.  The default issue status cannot be deleted.  If you wish to delete this status, first set a different status to default.</dd>
-      </dl></p>');
   }
 }
 
@@ -91,7 +59,7 @@ function project_block($op = 'list', $delta = 0) {
     return $blocks;
   }
   else if ($op == 'view') {
-    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options('node/'));
+    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options(FALSE, 'node/'));
     $block['subject'] = t('Project navigation');
     $block['content'] = drupal_get_form('project_quick_navigate_form', project_quick_navigate_form($projects));
 
@@ -102,7 +70,7 @@ function project_block($op = 'list', $delta = 0) {
 function project_node_info() {
   return array(
     'project_project' => array('name' => t('project'), 'base' => 'project_project'),
-    'project_issue' => array('name' => t('issue'), 'base' => 'project_issue'));
+  );
 }
 
 function project_perm() {
@@ -111,15 +79,7 @@ function project_perm() {
     'maintain projects',
     'access projects',
     'access own projects',
-    'create project issues',
-    'access project issues',
-    'edit own project issues',
-    'access own project issues'
   );
-  $states = project_issue_state();
-  foreach($states as $key => $value) {
-    $perms[] = "set issue status ". str_replace("'", "", $value);
-  }
   return $perms;
 }
 
@@ -127,12 +87,6 @@ function project_perm() {
  * Callback for the main settings page.
  */
 function project_main_settings() {
-
-  $project_directory = file_create_path(variable_get('project_directory_issues', 'issues'));
-  if (!file_check_directory($project_directory)) {
-    $error['project_directory_issues'] = theme('error', t('Directory does not exist, or is not writable.'));
-  }
-
   $versions = array(-1 => t('all')) + project_releases_list();
   $sort_methods = drupal_map_assoc(array_keys(module_invoke_all('project_sort_methods', 'methods')));
 
@@ -211,34 +165,8 @@ function project_main_settings() {
     '#description' => t('The default maximum number of projects to list when browsing lists, e.g., by category.')
   );
 
-  $form['project_directory_issues']  = array(
-    '#type' => 'textfield',
-    '#title' => t('Issue directory'),
-    '#default_value' => variable_get('project_directory_issues', 'issues'),
-    '#size' => 30,
-    '#maxlength' => 255,
-    '#description' => t("Subdirectory in the directory '%dir' where attachment to issues will be stored.", array('%dir' => variable_get('file_directory_path', 'files') . '/')),
-  );
-
   if (module_exist('forum') && project_use_taxonomy()) {
     $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
-  }
-
-  if (module_exist('mailhandler')) {
-    // TODO: move this stuff to mailhandler.module ?
-    $items = array(t('<none>'));
-    $result = db_query('SELECT mail FROM {mailhandler} ORDER BY mail');
-    while ($mail = db_result($result, $i++)) {
-      $items[$mail] = $mail;
-    }
-
-    $form['project_reply_to'] = array(
-      '#type' => 'select',
-      '#title' => t('Reply-to address on e-mail notifications'),
-      '#default_value' => variable_get('project_reply_to', ''),
-      '#options' => $items,
-    );
-
   }
 
   // If the project_sort_method setting has changed, the menu will need to be rebuilt.
@@ -251,53 +179,21 @@ function project_cron() {
     variable_set('project_release_directory_last', time());
     project_release_cron();
   }
-
-  if (time() - variable_get('project_digest_last', 0) > variable_get('project_digest_interval', 7 * 24 * 60 * 60)) {
-    variable_set('project_digest_last', time());
-    project_mail_digest();
-  }
-
-  if (time() - variable_get('project_reminder_last', 0) > variable_get('project_reminder_interval', 28 * 7 * 24 * 60 * 60)) {
-    variable_set('project_reminder_last', time());
-    project_mail_reminder();
-  }
-
-  $result = db_query(db_rewrite_sql('SELECT p.nid, p.pid, p.category, p.component, p.priority, p.assigned, p.sid, n.title FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.sid = 2 AND n.changed < %d', 'p'), time() - 14 * 24 * 60 * 60);
-  while ($node = db_fetch_object($result)) {
-    foreach (array('nid', 'pid', 'category', 'component', 'priority', 'assigned', 'sid', 'title') as $var) {
-      $comment->$var = $node->$var;
-    }
-    $comment->sid = 7;
-    project_comment_save($comment);
-  }
 }
 
 function project_link($type, $node = 0, $main = 0) {
   $links = array();
-
   switch ($type) {
     case 'page':
       if (user_access('access projects')) {
         $links['project_view_all'] = array(
           '#title' => t('projects'),
           '#href' => 'project',
-          '#attributes' => array('title' => t('View all projects.'))
+          '#attributes' => array('title' => t('View all projects.')),
         );
       }
       break;
-    case 'node':
-      if ($node->type == 'project_issue') {
-        if (user_access('create project issues')) {
-          $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
-          $links['project_follow_up'] = array(
-            '#title' => t('follow up'),
-            '#href' => "project/comments/add/$node->nid"
-          );
-        }
-      }
-      break;
   }
-
   return $links;
 }
 
@@ -415,8 +311,6 @@ function project_menu($may_cache) {
       }
     }
 
-    $items[] = array('path' => 'project/user', 'title' => t('my projects'), 'callback' => 'project_page_user', 'access' => $user->uid && $access, 'type' => MENU_NORMAL_ITEM);
-
     // Developers
     $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
 
@@ -426,46 +320,6 @@ function project_menu($may_cache) {
     // Create projects
     $access = project_project_access('create', NULL);
     $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-
-    // Issues
-    $access = user_access('access project issues');
-    $items[] = array('path' => 'project/issues', 'title' => t('issues'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/user', 'title' => t('my issues'), 'callback' => 'project_issue_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/subscribe', 'title' => t('subscribe'), 'callback' => 'project_issue_page', 'access' => $GLOBALS['user']->uid && $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/add', 'title' => t('submit'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'project/issues/statistics', 'title' => t('statistics'), 'callback' => 'project_issue_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array(
-      'path' => 'project/issues/search',
-      'title' => t('search'),
-      'callback' => 'project_issue_search_page',
-      'access' => $access,
-      'type' => MENU_NORMAL_ITEM,
-    );
-    if (module_exist('search')) { 
-      $items[] = array(
-        'path' => 'search/issues',
-        'title' => t('issues'),
-        'callback' => 'project_issue_search_page',
-        'access' => $access,
-        'type' => MENU_LOCAL_TASK,
-        'weight' => 4,
-      );
-    }
-
-    // Create issues
-    $access = user_access('create project issues');
-    $items[] = array('path' => 'node/add/project_issue', 'title' => t('issue'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM, 'weight' => 1);
-
-    // Administer issue status settings
-    $access = user_access('administer projects');
-    $items[] = array('path' => 'admin/settings/project', 'title' => t('project'), 'callback' => 'project_main_settings');
-    $items[] = array('path' => 'admin/settings/project/status', 'title' => t('status options'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
-    $items[] = array('path' => 'admin/settings/project/status/save', 'title' => t('save'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_CALLBACK);
-    $items[] = array('path' => 'admin/settings/project/status/delete', 'title' => t('delete'), 'callback' => 'project_issue_admin_states_page', 'access' => $access, 'type' => MENU_CALLBACK);
-
-    // Comments
-    $access = user_access('create project issues');
-    $items[] = array('path' => 'project/comments', 'title' => t('comments'), 'callback' => 'project_comment_page', 'access' => $access, 'type' => MENU_CALLBACK);
 
     // Releases
     if (variable_get('project_release_directory', '')) {
@@ -534,17 +388,16 @@ function project_form_alter($form_id, &$form) {
 /**
  * hook_nodeapi() implementation. This just decides what type of node
  * is being passed, and calls the appropriate type-specific hook.
+ * NOTE: there's currently only 1 value left here, but I'm planning to
+ * make project_release its own node-type, so we'll probably want to
+ * leave this plumbing in place for that... -dww
  *
  * @see project_project_nodeapi().
- * @see project_issue_nodeapi().
  */
 function project_nodeapi(&$node, $op, $arg) {
   switch ($node->type) {
     case 'project_project':
       project_project_nodeapi(&$node, $op, $arg);
-      break;
-    case 'project_issue':
-      project_issue_nodeapi(&$node, $op, $arg);
       break;
   }
 }
@@ -663,7 +516,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
             'n.title',
             'nr.teaser',
             'nr.format',
-            'p.issues'
           )
         ),
         'from' => array(
@@ -710,6 +562,14 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           )
         )
       );
+
+      // If the site has enabled issue tracking via the project_issue
+      // module, we want to add 1 more field and JOIN to our query so
+      // we can provide the link for "Bugs and feature requests"...
+      if (module_exist('project_issue')) {
+        $sql_elements['fields']['pieces'][] = 'pip.issues';
+        $sql_elements['joins']['pieces'][] = 'INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
+      }
 
       // Only the 'pieces' are returned; the prefix and glue elements remain unchanged.
       $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
@@ -778,7 +638,14 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   }
   // If taxonomy is not enabled, fetch all projects
   else {
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format, p.issues FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 ORDER BY n.title ASC"));
+    // If the site has enabled issue tracking via the project_issue
+    // module, we want to add 1 more field and JOIN to our query so
+    // we can provide the link for "Bugs and feature requests"...
+    if (module_exist('project_issue')) {
+      $ISSUES = ', pip.issues';
+      $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
+    }
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 ORDER BY n.title ASC"));
   }
   $class = 'even';
   while ($project = db_fetch_object($result)) {
@@ -813,7 +680,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       '#href' => "node/$project->nid",
     );
 
-    // This test doesn't currently work when taxonomy is enabled, since taxonomy_select_nodes doesn't load the issues setting from project_project
     if ($project->issues) {
       $project->links['project_issues'] = array(
         '#title' => t('Bugs and feature requests'),
@@ -846,84 +712,11 @@ function project_build_query($sql_elements) {
   return db_rewrite_sql($sql);
 }
 
+// TODO: this should probably be moved to cvs.module...
 function project_user($type, $edit, &$user, $category = NULL) {
   if ($type == 'view') {
     if ($projects = module_invoke('cvs', 'get_contributed_projects', $user->uid)) {
       return array(t('Projects') => $projects);
-    }
-  }
-}
-
-function project_page_user($arg = 0) {
-  $current_user = FALSE;
-  if ($arg) {
-    $where = '';
-    if (is_numeric($arg)) {
-      $where = 'uid = %d';
-    }
-    else {
-      $where = "name = '%s'";
-    }
-    $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE $where", $arg));
-    if ($user) {
-      drupal_set_title(t('Projects by %user', array('%user' => $user->name)));
-    }
-  }
-
-  if (!$user) {
-    global $user;
-    $current_user = TRUE;
-  }
-
-  if (!$user->uid) {
-    return t('You need to log in to see your projects.');
-  }
-
-  $header = array(
-    array('data' => t('Project'), 'field' => 'n.title', 'sort' => 'asc'),
-    array('data' => t('Updated'), 'field' => 'n.changed'),
-    array('data' => t('Issues'), 'colspan' => 4, 'field' => 'count')
-  );
-
-  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, n.changed, COUNT(p.nid) AS count FROM {node} n LEFT JOIN {project_issues} p ON n.nid = p.pid AND p.sid IN (1,2,8,13,14) WHERE n.type = 'project_project' AND n.status = 1 AND n.uid = %d GROUP BY n.nid, n.title, n.changed %s"), $user->uid, tablesort_sql($header));
-
-  if (!db_num_rows($result)) {
-    return ($current_user ? t('You have no projects.') : t('This user has no projects.'));
-  }
-
-  while ($node = db_fetch_object($result)) {
-    $rows[] = array(
-      l($node->title, "node/$node->nid"),
-      array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
-      array('data' => "$node->count open", 'align' => 'right'),
-      l(t('view'), "project/issues/$node->nid"),
-      l(t('search'), "project/issues/$node->nid/search"),
-      l(t('submit'), "node/add/project_issue/$node->nid")
-    );
-    $query->projects[] = $node->nid;
-  }
-
-  $output = '<div class="project">'. theme('table', $header, $rows) .'</div>';
-  $output .= l('#', "project/user/$user->name");
-
-  $output .= theme('box', t('issues'), project_issue_query_result($query, 'html', false));
-
-  return $output;
-}
-
-// Special project stuff
-function project_types() {
-  return array('project_project', 'project_issue');
-}
-
-function project_file_download($file) {
-  if (user_access('access project issues')) {
-    $file = file_create_path($file);
-    if ($mime = db_result(db_query("SELECT file_mime FROM {project_issues} WHERE file_path = '%s'", $file))) {
-      return array("Content-type: $mime");
-    }
-    if ($mime = db_result(db_query("SELECT file_mime FROM {project_comments} WHERE file_path = '%s'", $file))) {
-      return array("Content-type: $mime");
     }
   }
 }
@@ -1022,11 +815,29 @@ function _project_date($timestamp) {
   }
 }
 
-function project_projects_select_options($key_prefix = NULL) {
+/**
+ * Returns an array of all projects on the system for use with select
+ * form elements. The keys are the project nid, and the values are
+ * the project names. If the project taxonomy is in use, the array
+ * will be sorted into the project categories with appropriate headers
+ * for each term.
+ *
+ * @param $issues
+ *   If TRUE, only projects with issue tracking  enabled are returned.
+ *   For this option to do much good, the project_issue.module should be
+ *   enabled.
+ * @param $key_prefix
+ *   Prefix to prepend to all keys in the returned array.
+ */
+function project_projects_select_options($issues = TRUE, $key_prefix = NULL) {
   $projects = array();
+  if ($issues && module_exist('project_issue')) {
+    $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
+    $ISSUE_WHERE = 'AND pip.issues = 1';
+  }
   if (project_use_taxonomy()) {
     $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 AND p.issues = 1 AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title', 'p'), $vid);
+    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title", 'p'), $vid);
     while ($project = db_fetch_object($result)) {
       if (isset($project->name)) {
         if (!isset($projects[$project->name])) {
@@ -1040,7 +851,7 @@ function project_projects_select_options($key_prefix = NULL) {
     }
   }
   else {
-    $result = db_query(db_rewrite_sql('SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.issues = 1', 'p'));
+    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN WHERE n.status = 1 $ISSUE_WHERE", 'p'));
     while ($project = db_fetch_object($result)) {
       $projects[$key_prefix . $project->nid] = $project->title;
     }
@@ -1049,7 +860,6 @@ function project_projects_select_options($key_prefix = NULL) {
 }
 
 function project_version_filter_form($version) {
-
   $releases = array(-1 => t('<all>')) + project_releases_list();
   $form['rid'] = array(
     '#type' => 'select',
