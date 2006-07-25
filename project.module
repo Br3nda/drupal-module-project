@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.8 2006/07/20 14:17:53 dww Exp $
+// $Id: project.module,v 1.195.2.9 2006/07/25 08:25:54 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -292,10 +292,10 @@ function project_menu($may_cache) {
 function project_nodeapi(&$node, $op, $arg) {
   switch ($node->type) {
     case 'project_project':
-      project_project_nodeapi(&$node, $op, $arg);
+      project_project_nodeapi($node, $op, $arg);
       break;
     case 'project_issue':
-      project_issue_nodeapi(&$node, $op, $arg);
+      project_issue_nodeapi($node, $op, $arg);
       break;
   }
 }
