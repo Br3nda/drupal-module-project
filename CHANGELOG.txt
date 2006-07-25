@@ -1,3 +1,7 @@
+21. July 2006
+-----------------
+- Split out issue tracking to project_issue.module (dww)
+
 08. November 2005
 -----------------
 - Updated to Drupal 4.7 forms API (hunmonk and webchick)

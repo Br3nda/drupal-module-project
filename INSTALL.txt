@@ -7,24 +7,30 @@ Installation
      project.css
      project.inc
      release.inc
-     issue.inc
-     comment.inc
-     mail.inc
 
 2. Enable the project module under administer >> modules
 
 3. Grant the proper access to users under administer >> access control
 
+4: If you wish to enable issue tracking for projects, you should
+   install, enable, and configure the project_issue module
+   (http://drupal.org/project/project_issue).
+
 
 Upgrading
 ---------
 
-0. Make sure you backup your database!
+1. Make sure you backup your database!
 
-1. Copy new files to modules/project.
+2. Copy new files to modules/project.
 
-2. Login as the site administrator (user #1) and run the update.php script.
+3. Login as the site administrator (user #1) and run the update.php script.
 
-3. Configure the status messages at admin/settings/project/status
-   and admin/access.
+4. If you have previously enabled issue tracking for any of the
+   project nodes on your site, you *must* install the project_issue
+   module (http://drupal.org/project/project_issue). When you run the
+   update.php script, project_update_4() will reorganize the tables in
+   your database to prepare your data for use with the project_issue
+   module.  See modules/project_issue/INSTALL.txt for more information.
 
+$Id: INSTALL.txt,v 1.4.2.3 2006/07/25 00:12:26 dww Exp $

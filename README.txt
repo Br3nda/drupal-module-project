@@ -1,6 +1,12 @@
-This module enables teams to track outstanding items which need
-resolution. It provides e-mail notifications to members about updates
-to items. Similar to many issue tracking systems.
+This module provides a content type for Drupal sites, the "project"
+node. Projects can have releases associated with them, and this module
+provides various ways to search for projects and download specific
+releases.
+
+Project nodes can have issue tracking associated with them by enabling
+the project_issue module (http://drupal.org/project/project_issue),
+and can be integrated with a CVS repository by enabling the cvslog
+module (http://drupal.org/project/cvslog).
 
 Send feature requests and bug reports to the issue tracking system for
 the project module: http://drupal.org/node/add/project_issue/project.
@@ -13,22 +19,11 @@ Wish list
 --------
 
 General
- - Improve themeability of listings and issues.
- - RSS feeds for projects, new releases, issues, etc.
+ - Improve themeability of project listings.
+ - RSS feeds for projects, new releases, etc.
  - Integration with the Organic Groups module.
 
 Projects
  - Integrate image module galleries for screenshots.
 
-Issues (bug reports, etc)
- - Using the existing Drupal "comment" system for issue replies
-   instead of the customized issue "follow-ups" currently in place.
- - Better mailhandler integration for creating and replying to issues
-   via email.
- - Add method for project owner to assign issues to others.
- - Allow projects to specify their own categories (bug report, feature
-   request, etc).
- - Tool for administrators to be able to update the status of several
-   issues at once (mass closing).
- - Make components sub-projects with their own defaults.
- - Enable taxonomy support.
+$Id: README.txt,v 1.4.2.3 2006/07/25 00:12:26 dww Exp $

@@ -1,3 +1,5 @@
+// $Id: project.css,v 1.27.2.3 2006/07/25 00:12:26 dww Exp $
+
 .project td {
   padding: 0.4em 0.1em;
 }
@@ -45,11 +47,6 @@
 .project tr.state_light_8,
 .project tr.state_dark_8 {
   background-color: #ffff99;
-}
-
-.project .header {
-  font-weight: bold;
-  padding-top: 0.5em;
 }
 
 .project .summary table {
@@ -116,22 +113,6 @@
 .node-form .project .form-checkbox {
   display: inline;
 }
-
-.node-form .project .options fieldset .form-item {
-  float: left;
-  padding-right: 0.8em;
-  margin: 0.05em 0.1em;
-}
-
-.node-form .project fieldset:after {
-  content: ".";
-  display: block;
-  height: 0;
-  clear: both;
-  visibility: hidden;
-}
-
-.node-form .project .options fieldset {display: inline-table;}
 
 .node-form .project .project-taxonomy-element {
   float: left;
