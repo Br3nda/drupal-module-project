@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.250 2006/07/25 07:42:33 dww Exp $
+// $Id: project.module,v 1.251 2006/07/25 08:23:44 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -397,7 +397,7 @@ function project_form_alter($form_id, &$form) {
 function project_nodeapi(&$node, $op, $arg) {
   switch ($node->type) {
     case 'project_project':
-      project_project_nodeapi(&$node, $op, $arg);
+      project_project_nodeapi($node, $op, $arg);
       break;
   }
 }
