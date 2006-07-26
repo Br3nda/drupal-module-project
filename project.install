@@ -143,7 +143,7 @@ function project_update_4() {
   // {project_issue_projects} tables from.
   $ret[] = update_sql("CREATE TABLE {project_projects_tmp} $AS SELECT * FROM {project_projects}");
 
-  if (project_db_table_exists('project_issue_projects')) {
+  if (db_table_exists('project_issue_projects')) {
     $ret[] = update_sql("DROP TABLE {project_issue_projects}");
   }
   $ret[] = update_sql("DROP TABLE {project_projects}");
@@ -228,17 +228,3 @@ function project_update_4() {
 
   return $ret;
 }
-
-function project_db_table_exists($table) {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      return db_num_rows(db_query("SHOW TABLES LIKE '{" . db_escape_table($table) . "}'"));
-      break;
-
-    case 'pgsql':
-      return db_num_rows(db_query("SELECT relname FROM pg_class WHERE relname = '{" . db_escape_table($table) . "}'"));
-      break;
-  }
-}
-
