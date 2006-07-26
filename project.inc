@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.15 2006/07/26 07:14:18 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.16 2006/07/26 07:18:01 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -61,6 +61,7 @@ function project_project_form(&$node) {
       '#default_value' => $current_top,
       '#required' => TRUE,
     );
+    $select_size = max(5, 2*count($top_level));
     foreach ($options as $tid => $values) {
       $form['project_taxonomy']["tid_$tid"] = array(
         '#title' => t('%type categories', array('%type' => $top_level[$tid])),
@@ -68,6 +69,7 @@ function project_project_form(&$node) {
         '#multiple' => TRUE,
         '#options' => $values,
         '#default_value' => $current_options,
+        '#attributes' => array('size' => min($select_size, count($values))),
         '#prefix' => '<div class="project-taxonomy-element">',
         '#suffix' => '</div>',
       );
