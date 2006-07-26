@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.89 2006/07/25 07:42:33 dww Exp $ */
+/* $Id: project.inc,v 1.90 2006/07/26 07:14:14 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -62,7 +62,7 @@ function project_project_form(&$node) {
       '#required' => TRUE,
     );
     foreach ($options as $tid => $values) {
-      $form['project_taxonomy'][$tid] = array(
+      $form['project_taxonomy']["tid_$tid"] = array(
         '#title' => t('%type categories', array('%type' => $top_level[$tid])),
         '#type' => 'select',
         '#multiple' => TRUE,
@@ -263,7 +263,8 @@ function project_project_validate(&$node) {
     }  
     foreach ($top_level as $tid => $name) {
       if ($node->project_type != $tid) {
-        if (!empty($node->$tid)) {
+        $tid_field = 'tid_' . $tid;
+        if (!empty($node->$tid_field)) {
           form_set_error($tid, t('Project type %project_type was selected, you can not use values from %invalid_type categories', array('%project_type' => theme('placeholder', $top_level[$node->project_type]), '%invalid_type' => theme('placeholder', $top_level[$tid]))));
         }
       }
@@ -541,8 +542,9 @@ function _project_save_taxonomy(&$node) {
     }
     $tid = $node->project_type;
     _project_db_save_taxonomy($node->nid, $tid);
-    if (isset($node->$tid)) {
-      foreach ($node->$tid as $tid) {
+    $tid_field = 'tid_' . $tid;
+    if (isset($node->$tid_field)) {
+      foreach ($node->$tid_field as $tid) {
         _project_db_save_taxonomy($node->nid, $tid);
       }
     }
