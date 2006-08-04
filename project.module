@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.10 2006/07/25 08:24:11 dww Exp $
+// $Id: project.module,v 1.239.2.11 2006/08/04 03:19:50 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -61,7 +61,8 @@ function project_block($op = 'list', $delta = 0) {
   else if ($op == 'view') {
     $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options(FALSE, 'node/'));
     $block['subject'] = t('Project navigation');
-    $block['content'] = drupal_get_form('project_quick_navigate_form', project_quick_navigate_form($projects));
+    $form = project_quick_navigate_form($projects);
+    $block['content'] = drupal_get_form('project_quick_navigate_form', $form);
 
     return $block;
   }
@@ -437,8 +438,8 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   else {
     $version = variable_get('project_release_overview', -1);
   }
-
-  $version_form = drupal_get_form('project_version_filter_form', project_version_filter_form($version));
+  $form = project_version_filter_form($version);
+  $version_form = drupal_get_form('project_version_filter_form', $form);
   if ($_POST['edit']['rid']) {
     $_SESSION['project_version'] = $form_values['rid'];
   }

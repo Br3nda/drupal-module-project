@@ -1,5 +1,5 @@
 <?php
-/* $Id: release.inc,v 1.70.2.2 2006/06/01 09:56:51 dww Exp $ */
+/* $Id: release.inc,v 1.70.2.3 2006/08/04 03:19:50 dww Exp $ */
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -125,7 +125,8 @@ function project_release_submit() {
       $breadcrumb[] = l($node->title, "node/$node->nid");
       $error = 1;
       $release->nid = $node->nid;
-      $output = drupal_get_form('project_release_form', project_release_form($release, $param));
+      $form = project_release_form($release, $param);
+      $output = drupal_get_form('project_release_form', $form);
 
       drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
       drupal_set_breadcrumb($breadcrumb);
@@ -135,7 +136,8 @@ function project_release_submit() {
       if ($release = project_release_load(arg(4))) {
         $node = node_load($release->nid);
         $output = project_release_view($release);
-        $output = drupal_get_form('project_release_form', project_release_form($release, $param));
+        $form = project_release_form($release, $param);
+        $output = drupal_get_form('project_release_form', $form);
         drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
         return $output;
       }
@@ -152,8 +154,8 @@ function project_release_submit() {
       if (node_access('update', $node)) {
         project_release_validate($edit);
         if (form_get_errors()) {
-          $output = drupal_get_form('project_release_form', project_release_form($release, $param));
-          
+          $form = project_release_form($release, $param);
+          $output = drupal_get_form('project_release_form', $form);
           return $output;
         }
         else {
