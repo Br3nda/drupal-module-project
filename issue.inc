@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.17 2006/07/20 14:17:53 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.18 2006/08/08 22:22:20 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -730,6 +730,7 @@ function project_issue_admin_delete_state() {
 
 function project_issue_query_result($query = NULL, $format = 'html', $search = true) {
   $query = project_issue_query_parse($query);
+  // $query must have a real value now, or the rest of this function fails.
 
   $categories = array(0 => t('<all>')) + project_issue_category();
   $states = array(implode(',', array_keys(project_issue_state())) => t('<all>')) + project_issue_state();
@@ -788,14 +789,8 @@ function project_issue_query_result($query = NULL, $format = 'html', $search = t
   $header[] = array('data' => t('Assigned to'), 'field' => 'u.name');
   #$header[] = array('data' => t('submitted by'), 'field' => 'n.uid');
 
-  if ($query) {
-    $sql = project_issue_query_sql($query);
-    $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
-  }
-  else {
-    $result = pager_query(db_rewrite_sql('SELECT p.nid FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.sid = 1 OR p.sid = 2)'. tablesort_sql($header), 'p'), 20, 0,
-                          db_rewrite_sql('SELECT COUNT(p.nid) FROM {project_issues} p INNER JOIN {node} n ON n.nid = p.nid INNER JOIN {users} u ON p.assigned = u.uid INNER JOIN {node} np ON np.nid = p.pid WHERE n.status = 1 AND ('. implode(' OR ', $pids) .') AND (p.sid = 1 OR p.sid = 2)', 'p'));
-  }
+  $sql = project_issue_query_sql($query);
+  $result = pager_query($sql['sql'] . tablesort_sql($header), 20, 0, $sql['count']);
 
   if ($search) {
     // Action links:
@@ -889,6 +884,24 @@ function project_issue_query_url($query = 0) {
   return $url;
 }
 
+/**
+ * Parses $_POST['edit'] or $_GET and creates the appropriate query
+ * object based on whatever choices a user has made to filter the
+ * issue queue. This function *MUST* return a valid $query object,
+ * since the rest of project_issue_query_result() assumes that $query
+ * exists and contains some data. If the query was otherwise going to
+ * be empty, this function will automatically add the default set of
+ * issue states (active, fixed, patch needs work, etc).
+ *  
+ * @param $query
+ *   The existing query object we're adding to. (This should probably
+ *   be a reference, instead of returning the object again).
+ *
+ * @return
+ *   An object that describes what kind of query we're doing.
+ *
+ * @see project_issue_query_result()
+ */
 function project_issue_query_parse($query = NULL) {
   $fields = array('projects', 'text', 'attachment', 'summary', 'comment', 'categories', 'components', 'versions', 'states', 'priorities', 'users', 'assigned', 'submitted');
   if ($_SERVER['REQUEST_METHOD'] == 'POST' && is_array($_POST['edit'])) {
