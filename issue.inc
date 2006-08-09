@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.18 2006/08/08 22:22:20 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.19 2006/08/09 23:19:50 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -908,10 +908,8 @@ function project_issue_query_parse($query = NULL) {
     foreach ($_POST['edit'] as $key => $value) {
       if (!empty($value) && in_array($key, $fields)) {
         $query->$key = !is_array($value) ? explode(',', $value) : $value;
-        $_POST[$key] = is_array($value) ? implode(',', $value) : $value;
       }
     }
-    unset($_POST['edit'], $_POST['op']);
   }
   else {
     foreach ($_GET as $key => $value) {
