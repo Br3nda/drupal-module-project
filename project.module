@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.9 2006/07/25 08:25:54 dww Exp $
+// $Id: project.module,v 1.195.2.10 2006/08/11 17:48:15 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -465,7 +465,7 @@ function project_page_user($arg = 0) {
       array('data' => format_interval(time() - $node->changed, 2), 'align' => 'right'),
       array('data' => "$node->count open", 'align' => 'right'),
       l(t('view'), "project/issues/$node->nid"),
-      l(t('search'), "project/issues/$node->nid/search"),
+      l(t('search'), "project/issues/search/$node->nid"),
       l(t('submit'), "node/add/project_issue/$node->nid")
     );
     $query->projects[] = $node->nid;
