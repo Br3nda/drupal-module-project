@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.11 2006/08/04 03:19:50 dww Exp $
+// $Id: project.module,v 1.239.2.12 2006/08/14 23:45:08 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -642,7 +642,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $ISSUES = ', pip.issues';
       $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
     }
-    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 ORDER BY n.title ASC"));
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 AND n.type = 'project_project' ORDER BY n.title ASC"));
   }
   $class = 'even';
   while ($project = db_fetch_object($result)) {
