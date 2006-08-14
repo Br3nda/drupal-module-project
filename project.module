@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.252 2006/08/04 07:49:40 dww Exp $
+// $Id: project.module,v 1.253 2006/08/14 19:36:35 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -329,7 +329,7 @@ function project_menu($may_cache) {
     }
   }
   else {
-    theme_add_style(drupal_get_path('module', 'project') .'/project.css');
+    drupal_add_css(drupal_get_path('module', 'project') .'/project.css');
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       if ($node->type == 'project_project') {
