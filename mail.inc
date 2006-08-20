@@ -1,5 +1,5 @@
 <?php
-/* $Id: mail.inc,v 1.47.2.3 2006/04/22 21:20:40 dww Exp $ */
+/* $Id: mail.inc,v 1.47.2.4 2006/08/20 19:07:28 dww Exp $ */
 
 function project_mailhandler($node, $result, $i, $header, $mailbox) {
   if ($node->type == 'project') {
@@ -393,7 +393,7 @@ function project_mail_digest() {
     'List-Archive: <'. url('project/issues?priorities=1', NULL, NULL, 1) .'>',
   );
 
-  $result = db_query(db_rewrite_sql("SELECT p.nid, p.* FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY title, p.mail_digest", 'p'));
+  $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, p.* FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE n.status = 1 AND p.mail_digest <> '' ORDER BY n.title, p.mail_digest"));
   while ($project = db_fetch_object($result)) {
     $category = '';
     $result2 = db_query(db_rewrite_sql('SELECT p.nid, n.title, n.created, p.sid, p.category, p.component, p.priority, p.assigned FROM {project_issues} p INNER JOIN {node} n ON p.nid = n.nid WHERE n.status = 1 AND p.pid = %d AND p.sid = 1 AND p.priority = 1 ORDER BY p.category, n.created DESC', 'p'), $project->nid);
