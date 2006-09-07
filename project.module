@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.254 2006/08/14 23:45:02 dww Exp $
+// $Id: project.module,v 1.255 2006/09/07 19:25:16 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -59,7 +59,8 @@ function project_block($op = 'list', $delta = 0) {
     return $blocks;
   }
   else if ($op == 'view') {
-    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options(FALSE, 'node/'));
+    $uris = NULL;
+    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options($uris, FALSE, 'node/'));
     $block['subject'] = t('Project navigation');
     $form = project_quick_navigate_form($projects);
     $block['content'] = drupal_get_form('project_quick_navigate_form', $form);
@@ -823,6 +824,9 @@ function _project_date($timestamp) {
  * will be sorted into the project categories with appropriate headers
  * for each term.
  *
+ * @param $project_urls
+ *   Reference to be filled with an array of project uri => id mappings. This
+ *   array is used by the project_issue search form code.
  * @param $issues
  *   If TRUE, only projects with issue tracking  enabled are returned.
  *   For this option to do much good, the project_issue.module should be
@@ -830,7 +834,7 @@ function _project_date($timestamp) {
  * @param $key_prefix
  *   Prefix to prepend to all keys in the returned array.
  */
-function project_projects_select_options($issues = TRUE, $key_prefix = NULL) {
+function project_projects_select_options(&$project_urls, $issues = TRUE, $key_prefix = NULL) {
   $projects = array();
   if ($issues && module_exist('project_issue')) {
     $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
@@ -838,7 +842,7 @@ function project_projects_select_options($issues = TRUE, $key_prefix = NULL) {
   }
   if (project_use_taxonomy()) {
     $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title", 'p'), $vid);
+    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name, p.uri FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title", 'p'), $vid);
     while ($project = db_fetch_object($result)) {
       if (isset($project->name)) {
         if (!isset($projects[$project->name])) {
@@ -849,12 +853,18 @@ function project_projects_select_options($issues = TRUE, $key_prefix = NULL) {
       else {
         $projects[$key_prefix . $project->nid] = $project->title;
       }
+      if (is_array($project_urls)) {
+        $project_urls[$project->uri] = $project->nid;
+      }
     }
   }
   else {
-    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN WHERE n.status = 1 $ISSUE_WHERE", 'p'));
+   $result = db_query(db_rewrite_sql("SELECT p.nid, p.uri, n.title FROM {project_projects} p INNER JOIN {node} n ON  n.nid = p.nid $ISSUE_JOIN WHERE n.status = 1 $ISSUE_WHERE", 'p'));
     while ($project = db_fetch_object($result)) {
       $projects[$key_prefix . $project->nid] = $project->title;
+      if (is_array($project_urls)) {
+        $project_urls[$project->uri] = $project->nid;
+      }
     }
   }
   return $projects;
