@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.15 2006/10/25 06:59:14 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.16 2006/10/25 07:01:31 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -181,6 +181,8 @@ function project_release_form(&$release, &$param) {
     $format = project_release_get_version_format($project);
   }
   else {
+    global $user;
+    $admin = user_access('administer projects');
     $edit = true;
     $project->nid = $release->pid;
     $format = project_release_get_version_format($project);
@@ -190,36 +192,33 @@ function project_release_form(&$release, &$param) {
   $form['#prefix'] = '<div class="project-release">';
   $form['#suffix'] = '</div>';
  
-  $form['title'] = array(
-    '#type' => 'value',
-    '#default_value' => $release->title,
-  );
+  _project_release_form_add_text_element($form['title'], t('Title'), $release->title, $edit, $admin);
+
+  _project_release_form_add_text_element($form['version']['version'], t('Version string'), $release->version, $edit, $admin);
+
   $form['pid'] = array(
     '#type' => 'value',
     '#value' => $release->pid,
   );
-  $form['version'] = array(
+  $form['version']['num'] = array(
     '#type' => 'fieldset',
     '#title' => t('Version number elements'),
     '#prefix' => '<div class="version-elements">',
     '#suffix' => '</div>',
   );
-  $form['version']['version'] = array(
-    '#type' => 'value',
-    '#default_value' => $release->version,
-  );
+  $modify = $admin || !$edit;
   $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'api_major', t('API major'));
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'api_minor', t('API minor'));
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'major', t('Major'));
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'minor', t('Minor'));
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'patch', t('Patch-level'));
-  _project_release_form_add_version_element($form, $release, $edit, $format,
+  _project_release_form_add_version_element($form, $release, $modify, $format,
     'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
 
   if (!variable_get('project_release_directory', '') && empty($release->file_path)) {
@@ -244,26 +243,24 @@ function project_release_form(&$release, &$param) {
   );
   $form['body_filter']['format'] = filter_form($node->format);
 
-  $form['tag']['tag'] = array(
-    '#type' => 'value',
-    '#value' => $release->tag,
-  );
-  $form['tag']['rebuild'] = array(
-    '#type' => 'value',
-    '#value' => $release->rebuild,
-  );
-  $form['file']['file_hash'] = array(
-    '#type' => 'value',
-    '#value' => $release->file_hash,
-  );
-  $form['file']['file_date'] = array(
-    '#type' => 'value',
-    '#value' => $release->file_date,
-  );
-  $form['file']['file_path'] = array(
-    '#type' => 'value',
-    '#value' => $release->file_path,
-  );
+  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $edit, $admin);
+  if ($admin) {
+    $form['tag']['rebuild'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Rebuild this release regularly?'),
+      '#default_value' => $release->rebuild,
+    );
+  }
+  else {
+    $form['tag']['rebuild'] = array(
+      '#type' => 'value',
+      '#value' => $release->rebuild,
+    );
+  }
+  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $edit, $admin);
+  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $edit, false);
+  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $edit, false);
+
   return $form;
 }
 
@@ -281,18 +278,18 @@ function project_release_form(&$release, &$param) {
  *
  * @param $form Form array to modify
  * @param $release Relase node the form is for
- * @param $edit Boolean indicating if we're editing or creating
+ * @param $modify Boolean indicating if we should allow modifications
  * @param $format Version format string for this project
  * @param $name Name of this version element
  * @param $title Translatable title of the form element
  * @param $description Translatable description of the form element.
  * @param $required Boolean for if the form element should be required
  */
-function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $size = 10) {
+function _project_release_form_add_version_element(&$form, $release, $modify, $format, $name, $title, $description = '', $size = 10) {
   $var_name = 'version_' . $name;
   $regexp = "@.*[!#%]$name.*@";
   if (preg_match($regexp, $format)) {
-    $form['version'][$var_name] = array(
+    $form['version']['num'][$var_name] = array(
       '#type' => 'textfield',
       '#title' => $title,
       '#default_value' => $release->$var_name,
@@ -307,16 +304,50 @@ function _project_release_form_add_version_element(&$form, $release, $edit, $for
       $form[$var_name]['#required'] = TRUE;
     }
     if ($description) {
-      $form['version'][$var_name]['#description'] = $description;
+      $form['version']['num'][$var_name]['#description'] = $description;
     }
-    if ($edit) {
-      $form['version'][$var_name]['#attributes'] = array('disabled' => $edit);
+    if (!$modify) {
+      $form['version']['num'][$var_name]['#attributes'] = array('disabled' => 'disabled');
     }
   }
   else {
-    $form['version'][$var_name] = array(
+    $form['version']['num'][$var_name] = array(
       '#type' => 'value',
       '#value' => $release->$var_name,
+    );
+  }
+}
+
+/**
+ * Modifies the given $form array to add the appropriate form element
+ * for the desired text field. Since the 16+ lines of code in here
+ * have to be duplicated 5 times in project_release_form(), this
+ * function exists so we can reuse the code.
+ * @see project_release_form
+ * @ingroup project_release_internal
+ *
+ * @param $form Reference to form element to add
+ * @param $title Translatable title of the form element
+ * @param $value The value to use in the form
+ * @param $edit Boolean indicating if we're editing or creating
+ * @param $admin Boolean for if the edit is by a project administrator
+ */
+function _project_release_form_add_text_element(&$form, $title, $value, $edit, $admin) {
+  if ($edit && !empty($value)) {
+    $form = array(
+      '#type' => 'textfield',
+      '#title' => $title,
+      '#default_value' => $value,
+      '#required' => TRUE,
+    );
+    if(!$admin) {
+      $form['#attributes']['disabled'] = 'disabled';
+    }
+  }
+  else {
+    $form = array(
+      '#type' => 'value',
+      '#value' => $value,
     );
   }
 }
@@ -364,6 +395,10 @@ function project_release_validate(&$edit, $form) {
       form_set_error('file', t('There was a problem uploading the specified file.'));
     }
   }
+  // TODO: it'd be nice to automagically reset the version string and
+  // title based on changes to the version elements on an edit, but we
+  // have to be careful not to break the fancy N-page form when
+  // cvs_form_alter() is involved...
   if (isset($edit->version) && $edit->version !== '') {
     form_set_value($form['title'], t('%project %version', array('%project' => $edit->project->title, '%version' => check_plain($edit->version))));
   }
