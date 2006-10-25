@@ -1,5 +1,9 @@
 <?php
-/* $Id: release.inc,v 1.70.2.3 2006/08/04 03:19:50 dww Exp $ */
+/* $Id: release.inc,v 1.70.2.3.2.1 2006/10/25 00:05:03 dww Exp $ */
+
+/**
+ * -- commented out; needs to be re-implemented using new system, but
+ *    we need to be sure we understand what this is doing, how and why.
 
 function project_release_scan() {
   project_release_scan_directory();
@@ -111,175 +115,212 @@ function project_release_cron() {
     project_release_scan_directory();
   }
 }
-
-function project_release_submit() {
-  switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
-    case 'add':
-      $node = node_load(arg(1));
-      $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
-      if (project_use_taxonomy()) {
-        $taxonomy_terms = taxonomy_node_get_terms($node->nid);
-        $term = reset($taxonomy_terms);
-        $breadcrumb[] = l($term->name, 'project', NULL, "tid=$term->tid");
-      }
-      $breadcrumb[] = l($node->title, "node/$node->nid");
-      $error = 1;
-      $release->nid = $node->nid;
-      $form = project_release_form($release, $param);
-      $output = drupal_get_form('project_release_form', $form);
-
-      drupal_set_title(t('Add release to %project', array('%project' => $node->title)));
-      drupal_set_breadcrumb($breadcrumb);
-      return $output;
-      break;
-    case 'edit':
-      if ($release = project_release_load(arg(4))) {
-        $node = node_load($release->nid);
-        $output = project_release_view($release);
-        $form = project_release_form($release, $param);
-        $output = drupal_get_form('project_release_form', $form);
-        drupal_set_title(t('Edit release %version for %project', array('%version' => $release->version, '%project' => $node->title)));
-        return $output;
-      }
-      break;
-    case 'delete':
-      if (($release = project_release_load(arg(4))) && $release->nid == arg(1)) {
-        project_release_delete(arg(4));
-        drupal_goto("node/$release->nid/release");
-      }
-      break;
-    case t('Submit'):
-      $edit = (object) $_POST['edit'];
-      $node = node_load($edit->nid);
-      if (node_access('update', $node)) {
-        project_release_validate($edit);
-        if (form_get_errors()) {
-          $form = project_release_form($release, $param);
-          $output = drupal_get_form('project_release_form', $form);
-          return $output;
-        }
-        else {
-          // Save the release and re-direct to the overview page for the project
-          $edit->status = 1;
-          project_release_save($edit);
-          drupal_goto("node/$node->nid/release");
-        }
-      }
-  }
-}
+*/
 
 /**
  * Implementation of hook_form().
  */
 function project_release_form(&$release, &$param) {
-  /* TODO: pending final fileapi
-  // Set form parameters so we can accept file uploads.
-  $param['options'] = array('enctype' => 'multipart/form-data');
-  */
+  if (arg(1) == 'add') {
+    if (!is_numeric(arg(3))) {
+      $form['markup'] = array(
+        '#value' => t('You must add releases only from projects.')
+      );
+      return $form;
+    }
+    $release->pid = arg(3);
+    $project = node_load($release->pid);
+    if (!$project) {
+      return drupal_not_found();
+    }
+    $form['project'] = array(
+      '#type' => 'value',
+      '#value' => $project,
+    );
+  }
+  else {
+    $edit = true;
+  }
+  $form['#attributes'] = array("enctype" => "multipart/form-data");
+ 
+  $form['title'] = array(
+    '#type' => 'value',
+    '#default_value' => $release->title,
+  );
 
-  $form['version'] = array(
+  $form['version_major'] = array(
     '#type' => 'textfield',
-    '#title' => t('Version'),
-    '#default_value' => $release->version,
-    '#size' => 40,
-    '#maxlength' => 255,
+    '#title' => t('Major version number'),
+    '#default_value' => $release->version_major,
+    '#size' => 20,
+    '#maxlength' => 10,
     '#required' => TRUE,
   );
-  $form['changes'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Changes'),
-    '#default_value' => $release->changes,
-    '#rows' => 10,
-    '#cols' => 40,
+  if ($edit) {
+    $form['version_major']['#attributes'] = array('disabled' => $edit);
+  }
+
+  $form['version_minor'] = array(
+    '#type' => 'textfield',
+    '#title' => t('minor version number'),
+    '#default_value' => $release->version_minor,
+    '#size' => 20,
+    '#maxlength' => 10,
     '#required' => TRUE,
   );
+  if ($edit) {
+    $form['version_minor']['#attributes'] = array('disabled' => $edit);
+  }
+
   if (!variable_get('project_release_directory', '')) {
-    $form['path'] = array(
+    $form['file'] = array(
       '#type' => 'file',
       '#title' => t('File'),
       '#size' => 40,
       '#description' => ($release->fid) ?
         t('A file already exists, if you upload another file the current file will be replaced.') :
-        '' . $error['file'],
-      '#required' => $release->fid,
-    );
-  }
-  if ($release->rid) {
-    $form['rid'] = array(
-      '#type' => 'hidden',
-      '#default_value' => $release->rid,
-    );
-  }
-  $form['nid'] = array(
-    '#type' => 'hidden',
-    '#default_value' => $release->nid,
-  );
-  
-  if (!form_get_errors()) {
-    $form['submit'] = array(
-      '#type' => 'button',
-      '#value' => t('Submit'),
+        'Choose the file that will be associated with this release.',
     );
   }
 
+  $form['body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Changes'),
+    '#default_value' => $release->body,
+    '#rows' => 10,
+    '#cols' => 40,
+    '#required' => TRUE,
+    '#description' => t('Enter a description of this version, such as a list of the major changes or updates.'),
+  );
+  $form['format'] = filter_form($node->format);
+
+  $form['pid'] = array(
+    '#type' => 'value',
+    '#value' => $release->pid,
+  );
+  $form['tag'] = array(
+    '#type' => 'value',
+    '#value' => $release->tag,
+  );
+  $form['rebuild'] = array(
+    '#type' => 'value',
+    '#value' => $release->rebuild,
+  );
+  $form['file_hash'] = array(
+    '#type' => 'value',
+    '#value' => $release->file_hash,
+  );
+  $form['file_date'] = array(
+    '#type' => 'value',
+    '#value' => $release->file_date,
+  );
+  $form['file_path'] = array(
+    '#type' => 'value',
+    '#value' => $release->file_path,
+  );
+  $form['version_super_major'] = array(
+    '#type' => 'value',
+    '#value' => $release->version_super_major,
+  );
+  $form['version_super_minor'] = array(
+    '#type' => 'value',
+    '#value' => $release->version_super_minor,
+  );
   return $form;
 }
 
-function project_release_validate(&$edit) {
-  if ($edit->rid) {
-    $release = project_release_load($edit->rid);
-    $edit->nid = $release->nid;
-    $edit->fid = $release->fid;
+/**
+ * Implementation of hook_validate().
+ */
+function project_release_validate(&$edit, $form) {
+  $result = db_query("SELECT * FROM {project_release_node} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
+
+  if ($release = db_fetch_object($result)) {
+     form_set_error('version_major', t('This version already exists for this project.'));
   }
 
-  if (empty($edit->version)) {
-    form_set_error('version', t('You must specify a valid version.'));
-  }
-  else {
-    $result = db_query("SELECT * FROM {project_releases} WHERE nid = %d AND version = '%s'", $edit->nid, trim($edit->version));
-    if ($release = db_fetch_object($result)) {
-      if ($edit->rid != $release->rid) {
-        if ($release->status) {
-          form_set_error('version', t('This version already exists for this project.'));
-        }
-        else {
-          $edit->rid = $release->rid;
-        }
-      }
+  if ($file = file_check_upload('file')) {
+    $file = file_save_upload('file', file_directory_path());
+    if ($file) {
+      $filepath = file_create_path($file->filepath);
+      form_set_value($form['file_path'], $file->filepath);
+      form_set_value($form['file_date'], filemtime($filepath));
+      form_set_value($form['file_hash'], md5_file($filepath));
+    }
+    else {
+      form_set_error('file', t('There was a problem uploading the specified file.'));
     }
   }
-
-  if (empty($edit->changes)) {
-    form_set_error('changes', t('You must specify changes.'));
+  if ($edit->project) {
+    form_set_value($form['title'], t('%project %version', array('%project' => $edit->project->title, '%version' => theme('project_release_version', (object) $edit))));
   }
-
-  /* TODO: pending final fileapi
-  $file = check_file('file');
-
-  if ($file && !$file->fid && !empty($file->error)) {
-    $error['file'] = theme('error', $file->error);
-  }
-  else {
-    $edit->fid = $file->fid;
-  }
-  */
 }
 
-function project_release_view($release, $project = 0) {
-  if (!$project) {
-    $project = node_load($release->nid);
+/**
+ * Implementation of hook_load().
+ */
+function project_release_load($node) {
+  $additions = db_fetch_object(db_query("SELECT * FROM {project_release_node} WHERE nid = %d", $node->nid));
+  return $additions;
+}
+
+/**
+ * Implementation of hook_insert().
+ */
+function project_release_insert($node) {
+  db_query("INSERT INTO {project_release_node} (nid, pid, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor) VALUES (%d, %d, '%s', '%s', %d, '%s', %d, %d, %d, %d, %d)", $node->nid, $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor);
+}
+
+/**
+ * Implementation of hook_update().
+ */
+function project_release_update($node) {
+  db_query("INSERT INTO {project_release_node} pid = %d, tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d WHERE nid = %d", $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->nid);
+}
+
+/**
+ * Implementation of hook_delete().
+ */
+function project_release_delete($node) {
+  if ($node->file_path) {
+    file_delete(file_create_path($node->file_path));
+  }
+  db_query("DELETE FROM {project_release_node} WHERE nid = %d", $node->nid);
+}
+
+
+/**
+ * @themeable
+ * Provide a proper full version name of a file.
+ */
+function theme_project_release_version($release) {
+  if ($release->version_super_major) {
+    return $release->version_super_major .'.'. $release->version_super_minor .'-'. $release->version_major .'.'. $release->version_minor;
+  }
+  else {
+    return $release->version_major .'.'. $release->version_minor;
+  }
+}
+
+/**
+ * Implementation of hook_view().
+ */
+function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
+  $project = node_load($release->pid);
+
+  if ($page) {
+    // Breadcrumb navigation
+    $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
+    $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
+    $breadcrumb = project_project_set_location($project, $breadcrumb);
+    menu_set_location($breadcrumb);
   }
 
   $links = array();
-  if ($release->rid && node_access('update', $project)) {
-    $links[] = l('edit', "node/$project->nid/release/edit/$release->rid");
-    //$links[] = l('delete', "node/$project->nid/release/delete/$release->rid");
-  }
-
-  if ($release->path) {
-    $output .= '<small>' . t('Download: <a href="%path">%path</a>', array('%path' => base_path() . $release->path)) . '</small><br />';
-    $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize($release->path)))) . '</small><br />';
-    $output .= '<small>' . t('md5_file hash: %hash', array('%hash' => $release->hash)) . '</small><br />';
+  if ($release->file_path) {
+    $output .= '<small>' . t('Download: %file', array('%file' => l(basename($release->file_path), file_create_url($release->file_path)))) . '</small><br />';
+    $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) . '</small><br />';
+    $output .= '<small>' . t('md5_file file_hash: %file_hash', array('%file_hash' => $release->file_hash)) . '</small><br />';
   }
   if ($release->created) {
     $output .= '<small>' . t('First released: %created', array('%created' => format_date($release->created))) . '</small><br />';
@@ -291,131 +332,33 @@ function project_release_view($release, $project = 0) {
   $output .= $release->changes;
   $output .= theme('links', $links);
 
-  return $output;
+  $release->body .= '<div class="project-release">' . $output . '</div>';
+}
+
+/**
+ * Get an array of release nodes
+ */
+function project_release_get_releases($project, $nodes = true) {
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_node} r ON r.nid = n.nid WHERE r.pid = %d ORDER BY n.created DESC"), $project->nid);
+  $releases = array();
+  while ($obj = db_fetch_object($result)) {
+    if ($nodes) {
+      $releases[$obj->nid] = node_load($obj->nid);
+    }
+    else {
+      $releases[$obj->nid] = theme('project_release_version', $obj);
+    }
+  }
+  return $releases;
 }
 
 function project_release_list($project, $main = 0) {
-  $result = db_query('SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC', $project->nid);
-  if (db_num_rows($result)) {
-    $header = array(t('Version'), t('Released'), t('Changes'));
-    if (node_access('update', $project) || node_access('delete', $project)) {
-      $header[] = array('data' => t('Operations'), 'colspan' => 2);
-    }
-    while ($release = db_fetch_object($result)) {
-      $output .= theme('box', l(t('%project %version', array('%project' => $project->title, '%version' => $release->version)), 'node/'. $project->nid .'/release', array('id' => 'version-'. $release->version), NULL, 'version-'. $release->version), project_release_view($release, $project));
+  if ($releases = project_release_get_releases($project)) {
+    foreach ($releases as $release) {
+      $output .= node_view($release);
     }
     return $output;
   }
-}
-
-function project_release_load($rid, $status = 1) {
-  if ($rid->type == 'project_project') {
-    $status = $status ? 'AND status = 1' : '';
-    $result = db_query("SELECT rid,version FROM {project_releases} WHERE nid = %d $status ORDER BY version DESC", $rid->nid);
-    $releases = array();
-    while ($release = db_fetch_object($result)) {
-      $releases[$release->rid] = $release->version;
-    }
-    return $releases;
-  }
-  elseif (is_numeric($rid)) {
-    return db_fetch_object(db_query('SELECT * FROM {project_releases} WHERE rid = %d ORDER BY created DESC', $rid));
-  }
-}
-
-function project_release_save($release) {
-  $fields = array('rid' => '%d', 'nid' => '%d', 'fid' => '%d',
-                    'path' => "'%s'", 'created' => '%d',
-                    'changed' => '%d', 'hash' => "'%s'", 'version' => "'%s'",
-                    'changes' => "'%s'", 'status' => '%d');
-
-  $node = node_load($release->nid);
-
-  /* TODO: pending final fileapi
-  $file = check_file('file');
-  */
-  // If the version was not previously released, insert it.
-  if (empty($release->rid)) {
-
-    // Make sure this release version doesn't already exist for the given project.
-    // This test should not be needed, but duplicate releases on drupal.org suggest
-    // that an unidentified problem is causing duplicate versions to be saved.
-    if (db_num_rows(db_fetch_object(db_query("SELECT rid FROM {project_releases} WHERE nid = %d AND version = '%s'", $release->nid, $release->version)))) {
-      return FALSE;
-    }
-    $release->rid = db_next_id('project_rid');
-    if (!variable_get('project_release_directory', '') && $file->filename) {
-      $release->fid = drupal_file_save($file);
-    }
-    if ($release->path) {
-      $release->created = ($release->version == 'cvs') ? 0 : filectime($release->path);
-      $release->changed = filemtime($release->path);
-      $release->hash = md5_file($release->path);
-    }
-    else {
-      $release->created = ($release->version == 'cvs') ? 0 : time();
-      $release->changed = time();
-    }
-
-    // Prepare the query:
-    foreach ($release as $key => $value) {
-      if (in_array($key, array_keys($fields))) {
-        $input[db_escape_string($key)] = $fields[$key];
-        $values[] = $value;
-      }
-    }
-
-    // Insert the node into the database:
-    db_query('INSERT INTO {project_releases} ('. implode(', ', array_keys($input)) .') VALUES('. implode(', ', $input) .')', $values);
-    watchdog('project', t("added release %version to %project.", array('%version' => theme('placeholder', $release->version), '%project' => theme('placeholder', $node->title))));
-  }
-  // Otherwise, update the existing record.
-  else {
-    /* TODO: pending final fileapi
-    // Replace current file if new file upload exists.
-    if (!variable_get('project_release_directory', '') && $file->filename) {
-      $file->fid = $release->fid;
-      drupal_file_save($file);
-    }
-    */
-
-    unset($release->created);
-    if($release->path) {
-      if ($release->scan) {
-        // Load previous md5_file hash value, and test it agains the current one to see if the file has changed.
-        $previous = db_fetch_object(db_query("SELECT hash FROM {project_releases} WHERE rid = %d", $release->rid));
-        if (md5_file($release->path) != $previous->hash) {
-          $release->hash = md5_file($release->path);
-          $release->changed = time();
-        }
-      }
-      else {
-        $release->hash = md5_file($release->path);
-        $release->changed = filemtime($release->path);
-      }
-    }
-
-    // Prepare the query:
-    foreach ($release as $key => $value) {
-
-      if (in_array($key, array_keys($fields))) {
-        $q[] = db_escape_string($key) ." = " . $fields[$key];
-        $v[] = $value;
-      }
-    }
-    $v[] = $release->nid;
-    $v[] = $release->rid;
-
-    db_query('UPDATE {project_releases} SET '. implode(', ', $q) .' WHERE nid = %d AND rid = %d', $v);
-    watchdog('project', t("updated release %project %version", array('%project' => theme('placeholder', $node->title), '%version' => theme('placeholder', $release->version))));
-  }
-  return $release->rid;
-}
-
-function project_release_delete($rid) {
-  $release = project_release_load($rid);
-  watchdog('project', t("unpublished release %version", array('%version' => theme('placeholder', $release->version))));
-  db_query('UPDATE {project_releases} SET status = 0 WHERE rid = %d', $rid);
 }
 
 function project_releases_list($refresh = FALSE) {

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13 2006/09/07 19:25:39 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.1 2006/10/25 00:05:03 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -72,6 +72,7 @@ function project_block($op = 'list', $delta = 0) {
 function project_node_info() {
   return array(
     'project_project' => array('name' => t('project'), 'base' => 'project_project'),
+    'project_release' => array('name' => t('project release'), 'base' => 'project_release'),
   );
 }
 

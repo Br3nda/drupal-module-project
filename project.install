@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.6 2006/09/10 06:37:17 dww Exp $
+// $Id: project.install,v 1.2.2.6.2.1 2006/10/25 00:05:03 dww Exp $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {
@@ -22,21 +22,20 @@ function project_install() {
           KEY project_projects_uri (uri(8))
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_releases} (
-          rid int(10) unsigned NOT NULL default '0',
+      db_query("CREATE TABLE {project_release_node} (
           nid int(10) unsigned NOT NULL default '0',
-          fid int(10) unsigned NOT NULL default '0',
-          path varchar(255) NOT NULL default '',
-          created int(10) unsigned NOT NULL default '0',
-          version varchar(255) NOT NULL default '',
-          status tinyint(1) unsigned NOT NULL default '1',
-          changes text,
-          weight tinyint(3) unsigned NOT NULL default '0',
-          changed int(10) unsigned NOT NULL default '0',
-          hash varchar(32) NOT NULL default '',
-          UNIQUE(path),
-          PRIMARY KEY (`rid`),
-          KEY project_releases_nid (nid)
+          pid int(10) unsigned NOT NULL default '0',
+          tag varchar(255) NOT NULL default '0',
+          file_path varchar(255) NOT NULL default '',
+          file_date int(10) unsigned NOT NULL default '0',
+          file_hash varchar(32) NOT NULL default '',
+          rebuild tinyint(1) default '0',
+          version_super_major int(10) NOT NULL default 0,
+          version_super_minor int(10) NOT NULL default 0,
+          version_major int(10) NOT NULL default 0,
+          version_minor int(10) NOT NULL default 0,
+          PRIMARY KEY (`nid`),
+          KEY project_releases_pid (pid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
@@ -57,19 +56,20 @@ function project_install() {
           license varchar(255) default '' not null,
           PRIMARY KEY (nid)
         );");
-      db_query("CREATE TABLE {project_releases} (
-          rid int NOT NULL default '0',
+      db_query("CREATE TABLE {project_release_node} (
           nid int NOT NULL default '0',
-          fid int NOT NULL default '0',
-          path varchar(255) NOT NULL default '',
-          created int NOT NULL default '0',
-          hash varchar(32) NOT NULL default '',
-          version varchar(255) NOT NULL default '',
-          changes text,
-          weight smallint NOT NULL default '0',
-          changed int NOT NULL default '0',
-          status smallint default '1' not null,
-          PRIMARY KEY (rid)
+          pid int NOT NULL default '0',
+          tag varchar(255) NOT NULL default '0',
+          file_path varchar(255) NOT NULL default '',
+          file_date int NOT NULL default '0',
+          file_hash varchar(32) NOT NULL default '',
+          rebuild smallint default '0',
+          version_super_major int NOT NULL default 0,
+          version_super_minor int NOT NULL default 0,
+          version_major int NOT NULL default 0,
+          version_minor int NOT NULL default 0,
+          PRIMARY KEY (nid),
+          KEY project_releases_pid (pid)
         );");
       break;
   }
