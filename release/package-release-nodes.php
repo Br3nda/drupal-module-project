@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.2 2006/10/25 09:31:58 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.3 2006/10/25 09:33:31 dww Exp $
 
 /**
  * @file
@@ -28,8 +28,7 @@ $drupal_root = '/Users/wright/drupal/cvs/4.7/core.do';
 $dest_root = $drupal_root;
 $dest_rel = 'files/projects';
 $license = '/Users/wright/drupal/release-package/contributions/LICENSE.txt';
-$trans_readme = '';
-$trans_install = '';
+$trans_install = '/Users/wright/drupal/release-package/contributions/translations/INSTALL.txt';
 $tmp_dir = '/tmp/drupal';
 
 // -- Programs
@@ -152,18 +151,19 @@ function package_release_core($nid, $id, $rev, $check_new) {
 
 function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   global $tmp_dir, $tar, $rm, $repositories, $dest_root, $dest_rel;
-  global $license, $trans_readme, $trans_install;
+  global $license, $trans_install;
   $rid = 2;
-  $exclude = array('.', '..', 'CVS');
+  // Files to ignore when checking timestamps:
+  $exclude = array('.', '..', 'CVS', 'LICENSE.txt');
 
   $parts = split('/', $dir);
   # modules, themes, theme-engines, or translations
   $contrib_type = $parts[1];
   # specific directory (same as uri)
-  $localdir = $parts[2];
+  $uri = $parts[2];
 
   $basedir = $repositories[$rid]['modules'] . '/' . $contrib_type;
-  $fulldir = $basedir . '/' . $localdir;
+  $fulldir = $basedir . '/' . $uri;
   $file_name = $id . '.tar.gz';
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
@@ -173,11 +173,23 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     return false;
   }
 
+/*
+  $wd_level = 'release_' . $contrib_type;
+  watchdog($wd_level, "$contrib_type - nid: $nid, id: $id, dir: $dir");
+  return false;
+*/
+  if ($contrib_type != 'translations') {
+    return false;
+  }
+
   // Checkout this release from CVS, and see if we need to rebuild it
   `cvs -q co $rev $fulldir`;
   chdir($basedir);
+  if ($contrib_type == 'translations') {
+    $exclude = array_merge($exclude, 'README.txt');
+  }
   if (is_file($full_dest) && $check_new) {
-    $youngest = file_find_youngest($localdir, 0, array_merge($exclude, 'LICENSE.txt'));
+    $youngest = file_find_youngest($uri, 0, $to_exclude);
     if (filectime($full_dest) + 300 > $youngest) {
       // The existing tarball for this release is newer than the youngest
       // file in the directory, we're done.
@@ -187,12 +199,43 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   }
 
   // Link not copy, since we want to preserve the date...
-  `ln -sf $license $localdir/LICENSE.txt`;
-
+  `ln -sf $license $uri/LICENSE.txt`;
+  if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
+    if ($handle = opendir($uri)) {
+      $po_files = array();
+      while ($file = readdir($handle)) {
+        if ($file == 'general.po') {
+          $found_general_po = true;
+        }
+        elseif (preg_match('/.*\.po/', $file)) {
+          $po_files[] = "$uri/$file";
+        }
+      }
+      if ($found_general_po) {
+        @unlink("$uri/$uri.po");
+        $po_targets = "$uri/general.po ";
+        $po_targets .= implode(' ', $po_files);
+        `msgcat $po_targets | msgattrib --no-fuzzy -o $uri/$uri.po`;
+      }
+    }
+    if (is_file("$uri/$uri.po")) {
+      `msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt`;
+      $to_tar = "$uri/*.txt $uri/$uri.po";
+    }
+    else {
+      watchdog('release_package', "ERROR: $uri translation does not contain a $uri.po file, not packaging");
+      return false;
+    }      
+  }
+  else {
+    // NOT a translation: no special packaging, grab the whole directory.
+    $to_tar = $uri;
+  }
+  
   // 'h' is for dereference, we want to include the files, not the links
-  `$tar -ch --exclude=CVS --file=- $localdir | gzip -9 --no-name > $full_dest`;
+  `$tar -ch --exclude=CVS --file=- $to_tar | gzip -9 --no-name > $full_dest`;
 
-  `$rm -rf $localdir`;
+  `$rm -rf $uri`;
   // TODO: need better error checking
 
   package_release_update_node($nid, $file_path);
@@ -261,7 +304,7 @@ function file_find_youngest($dir, $timestamp, $exclude) {
 
 
 // ------------------------------------------------------------ 
-// Functions: translation-related methods
+// Functions: translation-status-related methods
 // TODO: get all this working. ;)
 // ------------------------------------------------------------ 
 
