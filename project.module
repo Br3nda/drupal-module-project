@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.6 2006/10/25 06:32:01 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.7 2006/10/25 07:24:39 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -405,7 +405,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           if (variable_get('project_browse_releases', 0) && $version != -1) {
             // Find all terms associated with the requested version.
             // TODO: should be conditional on project_release.module
-            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_release_nodes} p ON t.nid = p.nid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.file_path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
+            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_release_nodes} p ON t.nid = p.pid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.file_path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
             $tids = array();
             while ($item = db_fetch_object($result)) {
               $tids[$item->tid] = $item->count;
@@ -427,9 +427,9 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           }
         }
 
-        $tid = (arg(3) && is_numeric(arg(3))) ? arg(3) : project_default_tid();
-        $term = taxonomy_get_term($tid);
-
+        if (arg(3) && is_numeric(arg(3))) {
+          $term = taxonomy_get_term(arg(3));
+        }
       }
 
       // Set the default elements that will be used to construct the SQL statement.
@@ -706,20 +706,6 @@ function project_project_sort_methods($op, $method = NULL) {
       }
   }
   return;
-}
-
-// TODO: refactor for project_release.module? Need {project_release_nodes} 
-function project_default_tid() {
-  static $tid;
-  if ($tid === NULL) {
-    if (variable_get('project_release_overview', -1) != -1) {
-      $tid = db_result(db_query("SELECT t.tid FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid WHERE (p.version LIKE '%s%%')", $version));
-    }
-    else {
-      $tid = db_result(db_query("SELECT t.tid FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid"));
-    }
-  }
-  return $tid;
 }
 
 /**
