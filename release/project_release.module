@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.29 2006/10/25 10:11:47 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.30 2006/10/25 22:28:17 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -670,7 +670,7 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   }
   $output .= theme('links', $links);
 
-  $release->body = '<div class="project-release">' . $output . '</div>' . check_markup($release->body, $release->format);
+  $release->body = '<div class="project-release">' . $output . '</div>' . check_markup($release->body, $release->format, FALSE);
 }
 
 /**
