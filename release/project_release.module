@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.16 2006/10/25 07:01:31 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.17 2006/10/25 07:05:20 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -257,7 +257,7 @@ function project_release_form(&$release, &$param) {
       '#value' => $release->rebuild,
     );
   }
-  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $edit, $admin);
+  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $edit, $admin, false);
   _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $edit, false);
   _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $edit, false);
 
@@ -331,14 +331,15 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
  * @param $value The value to use in the form
  * @param $edit Boolean indicating if we're editing or creating
  * @param $admin Boolean for if the edit is by a project administrator
+ * @param $required Boolean for if the field should be required
  */
-function _project_release_form_add_text_element(&$form, $title, $value, $edit, $admin) {
+function _project_release_form_add_text_element(&$form, $title, $value, $edit, $admin, $required = true) {
   if ($edit && !empty($value)) {
     $form = array(
       '#type' => 'textfield',
       '#title' => $title,
       '#default_value' => $value,
-      '#required' => TRUE,
+      '#required' => $required,
     );
     if(!$admin) {
       $form['#attributes']['disabled'] = 'disabled';
@@ -576,7 +577,7 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   if ($release->file_path) {
     $output .= '<small>' . t('Download: %file', array('%file' => l(basename($release->file_path), file_create_url($release->file_path)))) . '</small><br />';
     $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) . '</small><br />';
-    $output .= '<small>' . t('md5_file file_hash: %file_hash', array('%file_hash' => $release->file_hash)) . '</small><br />';
+    $output .= '<small>' . t('md5_file hash: %file_hash', array('%file_hash' => $release->file_hash)) . '</small><br />';
   }
   if ($release->created) {
     $output .= '<small>' . t('First released: %created', array('%created' => format_date($release->created))) . '</small><br />';
