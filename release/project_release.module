@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.7 2006/10/25 06:26:46 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.8 2006/10/25 06:32:01 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '%major.%minor.%patch%extra');
 
@@ -64,7 +64,7 @@ function project_release_settings() {
     '#default_value' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT),
     '#size' => 50,
     '#maxlength' => 255,
-    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra.',
+    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."),
   );
 
   // TODO: isn't this a dead setting, too?
@@ -166,17 +166,17 @@ function project_release_form(&$release, &$param) {
   );
 
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%super_major', 'version_super_major', t('Super major version number'));
+    'super_major', t('Super major version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%super_minor', 'version_super_minor', t('Super minor version number'));
+    'super_minor', t('Super minor version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%major', 'version_major', t('Major version number'));
+    'major', t('Major version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%minor', 'version_minor', t('Minor version number'));
+    'minor', t('Minor version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%patch', 'version_patch', t('Patch-level version number'));
+    'patch', t('Patch-level version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    '%extra', 'version_extra', t('Extra version identifier'), t('Optionally specify other identifying information for this version, for example "-rc1" or "-dev". In most cases, this should be left blank.'), 0);
+    'extra', t('Extra version identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 0);
 
   if (!variable_get('project_release_directory', '') && empty($release->file_path)) {
     $form['file'] = array(
@@ -196,7 +196,7 @@ function project_release_form(&$release, &$param) {
     '#rows' => 10,
     '#cols' => 40,
     '#required' => TRUE,
-    '#description' => t('Enter a description of this version, such as a list of the major changes or updates.'),
+    '#description' => t('Enter a description of this release, such as a list of the major changes or updates.'),
   );
   $form['format'] = filter_form($node->format);
 
@@ -243,14 +243,15 @@ function project_release_form(&$release, &$param) {
  * @param $release Relase node the form is for
  * @param $edit Boolean indicating if we're editing or creating
  * @param $format Version format string for this project
- * @param $format_name Format string value for this element (e.g. '%major')
- * @param $var_name Name of the variable this version element lives in
+ * @param $name Name of this version element
  * @param $title Translatable title of the form element
  * @param $description Translatable description of the form element.
  * @param $required Boolean for if the form element should be required
  */
-function _project_release_form_add_version_element(&$form, $release, $edit, $format, $format_name, $var_name, $title, $description = '', $required = TRUE) {
-  if (strpos($format, $format_name) !== FALSE) {
+function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $required = TRUE) {
+  $var_name = 'version_' . $name;
+  $regexp = "@.*[!#%]$name.*@";
+  if (preg_match($regexp, $format)) {
     $form[$var_name] = array(
       '#type' => 'textfield',
       '#title' => $title,
@@ -320,7 +321,7 @@ function project_release_load($node) {
  * @ingroup project_release_node
  */
 function project_release_insert($node) {
-  db_query("INSERT INTO {project_release_nodes} (nid, pid, version, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor, version_patch, version_extra) VALUES (%d, %d, '%s', '%s', '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", $node->nid, $node->pid, $node->version, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_patch, $node->version_extra);
+  project_release_db_save($node, TRUE);
 }
 
 /**
@@ -328,8 +329,60 @@ function project_release_insert($node) {
  * @ingroup project_release_node
  */
 function project_release_update($node) {
-  db_query("UPDATE {project_release_nodes} SET pid = %d, version = '%s', tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d, version_patch = %d, version_extra = '%s' WHERE nid = %d", $node->pid, $node->version, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_patch, $node->version_extra, $node->nid);
+  project_release_db_save($node, FALSE);
 }
+
+/**
+ * Helper method to take data out of a $node object and store it into 
+ * the DB as necessary. Sadly, db_query() doesn't let us store NULL in
+ * the DB, since those get cast to 0. Therefore, we have to do some 
+ * manual effort to dynamically create the appropriate SQL depending
+ * on which version fields are set in the release node.
+ * @see project_release_insert
+ * @see project_release_update
+ * @see db_query
+ * @ingroup project_release_internal
+ *
+ * @param $node Node object to save
+ * @param $is_new Is this a new release node, or are we updating?
+ */
+function project_release_db_save($node, $is_new) {
+  $types = array( 'pid' => "%d", 'version' => "'%s'", 'tag' => "'%s'",
+    'file_path' => "'%s'", 'file_date' => "%d", 'file_hash' => "'%s'",
+    'rebuild' => "%d",
+  );
+  $values = array( 'pid' => $node->pid, 'version' => $node->version,
+    'tag' => $node->tag, 'file_path' => $node->file_path,
+    'file_date' => $node->file_date, 'file_hash' => $node->file_hash,
+    'rebuild' => $node->rebuild,
+  );
+  $fields = array('version_super_major', 'version_super_minor', 'version_major', 'version_minor', 'version_patch');
+  foreach ($fields as $field) {
+    if (isset($node->$field)) {
+      $types[$field] = "%d";
+      $values[$field] = $node->$field;
+    }
+  }
+  if (!empty($node->version_extra)) {
+    $types['version_extra'] = "'%s'";
+    $values['version_extra'] = $node->version_extra;
+  }
+
+  if ($is_new) {
+    $types['nid'] = "%d";
+    $sql = 'INSERT INTO {project_release_nodes} ('. implode(', ', array_keys($types)) .') VALUES ('. implode(', ', $types) .')';
+  }
+  else {
+   $arr = array();
+   foreach ($types as $key => $value) {
+     $arr[] = $key .' = '. $value;
+   }
+   $sql = 'UPDATE {project_release_nodes} SET '. implode(',', $arr) .' WHERE nid = %d';
+  }
+  $values['nid'] = $node->nid;
+  db_query($sql, $values);
+}
+
 
 /**
  * Implementation of hook_delete().
@@ -370,21 +423,27 @@ function project_release_get_version_format($project) {
  * @ingroup project_release_api
  */
 function project_release_get_version($release, $project = NULL) {
-  if (isset($project)) {	 
+  if (isset($project)) {
     $node = $project;
   }
   else {
     $node->nid = $release->pid;
   }
+  $variables = array();
+  foreach (array('super_major', 'super_minor', 'major', 'minor', 'patch', 'extra') as $field) {
+    $var = "version_$field";
+    if (isset($release->$var) && $release->$var != '') {
+      $variables["!$field"] = $release->$var;
+      $variables["%$field"] = '.' . $release->$var;
+      $variables["#$field"] = '-' . $release->$var;
+    }
+    else {
+      $variables["!$field"] = '';
+      $variables["%$field"] = '';
+      $variables["#$field"] = '';
+    }
+  }
   $version_format = project_release_get_version_format($node);
-  $variables = array(
-    '%super_major' => $release->version_super_major,
-    '%super_minor' => $release->version_super_minor,
-    '%major' => $release->version_major,
-    '%minor' => $release->version_minor,
-    '%patch' => $release->version_patch,
-    '%extra' => $release->version_extra,
-  );
   return strtr($version_format, $variables);
 }
 
@@ -484,9 +543,10 @@ function project_release_list($project, $main = 0) {
  *
  * TODO: This is potentially scary. We're not really going to want
  * exactly this behavior in the new system. We should reconsider the
- * places that call this (luckily, only project_releases_settings()
- * and from inside the directory scanning stuff, which may be removed)
- * and figure out how this should work...
+ * places that call this (project_releases_settings(), the main
+ * modules download page for filtering versions, and from inside the
+ * directory scanning stuff, which may be removed) and figure out how
+ * this should work... 
  */
 function project_releases_list($refresh = FALSE) {
   if (!$refresh && ($versions = cache_get('project_releases'))) {
@@ -551,7 +611,7 @@ function project_release_alter_project_form(&$form) {
       '#default_value' => $node->version_format,
       '#size' => 50,
       '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. ' .t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
+      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
     );
   }
 }

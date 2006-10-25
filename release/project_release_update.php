@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.5 2006/10/25 06:27:23 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.6 2006/10/25 06:32:01 dww Exp $
 
 /**
  * @file
@@ -14,7 +14,9 @@
 function generate_core_tag($node) {
   $tag = 'DRUPAL-';
   $tag .= $node->version_major . '-';
-  $tag .= $node->version_minor . '-';
+  if (isset($node->version_minor)) {
+    $tag .= $node->version_minor . '-';
+  }
   $tag .= $node->version_patch;
   if (!empty($node->version_extra)) {
     $tag .= strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
@@ -53,15 +55,19 @@ function populate_project_release_projects() {
     3202 => 'drupal.org maintenance',
     3213 => 'user experience',
     18753 => 'documentation',
+    43378 => 'worldpay (ecommerce contrib)',
+    67060 => 'event_views (event contrib)',
+    67375 => 'location_views (location contrib)',
+    75541 => 'inventorymangement (ecommerce contrib)',
   );
   // Any projects with a custom version format string (just core)
   // BEWARE: drupal.org-specific
   $version_formats = array(
-    3060 => '%major.%minor.%patch%extra',
+    3060 => '!major%minor%patch#extra',
   );
   // Set the right site-wide default for everything else...
   // BEWARE: drupal.org-specific
-  variable_set('project_release_default_version_format', '%super_major.%super_minor.x-%major.%minor%extra');
+  variable_set('project_release_default_version_format', '!super_major%super_minor.x#major%patch#extra');
 
   foreach ($no_release_projects as $nid => $name) {
     db_query("UPDATE {project_release_projects} SET releases = 0 WHERE nid = %d", $nid);
@@ -151,7 +157,6 @@ function convert_release($old_release) {
   if ($old_release->nid == 3060) {
     if ($old_release->version == 'cvs') {
       $node->version_major = 5;
-      $node->version_minor = 0;
       $node->version_patch = 0;
       $node->version_extra = '-dev';
       $node->rebuild = 1;
@@ -170,7 +175,7 @@ function convert_release($old_release) {
   elseif ($old_release->version == 'cvs') {
     // The "cvs" version is a nightly tarball from the trunk
     $node->version_major = 0;
-    $node->version_minor = 0;
+    $node->version_patch = 0;
     $node->version_extra = '-dev';
     $node->tag = 'TRUNK';
     $node->rebuild = 1;
@@ -183,25 +188,22 @@ function convert_release($old_release) {
     }
     $node->version_super_major = $matches[1];
     $node->version_super_minor = $matches[2];
-    $node->version_major = 1;
-    $node->version_minor = 0;
-    $node->version_extra = '-dev';
+    $node->version_major = 0;
+    $node->version_patch = 0;
+    $node->version_extra = 'dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
     $node->rebuild = 1;
   }
 
   // Now, set the right kind of title.
   $version = '';
-  if ($node->tag == 'TRUNK' && !isset($node->version_patch)) {
+  if ($node->tag == 'TRUNK') {
     $version = t('TRUNK');
   }
   else {
     $version = project_release_get_version($node);
   }
   $node->title = t('%project %version', array('%project' => $old_release->project_title, '%version' => $version));
-  if ($node->rebuild) {
-    $node->title .= ' (' . t('nightly development snapshot') . ')';
-  }
   $node->version = $version;
 
   list($usec, $sec) = explode(' ', microtime());
@@ -225,11 +227,6 @@ function convert_release($old_release) {
     db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $nid, $rid);
     list($usec, $sec) = explode(' ', microtime());
     $post_update = (float)$usec + (float)$sec;
-  }
-
-  // TODO: update {cvs_tags} table to put in a value for the "release
-  // nid" column so we know this project nid/tag combo has a release?
-  if (module_exist('cvslog')) {
   }
 
   // Keep track of it in our array in RAM for converting issue comments
