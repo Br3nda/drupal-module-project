@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.19 2006/10/25 07:14:28 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.20 2006/10/25 07:16:08 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -634,7 +634,7 @@ function project_release_project_releases() {
 
   $output = project_release_list($node);
 
-  drupal_set_title(check_plain($node->title));
+  drupal_set_title(t('Releases for %project', array('%project' => theme('placeholder', $node->title))));
   return $output;
 }
 
@@ -676,8 +676,11 @@ function project_release_list($project, $main = 0) {
     foreach ($releases as $release) {
       $output .= node_view($release);
     }
-    return $output;
   }
+  else {
+    $output = t('There are no published releases for this project. Recently added releases will not be published until the packaging scripts have run.');
+  }
+  return $output;
 }
 
 /**
@@ -874,8 +877,9 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
  * TODO: this should be themeable.
  */
 function project_release_project_download_table($node) {
-  $table = "<table><tr><td>hello</td><td>world</td></tr><tr><td>stable</td><td>dev</td></tr></table>";
-  return $table;
+  $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
+  $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
+  return theme('item_list', $links, t('Releases'));
 }
 
 /**
