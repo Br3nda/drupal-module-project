@@ -1,11 +1,10 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.4 2006/10/25 00:47:06 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.5 2006/10/25 06:27:23 dww Exp $
 
 /**
  * @file
  * Converts data from the old {project_releases} table into
  * project_release nodes.
- *
  */
 
 /**
@@ -43,6 +42,7 @@ function populate_project_release_projects() {
     return;
   }
   // First, insert a record with the right nid for all projects
+  db_query("DELETE FROM {project_release_projects}");
   db_query("INSERT INTO {project_release_projects} (nid, releases) SELECT nid, 1 FROM {project_projects}");
 
   // Now, special-cases we need to handle:
@@ -390,5 +390,4 @@ convert_all_releases();
 convert_issue_followups();
 
 // TODO: more user feedback, progress, etc.
-// TODO: LOCK relevant tables during conversion
-// TODO: drop old {project_releases} table once we're convinced it worked?
+// TODO: LOCK relevant tables during conversion?
