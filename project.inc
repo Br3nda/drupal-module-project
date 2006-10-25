@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.16.2.1 2006/10/25 00:05:03 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.16.2.2 2006/10/25 00:11:49 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -403,22 +403,6 @@ function project_project_view(&$node, $teaser = false, $page = false) {
 
     $node->body .= $output;
   }
-}
-
-function project_project_releases() {
-  $node = node_load(arg(1));
-
-  // Breadcrumb navigation
-  $breadcrumb[] = array('path' => 'node/'. $node->nid .'/', 'title' => $node->title);
-  $breadcrumb[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('Releases'));
-  $breadcrumb = project_project_set_location($node, $breadcrumb);
-
-  menu_set_location($breadcrumb);
-
-  $output = project_release_list($node);
-
-  drupal_set_title(check_plain($node->title));
-  return $output;
 }
 
 function project_project_load($node) {

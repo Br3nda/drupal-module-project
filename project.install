@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.6.2.1 2006/10/25 00:05:03 dww Exp $
+// $Id: project.install,v 1.2.2.6.2.2 2006/10/25 00:11:49 dww Exp $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {
@@ -22,24 +22,7 @@ function project_install() {
           KEY project_projects_uri (uri(8))
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_release_node} (
-          nid int(10) unsigned NOT NULL default '0',
-          pid int(10) unsigned NOT NULL default '0',
-          tag varchar(255) NOT NULL default '0',
-          file_path varchar(255) NOT NULL default '',
-          file_date int(10) unsigned NOT NULL default '0',
-          file_hash varchar(32) NOT NULL default '',
-          rebuild tinyint(1) default '0',
-          version_super_major int(10) NOT NULL default 0,
-          version_super_minor int(10) NOT NULL default 0,
-          version_major int(10) NOT NULL default 0,
-          version_minor int(10) NOT NULL default 0,
-          PRIMARY KEY (`nid`),
-          KEY project_releases_pid (pid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-	
+
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',
@@ -55,21 +38,6 @@ function project_install() {
           documentation varchar(255) default '' not null,
           license varchar(255) default '' not null,
           PRIMARY KEY (nid)
-        );");
-      db_query("CREATE TABLE {project_release_node} (
-          nid int NOT NULL default '0',
-          pid int NOT NULL default '0',
-          tag varchar(255) NOT NULL default '0',
-          file_path varchar(255) NOT NULL default '',
-          file_date int NOT NULL default '0',
-          file_hash varchar(32) NOT NULL default '',
-          rebuild smallint default '0',
-          version_super_major int NOT NULL default 0,
-          version_super_minor int NOT NULL default 0,
-          version_major int NOT NULL default 0,
-          version_minor int NOT NULL default 0,
-          PRIMARY KEY (nid),
-          KEY project_releases_pid (pid)
         );");
       break;
   }
@@ -228,6 +196,56 @@ function project_update_4() {
   }
 
   return $ret;
+}
+
+/**
+ * Create the {project_release_node} table and transfer data into it.
+ */
+function project_update_5() {
+  $ret = array();
+
+  // First, create the new table.
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE {project_release_node} (
+          nid int(10) unsigned NOT NULL default '0',
+          pid int(10) unsigned NOT NULL default '0',
+          tag varchar(255) NOT NULL default '0',
+          file_path varchar(255) NOT NULL default '',
+          file_date int(10) unsigned NOT NULL default '0',
+          file_hash varchar(32) NOT NULL default '',
+          rebuild tinyint(1) default '0',
+          version_super_major int(10) NOT NULL default 0,
+          version_super_minor int(10) NOT NULL default 0,
+          version_major int(10) NOT NULL default 0,
+          version_minor int(10) NOT NULL default 0,
+          PRIMARY KEY (`nid`),
+          KEY project_releases_pid (pid)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+	
+    case 'pgsql':
+      $ret[] = update_sql("CREATE TABLE {project_release_node} (
+          nid int NOT NULL default '0',
+          pid int NOT NULL default '0',
+          tag varchar(255) NOT NULL default '0',
+          file_path varchar(255) NOT NULL default '',
+          file_date int NOT NULL default '0',
+          file_hash varchar(32) NOT NULL default '',
+          rebuild smallint default '0',
+          version_super_major int NOT NULL default 0,
+          version_super_minor int NOT NULL default 0,
+          version_major int NOT NULL default 0,
+          version_minor int NOT NULL default 0,
+          PRIMARY KEY (nid),
+          KEY project_releases_pid (pid)
+        );");
+      break;
+  }
+  // TODO: migrate data from old {project_releases} table
+  // TODO: drop old {project_releases} table
 }
 
 function project_db_table_exists($table) {
