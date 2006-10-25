@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.12 2006/10/25 07:36:05 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.13 2006/10/25 07:39:25 dww Exp $
 
 /**
  * @file
@@ -309,6 +309,15 @@ function convert_issue_followups() {
   }
 }
 
+/**
+ * Updates the {project_projects} table to fix the the "version" field
+ * (the default release for download) to use the nid for the release
+ * node that the old rid was turned into.
+ */
+function convert_default_downloads() {
+  db_query("UPDATE {project_projects} pp, {project_release_legacy} prl SET pp.version = prl.nid WHERE pp.version = prl.rid");
+}
+
 function create_legacy_tables() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
@@ -328,8 +337,8 @@ function create_legacy_tables() {
       db_query("CREATE TABLE IF NOT EXISTS {project_comments_conversion_errors} (
         cid int(10) unsigned NOT NULL default '0',
         pid int(10) unsigned NOT NULL default '0',
-        old_rid int(10) unsigned NOT NULL default '-1',
-        new_rid int(10) unsigned NOT NULL default '-1',
+        old_rid int(10) NOT NULL default '-1',
+        new_rid int(10) NOT NULL default '-1',
         PRIMARY KEY (`cid`),
         KEY project_comments_conversion_errors_pid (`pid`),
         KEY project_comments_conversion_errors_old_rid (`old_rid`),
@@ -355,8 +364,8 @@ function create_legacy_tables() {
         db_query("CREATE TABLE {project_comments_conversion_errors} (
           cid int(10) unsigned NOT NULL default '0',
           pid int(10) unsigned NOT NULL default '0',
-          old_rid int(10) unsigned NOT NULL default '-1',
-          new_rid int(10) unsigned NOT NULL default '-1',
+          old_rid int(10) NOT NULL default '-1',
+          new_rid int(10) NOT NULL default '-1',
           PRIMARY KEY (`cid`),
           KEY project_comments_conversion_errors_pid (`pid`),
           KEY project_comments_conversion_errors_old_rid (`old_rid`),
@@ -431,6 +440,8 @@ populate_project_release_projects();
 convert_all_releases();
 
 convert_issue_followups();
+
+convert_default_downloads();
 
 // TODO: more user feedback, progress, etc.
 // TODO: LOCK relevant tables during conversion?

@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.26 2006/10/25 07:36:05 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.27 2006/10/25 07:39:25 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -922,7 +922,10 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
  */
 function project_release_project_download_table($node) {
   $release = node_load($node->version);
-  $links[] = l(t('Download default release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->file_date, 'small'), '%size' => format_size(filesize($release->file_path)))), 'node/' . $node->version);
+  // Make sure the release we think is the default is valid...
+  if ($release->type == 'project_release' && $release->pid == $node->nid) {
+    $links[] = l(t('Download default release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->file_date, 'small'), '%size' => format_size(filesize($release->file_path)))), file_create_url($release->file_path));
+  }
   $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
   $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
   return theme('item_list', $links, t('Releases'));
