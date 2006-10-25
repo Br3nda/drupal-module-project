@@ -6,7 +6,6 @@ Installation
      project.install
      project.css
      project.inc
-     release.inc
 
 2. Enable the project module under administer >> modules
 
@@ -33,4 +32,4 @@ Upgrading
    your database to prepare your data for use with the project_issue
    module.  See modules/project_issue/INSTALL.txt for more information.
 
-$Id: INSTALL.txt,v 1.4.2.3 2006/07/25 00:12:26 dww Exp $
+$Id: INSTALL.txt,v 1.4.2.3.2.1 2006/10/25 08:28:16 dww Exp $
