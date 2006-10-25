@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.8 2006/10/25 06:50:21 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.9 2006/10/25 07:04:42 dww Exp $
 
 /**
  * @file
@@ -164,7 +164,7 @@ function convert_release($old_release) {
       $node->tag = 'TRUNK';
     }
     else {
-      preg_match('/(\d+)\.(\d+)\.(\d+)(.+)?/', $old_release->version, $matches);
+      preg_match('/(\d+)\.(\d+)\.(\d+)(-.+)?/', $old_release->version, $matches);
       $node->version_major = $matches[1];
       $node->version_minor = $matches[2];
       $node->version_patch = $matches[3];
@@ -177,7 +177,7 @@ function convert_release($old_release) {
     // The "cvs" version is a nightly tarball from the trunk
     $node->version_major = 0;
     $node->version_patch = 0;
-    $node->version_extra = '-dev';
+    $node->version_extra = 'dev';
     $node->tag = 'TRUNK';
     $node->rebuild = 1;
   }
