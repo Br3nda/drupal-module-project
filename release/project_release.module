@@ -1,7 +1,7 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.10 2006/10/25 06:41:41 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.11 2006/10/25 06:45:57 dww Exp $ */
 
-define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '%major.%minor.%patch%extra');
+define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
 /**
  * @defgroup project_release_core Core Drupal hooks
@@ -164,7 +164,6 @@ function project_release_form(&$release, &$param) {
     '#type' => 'value',
     '#default_value' => $release->version,
   );
-
   _project_release_form_add_version_element($form, $release, $edit, $format,
     'super_major', t('Super major version number'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
@@ -189,7 +188,7 @@ function project_release_form(&$release, &$param) {
     );
   }
 
-  $form['body'] = array(
+  $form['body_filter']['body'] = array(
     '#type' => 'textarea',
     '#title' => t('Description'),
     '#default_value' => $release->body,
@@ -198,7 +197,7 @@ function project_release_form(&$release, &$param) {
     '#required' => TRUE,
     '#description' => t('Enter a description of this release, such as a list of the major changes or updates.'),
   );
-  $form['format'] = filter_form($node->format);
+  $form['body_filter']['format'] = filter_form($node->format);
 
   $form['pid'] = array(
     '#type' => 'value',
@@ -305,7 +304,7 @@ function project_release_validate(&$edit, $form) {
   }
   if ($edit->project) {
     $version = project_release_get_version((object)$edit, $edit->project);
-    form_set_value($form['version'], $version);
+    form_set_value(array('#parents' => array('version')), $version);
     form_set_value($form['title'], t('%project %version', array('%project' => $edit->project->title, '%version' => $version)));
   }
 }
@@ -324,7 +323,7 @@ function project_release_load($node) {
  * @ingroup project_release_node
  */
 function project_release_insert($node) {
-  project_release_db_save($node, TRUE);
+  project_release_db_save($node, true);
 }
 
 /**
@@ -332,7 +331,7 @@ function project_release_insert($node) {
  * @ingroup project_release_node
  */
 function project_release_update($node) {
-  project_release_db_save($node, FALSE);
+  project_release_db_save($node, false);
 }
 
 /**
@@ -467,7 +466,7 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
 
   $links = array();
   if ($release->rebuild) {
-    $output .= t('Nightly development snapshot from %tag', array('%tag' => $release->tag)) . '<br />';
+    $output .= t('Nightly development snapshot from %tag', array('%tag' => check_plain($release->tag))) . '<br />';
   }
   if ($release->file_path) {
     $output .= '<small>' . t('Download: %file', array('%file' => l(basename($release->file_path), file_create_url($release->file_path)))) . '</small><br />';
@@ -482,7 +481,7 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   }
   $output .= theme('links', $links);
 
-  $release->body = '<div class="project-release">' . $output . '</div>' . $release->body;
+  $release->body = '<div class="project-release">' . $output . '</div>' . check_markup($release->body, $release->format);
 }
 
 /**
