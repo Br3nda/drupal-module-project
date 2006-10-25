@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.9 2006/10/25 06:36:21 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.10 2006/10/25 06:41:41 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '%major.%minor.%patch%extra');
 
@@ -509,8 +509,14 @@ function project_release_project_releases() {
  * Get an array of release nodes
  * @ingroup project_release_api
  */
-function project_release_get_releases($project, $nodes = true) {
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE r.pid = %d ORDER BY n.created DESC"), $project->nid);
+function project_release_get_releases($project, $nodes = true, $sort_by = 'version') {
+  if ($sort_by == 'date') {
+    $order_by = 'n.created';
+  }
+  else {
+    $order_by = 'r.version';
+  }
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE r.pid = %d AND n.status = 1 ORDER BY $order_by DESC"), $project->nid);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {
@@ -533,7 +539,7 @@ function project_release_get_releases($project, $nodes = true) {
  * @ingroup project_release_callback
  */
 function project_release_list($project, $main = 0) {
-  if ($releases = project_release_get_releases($project)) {
+  if ($releases = project_release_get_releases($project, 1, 'date')) {
     foreach ($releases as $release) {
       $output .= node_view($release);
     }
