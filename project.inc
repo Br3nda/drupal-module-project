@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.16.2.3 2006/10/25 00:23:08 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.16.2.4 2006/10/25 00:33:58 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -309,7 +309,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $overview = variable_get('project_release_overview', -1);
       foreach ($releases as $rid => $release) {
         // If the project has a preferred release, choose that.
-        $version = theme('project_release_version', $release);
+        $version = $release->version;
         if ($rid == $node->version) {
           $latest_release = $release;
           break;
@@ -325,7 +325,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
         $latest_release = current($releases);
       }
       $release = $latest_release;
-      $version = theme('project_release_version', $release);
+      $version = $release->version;
 
       // Download section
       $links = array();
@@ -436,17 +436,16 @@ function project_project_nodeapi(&$node, $op, $arg) {
 
 function project_project_insert($node) {
   db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, mail, version, screenshots, documentation, license) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->mail, $node->version, $node->screenshots, $node->documentation, $node->license);
-  project_release_scan_directory($node->uri);
+//  project_release_scan_directory($node->uri);
 }
 
 function project_project_update($node) {
   db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', mail = '%s', version = %d, screenshots = '%s', documentation = '%s', license = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->mail, $node->version, $node->screenshots, $node->documentation, $node->license, $node->nid);
-  project_release_scan_directory($node->uri);
+//  project_release_scan_directory($node->uri);
 }
 
 function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
-  db_query('DELETE FROM {project_releases} WHERE nid = %d', $node->nid);
 }
 
 function project_project_access($op, $node) {

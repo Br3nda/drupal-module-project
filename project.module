@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.4 2006/10/25 00:23:08 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.5 2006/10/25 00:33:58 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -316,9 +316,6 @@ function project_form_alter($form_id, &$form) {
 /**
  * hook_nodeapi() implementation. This just decides what type of node
  * is being passed, and calls the appropriate type-specific hook.
- * NOTE: there's currently only 1 value left here, but I'm planning to
- * make project_release its own node-type, so we'll probably want to
- * leave this plumbing in place for that... -dww
  *
  * @see project_project_nodeapi().
  */
@@ -407,7 +404,8 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           $tids = array();
           if (variable_get('project_browse_releases', 0) && $version != -1) {
             // Find all terms associated with the requested version.
-            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_releases} p ON t.nid = p.nid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
+            // TODO: should be conditional on project_release.module
+            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_release_nodes} p ON t.nid = p.nid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.file_path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
             $tids = array();
             while ($item = db_fetch_object($result)) {
               $tids[$item->tid] = $item->count;
@@ -505,8 +503,8 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       if (variable_get('project_browse_releases', 0)) {
         $release_settings = array(
           'fields' => array('pr.path', 'pr.version', 'MAX(pr.changed) AS changed', 'COUNT(*) AS release_count'),
-          'joins' => array('INNER JOIN {project_releases} pr ON n.nid = pr.nid'),
-          'wheres' => array('pr.status = 1', "pr.path <> ''"),
+          'joins' => array('INNER JOIN {project_release_nodes} pr ON n.nid = pr.nid'),
+          'wheres' => array("pr.path <> ''"),
           'group_bys' => array('n.nid'),
           'parameters' => array($version)
         );
@@ -590,15 +588,15 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
     // Make sure we have the latest release
     if ($project->release_count > 1) {
-      $latest = db_fetch_object(db_query_range("SELECT path, version FROM {project_releases} WHERE nid = %d AND version LIKE '%s%%' ORDER BY version DESC", $project->nid, $version, 0, 1));
-      $project->path = $latest->path;
+      $latest = db_fetch_object(db_query_range("SELECT file_path, version FROM {project_release_nodes} WHERE nid = %d AND version LIKE '%s%%' ORDER BY version DESC", $project->nid, $version, 0, 1));
+      $project->file_path = $latest->file_path;
       $project->version = $latest->version;
     }
 
     $project->links = array();
 
-    if ($project->path) {
-      $project->links[] = '<a href="'. base_path() . $project->path .'">' . t('Download') . '</a>';
+    if ($project->file_path) {
+      $project->links[] = l(t('Download'), file_create_url($project->file_path));
     }
     $project->links[] = l(t('Find out more'), "node/$project->nid");
 
