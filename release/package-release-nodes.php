@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.3 2006/10/25 09:33:31 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.4 2006/10/25 09:35:12 dww Exp $
 
 /**
  * @file
@@ -10,7 +10,6 @@
  * @author Derek Wright (http://drupal.org/user/46549)
  *
  * TODO:
- * - proper packaging of translations
  * - better error propagation and robustness
  * - translation stats
  * 
@@ -178,9 +177,6 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   watchdog($wd_level, "$contrib_type - nid: $nid, id: $id, dir: $dir");
   return false;
 */
-  if ($contrib_type != 'translations') {
-    return false;
-  }
 
   // Checkout this release from CVS, and see if we need to rebuild it
   `cvs -q co $rev $fulldir`;
@@ -189,7 +185,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     $exclude = array_merge($exclude, 'README.txt');
   }
   if (is_file($full_dest) && $check_new) {
-    $youngest = file_find_youngest($uri, 0, $to_exclude);
+    $youngest = file_find_youngest($uri, 0, $exclude);
     if (filectime($full_dest) + 300 > $youngest) {
       // The existing tarball for this release is newer than the youngest
       // file in the directory, we're done.
