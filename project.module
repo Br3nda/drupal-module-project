@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.7 2006/10/25 07:24:39 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.8 2006/10/25 07:31:54 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -120,12 +120,6 @@ function project_settings() {
     '#options' =>  drupal_map_assoc(array(5, 10, 15, 20, 25, 30, 35, 40, 45, 50)),
     '#description' => t('The default maximum number of projects to list when browsing lists, e.g., by category.')
   );
-  $form['project_browse_releases'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Browse projects by releases'),
-    '#default_value' => variable_get('project_browse_releases', 0),
-    '#description' => t('Checking this box will cause the project browsing page to have a version select.'),
-  );
 
   if (module_exist('forum') && project_use_taxonomy()) {
     $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
@@ -237,7 +231,7 @@ function project_menu($may_cache) {
     if (project_use_taxonomy()) {
       $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       $terms = taxonomy_get_tree(_project_get_vid());
-      $releases = variable_get('project_browse_releases', 0);
+      $releases = variable_get('project_release_browse_versions', 0);
       foreach ($terms as $i => $term) {
         // Only use the first-level terms.
         if ($term->depth == 0) {
@@ -356,22 +350,22 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $breadcrumb = array(l(t('Home'), NULL));
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
-  // Read in requested version, if any.
-  if ($_POST['edit']['rid']) {
-    $version = $_POST['edit']['rid'];
-  }
-  else if ($_SESSION['project_version']) {
-    $version = $_SESSION['project_version'];
-  }
-  else {
-    $version = variable_get('project_release_overview', -1);
-  }
-  $form = project_version_filter_form($version);
-  $version_form = drupal_get_form('project_version_filter_form', $form);
-  if ($_POST['edit']['rid']) {
-    $_SESSION['project_version'] = $form_values['rid'];
-  }
-  if (variable_get('project_browse_releases', 0)) {
+  if (module_exist('project_release') && variable_get('project_release_browse_versions', 0)) {
+    // Read in requested version, if any.
+    if ($_POST['edit']['version_tid']) {
+      $version = $_POST['edit']['version_tid'];
+    }
+    else if ($_SESSION['project_version']) {
+      $version = $_SESSION['project_version'];
+    }
+    else {
+      $version = variable_get('project_release_overview', -1);
+    }
+    $form = project_version_filter_form($version);
+    $version_form = drupal_get_form('project_version_filter_form', $form);
+    if ($_POST['edit']['version_tid']) {
+      $_SESSION['project_version'] = $form_values['version_tid'];
+    }
     $output .= $version_form;
   }
 
@@ -402,17 +396,16 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         $terms = array();
         if ($tree) {
           $tids = array();
-          if (variable_get('project_browse_releases', 0) && $version != -1) {
+          if (variable_get('project_release_browse_versions', 0) && $version != -1) {
             // Find all terms associated with the requested version.
-            // TODO: should be conditional on project_release.module
-            $result = db_query("SELECT t.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} t INNER JOIN {project_release_nodes} p ON t.nid = p.pid INNER JOIN {node} n ON n.nid = t.nid WHERE (p.version LIKE '%s%%') AND (p.file_path <> '') AND (n.status = 1) GROUP BY t.tid", $version);
+            $result = db_query("SELECT tp.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} tp INNER JOIN {project_release_nodes} p ON tp.nid = p.pid INNER JOIN {node} n ON n.nid = p.pid INNER JOIN {term_node} tr ON tr.nid = p.nid WHERE tr.tid = %d AND (p.file_path <> '') AND (n.status = 1) GROUP BY tp.tid", $version);
             $tids = array();
             while ($item = db_fetch_object($result)) {
               $tids[$item->tid] = $item->count;
             }
           }
           foreach ($tree as $cterm) {
-            if (!variable_get('project_browse_releases', 0) || ($version == -1) || array_key_exists($cterm->tid, $tids)) {
+            if (!variable_get('project_release_browse_versions', 0) || ($version == -1) || array_key_exists($cterm->tid, $tids)) {
               if ($tids[$cterm->tid]) {
                 $cterm->count = $tids[$cterm->tid];
               }
@@ -500,16 +493,17 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       // Only the 'pieces' are returned; the prefix and glue elements remain unchanged.
       $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
 
-      if (variable_get('project_browse_releases', 0)) {
+      if (variable_get('project_release_browse_versions', 0)) {
         $release_settings = array(
-          'fields' => array('pr.file_path', 'pr.version', 'MAX(pr.file_date) AS changed', 'COUNT(*) AS release_count'),
-          'joins' => array('INNER JOIN {project_release_nodes} pr ON n.nid = pr.pid'),
-          'wheres' => array("pr.file_path <> ''"),
+          'fields' => array('prn.file_path', 'prn.version', 'MAX(prn.file_date) AS changed', 'COUNT(*) AS release_count'),
+          'joins' => array('INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid'),
+          'wheres' => array("prn.file_path <> ''"),
           'group_bys' => array('n.nid'),
-          'parameters' => array($version)
         );
         if ($version != -1) {
-          $release_settings['wheres'][] = "pr.version LIKE '%s%%'";
+          $release_settings['joins'][] = "INNER JOIN {term_node} tr ON tr.nid = prn.nid";
+          $release_settings['wheres'][] = "tr.tid = %d";
+          $release_settings['parameters'][] = $version;
         }
         $sql_settings = array_merge_recursive($sql_settings, $release_settings);
       }
@@ -662,12 +656,15 @@ function project_project_sort_methods($op, $method = NULL) {
           );
         case 'date':
           // TODO: this should all be conditional on project_release.module
-          return array(
-            'fields' => array('MAX(pr.changed) AS changed'),
-            'joins' => array('INNER JOIN {project_release_nodes} pr ON n.nid = pr.nid'),
+          $date_sql = array(
+            'order_bys' => array('changed DESC', 'n.sticky DESC', 'n.title ASC'),
             'group_bys' => array('n.nid'),
-            'order_bys' => array('pr.changed DESC', 'n.sticky DESC', 'n.title ASC')
           );
+          if (!variable_get('project_release_browse_versions', 0)) {
+            $date_sql['fields'] = array('MAX(prn.file_date) AS changed');
+            $date_sql['joins'] = array('INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid');
+          }
+          return $date_sql;
         case 'name':
           return array(
             'order_bys' => array('n.title ASC', 'n.sticky DESC')
@@ -774,21 +771,32 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
 }
 
 function project_version_filter_form($version) {
-  $releases = array(-1 => t('<all>')) + project_releases_list();
-  $form['rid'] = array(
-    '#type' => 'select',
-    '#default_value' => $version,
-    '#options' => $releases
-  );
-  $form['submit'] = array(
-    '#type' => 'button',
-    '#value' => t('Go')
-  );
+  if (module_exist('project_release') && $terms = project_release_compatibility_list()) {
+    $form['version_tid'] = array(
+      '#type' => 'select',
+      '#default_value' => $version,
+      '#options' => $terms,
+    );
+    $form['submit'] = array(
+      '#type' => 'button',
+      '#value' => t('Go')
+    );
+  }
+  else {
+    $form = array();
+  }
   return $form;
 }
 
 function theme_project_version_filter_form($form) {
-  $output = '<div class="container-inline">' . t('Filter by version:') . form_render($form) . '</div>';
+  if (project_release_use_taxonomy()) {
+    $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
+    $label = $vocab->name;
+  }
+  else {
+    $label = t('version');
+  }
+  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => check_plain($label))) . form_render($form) . '</div>';
   return $output;
 }
 

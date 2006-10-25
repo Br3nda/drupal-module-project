@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.8 2006/10/25 07:12:02 dww Exp $
+// $Id: project_release.install,v 1.1.2.9 2006/10/25 07:31:54 dww Exp $
 
 function project_release_install() {
   switch ($GLOBALS['db_type']) {
@@ -63,6 +63,7 @@ function project_release_install() {
       break;
   }
   db_query("UPDATE {system} SET weight = 2 WHERE name = 'project_release'");
+  db_query("DELETE FROM {variable} WHERE name = 'project_browse_releases'");
 }
 
 function project_release_db_table_exists($table) {
