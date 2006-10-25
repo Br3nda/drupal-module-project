@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.20 2006/10/25 07:16:08 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.21 2006/10/25 07:18:33 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -356,10 +356,11 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
  */
 function project_release_validate(&$edit, $form) {
   if ($_POST['edit']['validate_version']) {
-    $project = $edit->project;
-    if (!$edit->version_major && !$edit->version_minor &&
-        !$edit->version_patch && !$edit->version_extra) {
+    if (!isset($edit->version_major) && !isset($edit->version_minor) &&
+        !isset($edit->version_patch) &&
+        (!($edit->version_extra) || $edit->version_extra === '')) {
       form_set_error('version_major', t('You must fill in some version information.'));
+      // TODO: find a better form value to mark as the error?
     }
     foreach (array('version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
       $val = $edit->$field;
@@ -371,13 +372,6 @@ function project_release_validate(&$edit, $form) {
     if (isset($val) && $val !== '' && !is_numeric($val) && $val != 'x') {
       form_set_error('version_patch', t("Patch-level version number must be numeric or the letter 'x'."));
     }
-  }
-
-  // TODO: this doesn't handle NULL values correctly...
-  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_patch = %d AND version_extra = '%s' AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_patch, $edit->version_extra, $edit->nid);
-
-  if ($release = db_fetch_object($result)) {
-     form_set_error('version_minor', t('This version already exists for this project.'));
   }
 
   if ($file = file_check_upload('file')) {
@@ -405,12 +399,19 @@ function project_release_validate(&$edit, $form) {
     }
   }
 
+  // With cvs.module installed, this validation is already handled.
+  // We only want to do it here if we're *not* doing the N-page form...
+  if (!module_exist('cvs') && project_release_exists($edit)) {
+    // TODO: is there a better form element to mark with this error?
+    form_set_error('version_patch', t('This version already exists for this project.'));
+  }
+
   // TODO: it'd be nice to automagically reset the version string and
   // title based on changes to the version elements on an edit, but we
   // have to be careful not to break the fancy N-page form when
   // cvs_form_alter() is involved...
   if (isset($edit->version) && $edit->version !== '') {
-    form_set_value($form['title'], t('%project %version', array('%project' => $edit->project->title, '%version' => check_plain($edit->version))));
+    form_set_value($form['title'], t('%project %version', array('%project' => check_plain($edit->project->title), '%version' => check_plain($edit->version))));
   }
   elseif ($edit->project) {
     $version = project_release_get_version((object)$edit, $edit->project);
@@ -925,3 +926,43 @@ function _project_release_get_api_vid() {
   }
   return $vid;
 }
+
+function project_release_exists($version) {
+  $fields = array('version_major', 'version_minor', 'version_patch');
+  foreach ($fields as $field) {
+    if (isset($version->$field) && is_numeric($version->$field)) {
+      $types[$field] = "%d";
+      $values[$field] = $version->$field;
+      $foo = $version->$field;
+    }
+  }
+  $fields = array('version', 'version_extra');
+  foreach ($fields as $field) {
+    if (isset($version->$field) && $version->$field !== '') {
+      $types[$field] = "'%s'";
+      $values[$field] = $version->$field;
+      $str = $version->$field;
+    }
+  }
+  if (!isset($types)) {
+    // We have nothing to query, yet...
+    return false;
+  }
+
+  if (isset($version->version_api_tid)) {
+    $taxo_join = ' INNER JOIN {term_node} t ON p.nid = t.nid';
+    $taxo_where = ' AND t.tid = %d';
+    $values['tid'] = $version->version_api_tid;
+    $tid = $version->version_api_tid;
+  }
+
+  $sql = 'SELECT * FROM {project_release_nodes} p'. $taxo_join .' WHERE p.pid = %d';
+  foreach ($types as $field => $type) {
+    $sql .= " AND p.$field = $type";
+  }
+  $sql .= $taxo_where;
+  // we put pid as the first WHERE, so stick it on the front
+  $values = array_merge(array('pid' => $version->pid), $values);
+  return db_num_rows(db_query($sql, $values));
+}
+
