@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.16.2.5 2006/10/25 06:41:41 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.16.2.6 2006/10/25 06:56:28 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -339,7 +339,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
         $links[] = l(t('View other releases'), 'node/'. $node->nid .'/release');
       }
     }
-    if (node_access('update', $node) && !variable_get('project_release_directory', '') && $node->releases) {
+    if (!variable_get('project_release_directory', '') && $node->releases && project_release_access_check($node)) {
       $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
     }
     if ($links) {

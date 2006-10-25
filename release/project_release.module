@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.13 2006/10/25 06:52:21 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.14 2006/10/25 06:56:28 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -95,9 +95,8 @@ function project_release_settings() {
  * Implementation of hook_access().
  * @ingroup project_release_node
  *
- * TODO: this needs more testing and review. Maybe we should add new
- * permissions for accessing release nodes, but for now, we're just
- * using the existing project perms.
+ * TODO: Maybe we should add new permissions for accessing release
+ * nodes, but for now, we're just using the existing project perms.
  */
 function project_release_access($op, $node) {
   global $user;
@@ -105,14 +104,43 @@ function project_release_access($op, $node) {
     case 'view':
       return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
     case 'create':
-      if (user_access('maintain projects') || user_access('administer projects')) {
-        return TRUE;
+      // We only want to allow creating releases if the project is
+      // specified in the URL
+      if (is_numeric(arg(3))) {
+        return project_release_access_check(arg(3));
       }
       return FALSE;
     case 'update':
+      return project_release_access_check($node->pid);
     case 'delete':
-      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+      // No one should ever delete a release node, only unpublish it.
+      return FALSE;
   }
+}
+
+function project_release_access_check($project) {
+  global $user;
+  if (empty($user->uid)) {
+    return FALSE;
+  }
+  $project_obj = is_numeric($project) ? node_load($project) : $project;
+  if (!isset($project_obj) || $project_obj->type != 'project_project') {
+    return FALSE;
+  }
+  if (user_access('administer projects')) {
+     return TRUE;
+  }
+  if (user_access('maintain projects')) {
+    if ($user->uid == $project_obj->uid) {
+       return TRUE;
+    }
+    if (module_exist('cvs')) {
+      if (db_num_rows(db_query("SELECT * FROM {cvs_project_maintainers} WHERE uid = %d AND nid = %d", $user->uid, $project_obj->nid))) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
 }
 
 /**
@@ -132,15 +160,18 @@ function project_release_node_info() {
 function project_release_form(&$release, &$param) {
   if (arg(1) == 'add') {
     if (!is_numeric(arg(3))) {
-      $form['markup'] = array(
-        '#value' => t('You must add releases only from projects.')
-      );
-      return $form;
+      drupal_set_message(t('You can only add releases from a project page.'));
+      drupal_not_found();
+      module_invoke_all('exit');
+      exit;
     }
     $release->pid = arg(3);
     $project = node_load($release->pid);
-    if (!$project) {
-      return drupal_not_found();
+    if (!isset($project) || $project->type != 'project_project') {
+      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->pid)));
+      drupal_not_found();
+      module_invoke_all('exit');
+      exit;
     }
     $form['project'] = array(
       '#type' => 'value',
