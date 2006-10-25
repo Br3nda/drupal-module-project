@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.9 2006/10/25 07:04:42 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.10 2006/10/25 07:12:02 dww Exp $
 
 /**
  * @file
@@ -64,10 +64,11 @@ function populate_project_release_projects() {
   // BEWARE: drupal.org-specific
   $version_formats = array(
     3060 => '!major%minor%patch#extra',
+    11093 => '!major%minor%patch#extra',
   );
   // Set the right site-wide default for everything else...
   // BEWARE: drupal.org-specific
-  variable_set('project_release_default_version_format', '!api_major%api_minor.x#major%patch#extra');
+  variable_set('project_release_default_version_format', '!api#major%patch#extra');
 
   foreach ($no_release_projects as $nid => $name) {
     db_query("UPDATE {project_release_projects} SET releases = 0 WHERE nid = %d", $nid);
@@ -161,7 +162,7 @@ function convert_release($old_release) {
       $node->version_patch = 0;
       $node->version_extra = 'dev';
       $node->rebuild = 1;
-      $node->tag = 'TRUNK';
+      $node->tag = 'HEAD';
     }
     else {
       preg_match('/(\d+)\.(\d+)\.(\d+)(-.+)?/', $old_release->version, $matches);
@@ -178,7 +179,7 @@ function convert_release($old_release) {
     $node->version_major = 0;
     $node->version_patch = 0;
     $node->version_extra = 'dev';
-    $node->tag = 'TRUNK';
+    $node->tag = 'HEAD';
     $node->rebuild = 1;
   }
   else {
@@ -187,8 +188,15 @@ function convert_release($old_release) {
     if ($matches[3] != 0) {
       print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
     }
-    $node->version_api_major = $matches[1];
-    $node->version_api_minor = $matches[2];
+    if (project_release_use_taxonomy()) {
+      $tree = taxonomy_get_tree(_project_release_get_api_vid());
+      foreach ($tree as $i => $term) {
+        if ($term->name == "$matches[1].$matches[2].x") {
+          $version->taxonomy[$term->tid] = $term->tid;
+          break;
+        }
+      }
+    }
     $node->version_major = 0;
     $node->version_patch = 0;
     $node->version_extra = 'dev';
@@ -198,8 +206,8 @@ function convert_release($old_release) {
 
   // Now, set the right kind of title.
   $version = '';
-  if ($node->tag == 'TRUNK') {
-    $version = t('TRUNK');
+  if ($node->tag == 'HEAD') {
+    $version = t('HEAD');
   }
   else {
     $version = project_release_get_version($node);

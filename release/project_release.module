@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.17 2006/10/25 07:05:20 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.18 2006/10/25 07:12:02 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -39,6 +39,7 @@ function project_release_menu($may_cache) {
       }
     }
     theme_add_style(drupal_get_path('module', 'project_release') .'/project_release.css');
+    project_release_use_taxonomy();
   }
   return $items;
 }
@@ -65,7 +66,7 @@ function project_release_settings() {
     '#default_value' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT),
     '#size' => 50,
     '#maxlength' => 255,
-    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %api_major, %api_minor, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."),
+    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."),
   );
 
   // TODO: isn't this a dead setting, too?
@@ -209,10 +210,6 @@ function project_release_form(&$release, &$param) {
   $modify = $admin || !$edit;
   $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
   _project_release_form_add_version_element($form, $release, $modify, $format,
-    'api_major', t('API major'));
-  _project_release_form_add_version_element($form, $release, $modify, $format,
-    'api_minor', t('API minor'));
-  _project_release_form_add_version_element($form, $release, $modify, $format,
     'major', t('Major'));
   _project_release_form_add_version_element($form, $release, $modify, $format,
     'minor', t('Minor'));
@@ -260,6 +257,8 @@ function project_release_form(&$release, &$param) {
   _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $edit, $admin, false);
   _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $edit, false);
   _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $edit, false);
+
+  
 
   return $form;
 }
@@ -360,12 +359,11 @@ function _project_release_form_add_text_element(&$form, $title, $value, $edit, $
 function project_release_validate(&$edit, $form) {
   if ($_POST['edit']['validate_version']) {
     $project = $edit->project;
-    if (!$edit->version_api_major && !$edit->version_api_minor &&
-        !$edit->version_major && !$edit->version_minor &&
+    if (!$edit->version_major && !$edit->version_minor &&
         !$edit->version_patch && !$edit->version_extra) {
       form_set_error('version_major', t('You must fill in some version information.'));
     }
-    foreach (array('version_api_major' => 'API major version number', 'version_api_minor' => 'API minor version number', 'version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
+    foreach (array('version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
       $val = $edit->$field;
       if (isset($val) && $val !== '' && !is_numeric($val)) {
         form_set_error($field, t('%name must be a number.', array('%name' => $name)));
@@ -378,7 +376,7 @@ function project_release_validate(&$edit, $form) {
   }
 
   // TODO: this doesn't handle NULL values correctly...
-  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_patch = %d AND version_extra = '%s' AND version_api_major = %d AND version_api_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_patch, $edit->version_extra, $edit->version_api_major, $edit->api_version_minor, $edit->nid);
+  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_patch = %d AND version_extra = '%s' AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_patch, $edit->version_extra, $edit->nid);
 
   if ($release = db_fetch_object($result)) {
      form_set_error('version_minor', t('This version already exists for this project.'));
@@ -396,6 +394,19 @@ function project_release_validate(&$edit, $form) {
       form_set_error('file', t('There was a problem uploading the specified file.'));
     }
   }
+  if (project_release_use_taxonomy()) {
+    $vid = _project_release_get_api_vid();
+    if (isset($edit->taxonomy)) {
+      $tid = $edit->taxonomy[$vid];
+    }
+    elseif (isset($edit->$vid)) {
+      $tid = $edit->$vid;
+    }
+    if (isset($tid) && is_numeric($tid)) {
+      $edit->version_api_tid = $tid;
+    }
+  }
+
   // TODO: it'd be nice to automagically reset the version string and
   // title based on changes to the version elements on an edit, but we
   // have to be careful not to break the fancy N-page form when
@@ -416,6 +427,8 @@ function project_release_validate(&$edit, $form) {
  */
 function project_release_load($node) {
   $additions = db_fetch_object(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
+  $tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE tn.nid = %d", $node->nid));
+  $additions->version_api_tid = $tid;
   return $additions;
 }
 
@@ -464,7 +477,7 @@ function project_release_db_save($node, $is_new) {
     'file_date' => $node->file_date, 'file_hash' => $node->file_hash,
     'rebuild' => $node->rebuild,
   );
-  $fields = array('version_api_major', 'version_api_minor', 'version_major', 'version_minor', 'version_patch');
+  $fields = array('version_major', 'version_minor', 'version_patch');
   foreach ($fields as $field) {
     if (isset($node->$field) && is_numeric($node->$field)) {
       $types[$field] = "%d";
@@ -490,7 +503,6 @@ function project_release_db_save($node, $is_new) {
   $values['nid'] = $node->nid;
   db_query($sql, $values);
 }
-
 
 /**
  * Implementation of hook_delete().
@@ -538,7 +550,7 @@ function project_release_get_version($release, $project = NULL) {
     $node->nid = $release->pid;
   }
   $variables = array();
-  foreach (array('api_major', 'api_minor', 'major', 'minor', 'patch', 'extra') as $field) {
+  foreach (array('major', 'minor', 'patch', 'extra') as $field) {
     $var = "version_$field";
     if (isset($release->$var) && $release->$var !== '') {
       $variables["!$field"] = $release->$var;
@@ -549,6 +561,24 @@ function project_release_get_version($release, $project = NULL) {
       $variables["!$field"] = '';
       $variables["%$field"] = '';
       $variables["#$field"] = '';
+    }
+  }
+  $variables["!api"] = '';
+  $variables["%api"] = '';
+  $variables["#api"] = '';
+  $vid = _project_release_get_api_vid();
+  if (project_release_use_taxonomy()) { 
+    if (isset($release->version_api_tid)) {
+      $tid = $release->version_api_tid;
+    }
+    elseif (isset($release->$vid)) {
+      $tid = $release->$vid;
+    }
+    if (isset($tid)) {
+      $term = taxonomy_get_term($tid);
+      $variables["!api"] = $term->name;
+      $variables["%api"] = '.' . $term->name;
+      $variables["#api"] = '-' . $term->name;
     }
   }
   $version_format = project_release_get_version_format($node);
@@ -694,6 +724,9 @@ function project_release_form_alter($form_id, &$form) {
   if ($form_id == 'project_project_node_form') {
     return project_release_alter_project_form($form);
   }
+  if ($form_id == 'project_release_node_form') {
+    return project_release_alter_release_form($form);
+  }
 }
 
 /**
@@ -717,6 +750,16 @@ function project_release_alter_project_form(&$form) {
     '#default_value' => isset($node->releases) ? $node->releases : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
+  if ($releases = project_release_get_releases($node, false)) {
+    $form['release']['version'] = array(
+      '#type' => 'select',
+      '#title' => t('Default version'),
+      '#default_value' => $node->version,
+      '#options' => $releases,
+      '#description' => t('Default version for downloading.'),
+    );
+  }
+
   // TODO: disable this form element if the "Enable releases" checkbox
   // is not checked?
   if (user_access('administer projects')) {
@@ -726,8 +769,44 @@ function project_release_alter_project_form(&$form) {
       '#default_value' => $node->version_format,
       '#size' => 50,
       '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %api_major, %api_minor, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
+      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
     );
+  }
+}
+
+/**
+ * Alters the project_release node form to handle the API taxonomy.
+ * If the vocabulary is empty, this removes the form elements.
+ * @ingroup project_release_fapi
+ * @see project_release_form_alter
+ */
+function project_release_alter_release_form(&$form) {
+  $node = $form['#node'];
+  $vid = _project_release_get_api_vid();
+  if (!project_release_use_taxonomy() && isset($form['taxonomy'][$vid])) {
+    unset($form['taxonomy'][$vid]);
+  }
+  else {
+    if (isset($node->pid)) {
+      $project->nid = $node->pid;
+    }
+    elseif (arg(1) == 'add' && is_numeric(arg(3))) {
+      $project->nid = arg(3);
+    }
+    if (isset($project->nid)) {
+      $format = project_release_get_version_format($project);
+      if (!preg_match('/[!#%]api/', $format)) {
+        $vid = _project_release_get_api_vid();
+        if (isset($form['taxonomy'][$vid])) {
+	  unset($form['taxonomy'][$vid]);
+        }
+      }
+    }
+  }
+  // If there are no children elements, we should unset the entire
+  // thing so we don't end up with an empty fieldset.
+  if (!element_children($form['taxonomy'])) {
+    unset($form['taxonomy']);
   }
 }
 
@@ -777,6 +856,60 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
       // TODO: unpublish (delete?) all release nodes associated with
       // this project, too.
       db_query('DELETE FROM {project_release_projects} WHERE nid = %d', $node->nid);
-      break;
+
   }
+}
+
+/**
+ * Returns the appropriate release download table for a project node.
+ * TODO: make it work. ;)
+ * TODO: this should be themeable.
+ */
+function project_release_project_download_table($node) {
+  $table = "<table><tr><td>hello</td><td>world</td></tr><tr><td>stable</td><td>dev</td></tr></table>";
+  return $table;
+}
+
+/**
+ * Implementation of hook_taxonomy().
+ */
+function project_release_taxonomy($op, $type, $object = NULL) {
+  if ($op == 'delete' && $type == 'vocabulary' && $object->vid == _project_get_api_vid()) {
+    variable_del('project_release_api_vocabulary');
+  }
+  elseif ($type == 'term' && $object->vid == _project_release_get_api_vid()) {
+    menu_rebuild();
+  }
+}
+
+/**
+ * Returns whether or not project releases should use a taxonomy for 
+ * API compatibility within the version string
+ */
+function project_release_use_taxonomy() {
+  return module_exist('taxonomy') && taxonomy_get_tree(_project_release_get_api_vid());
+}
+
+/**
+ * Returns the vocabulary id for project release API
+ */
+function _project_release_get_api_vid() {
+  $vid = variable_get('project_release_api_vocabulary', '');
+  if (empty($vid)) {
+    // Check to see if a project release module vocabulary exists.
+    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module='%s'", 'project_release'));
+    if (!$vid) {
+      $edit = array('name' => t('Project release API compatibility'), 'multiple' => 0, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project_release', 'nodes' => array('project_release' => 1));
+      // If there is already a vocabulary assigned to 'project_project' nodes, use it.
+      $vocabularies = taxonomy_get_vocabularies('project_release');
+      if (count($vocabularies)) {
+        $vocabulary = reset($vocabularies);
+        $edit['vid'] = $vocabulary->vid;
+      }
+      taxonomy_save_vocabulary($edit);
+      $vid = $edit['vid'];
+    }
+    variable_set('project_release_api_vocabulary', $vid);
+  }
+  return $vid;
 }

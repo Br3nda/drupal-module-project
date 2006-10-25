@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.6.2.5 2006/10/25 00:28:44 dww Exp $
+// $Id: project.install,v 1.2.2.6.2.6 2006/10/25 07:12:02 dww Exp $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {
@@ -22,7 +22,7 @@ function project_install() {
           KEY project_projects_uri (uri(8))
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-
+      break;
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',

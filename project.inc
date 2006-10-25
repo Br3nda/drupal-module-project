@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.75.2.16.2.6 2006/10/25 06:56:28 dww Exp $ */
+/* $Id: project.inc,v 1.75.2.16.2.7 2006/10/25 07:12:02 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -173,16 +173,6 @@ function project_project_form(&$node) {
     '#description' => t('Link to a live demo.'),
   );
 
-  if ($releases = project_release_get_releases($node, false)) {
-    $form['project']['version'] = array(
-      '#type' => 'select',
-      '#title' => t('Default version'),
-      '#default_value' => $node->version,
-      '#options' => $releases,
-      '#description' => t('Default version for downloading.'),
-    );
-  }
-
   $form['#suffix'] = '</div>';
   return $form;
 }
@@ -303,47 +293,8 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     $breadcrumb = project_project_set_location($node, $breadcrumb);
     menu_set_location($breadcrumb);
 
-    $releases = project_release_get_releases($node);
-    if ($releases) {
-      // Determine most suitable release
-      $overview = variable_get('project_release_overview', -1);
-      foreach ($releases as $rid => $release) {
-        // If the project has a preferred release, choose that.
-        $version = $release->version;
-        if ($rid == $node->version) {
-          $latest_release = $release;
-          break;
-        }
-        // If the version matches the default on the overview, prefer the first.
-        if (!isset($release) && strpos($version, $overview) === 0) {
-          $latest_release = $release;
-        }
-      }
-      // Fallback to the latest
-      if (!isset($latest_release)) {
-        reset($releases);
-        $latest_release = current($releases);
-      }
-      $release = $latest_release;
-      $version = $release->version;
-
-      // Download section
-      $links = array();
-
-      $links[] = '<a href="'. file_create_url($release->file_path) .'">' . t('Download latest release (%version, %date, %size)', array('%version' => $version, '%date' => format_date($release->changed, 'small'), '%size' => format_size(filesize($release->file_path))))  . '</a>';
-
-      if ($release->changes) {
-        $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
-      }
-      if (count($releases) > 1) {
-        $links[] = l(t('View other releases'), 'node/'. $node->nid .'/release');
-      }
-    }
-    if (!variable_get('project_release_directory', '') && $node->releases && project_release_access_check($node)) {
-      $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
-    }
-    if ($links) {
-      $output .= theme('item_list', $links, t('Releases'));
+    if (function_exists('project_release_project_download_table')) {
+      $output = project_release_project_download_table($node);
     }
 
     // Misc section
