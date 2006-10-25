@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.14 2006/10/25 07:42:45 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.15 2006/10/25 10:58:55 dww Exp $
 
 /**
  * @file
@@ -193,7 +193,7 @@ function convert_release($old_release) {
       print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
     }
     $target_api = "$matches[1].$matches[2].x";
-    $node->version_major = 0;
+    $node->version_major = 1;
     $node->version_patch = 0;
     $node->version_extra = 'dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
