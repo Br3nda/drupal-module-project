@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.8 2006/10/25 06:32:01 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.9 2006/10/25 06:36:21 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '%major.%minor.%patch%extra');
 
@@ -248,7 +248,7 @@ function project_release_form(&$release, &$param) {
  * @param $description Translatable description of the form element.
  * @param $required Boolean for if the form element should be required
  */
-function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $required = TRUE) {
+function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $required = FALSE) {
   $var_name = 'version_' . $name;
   $regexp = "@.*[!#%]$name.*@";
   if (preg_match($regexp, $format)) {
@@ -260,6 +260,9 @@ function _project_release_form_add_version_element(&$form, $release, $edit, $for
       '#maxlength' => 10,
     );
     if ($required) {
+      // TODO: handle this more flexibly for sites not using CVS
+      // perhaps if the format variable is UPPERCASE it's required,
+      // and lowercase is optional or something crazy? ;)
       $form[$var_name]['#required'] = TRUE;
     }
     if ($description) {
@@ -432,7 +435,7 @@ function project_release_get_version($release, $project = NULL) {
   $variables = array();
   foreach (array('super_major', 'super_minor', 'major', 'minor', 'patch', 'extra') as $field) {
     $var = "version_$field";
-    if (isset($release->$var) && $release->$var != '') {
+    if (isset($release->$var) && $release->$var !== '') {
       $variables["!$field"] = $release->$var;
       $variables["%$field"] = '.' . $release->$var;
       $variables["#$field"] = '-' . $release->$var;
@@ -463,6 +466,9 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   }
 
   $links = array();
+  if ($release->rebuild) {
+    $output .= t('Nightly development snapshot from %tag', array('%tag' => $release->tag)) . '<br />';
+  }
   if ($release->file_path) {
     $output .= '<small>' . t('Download: %file', array('%file' => l(basename($release->file_path), file_create_url($release->file_path)))) . '</small><br />';
     $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) . '</small><br />';
@@ -474,11 +480,9 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   if ($release->changed  && ($release->changed != $release->created)) {
     $output .= '<small>' . t('Last updated: %changed', array('%changed' => format_date($release->changed))) . '</small><br />';
   }
-
-  $output .= $release->changes;
   $output .= theme('links', $links);
 
-  $release->body .= '<div class="project-release">' . $output . '</div>';
+  $release->body = '<div class="project-release">' . $output . '</div>' . $release->body;
 }
 
 /**
