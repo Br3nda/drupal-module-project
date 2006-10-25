@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.3 2006/10/25 00:41:38 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.4 2006/10/25 00:47:06 dww Exp $
 
 /**
  * @file
@@ -18,7 +18,7 @@ function generate_core_tag($node) {
   $tag .= $node->version_minor . '-';
   $tag .= $node->version_patch;
   if (!empty($node->version_extra)) {
-    $tag .= '-' . strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
+    $tag .= strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
   }
   return $tag;
 } 
@@ -61,7 +61,7 @@ function populate_project_release_projects() {
   );
   // Set the right site-wide default for everything else...
   // BEWARE: drupal.org-specific
-  variable_set('project_release_default_version_format', '%super_major.%super_minor-%major.%minor%extra');
+  variable_set('project_release_default_version_format', '%super_major.%super_minor.x-%major.%minor%extra');
 
   foreach ($no_release_projects as $nid => $name) {
     db_query("UPDATE {project_release_projects} SET releases = 0 WHERE nid = %d", $nid);
@@ -94,11 +94,18 @@ function convert_all_releases() {
   $num = 0;
   $start_time = time();
 
+  // We desperately need an index on rid for the {project_issues}
+  // table while doing the conversion, otherwise we spend between
+  // 30-60 minutes with the UPDATE to repair the rid.  With this key,
+  // it only takes about 1 minute on the whole d.o DB.
+  db_query("ALTER TABLE {project_issues} ADD KEY rid (rid)");
+
   $releases = db_query("SELECT pr.*, n.uid, n.title AS project_title FROM {project_releases} pr INNER JOIN {node} n ON pr.nid = n.nid LEFT JOIN {project_release_legacy} prl ON pr.rid = prl.rid WHERE prl.rid IS NULL");
   while ($old_release = db_fetch_object($releases)) {
     convert_release($old_release);
     $num++;
   }
+
   print t('Converted %num releases into nodes in %interval<br>', array('%num' => $num, '%interval' => format_interval(time() - $start_time)));
 }
 
@@ -116,6 +123,8 @@ function convert_all_releases() {
 function convert_release($old_release) {
   list($usec, $sec) = explode(' ', microtime());
   $start = (float)$usec + (float)$sec;
+
+  global $nids_by_rid;
 
   // First, save everything that's shared, regardless of the version/type
 
@@ -144,16 +153,16 @@ function convert_release($old_release) {
       $node->version_major = 5;
       $node->version_minor = 0;
       $node->version_patch = 0;
-      $node->version_extra = 'dev';
+      $node->version_extra = '-dev';
       $node->rebuild = 1;
       $node->tag = 'TRUNK';
     }
     else {
-      preg_match('/(\d+)\.(\d+)\.(\d+)(-?)(.+)?/', $old_release->version, $matches);
+      preg_match('/(\d+)\.(\d+)\.(\d+)(.+)?/', $old_release->version, $matches);
       $node->version_major = $matches[1];
       $node->version_minor = $matches[2];
       $node->version_patch = $matches[3];
-      $node->version_extra = $matches[5] ? $matches[5] : NULL;
+      $node->version_extra = $matches[4];
       $node->tag = generate_core_tag($node);
       $node->rebuild = 0;
     }
@@ -162,7 +171,7 @@ function convert_release($old_release) {
     // The "cvs" version is a nightly tarball from the trunk
     $node->version_major = 0;
     $node->version_minor = 0;
-    $node->version_extra = 'dev';
+    $node->version_extra = '-dev';
     $node->tag = 'TRUNK';
     $node->rebuild = 1;
   }
@@ -176,7 +185,7 @@ function convert_release($old_release) {
     $node->version_super_minor = $matches[2];
     $node->version_major = 1;
     $node->version_minor = 0;
-    $node->version_extra = 'dev';
+    $node->version_extra = '-dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
     $node->rebuild = 1;
   }
@@ -193,6 +202,7 @@ function convert_release($old_release) {
   if ($node->rebuild) {
     $node->title .= ' (' . t('nightly development snapshot') . ')';
   }
+  $node->version = $version;
 
   list($usec, $sec) = explode(' ', microtime());
   $pre_save = (float)$usec + (float)$sec;
@@ -235,7 +245,7 @@ function convert_release($old_release) {
 
   // Finally, add an entry to the {project_release_legacy} table so we
   // know the mapping of the old rid to the new nid.
-  db_query("INSERT INTO {project_release_legacy} (rid, nid, time, save_ms, update_ms) VALUES (%d, %d, %d, %d, %d)", $rid, $nid, $diff, $save_diff, $update_diff);
+  db_query("INSERT INTO {project_release_legacy} (rid, nid, pid, time, save_ms, update_ms) VALUES (%d, %d, %d, %d, %d, %d)", $rid, $nid, $old_release->pid, $diff, $save_diff, $update_diff);
 }
 
 function convert_issue_followups() {
@@ -247,7 +257,7 @@ function convert_issue_followups() {
   $num = 0;
   $errors = 0;
 
-  $query = db_query("SELECT * FROM {project_comments} WHERE data RLIKE 'rid'");
+  $query = db_query("SELECT pc.*, pi.pid FROM {project_comments} pc INNER JOIN {project_issues} pi ON pc.nid = pi.nid WHERE pc.data RLIKE 'rid'");
   while ($comment = db_fetch_object($query)) {
     $error_old = 0;
     $error_new = 0;
@@ -260,6 +270,7 @@ function convert_issue_followups() {
       }
       else {
         $error_old = $old_rid;
+        $data['old']->rid = 0;
       }
     }
     if ($new_rid) {
@@ -268,21 +279,21 @@ function convert_issue_followups() {
       }
       else {
         $error_new = $new_rid;
+        $data['new']->rid = 0;
       }
     }
     if ($error_old || $error_new) {
-        // Evil, we didn't know how to translate this comment, record it
-      db_query("INSERT INTO {project_comments_conversion_errors} (cid, old_rid, new_rid) VALUES (%d, %d, %d)", $comment->cid, $error_old, $error_new);
+        // Evil, this comment refers to a rid that wasn't in
+        // {project_releases}, record it for post-mortem analysis...
+      db_query("INSERT INTO {project_comments_conversion_errors} (cid, pid, old_rid, new_rid) VALUES (%d, %d, %d, %d)", $comment->cid, $comment->pid, $error_old, $error_new);
       $errors++;
     }
-    else {
-      db_query("UPDATE {project_comments} SET data = '%s' WHERE cid = %d", serialize($data), $comment->cid);
-      $num++;
-    }
+    db_query("UPDATE {project_comments} SET data = '%s' WHERE cid = %d", serialize($data), $comment->cid);
+    $num++;
   }
   print t('Converted %num issue followups in %interval', array('%num' => $num, '%interval' => format_interval(time() - $start_time))) . '<br>';
   if ($errors) {
-    print '<b>' . t('ERROR: failed to convert %num issue followups', array('%num' => $errors)) . '</b><br>';
+    print '<b>' . t('ERROR: problem during conversion of %num issue followups', array('%num' => $errors)) . '</b><br>';
   }
 }
 
@@ -293,17 +304,24 @@ function create_legacy_tables() {
       db_query("CREATE TABLE IF NOT EXISTS {project_release_legacy} (
         rid int(10) unsigned NOT NULL default '0',
         nid int(10) unsigned NOT NULL default '0',
+        pid int(10) unsigned NOT NULL default '0',
         time int(10) unsigned NOT NULL default '0',
         save_ms int(10) unsigned NOT NULL default '0',
         update_ms int(10) unsigned NOT NULL default '0',
-        PRIMARY KEY (`rid`)
+        PRIMARY KEY (`rid`),
+        KEY project_release_legacy_pid (`pid`),
+        KEY project_release_legacy_nid (`nid`)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_comments_conversion_errors} (
         cid int(10) unsigned NOT NULL default '0',
+        pid int(10) unsigned NOT NULL default '0',
         old_rid int(10) unsigned NOT NULL default '-1',
         new_rid int(10) unsigned NOT NULL default '-1',
-        PRIMARY KEY (`cid`)
+        PRIMARY KEY (`cid`),
+        KEY project_comments_conversion_errors_pid (`pid`),
+        KEY project_comments_conversion_errors_old_rid (`old_rid`),
+        KEY project_comments_conversion_errors_new_rid (`new_rid`)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
@@ -312,18 +330,25 @@ function create_legacy_tables() {
         db_query("CREATE TABLE {project_release_legacy} (
           rid int(10) unsigned NOT NULL default '0',
           nid int(10) unsigned NOT NULL default '0',
+          pid int(10) unsigned NOT NULL default '0',
           time int(10) unsigned NOT NULL default '0',
           save_ms int(10) unsigned NOT NULL default '0',
           update_ms int(10) unsigned NOT NULL default '0',
-          PRIMARY KEY (`rid`)
+          PRIMARY KEY (`rid`),
+          KEY project_release_legacy_pid (`pid`),
+          KEY project_release_legacy_nid (`nid`)
           );");
       }
       if (!project_db_table_exists('project_comments_conversion_errors')) {
         db_query("CREATE TABLE {project_comments_conversion_errors} (
           cid int(10) unsigned NOT NULL default '0',
+          pid int(10) unsigned NOT NULL default '0',
           old_rid int(10) unsigned NOT NULL default '-1',
           new_rid int(10) unsigned NOT NULL default '-1',
-          PRIMARY KEY (`cid`)
+          PRIMARY KEY (`cid`),
+          KEY project_comments_conversion_errors_pid (`pid`),
+          KEY project_comments_conversion_errors_old_rid (`old_rid`),
+          KEY project_comments_conversion_errors_new_rid (`new_rid`)
           );");
       }
       break;
