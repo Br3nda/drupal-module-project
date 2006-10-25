@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.1 2006/10/25 00:11:49 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.2 2006/10/25 00:15:53 dww Exp $ */
 
 function project_release_help($section) {
   switch ($section) {
@@ -308,7 +308,7 @@ function project_release_form(&$release, &$param) {
  * Implementation of hook_validate().
  */
 function project_release_validate(&$edit, $form) {
-  $result = db_query("SELECT * FROM {project_release_node} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
+  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
 
   if ($release = db_fetch_object($result)) {
      form_set_error('version_minor', t('This version already exists for this project.'));
@@ -335,7 +335,7 @@ function project_release_validate(&$edit, $form) {
  * Implementation of hook_load().
  */
 function project_release_load($node) {
-  $additions = db_fetch_object(db_query("SELECT * FROM {project_release_node} WHERE nid = %d", $node->nid));
+  $additions = db_fetch_object(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
   return $additions;
 }
 
@@ -343,14 +343,14 @@ function project_release_load($node) {
  * Implementation of hook_insert().
  */
 function project_release_insert($node) {
-  db_query("INSERT INTO {project_release_node} (nid, pid, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor) VALUES (%d, %d, '%s', '%s', %d, '%s', %d, %d, %d, %d, %d)", $node->nid, $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor);
+  db_query("INSERT INTO {project_release_nodes} (nid, pid, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor) VALUES (%d, %d, '%s', '%s', %d, '%s', %d, %d, %d, %d, %d)", $node->nid, $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor);
 }
 
 /**
  * Implementation of hook_update().
  */
 function project_release_update($node) {
-  db_query("INSERT INTO {project_release_node} pid = %d, tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d WHERE nid = %d", $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->nid);
+  db_query("INSERT INTO {project_release_nodes} pid = %d, tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d WHERE nid = %d", $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->nid);
 }
 
 /**
@@ -360,7 +360,7 @@ function project_release_delete($node) {
   if ($node->file_path) {
     file_delete(file_create_path($node->file_path));
   }
-  db_query("DELETE FROM {project_release_node} WHERE nid = %d", $node->nid);
+  db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
 }
 
 
@@ -433,7 +433,7 @@ function project_release_project_releases() {
  * Get an array of release nodes
  */
 function project_release_get_releases($project, $nodes = true) {
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_node} r ON r.nid = n.nid WHERE r.pid = %d ORDER BY n.created DESC"), $project->nid);
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE r.pid = %d ORDER BY n.created DESC"), $project->nid);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {

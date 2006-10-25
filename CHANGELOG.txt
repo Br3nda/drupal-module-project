@@ -1,3 +1,8 @@
+XX. September 2006
+-----------------
+- Split out releases into project_release.module and made them real nodes
+  (dww and merlinofchaos)
+
 21. July 2006
 -----------------
 - Split out issue tracking to project_issue.module (dww)

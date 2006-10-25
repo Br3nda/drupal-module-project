@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.6.2.2 2006/10/25 00:11:49 dww Exp $
+// $Id: project.install,v 1.2.2.6.2.3 2006/10/25 00:15:53 dww Exp $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {
@@ -199,7 +199,7 @@ function project_update_4() {
 }
 
 /**
- * Create the {project_release_node} table and transfer data into it.
+ * Create the {project_release_nodes} table and transfer data into it.
  */
 function project_update_5() {
   $ret = array();
@@ -208,7 +208,7 @@ function project_update_5() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE {project_release_node} (
+      $ret[] = update_sql("CREATE TABLE {project_release_nodes} (
           nid int(10) unsigned NOT NULL default '0',
           pid int(10) unsigned NOT NULL default '0',
           tag varchar(255) NOT NULL default '0',
@@ -227,7 +227,7 @@ function project_update_5() {
       break;
 	
     case 'pgsql':
-      $ret[] = update_sql("CREATE TABLE {project_release_node} (
+      $ret[] = update_sql("CREATE TABLE {project_release_nodes} (
           nid int NOT NULL default '0',
           pid int NOT NULL default '0',
           tag varchar(255) NOT NULL default '0',
