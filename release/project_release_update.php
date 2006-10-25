@@ -1,15 +1,10 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.2 2006/10/25 00:33:59 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.3 2006/10/25 00:41:38 dww Exp $
 
 /**
  * @file
  * Converts data from the old {project_releases} table into
  * project_release nodes.
- *
- * TODO:
- * - resolve the whole -1 vs. NULL thing for version fields
- * - figure out if we're going to save as separate fields, anyway
- * - anywhere else you see "TODO" in this file. ;)
  *
  */
 
@@ -28,11 +23,83 @@ function generate_core_tag($node) {
   return $tag;
 } 
 
-function convert_all() {
-  $releases = db_query("SELECT pr.*, n.uid, n.title AS project_title FROM {project_releases} pr INNER JOIN {node} n ON pr.nid = n.nid");
-  while ($old_release = db_fetch_object($releases)) {
-    convert_one($old_release);
+/**
+ * Iterates through the {project_projects} table and adds the
+ * appropriate record to the {project_release_projects} table for each
+ * entry.
+ *
+ * BEWARE: This function contains drupal.org-specific code.  Please
+ * modify the arrays and setting commented below to suit your own
+ * site's needs. 
+ */
+function populate_project_release_projects() {
+  list($usec, $sec) = explode(' ', microtime());
+  $start = (float)$usec + (float)$sec;
+
+  $num_prp = db_result(db_query("SELECT count(nid) FROM {project_release_projects}"));
+  $num_projects = db_result(db_query("SELECT count(nid) FROM {project_projects}"));
+  if ($num_prp == $num_projects) {
+    print("The {project_release_projects} table is already full<br>");
+    return;
   }
+  // First, insert a record with the right nid for all projects
+  db_query("INSERT INTO {project_release_projects} (nid, releases) SELECT nid, 1 FROM {project_projects}");
+
+  // Now, special-cases we need to handle:
+
+  // All the projects that will not want releases enabled
+  // BEWARE: drupal.org-specific
+  $no_release_projects = array(
+    3202 => 'drupal.org maintenance',
+    3213 => 'user experience',
+    18753 => 'documentation',
+  );
+  // Any projects with a custom version format string (just core)
+  // BEWARE: drupal.org-specific
+  $version_formats = array(
+    3060 => '%major.%minor.%patch%extra',
+  );
+  // Set the right site-wide default for everything else...
+  // BEWARE: drupal.org-specific
+  variable_set('project_release_default_version_format', '%super_major.%super_minor-%major.%minor%extra');
+
+  foreach ($no_release_projects as $nid => $name) {
+    db_query("UPDATE {project_release_projects} SET releases = 0 WHERE nid = %d", $nid);
+  }
+  foreach ($version_formats as $nid => $format) {
+    db_query("UPDATE {project_release_projects} SET version_format = '%s' WHERE nid = %d", $format, $nid);
+  }
+
+  $num_prp = db_result(db_query("SELECT count(nid) FROM {project_release_projects}"));
+  list($usec, $sec) = explode(' ', microtime());
+  $stop = (float)$usec + (float)$sec;
+  $diff = round(($stop - $start) * 1000, 2);
+  print t('Added %num records to the {project_release_projects} table in %ms ms<br>', array('%num' => $num_prp, '%ms' => $diff));
+}
+
+/**
+ * Iterates through the entire {project_releases} table and converts
+ * each entry into a new release node.
+ */
+function convert_all_releases() {
+  // First, re-load into memory mappings that we completed on previous runs
+  global $nids_by_rid;
+  $query = db_query("SELECT nid, rid FROM {project_release_legacy}");
+  while ($result = db_fetch_object($query)) {
+    $nids_by_rid[$result->rid] = $result->nid;
+    if (module_exist('project_issue')) {
+      db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $result->nid, $result->rid);
+    }
+  }
+  $num = 0;
+  $start_time = time();
+
+  $releases = db_query("SELECT pr.*, n.uid, n.title AS project_title FROM {project_releases} pr INNER JOIN {node} n ON pr.nid = n.nid LEFT JOIN {project_release_legacy} prl ON pr.rid = prl.rid WHERE prl.rid IS NULL");
+  while ($old_release = db_fetch_object($releases)) {
+    convert_release($old_release);
+    $num++;
+  }
+  print t('Converted %num releases into nodes in %interval<br>', array('%num' => $num, '%interval' => format_interval(time() - $start_time)));
 }
 
 /**
@@ -45,9 +112,11 @@ function convert_all() {
  * had "real" releases so far. Everything else has been a nightly dev
  * snapshot release. If your site has a different usage, please modify
  * the logic in here to meet your needs.
- *
  */
-function convert_one($old_release) {
+function convert_release($old_release) {
+  list($usec, $sec) = explode(' ', microtime());
+  $start = (float)$usec + (float)$sec;
+
   // First, save everything that's shared, regardless of the version/type
 
   // Things that go in {node} or {node_revisions}
@@ -71,8 +140,6 @@ function convert_one($old_release) {
 
   // Now, depending on the project and version, fill in the rest.
   if ($old_release->nid == 3060) {
-//    $node->version_super_major = -1;
-//    $node->version_super_minor = -1;
     if ($old_release->version == 'cvs') {
       $node->version_major = 5;
       $node->version_minor = 0;
@@ -93,11 +160,8 @@ function convert_one($old_release) {
   }
   elseif ($old_release->version == 'cvs') {
     // The "cvs" version is a nightly tarball from the trunk
-//    $node->version_super_major = -1;
-//    $node->version_super_minor = -1;
     $node->version_major = 0;
     $node->version_minor = 0;
-//    $node->version_patch = -1;
     $node->version_extra = 'dev';
     $node->tag = 'TRUNK';
     $node->rebuild = 1;
@@ -106,13 +170,12 @@ function convert_one($old_release) {
     // Nightly tarball from a specific branch.
     preg_match('/(\d+)\.(\d+)\.(\d+)/', $old_release->version, $matches);
     if ($matches[3] != 0) {
-      dprint_r("warning: release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])");
+      print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
     }
     $node->version_super_major = $matches[1];
     $node->version_super_minor = $matches[2];
     $node->version_major = 1;
     $node->version_minor = 0;
-//    $node->version_patch = -1;
     $node->version_extra = 'dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
     $node->rebuild = 1;
@@ -124,37 +187,183 @@ function convert_one($old_release) {
     $version = t('TRUNK');
   }
   else {
-    $version = theme('project_release_version', $node);
+    $version = project_release_get_version($node);
   }
   $node->title = t('%project %version', array('%project' => $old_release->project_title, '%version' => $version));
   if ($node->rebuild) {
     $node->title .= ' (' . t('nightly development snapshot') . ')';
   }
 
+  list($usec, $sec) = explode(' ', microtime());
+  $pre_save = (float)$usec + (float)$sec;
   // Now, we can actually create the node.
   node_save($node);
+  list($usec, $sec) = explode(' ', microtime());
+  $post_save = (float)$usec + (float)$sec;
 
-  // Next, update all the issues with the old revision id (rid) to
-  // point to the new nid, instead.
+  // Grab these values for a few additional conversions.
   $nid = $node->nid;
   $rid = $old_release->rid;
-  db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $nid, $rid);
-  // TODO: {project_comments} !!!
-  // {project_comments} is much harder, since there's serialized data. :( 
+
+  // While we're iterating over all the old releases, we can already
+  // convert all the project_issue nodes to the new value.  We'll have
+  // to fix all the followup comments only after we have the complete
+  // mapping of rid -> nid
+  if (module_exist('project_issue')) {
+    list($usec, $sec) = explode(' ', microtime());
+    $pre_update = (float)$usec + (float)$sec;
+    db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $nid, $rid);
+    list($usec, $sec) = explode(' ', microtime());
+    $post_update = (float)$usec + (float)$sec;
+  }
 
   // TODO: update {cvs_tags} table to put in a value for the "release
   // nid" column so we know this project nid/tag combo has a release?
+  if (module_exist('cvslog')) {
+  }
+
+  // Keep track of it in our array in RAM for converting issue comments
+  $nids_by_rid[$rid] = $nid;
+
+  // See how long it took. 
+  list($usec, $sec) = explode(' ', microtime());
+  $stop = (float)$usec + (float)$sec;
+  $diff = round(($stop - $start) * 1000, 2);
+
+  $save_diff = round(($post_save - $pre_save) * 1000, 2);
+  $update_diff = round(($post_update - $pre_update) * 1000, 2);
+
+  // Finally, add an entry to the {project_release_legacy} table so we
+  // know the mapping of the old rid to the new nid.
+  db_query("INSERT INTO {project_release_legacy} (rid, nid, time, save_ms, update_ms) VALUES (%d, %d, %d, %d, %d)", $rid, $nid, $diff, $save_diff, $update_diff);
 }
 
+function convert_issue_followups() {
+  if (!module_exist('project_issue')) {
+    return;
+  }
+  global $nids_by_rid;
+  $start_time = time();
+  $num = 0;
+  $errors = 0;
+
+  $query = db_query("SELECT * FROM {project_comments} WHERE data RLIKE 'rid'");
+  while ($comment = db_fetch_object($query)) {
+    $error_old = 0;
+    $error_new = 0;
+    $data = unserialize($comment->data);
+    $old_rid = $data['old']->rid;
+    $new_rid = $data['new']->rid;
+    if ($old_rid) {
+      if (isset($nids_by_rid[$old_rid])) {
+        $data['old']->rid = $nids_by_rid[$old_rid];
+      }
+      else {
+        $error_old = $old_rid;
+      }
+    }
+    if ($new_rid) {
+      if (isset($nids_by_rid[$new_rid])) {
+        $data['new']->rid = $nids_by_rid[$new_rid];
+      }
+      else {
+        $error_new = $new_rid;
+      }
+    }
+    if ($error_old || $error_new) {
+        // Evil, we didn't know how to translate this comment, record it
+      db_query("INSERT INTO {project_comments_conversion_errors} (cid, old_rid, new_rid) VALUES (%d, %d, %d)", $comment->cid, $error_old, $error_new);
+      $errors++;
+    }
+    else {
+      db_query("UPDATE {project_comments} SET data = '%s' WHERE cid = %d", serialize($data), $comment->cid);
+      $num++;
+    }
+  }
+  print t('Converted %num issue followups in %interval', array('%num' => $num, '%interval' => format_interval(time() - $start_time))) . '<br>';
+  if ($errors) {
+    print '<b>' . t('ERROR: failed to convert %num issue followups', array('%num' => $errors)) . '</b><br>';
+  }
+}
+
+function create_legacy_tables() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_legacy} (
+        rid int(10) unsigned NOT NULL default '0',
+        nid int(10) unsigned NOT NULL default '0',
+        time int(10) unsigned NOT NULL default '0',
+        save_ms int(10) unsigned NOT NULL default '0',
+        update_ms int(10) unsigned NOT NULL default '0',
+        PRIMARY KEY (`rid`)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE IF NOT EXISTS {project_comments_conversion_errors} (
+        cid int(10) unsigned NOT NULL default '0',
+        old_rid int(10) unsigned NOT NULL default '-1',
+        new_rid int(10) unsigned NOT NULL default '-1',
+        PRIMARY KEY (`cid`)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+    case 'pgsql':
+      if (!project_db_table_exists('project_release_legacy')) {
+        db_query("CREATE TABLE {project_release_legacy} (
+          rid int(10) unsigned NOT NULL default '0',
+          nid int(10) unsigned NOT NULL default '0',
+          time int(10) unsigned NOT NULL default '0',
+          save_ms int(10) unsigned NOT NULL default '0',
+          update_ms int(10) unsigned NOT NULL default '0',
+          PRIMARY KEY (`rid`)
+          );");
+      }
+      if (!project_db_table_exists('project_comments_conversion_errors')) {
+        db_query("CREATE TABLE {project_comments_conversion_errors} (
+          cid int(10) unsigned NOT NULL default '0',
+          old_rid int(10) unsigned NOT NULL default '-1',
+          new_rid int(10) unsigned NOT NULL default '-1',
+          PRIMARY KEY (`cid`)
+          );");
+      }
+      break;
+  }
+}
+
+
+/*
+ *------------------------------------------------------------
+ * Real work of this script
+ *------------------------------------------------------------
+ */
 include_once './includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+
+// If not in 'safe mode', increase the maximum execution time:
+if (!ini_get('safe_mode')) {
+  set_time_limit(2000);
+}
 
 if (!module_exist('project_release')) {
   print '<b>' . t('ERROR: project_release_update.php requires that you first install the project_release.module') . '</b>';
   exit(1);
 }
 
-convert_all();
+// Pull in the copy of project_db_table_exists()
+$path = drupal_get_path('module', 'project');
+if (file_exists("$path/project.install")) {
+  require_once "$path/project.install";
+}
 
-// TODO: user feedback, progress, etc.
-// TODO: drop old {project_releases} table once we're convinced it worked
+$nids_by_rid = array();
+create_legacy_tables();
+
+populate_project_release_projects();
+
+convert_all_releases();
+
+convert_issue_followups();
+
+// TODO: more user feedback, progress, etc.
+// TODO: LOCK relevant tables during conversion
+// TODO: drop old {project_releases} table once we're convinced it worked?

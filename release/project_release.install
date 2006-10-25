@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.5 2006/10/25 00:33:58 dww Exp $
+// $Id: project_release.install,v 1.1.2.6 2006/10/25 00:41:38 dww Exp $
 
 function project_release_install() {
   switch ($GLOBALS['db_type']) {
@@ -27,13 +27,13 @@ function project_release_install() {
       db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
           nid int unsigned NOT NULL default 0,
           releases tinyint NOT NULL default '1',
-	  version_format varchar(255) NOT NULL default '',
+          version_format varchar(255) NOT NULL default '',
           PRIMARY KEY (`nid`),
           KEY project_release_projects_releases (`releases`)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
-	
+
     case 'pgsql':
       if (!project_release_db_table_exists('project_release_nodes')) {
         db_query("CREATE TABLE {project_release_nodes} (
@@ -59,7 +59,7 @@ function project_release_install() {
         db_query("CREATE TABLE {project_release_projects} (
             nid int NOT NULL default '0',
             releases smallint NOT NULL default '1',
-	    version_format varchar(255) NOT NULL default '',
+            version_format varchar(255) NOT NULL default '',
             PRIMARY KEY (nid),
             KEY project_release_projects_releases (releases),
           );");

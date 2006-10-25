@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.5 2006/10/25 00:33:58 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.6 2006/10/25 00:41:38 dww Exp $ */
 
 function project_release_help($section) {
   switch ($section) {
@@ -464,10 +464,12 @@ function project_release_form_alter($form_id, &$form) {
  * @see project_release_form_alter
  */
 function project_release_alter_project_form(&$form) {
+  $node = $form['#node'];
   $form['release'] = array(
     '#type' => 'fieldset',
     '#title' => t('Release information'),
     '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $form['release']['releases'] = array(
     '#type' => 'checkbox',
@@ -477,14 +479,16 @@ function project_release_alter_project_form(&$form) {
     '#default_value' => isset($node->releases) ? $node->releases : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
+  // TODO: disable this form element if the "Enable releases" checkbox
+  // is not checked?
   if (user_access('administer projects')) {
     $form['release']['version_format'] = array(
       '#type' => 'textfield',
       '#title' => t('Version format string'),
-      '#default_value' => $node->mail_copy,
+      '#default_value' => $node->version_format,
       '#size' => 50,
       '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra.',
+      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. ' .t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', '')))),
     );
   }
 }
