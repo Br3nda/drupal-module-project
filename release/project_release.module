@@ -1,11 +1,11 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.2 2006/10/25 00:15:53 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.3 2006/10/25 00:23:08 dww Exp $ */
 
 function project_release_help($section) {
   switch ($section) {
     case 'admin/modules#description':
       return t('Provides a project release node type.');
-    case 'node/add#project_project':
+    case 'node/add#project_release':
       return t('A release of a project with a specific version number.');
   }
 }
@@ -247,6 +247,18 @@ function project_release_form(&$release, &$param) {
     $form['version_minor']['#attributes'] = array('disabled' => $edit);
   }
 
+  $form['version_extra'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Extra version identifier'),
+    '#default_value' => $release->version_extra,
+    '#size' => 20,
+    '#maxlength' => 10,
+    '#description' => t('Optionally specify other identifying information for this version, for example "rc1" or "dev". In most cases, this should be left blank.'),
+  );
+  if ($edit) {
+    $form['version_minor']['#attributes'] = array('disabled' => $edit);
+  }
+
   if (!variable_get('project_release_directory', '')) {
     $form['file'] = array(
       '#type' => 'file',
@@ -308,7 +320,7 @@ function project_release_form(&$release, &$param) {
  * Implementation of hook_validate().
  */
 function project_release_validate(&$edit, $form) {
-  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
+  $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_extra = '%s' AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_extra, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
 
   if ($release = db_fetch_object($result)) {
      form_set_error('version_minor', t('This version already exists for this project.'));
@@ -343,14 +355,14 @@ function project_release_load($node) {
  * Implementation of hook_insert().
  */
 function project_release_insert($node) {
-  db_query("INSERT INTO {project_release_nodes} (nid, pid, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor) VALUES (%d, %d, '%s', '%s', %d, '%s', %d, %d, %d, %d, %d)", $node->nid, $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor);
+  db_query("INSERT INTO {project_release_nodes} (nid, pid, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor, version_extra) VALUES (%d, %d, '%s', '%s', %d, '%s', %d, %d, %d, %d, %d, '%s')", $node->nid, $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_extra);
 }
 
 /**
  * Implementation of hook_update().
  */
 function project_release_update($node) {
-  db_query("INSERT INTO {project_release_nodes} pid = %d, tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d WHERE nid = %d", $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->nid);
+  db_query("UPDATE {project_release_nodes} SET pid = %d, tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d, version_extra = '%s' WHERE nid = %d", $node->pid, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_extra, $node->nid);
 }
 
 /**
@@ -369,12 +381,15 @@ function project_release_delete($node) {
  * Provide a proper full version name of a file.
  */
 function theme_project_release_version($release) {
+  $version = '';
   if ($release->version_super_major) {
-    return $release->version_super_major .'.'. $release->version_super_minor .'-'. $release->version_major .'.'. $release->version_minor;
+    $version .= $release->version_super_major .'.'. $release->version_super_minor .'-';
   }
-  else {
-    return $release->version_major .'.'. $release->version_minor;
+  $version .= $release->version_major .'.'. $release->version_minor;
+  if ($release->version_extra) {
+    $version .= '-' . $release->version_extra;
   }
+  return $version;
 }
 
 /**
