@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.14 2006/10/25 06:56:28 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.15 2006/10/25 06:59:14 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -38,6 +38,7 @@ function project_release_menu($may_cache) {
         }
       }
     }
+    theme_add_style(drupal_get_path('module', 'project_release') .'/project_release.css');
   }
   return $items;
 }
@@ -186,6 +187,8 @@ function project_release_form(&$release, &$param) {
   }
 
   $form['#attributes'] = array("enctype" => "multipart/form-data");
+  $form['#prefix'] = '<div class="project-release">';
+  $form['#suffix'] = '</div>';
  
   $form['title'] = array(
     '#type' => 'value',
@@ -195,22 +198,29 @@ function project_release_form(&$release, &$param) {
     '#type' => 'value',
     '#value' => $release->pid,
   );
+  $form['version'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Version number elements'),
+    '#prefix' => '<div class="version-elements">',
+    '#suffix' => '</div>',
+  );
   $form['version']['version'] = array(
     '#type' => 'value',
     '#default_value' => $release->version,
   );
+  $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'api_major', t('API major version number'));
+    'api_major', t('API major'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'api_minor', t('API minor version number'));
+    'api_minor', t('API minor'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'major', t('Major version number'));
+    'major', t('Major'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'minor', t('Minor version number'));
+    'minor', t('Minor'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'patch', t('Patch-level version number'));
+    'patch', t('Patch-level'));
   _project_release_form_add_version_element($form, $release, $edit, $format,
-    'extra', t('Extra version identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 0);
+    'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
 
   if (!variable_get('project_release_directory', '') && empty($release->file_path)) {
     $form['file']['file'] = array(
@@ -278,7 +288,7 @@ function project_release_form(&$release, &$param) {
  * @param $description Translatable description of the form element.
  * @param $required Boolean for if the form element should be required
  */
-function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $required = FALSE) {
+function _project_release_form_add_version_element(&$form, $release, $edit, $format, $name, $title, $description = '', $size = 10) {
   $var_name = 'version_' . $name;
   $regexp = "@.*[!#%]$name.*@";
   if (preg_match($regexp, $format)) {
@@ -286,13 +296,14 @@ function _project_release_form_add_version_element(&$form, $release, $edit, $for
       '#type' => 'textfield',
       '#title' => $title,
       '#default_value' => $release->$var_name,
-      '#size' => 20,
-      '#maxlength' => 10,
+      '#size' => $size,
+      '#maxlength' => $size+10,
+      '#attributes' => array('style' => 'width:auto'),
     );
     if ($required) {
       // TODO: handle this more flexibly for sites not using CVS
       // perhaps if the format variable is UPPERCASE it's required,
-      // and lowercase is optional or something crazy? ;)
+      // and lowercase is optional or something crazy?
       $form[$var_name]['#required'] = TRUE;
     }
     if ($description) {
@@ -315,6 +326,26 @@ function _project_release_form_add_version_element(&$form, $release, $edit, $for
  * @ingroup project_release_node
  */
 function project_release_validate(&$edit, $form) {
+  if ($_POST['edit']['validate_version']) {
+    $project = $edit->project;
+    if (!$edit->version_api_major && !$edit->version_api_minor &&
+        !$edit->version_major && !$edit->version_minor &&
+        !$edit->version_patch && !$edit->version_extra) {
+      form_set_error('version_major', t('You must fill in some version information.'));
+    }
+    foreach (array('version_api_major' => 'API major version number', 'version_api_minor' => 'API minor version number', 'version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
+      $val = $edit->$field;
+      if (isset($val) && $val !== '' && !is_numeric($val)) {
+        form_set_error($field, t('%name must be a number.', array('%name' => $name)));
+      }
+    }
+    $val = $edit->version_patch;
+    if (isset($val) && $val !== '' && !is_numeric($val) && $val != 'x') {
+      form_set_error('version_patch', t("Patch-level version number must be numeric or the letter 'x'."));
+    }
+  }
+
+  // TODO: this doesn't handle NULL values correctly...
   $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_patch = %d AND version_extra = '%s' AND version_api_major = %d AND version_api_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_patch, $edit->version_extra, $edit->version_api_major, $edit->api_version_minor, $edit->nid);
 
   if ($release = db_fetch_object($result)) {
