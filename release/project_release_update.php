@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.11 2006/10/25 07:14:28 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.12 2006/10/25 07:36:05 dww Exp $
 
 /**
  * @file
@@ -90,7 +90,9 @@ function populate_project_release_projects() {
  */
 function convert_all_releases() {
   // First, re-load into memory mappings that we completed on previous runs
-  global $nids_by_rid;
+  global $nids_by_rid, $api_taxonomy;
+  $api_taxonomy = project_release_get_api_taxonomy();
+
   $query = db_query("SELECT nid, rid FROM {project_release_legacy}");
   while ($result = db_fetch_object($query)) {
     $nids_by_rid[$result->rid] = $result->nid;
@@ -131,7 +133,7 @@ function convert_release($old_release) {
   list($usec, $sec) = explode(' ', microtime());
   $start = (float)$usec + (float)$sec;
 
-  global $nids_by_rid;
+  global $nids_by_rid, $api_taxonomy;
 
   // First, save everything that's shared, regardless of the version/type
 
@@ -163,6 +165,7 @@ function convert_release($old_release) {
       $node->version_extra = 'dev';
       $node->rebuild = 1;
       $node->tag = 'HEAD';
+      $target_api = '5.x';
     }
     else {
       preg_match('/(\d+)\.(\d+)\.(\d+)(-.+)?/', $old_release->version, $matches);
@@ -172,6 +175,7 @@ function convert_release($old_release) {
       $node->version_extra = $matches[4];
       $node->tag = generate_core_tag($node);
       $node->rebuild = 0;
+      $target_api = "$matches[1].$matches[2].x";
     }
   }
   elseif ($old_release->version == 'cvs') {
@@ -188,21 +192,22 @@ function convert_release($old_release) {
     if ($matches[3] != 0) {
       print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
     }
-    if (project_release_use_taxonomy()) {
-      $tree = taxonomy_get_tree(_project_release_get_api_vid());
-      foreach ($tree as $i => $term) {
-        if ($term->name == "$matches[1].$matches[2].x") {
-          $node->taxonomy[$term->tid] = $term->tid;
-          $node->version_api_tid = $term->tid;
-          break;
-        }
-      }
-    }
+    $target_api = "$matches[1].$matches[2].x";
     $node->version_major = 0;
     $node->version_patch = 0;
     $node->version_extra = 'dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
     $node->rebuild = 1;
+  }
+
+  if (isset($target_api)) {
+    foreach ($api_taxonomy as $i => $term) {
+      if ($term->name == $target_api) {
+        $node->taxonomy[$term->tid] = $term->tid;
+        $node->version_api_tid = $term->tid;
+        break;
+      }
+    }
   }
 
   // Now, set the right kind of title.

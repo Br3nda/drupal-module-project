@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.25 2006/10/25 07:34:06 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.26 2006/10/25 07:36:05 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -39,7 +39,7 @@ function project_release_menu($may_cache) {
       }
     }
     theme_add_style(drupal_get_path('module', 'project_release') .'/project_release.css');
-    project_release_use_taxonomy();
+    project_release_get_api_taxonomy();
   }
   return $items;
 }
@@ -76,7 +76,7 @@ function project_release_settings() {
     '#options' => array('Disabled', 'Enabled'),
   );
 
-  if ($tree = project_release_use_taxonomy()) {
+  if ($tree = project_release_get_api_taxonomy()) {
     // TODO: put these 2 in a fieldset?
     $form['project_release_browse_versions'] = array(
       '#type' => 'checkbox',
@@ -397,7 +397,7 @@ function project_release_validate(&$edit, $form) {
       form_set_error('file', t('There was a problem uploading the specified file.'));
     }
   }
-  if (project_release_use_taxonomy()) {
+  if (project_release_get_api_taxonomy()) {
     $vid = _project_release_get_api_vid();
     if (isset($edit->taxonomy)) {
       $tid = $edit->taxonomy[$vid];
@@ -586,7 +586,7 @@ function project_release_get_version($release, $project = NULL) {
   $variables["%api"] = '';
   $variables["#api"] = '';
   $vid = _project_release_get_api_vid();
-  if (project_release_use_taxonomy()) { 
+  if (project_release_get_api_taxonomy()) { 
     if (isset($release->version_api_tid)) {
       $tid = $release->version_api_tid;
     }
@@ -710,7 +710,7 @@ function project_release_list($project, $main = 0) {
  * @ingroup project_release_api
  */
 function project_release_compatibility_list() {
-  if ($tree = project_release_use_taxonomy()) {
+  if ($tree = project_release_get_api_taxonomy()) {
     // TODO: perhaps this could JOIN against some table or we'd have a 
     // setting to control which terms are "active" and should be available.
     $terms[-1] = '<' . t('all') . '>';
@@ -742,7 +742,7 @@ function project_release_version_filter_form($version) {
 }
 
 function theme_project_release_version_filter_form($form) {
-  if (project_release_use_taxonomy()) {
+  if (project_release_get_api_taxonomy()) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     $label = $vocab->name;
   }
@@ -826,7 +826,7 @@ function project_release_alter_release_form(&$form) {
   global $user;
   $node = $form['#node'];
   $vid = _project_release_get_api_vid();
-  if (!project_release_use_taxonomy() && isset($form['taxonomy'][$vid])) {
+  if (!project_release_get_api_taxonomy() && isset($form['taxonomy'][$vid])) {
     unset($form['taxonomy'][$vid]);
   }
   else {
@@ -838,6 +838,7 @@ function project_release_alter_release_form(&$form) {
       $project->nid = arg(3);
     }
     if (isset($project->nid)) {
+/*
       $format = project_release_get_version_format($project);
       if (!preg_match('/[!#%]api/', $format)) {
         $vid = _project_release_get_api_vid();
@@ -846,6 +847,8 @@ function project_release_alter_release_form(&$form) {
         }
       }
       elseif (isset($tid) && !user_access('administer projects')) {
+*/
+      if (isset($tid) && !user_access('administer projects')) {
         // We're editing a release node, the user doesn't have
         // 'administer projects' permission, and we already have the 
         // api compatibility term, so we want to force it to stay.
@@ -914,12 +917,14 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
 
 /**
  * Returns the appropriate release download table for a project node.
- * TODO: make it work. ;)
+ * TODO: this should be a full-blown table
  * TODO: this should be themeable.
  */
 function project_release_project_download_table($node) {
-  $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
+  $release = node_load($node->version);
+  $links[] = l(t('Download default release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->file_date, 'small'), '%size' => format_size(filesize($release->file_path)))), 'node/' . $node->version);
   $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
+  $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
   return theme('item_list', $links, t('Releases'));
 }
 
@@ -936,10 +941,10 @@ function project_release_taxonomy($op, $type, $object = NULL) {
 }
 
 /**
- * Returns whether or not project releases should use a taxonomy for 
- * API compatibility within the version string
+ * If taxonomy is enabled, returns the taxonomy tree for the 
+ * API compatibility vocabulary, otherwise, it returns false.
  */
-function project_release_use_taxonomy() {
+function project_release_get_api_taxonomy() {
   if (!module_exist('taxonomy')) {
     return false;
   }
