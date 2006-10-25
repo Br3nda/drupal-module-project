@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.13 2006/10/25 07:39:25 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.14 2006/10/25 07:42:45 dww Exp $
 
 /**
  * @file
@@ -387,6 +387,7 @@ function populate_project_release_api_taxonomy() {
   $vocab['hierarchy'] = 0;
   $vocab['required'] = 1;
   $vocab['weight'] = -5;
+  $vocab['module'] = 'project_release';
   taxonomy_save_vocabulary($vocab);
 
   // Now, populate the terms we'll need:
