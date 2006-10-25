@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.8 2006/10/25 07:31:54 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.9 2006/10/25 07:34:06 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -361,8 +361,8 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     else {
       $version = variable_get('project_release_overview', -1);
     }
-    $form = project_version_filter_form($version);
-    $version_form = drupal_get_form('project_version_filter_form', $form);
+    $form = project_release_version_filter_form($version);
+    $version_form = drupal_get_form('project_release_version_filter_form', $form);
     if ($_POST['edit']['version_tid']) {
       $_SESSION['project_version'] = $form_values['version_tid'];
     }
@@ -581,8 +581,16 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     }
 
     // Make sure we have the latest release
+    // TODO: this needs help to handle projects with N branches for the
+    // same compatibility version...
     if ($project->release_count > 1) {
-      $latest = db_fetch_object(db_query_range("SELECT file_path, version FROM {project_release_nodes} WHERE nid = %d AND version LIKE '%s%%' ORDER BY version DESC", $project->nid, $version, 0, 1));
+      $values[] = $project->nid;
+      if ($version != -1) {
+        $VERSION_JOIN = 'INNER JOIN {term_node} t ON p.nid = t.nid';
+        $VERSION_WHERE = 'AND t.tid = %d';
+        $values[] = $version;
+      }
+      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p $VERSION_JOIN WHERE p.pid = %d $VERSION_WHERE ORDER BY file_date DESC", $values, 0, 1));
       $project->file_path = $latest->file_path;
       $project->version = $latest->version;
     }
@@ -768,36 +776,6 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
     }
   }
   return $projects;
-}
-
-function project_version_filter_form($version) {
-  if (module_exist('project_release') && $terms = project_release_compatibility_list()) {
-    $form['version_tid'] = array(
-      '#type' => 'select',
-      '#default_value' => $version,
-      '#options' => $terms,
-    );
-    $form['submit'] = array(
-      '#type' => 'button',
-      '#value' => t('Go')
-    );
-  }
-  else {
-    $form = array();
-  }
-  return $form;
-}
-
-function theme_project_version_filter_form($form) {
-  if (project_release_use_taxonomy()) {
-    $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
-    $label = $vocab->name;
-  }
-  else {
-    $label = t('version');
-  }
-  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => check_plain($label))) . form_render($form) . '</div>';
-  return $output;
 }
 
 function project_quick_navigate_form($projects) {

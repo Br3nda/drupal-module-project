@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.24 2006/10/25 07:31:54 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.25 2006/10/25 07:34:06 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -720,6 +720,39 @@ function project_release_compatibility_list() {
   }
   return $terms;
 }
+
+/**
+ * Creates a form array for the "filter by version" selector when browsing
+ * projects on a site with 'project_release_browse_versions' enabled.
+ * @see project_page_overview
+ */
+function project_release_version_filter_form($version) {
+  if ($terms = project_release_compatibility_list()) {
+    $form['version_tid'] = array(
+      '#type' => 'select',
+      '#default_value' => $version,
+      '#options' => $terms,
+    );
+    $form['submit'] = array(
+      '#type' => 'button',
+      '#value' => t('Go')
+    );
+  }
+  return $form;
+}
+
+function theme_project_release_version_filter_form($form) {
+  if (project_release_use_taxonomy()) {
+    $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
+    $label = $vocab->name;
+  }
+  else {
+    $label = t('version');
+  }
+  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => check_plain($label))) . form_render($form) . '</div>';
+  return $output;
+}
+
 
 /**
  * @defgroup project_release_fapi Form API hooks
