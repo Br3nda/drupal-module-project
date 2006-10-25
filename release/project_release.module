@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.18 2006/10/25 07:12:02 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.19 2006/10/25 07:14:28 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -184,7 +184,7 @@ function project_release_form(&$release, &$param) {
   else {
     global $user;
     $admin = user_access('administer projects');
-    $edit = true;
+    $is_edit = true;
     $project->nid = $release->pid;
     $format = project_release_get_version_format($project);
   }
@@ -193,9 +193,9 @@ function project_release_form(&$release, &$param) {
   $form['#prefix'] = '<div class="project-release">';
   $form['#suffix'] = '</div>';
  
-  _project_release_form_add_text_element($form['title'], t('Title'), $release->title, $edit, $admin);
+  _project_release_form_add_text_element($form['title'], t('Title'), $release->title, $is_edit, $admin);
 
-  _project_release_form_add_text_element($form['version']['version'], t('Version string'), $release->version, $edit, $admin);
+  _project_release_form_add_text_element($form['version']['version'], t('Version string'), $release->version, $is_edit, $admin);
 
   $form['pid'] = array(
     '#type' => 'value',
@@ -207,7 +207,7 @@ function project_release_form(&$release, &$param) {
     '#prefix' => '<div class="version-elements">',
     '#suffix' => '</div>',
   );
-  $modify = $admin || !$edit;
+  $modify = $admin || !$is_edit;
   $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
   _project_release_form_add_version_element($form, $release, $modify, $format,
     'major', t('Major'));
@@ -240,7 +240,7 @@ function project_release_form(&$release, &$param) {
   );
   $form['body_filter']['format'] = filter_form($node->format);
 
-  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $edit, $admin);
+  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $is_edit, $admin);
   if ($admin) {
     $form['tag']['rebuild'] = array(
       '#type' => 'checkbox',
@@ -254,11 +254,9 @@ function project_release_form(&$release, &$param) {
       '#value' => $release->rebuild,
     );
   }
-  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $edit, $admin, false);
-  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $edit, false);
-  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $edit, false);
-
-  
+  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $is_edit, $admin, false);
+  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $is_edit, false);
+  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $is_edit, false);
 
   return $form;
 }
@@ -328,12 +326,12 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
  * @param $form Reference to form element to add
  * @param $title Translatable title of the form element
  * @param $value The value to use in the form
- * @param $edit Boolean indicating if we're editing or creating
+ * @param $is_edit Boolean indicating if we're editing or creating
  * @param $admin Boolean for if the edit is by a project administrator
  * @param $required Boolean for if the field should be required
  */
-function _project_release_form_add_text_element(&$form, $title, $value, $edit, $admin, $required = true) {
-  if ($edit && !empty($value)) {
+function _project_release_form_add_text_element(&$form, $title, $value, $is_edit, $admin, $required = true) {
+  if ($is_edit && !empty($value)) {
     $form = array(
       '#type' => 'textfield',
       '#title' => $title,
@@ -781,6 +779,7 @@ function project_release_alter_project_form(&$form) {
  * @see project_release_form_alter
  */
 function project_release_alter_release_form(&$form) {
+  global $user;
   $node = $form['#node'];
   $vid = _project_release_get_api_vid();
   if (!project_release_use_taxonomy() && isset($form['taxonomy'][$vid])) {
@@ -789,6 +788,7 @@ function project_release_alter_release_form(&$form) {
   else {
     if (isset($node->pid)) {
       $project->nid = $node->pid;
+      $tid = $node->version_api_tid;
     }
     elseif (arg(1) == 'add' && is_numeric(arg(3))) {
       $project->nid = arg(3);
@@ -798,8 +798,16 @@ function project_release_alter_release_form(&$form) {
       if (!preg_match('/[!#%]api/', $format)) {
         $vid = _project_release_get_api_vid();
         if (isset($form['taxonomy'][$vid])) {
-	  unset($form['taxonomy'][$vid]);
+          unset($form['taxonomy'][$vid]);
         }
+      }
+      elseif (isset($tid) && !user_access('administer projects')) {
+        // We're editing a release node, the user doesn't have
+        // 'administer projects' permission, and we already have the 
+        // api compatibility term, so we want to force it to stay.
+        $options[$tid] = $form['taxonomy'][$vid]['#options'][$tid];
+        $form['taxonomy'][$vid]['#options'] = $options;
+        $form['taxonomy'][$vid]['#default_value'] = $tid;
       }
     }
   }
@@ -874,7 +882,7 @@ function project_release_project_download_table($node) {
  * Implementation of hook_taxonomy().
  */
 function project_release_taxonomy($op, $type, $object = NULL) {
-  if ($op == 'delete' && $type == 'vocabulary' && $object->vid == _project_get_api_vid()) {
+  if ($op == 'delete' && $type == 'vocabulary' && $object->vid == _project_release_get_api_vid()) {
     variable_del('project_release_api_vocabulary');
   }
   elseif ($type == 'term' && $object->vid == _project_release_get_api_vid()) {

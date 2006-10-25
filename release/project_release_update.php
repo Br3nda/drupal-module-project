@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.10 2006/10/25 07:12:02 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.11 2006/10/25 07:14:28 dww Exp $
 
 /**
  * @file
@@ -192,7 +192,8 @@ function convert_release($old_release) {
       $tree = taxonomy_get_tree(_project_release_get_api_vid());
       foreach ($tree as $i => $term) {
         if ($term->name == "$matches[1].$matches[2].x") {
-          $version->taxonomy[$term->tid] = $term->tid;
+          $node->taxonomy[$term->tid] = $term->tid;
+          $node->version_api_tid = $term->tid;
           break;
         }
       }
@@ -361,6 +362,34 @@ function create_legacy_tables() {
   }
 }
 
+function populate_project_release_api_taxonomy() {
+  $vid = _project_release_get_api_vid();
+
+  // First, customize the vocabulary itself for our needs:
+  $vocab['vid'] = $vid;
+  $vocab['name'] = 'Drupal Core compatibility';
+  $vocab['nodes']['project_release'] = 1;
+  $vocab['help'] = 'Specify what version of Drupal Core this release is compatible with.';
+  $vocab['hierarchy'] = 0;
+  $vocab['required'] = 1;
+  $vocab['weight'] = -5;
+  taxonomy_save_vocabulary($vocab);
+
+  // Now, populate the terms we'll need:
+  $terms[] = '5.x';
+  for ($i=7; $i>=0; $i--) {
+    $terms[] = "4.$i.x";
+  }
+  foreach ($terms as $weight => $name) {
+    $edit = array();
+    $edit['vid'] = $vid;
+    $edit['name'] = $name;
+    $edit['description'] = "Releases of Drupal contributions that are compatible with version $name of Drupal Core";
+    $edit['weight'] = $weight;
+    taxonomy_save_term($edit);
+  }
+}
+
 
 /*
  *------------------------------------------------------------
@@ -387,6 +416,9 @@ if (file_exists("$path/project.install")) {
 }
 
 $nids_by_rid = array();
+
+populate_project_release_api_taxonomy();
+
 create_legacy_tables();
 
 populate_project_release_projects();
