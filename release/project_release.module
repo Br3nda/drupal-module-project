@@ -1,6 +1,16 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.6 2006/10/25 00:41:38 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.7 2006/10/25 06:26:46 dww Exp $ */
 
+define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '%major.%minor.%patch%extra');
+
+/**
+ * @defgroup project_release_core Core Drupal hooks
+ */
+
+/**
+ * Implementation of hook_help().
+ * @ingroup project_release_core
+ */
 function project_release_help($section) {
   switch ($section) {
     case 'admin/modules#description':
@@ -10,14 +20,9 @@ function project_release_help($section) {
   }
 }
 
-function project_release_node_info() {
-  return array(
-    'project_release' => array('name' => t('project release'), 'base' => 'project_release'),
-  );
-}
-
 /**
  * Implementation of hook_menu()
+ * @ingroup project_release_core
  */
 function project_release_menu($may_cache) {
   $items = array();
@@ -38,30 +43,8 @@ function project_release_menu($may_cache) {
 }
 
 /**
- * Implementation of hook_access().
- *
- * TODO: this needs more testing and review. Maybe we should add new
- * permissions for accessing release nodes, but for now, we're just
- * using the existing project perms.
- */
-function project_release_access($op, $node) {
-  global $user;
-  switch ($op) {
-    case 'view':
-      return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
-    case 'create':
-      if (user_access('maintain projects') || user_access('administer projects')) {
-        return TRUE;
-      }
-      return FALSE;
-    case 'update':
-    case 'delete':
-      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
-  }
-}
-
-/**
  * Callback for the main settings page.
+ * @ingroup project_release_core
  */
 function project_release_settings() {
   $versions = array(-1 => t('all')) + project_releases_list();
@@ -78,7 +61,7 @@ function project_release_settings() {
   $form['project_release_default_version_format'] = array(
     '#type' => 'textfield',
     '#title' => t('Default version format string'),
-    '#default_value' => variable_get('project_release_default_version_format', '%major.%minor.%patch%extra'),
+    '#default_value' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT),
     '#size' => 50,
     '#maxlength' => 255,
     '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra.',
@@ -103,8 +86,48 @@ function project_release_settings() {
   return $form;
 }
 
+
+/**
+ * @defgroup project_release_node Drupal node-type related hooks 
+ */
+
+/**
+ * Implementation of hook_access().
+ * @ingroup project_release_node
+ *
+ * TODO: this needs more testing and review. Maybe we should add new
+ * permissions for accessing release nodes, but for now, we're just
+ * using the existing project perms.
+ */
+function project_release_access($op, $node) {
+  global $user;
+  switch ($op) {
+    case 'view':
+      return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
+    case 'create':
+      if (user_access('maintain projects') || user_access('administer projects')) {
+        return TRUE;
+      }
+      return FALSE;
+    case 'update':
+    case 'delete':
+      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+  }
+}
+
+/**
+ * Implementation of hook_node_info().
+ * @ingroup project_release_node
+ */
+function project_release_node_info() {
+  return array(
+    'project_release' => array('name' => t('project release'), 'base' => 'project_release'),
+  );
+}
+
 /**
  * Implementation of hook_form().
+ * @ingroup project_release_node
  */
 function project_release_form(&$release, &$param) {
   if (arg(1) == 'add') {
@@ -123,10 +146,14 @@ function project_release_form(&$release, &$param) {
       '#type' => 'value',
       '#value' => $project,
     );
+    $format = project_release_get_version_format($project);
   }
   else {
     $edit = true;
+    $project->nid = $release->pid;
+    $format = project_release_get_version_format($project);
   }
+
   $form['#attributes'] = array("enctype" => "multipart/form-data");
  
   $form['title'] = array(
@@ -138,60 +165,18 @@ function project_release_form(&$release, &$param) {
     '#default_value' => $release->version,
   );
 
-  // TODO: only provide UI elements for version fields that are
-  // specified in the active format string for this project...
-
-  $form['version_major'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Major version number'),
-    '#default_value' => $release->version_major,
-    '#size' => 20,
-    '#maxlength' => 10,
-    '#required' => TRUE,
-  );
-  if ($edit) {
-    $form['version_major']['#attributes'] = array('disabled' => $edit);
-  }
-
-  $form['version_minor'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Minor version number'),
-    '#default_value' => $release->version_minor,
-    '#size' => 20,
-    '#maxlength' => 10,
-    '#required' => TRUE,
-  );
-  if ($edit) {
-    $form['version_minor']['#attributes'] = array('disabled' => $edit);
-  }
-
-  // TODO: it should be configurable which projects allow this field.
-  // Either as a global setting (e.g. a regexp that matches the
-  // project somehow) or as a setting in a {project_release_projects}
-  // table (which requires 'administer project' perms to see the UI
-  // that can alter it per-project)...
-  $form['version_patch'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Patch-level version number'),
-    '#default_value' => $release->version_patch,
-    '#size' => 20,
-    '#maxlength' => 10,
-  );
-  if ($edit) {
-    $form['version_patch']['#attributes'] = array('disabled' => $edit);
-  }
-
-  $form['version_extra'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Extra version identifier'),
-    '#default_value' => $release->version_extra,
-    '#size' => 20,
-    '#maxlength' => 10,
-    '#description' => t('Optionally specify other identifying information for this version, for example "rc1" or "dev". In most cases, this should be left blank.'),
-  );
-  if ($edit) {
-    $form['version_extra']['#attributes'] = array('disabled' => $edit);
-  }
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%super_major', 'version_super_major', t('Super major version number'));
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%super_minor', 'version_super_minor', t('Super minor version number'));
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%major', 'version_major', t('Major version number'));
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%minor', 'version_minor', t('Minor version number'));
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%patch', 'version_patch', t('Patch-level version number'));
+  _project_release_form_add_version_element($form, $release, $edit, $format,
+    '%extra', 'version_extra', t('Extra version identifier'), t('Optionally specify other identifying information for this version, for example "-rc1" or "-dev". In most cases, this should be left blank.'), 0);
 
   if (!variable_get('project_release_directory', '') && empty($release->file_path)) {
     $form['file'] = array(
@@ -206,7 +191,7 @@ function project_release_form(&$release, &$param) {
 
   $form['body'] = array(
     '#type' => 'textarea',
-    '#title' => t('Changes'),
+    '#title' => t('Description'),
     '#default_value' => $release->body,
     '#rows' => 10,
     '#cols' => 40,
@@ -239,19 +224,61 @@ function project_release_form(&$release, &$param) {
     '#type' => 'value',
     '#value' => $release->file_path,
   );
-  $form['version_super_major'] = array(
-    '#type' => 'value',
-    '#value' => $release->version_super_major,
-  );
-  $form['version_super_minor'] = array(
-    '#type' => 'value',
-    '#value' => $release->version_super_minor,
-  );
   return $form;
 }
 
 /**
+ * @defgroup project_release_internal Internal module functions
+ */
+
+/**
+ * Modifies the given $form array to add the appropriate form element
+ * for the requested version field. Since the 20+ lines of code in
+ * here have to be duplicated 6 times in project_release_form(), this
+ * function exists so we can reuse the code.
+ * @see project_release_form
+ * @ingroup project_release_internal
+ *
+ * @param $form Form array to modify
+ * @param $release Relase node the form is for
+ * @param $edit Boolean indicating if we're editing or creating
+ * @param $format Version format string for this project
+ * @param $format_name Format string value for this element (e.g. '%major')
+ * @param $var_name Name of the variable this version element lives in
+ * @param $title Translatable title of the form element
+ * @param $description Translatable description of the form element.
+ * @param $required Boolean for if the form element should be required
+ */
+function _project_release_form_add_version_element(&$form, $release, $edit, $format, $format_name, $var_name, $title, $description = '', $required = TRUE) {
+  if (strpos($format, $format_name) !== FALSE) {
+    $form[$var_name] = array(
+      '#type' => 'textfield',
+      '#title' => $title,
+      '#default_value' => $release->$var_name,
+      '#size' => 20,
+      '#maxlength' => 10,
+    );
+    if ($required) {
+      $form[$var_name]['#required'] = TRUE;
+    }
+    if ($description) {
+      $form[$var_name]['#description'] = $description;
+    }
+    if ($edit) {
+      $form[$var_name]['#attributes'] = array('disabled' => $edit);
+    }
+  }
+  else {
+    $form["$var_name"] = array(
+      '#type' => 'value',
+      '#value' => $release->$var_name,
+    );
+  }
+}
+
+/**
  * Implementation of hook_validate().
+ * @ingroup project_release_node
  */
 function project_release_validate(&$edit, $form) {
   $result = db_query("SELECT * FROM {project_release_nodes} WHERE pid = %d AND version_major = %d AND version_minor = %d AND version_patch = %d AND version_extra = '%s' AND version_super_major = %d AND version_super_minor = %d AND nid != %d", $edit->pid, $edit->version_major, $edit->version_minor, $edit->version_patch, $edit->version_extra, $edit->version_super_major, $edit->super_version_minor, $edit->nid);
@@ -281,6 +308,7 @@ function project_release_validate(&$edit, $form) {
 
 /**
  * Implementation of hook_load().
+ * @ingroup project_release_node
  */
 function project_release_load($node) {
   $additions = db_fetch_object(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
@@ -289,6 +317,7 @@ function project_release_load($node) {
 
 /**
  * Implementation of hook_insert().
+ * @ingroup project_release_node
  */
 function project_release_insert($node) {
   db_query("INSERT INTO {project_release_nodes} (nid, pid, version, tag, file_path, file_date, file_hash, rebuild, version_super_major, version_super_minor, version_major, version_minor, version_patch, version_extra) VALUES (%d, %d, '%s', '%s', '%s', %d, '%s', %d, %d, %d, %d, %d, %d, '%s')", $node->nid, $node->pid, $node->version, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_patch, $node->version_extra);
@@ -296,6 +325,7 @@ function project_release_insert($node) {
 
 /**
  * Implementation of hook_update().
+ * @ingroup project_release_node
  */
 function project_release_update($node) {
   db_query("UPDATE {project_release_nodes} SET pid = %d, version = '%s', tag = '%s', file_path = '%s', file_date = %d, file_hash = '%s', rebuild = %d, version_super_major = %d, version_super_minor = %d, version_major = %d, version_minor = %d, version_patch = %d, version_extra = '%s' WHERE nid = %d", $node->pid, $node->version, $node->tag, $node->file_path, $node->file_date, $node->file_hash, $node->rebuild, $node->version_super_major, $node->version_super_minor, $node->version_major, $node->version_minor, $node->version_patch, $node->version_extra, $node->nid);
@@ -303,6 +333,7 @@ function project_release_update($node) {
 
 /**
  * Implementation of hook_delete().
+ * @ingroup project_release_node
  */
 function project_release_delete($node) {
   if ($node->file_path) {
@@ -311,8 +342,15 @@ function project_release_delete($node) {
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
 }
 
+
+/**
+ * @defgroup project_release_api Project release functions that other
+ * modules might want to use
+ */
+
 /**
  * Returns the version format string for a given project
+ * @ingroup project_release_api
  */
 function project_release_get_version_format($project) {
   if (!empty($project->version_format)) {
@@ -324,16 +362,12 @@ function project_release_get_version_format($project) {
     return $db_format;
   }
 
-  $admin_setting = variable_get('project_release_default_version_format', FALSE);
-  if (!empty($admin_setting)) {
-    return $admin_setting;
-  }
-
-  return '%major.%minor';
+  return variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT);
 }
 
 /**
  * Returns the formatted version string for a given release node.
+ * @ingroup project_release_api
  */
 function project_release_get_version($release, $project = NULL) {
   if (isset($project)) {	 
@@ -356,6 +390,7 @@ function project_release_get_version($release, $project = NULL) {
 
 /**
  * Implementation of hook_view().
+ * @ingroup project_release_node
  */
 function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   $project = node_load($release->pid);
@@ -389,6 +424,7 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
 
 /**
  * Display a list of releases for a given project
+ * @ingroup project_release_api
  */
 function project_release_project_releases() {
   $node = node_load(arg(1));
@@ -408,6 +444,7 @@ function project_release_project_releases() {
 
 /**
  * Get an array of release nodes
+ * @ingroup project_release_api
  */
 function project_release_get_releases($project, $nodes = true) {
   $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE r.pid = %d ORDER BY n.created DESC"), $project->nid);
@@ -423,6 +460,15 @@ function project_release_get_releases($project, $nodes = true) {
   return $releases;
 }
 
+
+/**
+ * @defgroup project_release_callback Menu callback functions
+ */
+
+/**
+ * Returns a listing of project release nodes
+ * @ingroup project_release_callback
+ */
 function project_release_list($project, $main = 0) {
   if ($releases = project_release_get_releases($project)) {
     foreach ($releases as $release) {
@@ -432,12 +478,22 @@ function project_release_list($project, $main = 0) {
   }
 }
 
+/**
+ * Returns a listing of all unique version strings in the system.
+ * @ingroup project_release_api
+ *
+ * TODO: This is potentially scary. We're not really going to want
+ * exactly this behavior in the new system. We should reconsider the
+ * places that call this (luckily, only project_releases_settings()
+ * and from inside the directory scanning stuff, which may be removed)
+ * and figure out how this should work...
+ */
 function project_releases_list($refresh = FALSE) {
   if (!$refresh && ($versions = cache_get('project_releases'))) {
     $versions = unserialize($versions->data);
   }
   else {
-    $result = db_query("SELECT version FROM {project_releases} WHERE status = 1 GROUP BY version, created ORDER BY created DESC;");
+    $result = db_query("SELECT prn.version FROM {project_release_nodes} prn INNER JOIN {node} n on n.nid = prn.nid WHERE n.status = 1 GROUP BY prn.version, n.created ORDER BY n.created DESC;");
     $versions = array();
     while ($object = db_fetch_object($result)) {
       $version = preg_replace('/^(.+?)\.?(?:\d+)?$/', '\1', $object->version);
@@ -450,8 +506,14 @@ function project_releases_list($refresh = FALSE) {
   return $versions;
 }
 
+
+/**
+ * @defgroup project_release_fapi Form API hooks
+ */
+
 /**
  * Implementation of hook_form_alter().
+ * @ingroup project_release_fapi
  */
 function project_release_form_alter($form_id, &$form) {
   if ($form_id == 'project_project_node_form') {
@@ -461,6 +523,7 @@ function project_release_form_alter($form_id, &$form) {
 
 /**
  * Alters the project_project node form to add release settings.
+ * @ingroup project_release_fapi
  * @see project_release_form_alter
  */
 function project_release_alter_project_form(&$form) {
@@ -488,15 +551,20 @@ function project_release_alter_project_form(&$form) {
       '#default_value' => $node->version_format,
       '#size' => 50,
       '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. ' .t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', '')))),
+      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %super_major, %super_minor, %major, %minor, %patch, %extra. ' .t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
     );
   }
 }
 
+
+/**
+ * @defgroup project_release_nodeapi Node API hooks
+ */
+
 /**
  * hook_nodeapi() implementation. This just decides what type of node
  * is being passed, and calls the appropriate type-specific hook.
- *
+ * @ingroup project_release_nodeapi
  * @see project_release_project_nodeapi().
  */
 function project_release_nodeapi(&$node, $op, $arg) {
@@ -510,6 +578,7 @@ function project_release_nodeapi(&$node, $op, $arg) {
 /**
  * hook_nodeapi implementation specific to "project_project" nodes
  * (from the project.module)
+ * @ingroup project_release_nodeapi
  * @see project_release_nodeapi().
  */
 function project_release_project_nodeapi(&$node, $op, $arg) {
@@ -530,7 +599,8 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
       break;
 
     case 'delete':
-      // TODO: delete all release nodes associated with this project, too.
+      // TODO: unpublish (delete?) all release nodes associated with
+      // this project, too.
       db_query('DELETE FROM {project_release_projects} WHERE nid = %d', $node->nid);
       break;
   }
