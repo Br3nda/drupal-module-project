@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.30 2006/10/25 22:28:17 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.31 2006/11/02 20:24:15 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -78,7 +78,7 @@ function project_release_settings() {
 
   if ($tree = project_release_get_api_taxonomy()) {
     foreach ($tree as $term) {
-      $terms[$term->tid] = $term->name;
+      $terms[$term->tid] = check_plain($term->name);
     }
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     $tids = variable_get('project_release_active_compatibility_tids', '');
@@ -635,7 +635,7 @@ function project_release_get_version($release, $project = NULL) {
     }
   }
   $version_format = project_release_get_version_format($node);
-  return strtr($version_format, $variables);
+  return check_plain(strtr($version_format, $variables));
 }
 
 /**
@@ -779,12 +779,12 @@ function project_release_version_filter_form($version) {
 function theme_project_release_version_filter_form($form) {
   if (project_release_get_api_taxonomy()) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
-    $label = $vocab->name;
+    $label = check_plain($vocab->name);
   }
   else {
     $label = t('version');
   }
-  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => check_plain($label))) . form_render($form) . '</div>';
+  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => $label)) . form_render($form) . '</div>';
   return $output;
 }
 
@@ -888,7 +888,7 @@ function project_release_alter_release_form(&$form) {
 	  // Restrict to the active terms (if any).
           foreach ($form['taxonomy'][$vid]['#options'] as $tid => $name) {
              if ($tid && $tids[$tid]) {
-              $options[$tid] = $name;
+              $options[$tid] = check_plain($name);
             }
           }
           if (!empty($options)) {
@@ -1064,4 +1064,3 @@ function project_release_exists($version) {
   $values = array_merge(array('pid' => $version->pid), $values);
   return db_num_rows(db_query($sql, $values));
 }
-
