@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.15 2006/10/25 10:58:55 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.16 2006/11/03 17:02:12 dww Exp $
 
 /**
  * @file
@@ -19,7 +19,7 @@ function generate_core_tag($node) {
   }
   $tag .= $node->version_patch;
   if (!empty($node->version_extra)) {
-    $tag .= strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
+    $tag .= '-' . strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
   }
   return $tag;
 } 
@@ -100,8 +100,6 @@ function convert_all_releases() {
       db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $result->nid, $result->rid);
     }
   }
-  $num = 0;
-  $start_time = time();
 
   // We desperately need an index on rid for the {project_issues}
   // table while doing the conversion, otherwise we spend between
@@ -109,13 +107,18 @@ function convert_all_releases() {
   // it only takes about 1 minute on the whole d.o DB.
   db_query("ALTER TABLE {project_issues} ADD KEY rid (rid)");
 
+  $num_converted = 0;
+  $num_considered = 0;
+  $start_time = time();
   $releases = db_query("SELECT pr.*, n.uid, n.title AS project_title FROM {project_releases} pr INNER JOIN {node} n ON pr.nid = n.nid LEFT JOIN {project_release_legacy} prl ON pr.rid = prl.rid WHERE prl.rid IS NULL");
   while ($old_release = db_fetch_object($releases)) {
-    convert_release($old_release);
-    $num++;
+    if (convert_release($old_release)) {
+      $num_converted++;
+    }
+    $num_considered++;
   }
 
-  print t('Converted %num releases into nodes in %interval<br>', array('%num' => $num, '%interval' => format_interval(time() - $start_time)));
+  print t('Considered %num_considered releases, converted %num_converted into nodes in %interval<br>', array('%num_considered' => $num_considered, '%num_converted' => $num_converted, '%interval' => format_interval(time() - $start_time)));
 }
 
 /**
@@ -167,15 +170,28 @@ function convert_release($old_release) {
       $node->tag = 'HEAD';
       $target_api = '5.x';
     }
-    else {
-      preg_match('/(\d+)\.(\d+)\.(\d+)(-.+)?/', $old_release->version, $matches);
+    elseif (preg_match('/^(\d+)\.(\d+)(-.+)?$/', $old_release->version, $matches)) {
+      // Handle "5.x" style releases
+      $node->version_major = $matches[1];
+      $node->version_patch = $matches[2];
+      $node->version_extra = preg_replace('/^-(.+)$/', '\1', $matches[3]);
+      $node->tag = generate_core_tag($node);
+      $node->rebuild = 0;
+      $target_api = "$matches[1].x";
+    }
+    elseif (preg_match('/^(\d+)\.(\d+)\.(\d+)(-.+)?$/', $old_release->version, $matches)) {
+      // Handle "4.7.x" style releases
       $node->version_major = $matches[1];
       $node->version_minor = $matches[2];
       $node->version_patch = $matches[3];
-      $node->version_extra = $matches[4];
+      $node->version_extra = preg_replace('/^-(.+)$/', '\1', $matches[4]);
       $node->tag = generate_core_tag($node);
       $node->rebuild = 0;
       $target_api = "$matches[1].$matches[2].x";
+    }
+    else {
+      print("<b>ERROR:</b> release $old_release->rid of $old_release->project_title has malformed version ($old_release->version)<br>");
+      return false;
     }
   }
   elseif ($old_release->version == 'cvs') {
@@ -188,7 +204,7 @@ function convert_release($old_release) {
   }
   else {
     // Nightly tarball from a specific branch.
-    preg_match('/(\d+)\.(\d+)\.(\d+)/', $old_release->version, $matches);
+    preg_match('/^(\d+)\.(\d+)\.(\d+)$/', $old_release->version, $matches);
     if ($matches[3] != 0) {
       print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
     }
@@ -258,6 +274,7 @@ function convert_release($old_release) {
   // Finally, add an entry to the {project_release_legacy} table so we
   // know the mapping of the old rid to the new nid.
   db_query("INSERT INTO {project_release_legacy} (rid, nid, pid, time, save_ms, update_ms) VALUES (%d, %d, %d, %d, %d, %d)", $rid, $nid, $old_release->pid, $diff, $save_diff, $update_diff);
+  return true;
 }
 
 function convert_issue_followups() {
