@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.4 2006/10/25 09:35:12 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.5 2006/11/03 18:06:28 dww Exp $
 
 /**
  * @file
@@ -15,33 +15,92 @@
  * 
  */
 
-// ---------------
-// Settings
-// ---------------
+// ------------------------------------------------------------
+// Required customization
+// ------------------------------------------------------------
 
+// The root of your Drupal installation, so we can properly bootstrap
+// Drupal. This should be the full path to the directory that holds
+// your index.php file, the "includes" subdirectory, etc.
+$drupal_root = '';
+
+// The name of your site. Required so that when we bootstrap Drupal in
+// this script, we find the right settings.php file in your sites folder. 
+// For example, on drupal.org:
 // $site_name = 'drupal.org';
-$site_name = 'iskra.local';
+$site_name = '';
 
-// -- Files
-$drupal_root = '/Users/wright/drupal/cvs/4.7/core.do';
+// The CVSROOT for the repository this script will be packaging
+// releases from.  For example, on drupal.org:
+// $cvs_root = ':pserver:anonymous@cvs.drupal.org:/cvs/drupal';
+$cvs_root = '';
+
+// Temporary directory where you want packages to be created.
+$tmp_dir = '';
+
+// Location of the LICENSE.txt file you want included in all packages.
+$license = '';
+
+// Location of the INSTALL.txt file you want included in all
+// translation packages.
+$trans_install = '';
+
+
+// ------------------------------------------------------------
+// Optional customization
+// ------------------------------------------------------------
+
+// ----------------
+// File destination
+// ----------------
+// This assumes you want to install the packaged releases in the
+// "files/projects" directory of your root Drupal installation. If
+// that's not the case, you should customize these.
 $dest_root = $drupal_root;
 $dest_rel = 'files/projects';
-$license = '/Users/wright/drupal/release-package/contributions/LICENSE.txt';
-$trans_install = '/Users/wright/drupal/release-package/contributions/translations/INSTALL.txt';
-$tmp_dir = '/tmp/drupal';
 
-// -- Programs
+// --------------
+// External tools
+// --------------
+// If you want this program to always use absolute paths for all the
+// tools it invokes, provide a full path for each one. Otherwise,
+// the script will find these tools in your PATH.
 $tar = '/usr/bin/tar';
+$gzip = '/usr/bin/gzip';
+$cvs = '/usr/bin/cvs';
+$ln = '/bin/ln';
 $rm = '/bin/rm';
+$msgcat = 'msgcat';
+$msgattrib = 'msgattrib';
+$msgfmt = 'msgfmt';
 
 
-// ---------------
+// ------------------------------------------------------------ 
 // Initialization
-// ---------------
+// (Real work begins here, nothing else to customize)
+// ------------------------------------------------------------ 
 
-$script_name = 'package-release-nodes.php';
-//putenv('CVSROOT=:pserver:anonymous@cvs.drupal.org:/cvs/drupal');
-putenv('CVSROOT=/cvs/drupal');
+// Check if all required variables are defined
+$vars = array(
+ 'drupal_root' => $drupal_root,
+ 'site_name' => $site_name,
+ 'cvs_root' => $cvs_root,
+ 'tmp_dir' => $tmp_dir,
+ 'license' => $license,
+ 'trans_install' => $trans_install,
+);
+foreach ($vars as $name => $val) {
+  if (empty($val)) {
+    print "ERROR: \"\$$name\" variable not set, aborting\n";
+    $fatal_err = true;
+  }
+}
+if ($fatal_err) {
+  exit(1);
+}
+
+putenv("CVSROOT=$cvs_root");
+$script_name = $argv[0];
 
 // Find what kind of packaging we need to do
 if ($argv[1]) {
@@ -59,6 +118,7 @@ switch($task) {
     exit (1);
 }
 
+// Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
 $_SERVER['REQUEST_URI'] = '/' . $script_name;
 $_SERVER['SCRIPT_NAME'] = '/' . $script_name;
@@ -66,7 +126,11 @@ $_SERVER['PHP_SELF'] = '/' . $script_name;
 $_SERVER['SCRIPT_FILENAME'] = $_SERVER['PWD'] . '/' . $script_name;
 $_SERVER['PATH_TRANSLATED'] = $_SERVER['SCRIPT_FILENAME'];
 
-chdir($drupal_root);
+if (!chdir($drupal_root)) {
+  print "ERROR: Can't chdir($drupal_root): aborting.\n";
+  exit(1);
+}
+
 require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
@@ -123,7 +187,8 @@ function package_releases($type) {
 
 
 function package_release_core($nid, $id, $rev, $check_new) {
-  global $tmp_dir, $tar, $rm, $repositories, $dest_root, $dest_rel;
+  global $tmp_dir, $repositories, $dest_root, $dest_rel;
+  global $cvs, $tar, $gzip, $rm;
   $rid = 1;
 
   if (!chdir($tmp_dir)) {
@@ -136,11 +201,11 @@ function package_release_core($nid, $id, $rev, $check_new) {
   $full_dest = $dest_root . '/' . $file_path;
 
   // Actually generate the tarball:
-  `cvs -q co $rev -Pd $id drupal`;
+  `$cvs -q co $rev -Pd $id drupal`;
   // TODO: do we even care about $check_new?  The old script didn't...
-  `$tar -c --exclude=CVS --file=- $id | gzip -9 --no-name > $full_dest`;
+  `$tar -c --exclude=CVS --file=- $id | $gzip -9 --no-name > $full_dest`;
 
-  `$rm -rf $id`;
+  `$rm -rf $tmp_dir/$id`;
   // TODO: need better error checking
 
   package_release_update_node($nid, $file_path);
@@ -149,7 +214,9 @@ function package_release_core($nid, $id, $rev, $check_new) {
 
 
 function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
-  global $tmp_dir, $tar, $rm, $repositories, $dest_root, $dest_rel;
+  global $tmp_dir, $repositories, $dest_root, $dest_rel;
+  global $cvs, $tar, $gzip, $rm, $ln;
+  global $msgcat, $msgattrib, $msgfmt;
   global $license, $trans_install;
   $rid = 2;
   // Files to ignore when checking timestamps:
@@ -179,7 +246,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
 */
 
   // Checkout this release from CVS, and see if we need to rebuild it
-  `cvs -q co $rev $fulldir`;
+  `$cvs -q co $rev $fulldir`;
   chdir($basedir);
   if ($contrib_type == 'translations') {
     $exclude = array_merge($exclude, 'README.txt');
@@ -195,7 +262,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   }
 
   // Link not copy, since we want to preserve the date...
-  `ln -sf $license $uri/LICENSE.txt`;
+  `$ln -sf $license $uri/LICENSE.txt`;
   if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
     if ($handle = opendir($uri)) {
       $po_files = array();
@@ -211,11 +278,11 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
         @unlink("$uri/$uri.po");
         $po_targets = "$uri/general.po ";
         $po_targets .= implode(' ', $po_files);
-        `msgcat $po_targets | msgattrib --no-fuzzy -o $uri/$uri.po`;
+        `$msgcat $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po`;
       }
     }
     if (is_file("$uri/$uri.po")) {
-      `msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt`;
+      `$msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt`;
       $to_tar = "$uri/*.txt $uri/$uri.po";
     }
     else {
@@ -229,9 +296,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   }
   
   // 'h' is for dereference, we want to include the files, not the links
-  `$tar -ch --exclude=CVS --file=- $to_tar | gzip -9 --no-name > $full_dest`;
+  `$tar -ch --exclude=CVS --file=- $to_tar | $gzip -9 --no-name > $full_dest`;
 
-  `$rm -rf $uri`;
+  `$rm -rf $tmp_dir/$basedir/$uri`;
   // TODO: need better error checking
 
   package_release_update_node($nid, $file_path);
@@ -313,7 +380,7 @@ function translation_status($dir, $version) {
 
   $number_of_strings = translation_number_of_strings('drupal-pot', $version);
 
-  $line = exec("msgfmt --statistics $dir/$dir.po 2>&1");
+  $line = exec("$msgfmt --statistics $dir/$dir.po 2>&1");
   $words = preg_split('[\s]', $line, -1, PREG_SPLIT_NO_EMPTY);
         
   if (is_numeric($words[0]) && is_numeric($number_of_strings)) {
@@ -364,8 +431,8 @@ function translation_report($versions) {
 function translation_number_of_strings($dir, $version) {
   static $number_of_strings = array();
   if (!isset($number_of_strings[$version])) {
-    `msgcat $dir/general.pot $dir/[^g]*.pot | msgattrib --no-fuzzy -o $dir/$dir.pot`;
-    $line = exec("msgfmt --statistics $dir/$dir.pot 2>&1");
+    `$msgcat $dir/general.pot $dir/[^g]*.pot | $msgattrib --no-fuzzy -o $dir/$dir.pot`;
+    $line = exec("$msgfmt --statistics $dir/$dir.pot 2>&1");
     $words = preg_split('[\s]', $line, -1, PREG_SPLIT_NO_EMPTY);
     $number_of_strings[$version] = $words[3];
     @unlink("$dir/$dir.pot");
