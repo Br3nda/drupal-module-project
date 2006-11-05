@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.31 2006/11/02 20:24:15 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.32 2006/11/05 22:12:42 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -491,6 +491,17 @@ function project_release_load($node) {
  */
 function project_release_insert($node) {
   project_release_db_save($node, true);
+  if (module_exist('cvs')) {
+    if ($node->rebuild) {
+      $msg = variable_get('cvs_message_new_release_branch', '');
+    }
+    else {
+      $msg = variable_get('cvs_message_new_release_tag', '');
+    }
+    if (!empty($msg)) {
+      drupal_set_message($msg);
+    }
+  }
 }
 
 /**
