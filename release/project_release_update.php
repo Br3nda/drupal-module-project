@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.16 2006/11/03 17:02:12 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.17 2006/11/07 18:50:32 dww Exp $
 
 /**
  * @file
@@ -164,7 +164,7 @@ function convert_release($old_release) {
     if ($old_release->version == 'cvs') {
       // TODO: maybe we should just leave this "release" alone, 
       $node->version_major = 5;
-      $node->version_patch = 0;
+      $node->version_patch = 'x';
       $node->version_extra = 'dev';
       $node->rebuild = 1;
       $node->tag = 'HEAD';
@@ -196,8 +196,6 @@ function convert_release($old_release) {
   }
   elseif ($old_release->version == 'cvs') {
     // The "cvs" version is a nightly tarball from the trunk
-    $node->version_major = 0;
-    $node->version_patch = 0;
     $node->version_extra = 'dev';
     $node->tag = 'HEAD';
     $node->rebuild = 1;
@@ -210,7 +208,7 @@ function convert_release($old_release) {
     }
     $target_api = "$matches[1].$matches[2].x";
     $node->version_major = 1;
-    $node->version_patch = 0;
+    $node->version_patch = 'x';
     $node->version_extra = 'dev';
     $node->tag = 'DRUPAL-' . $matches[1] . '-' . $matches[2];
     $node->rebuild = 1;
@@ -229,7 +227,12 @@ function convert_release($old_release) {
   // Now, set the right kind of title.
   $version = '';
   if ($node->tag == 'HEAD') {
-    $version = t('HEAD');
+    if ($old_release->nid == 3060) {
+      $verson = '5.x-dev';
+    }
+    else {
+      $version = t('HEAD');
+    }
   }
   else {
     $version = project_release_get_version($node);
