@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.32 2006/11/05 22:12:42 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.33 2006/11/08 23:31:28 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 
@@ -446,7 +446,7 @@ function project_release_validate(&$edit, $form) {
 
   // With cvs.module installed, this validation is already handled.
   // We only want to do it here if we're *not* doing the N-page form...
-  if (!module_exist('cvs') && project_release_exists($edit)) {
+  if (!module_exist('cvs') && !isset($edit->nid) && project_release_exists($edit)) {
     // TODO: is there a better form element to mark with this error?
     form_set_error('version_patch', t('This version already exists for this project.'));
   }
