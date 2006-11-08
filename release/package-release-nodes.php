@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.8 2006/11/08 01:54:40 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.9 2006/11/08 05:08:43 dww Exp $
 
 /**
  * @file
@@ -73,7 +73,6 @@ $rm = '/bin/rm';
 $msgcat = 'msgcat';
 $msgattrib = 'msgattrib';
 $msgfmt = 'msgfmt';
-
 
 // ------------------------------------------------------------
 // Initialization
@@ -171,11 +170,14 @@ function package_releases($type) {
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK' || $tag == 'HEAD') ? '-A' : "-r $tag";
     watchdog('release_package', t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme_placeholder($id), '%tag' => theme_placeholder($tag))));
+    $id = escapeshellcmd(filter_xss($id, array()));
+    $rev = escapeshellcmd(filter_xss($rev, array()));
     if ($release->rid == 1) {
       $built = package_release_core($nid, $id, $rev, $check_new);
     }
     else {
-      $built = package_release_contrib($nid, $id, $rev, $release->directory, $check_new);
+      $dir = escapeshellcmd(filter_xss($release->directory, array()));
+      $built = package_release_contrib($nid, $id, $rev, $dir, $check_new);
     }
     if ($built) {
       $num_built++;
