@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.5 2006/11/03 18:06:28 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.6 2006/11/08 00:26:11 dww Exp $
 
 /**
  * @file
@@ -270,6 +270,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
         if ($file == 'general.po') {
           $found_general_po = true;
         }
+        elseif ($file == 'installer.po') {
+          $found_installer_po = true;
+        }
         elseif (preg_match('/.*\.po/', $file)) {
           $po_files[] = "$uri/$file";
         }
@@ -284,6 +287,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     if (is_file("$uri/$uri.po")) {
       `$msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt`;
       $to_tar = "$uri/*.txt $uri/$uri.po";
+      if ($found_installer_po) {
+        $to_tar .= " $uri/installer.po";
+      }
     }
     else {
       watchdog('release_package', "ERROR: $uri translation does not contain a $uri.po file, not packaging");
