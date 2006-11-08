@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.7 2006/11/08 01:12:37 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.8 2006/11/08 01:54:40 dww Exp $
 
 /**
  * @file
@@ -300,6 +300,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   // TODO: need better error checking
 
   package_release_update_node($nid, $file_path);
+  return true;
 }
 
 // ------------------------------------------------------------
