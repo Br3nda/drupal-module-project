@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.6 2006/11/08 00:26:11 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.7 2006/11/08 01:12:37 dww Exp $
 
 /**
  * @file
@@ -75,19 +75,19 @@ $msgattrib = 'msgattrib';
 $msgfmt = 'msgfmt';
 
 
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 // Initialization
 // (Real work begins here, nothing else to customize)
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 
 // Check if all required variables are defined
 $vars = array(
- 'drupal_root' => $drupal_root,
- 'site_name' => $site_name,
- 'cvs_root' => $cvs_root,
- 'tmp_dir' => $tmp_dir,
- 'license' => $license,
- 'trans_install' => $trans_install,
+  'drupal_root' => $drupal_root,
+  'site_name' => $site_name,
+  'cvs_root' => $cvs_root,
+  'tmp_dir' => $tmp_dir,
+  'license' => $license,
+  'trans_install' => $trans_install,
 );
 foreach ($vars as $name => $val) {
   if (empty($val)) {
@@ -139,9 +139,9 @@ initialize_repository_info();
 package_releases($task);
 
 
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 // Functions: main work
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 
 function package_releases($type) {
   if ($type == 'tag') {
@@ -159,7 +159,7 @@ function package_releases($type) {
     return;
   }
 
-  watchdog('release_package', "Starting to package all releases from $plural.");
+  watchdog('release_package', t("Starting to package all releases from $plural."));
 
   $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where);
 
@@ -182,9 +182,8 @@ function package_releases($type) {
     }
     $num_considered++;
   }
-  watchdog('release_package', "Done packaging releases from $plural: $num_built built, $num_considered considered.");
+  watchdog('release_package', t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
 }
-
 
 function package_release_core($nid, $id, $rev, $check_new) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
@@ -212,7 +211,6 @@ function package_release_core($nid, $id, $rev, $check_new) {
   return true;
 }
 
-
 function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
@@ -223,9 +221,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   $exclude = array('.', '..', 'CVS', 'LICENSE.txt');
 
   $parts = split('/', $dir);
-  # modules, themes, theme-engines, or translations
+  // modules, themes, theme-engines, or translations
   $contrib_type = $parts[1];
-  # specific directory (same as uri)
+  // specific directory (same as uri)
   $uri = $parts[2];
 
   $basedir = $repositories[$rid]['modules'] . '/' . $contrib_type;
@@ -239,12 +237,6 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     return false;
   }
 
-/*
-  $wd_level = 'release_' . $contrib_type;
-  watchdog($wd_level, "$contrib_type - nid: $nid, id: $id, dir: $dir");
-  return false;
-*/
-
   // Checkout this release from CVS, and see if we need to rebuild it
   `$cvs -q co $rev $fulldir`;
   chdir($basedir);
@@ -256,7 +248,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     if (filectime($full_dest) + 300 > $youngest) {
       // The existing tarball for this release is newer than the youngest
       // file in the directory, we're done.
-      watchdog('release_package', "$id is unchanged, not re-packaging");
+      watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
       return false;
     }
   }
@@ -292,15 +284,15 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
       }
     }
     else {
-      watchdog('release_package', "ERROR: $uri translation does not contain a $uri.po file, not packaging");
+      watchdog('release_package', t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
       return false;
-    }      
+    }
   }
   else {
     // NOT a translation: no special packaging, grab the whole directory.
     $to_tar = $uri;
   }
-  
+
   // 'h' is for dereference, we want to include the files, not the links
   `$tar -ch --exclude=CVS --file=- $to_tar | $gzip -9 --no-name > $full_dest`;
 
@@ -310,10 +302,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   package_release_update_node($nid, $file_path);
 }
 
-
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 // Functions: utility methods
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 
 /// TODO: remove this before the final script goes live -- debugging only.
 function wprint($var) {
@@ -322,7 +313,7 @@ function wprint($var) {
 
 /**
  * Initialize info from the {cvs_repositories} table, since there are
- * usually only a tiny handful of records, and it'll be faster to do 
+ * usually only a tiny handful of records, and it'll be faster to do
  * whatever we need via php than another JOIN...
  */
 function initialize_repository_info() {
@@ -372,10 +363,10 @@ function file_find_youngest($dir, $timestamp, $exclude) {
 }
 
 
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 // Functions: translation-status-related methods
 // TODO: get all this working. ;)
-// ------------------------------------------------------------ 
+// ------------------------------------------------------------
 
 
 /**
@@ -388,7 +379,7 @@ function translation_status($dir, $version) {
 
   $line = exec("$msgfmt --statistics $dir/$dir.po 2>&1");
   $words = preg_split('[\s]', $line, -1, PREG_SPLIT_NO_EMPTY);
-        
+
   if (is_numeric($words[0]) && is_numeric($number_of_strings)) {
     $percentage = floor((100 * $words[0]) / ($number_of_strings));
     if ($percentage >= 100) {
@@ -405,14 +396,14 @@ function translation_status($dir, $version) {
 
 function translation_report($versions) {
   global $dest, $translations;
-  
+
   $output  = "<table>\n";
   $output .= " <tr><th>Language</th>";
   foreach ($versions as $version) {
     $output .= "<th>$version</th>";
   }
   $output .= " </tr>\n";
- 
+
   ksort($translations);
   foreach ($translations as $language => $data) {
     $output .= " <tr><td><a href=\"project/$language\">$language</a></td>";
@@ -427,7 +418,7 @@ function translation_report($versions) {
     $output .= "</tr>\n";
   }
   $output .= "</table>";
-  
+
   $fd = fopen("$dest/translation-status.txt", 'w');
   fwrite($fd, $output);
   fclose($fd);
