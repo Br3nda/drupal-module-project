@@ -1,7 +1,9 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.33 2006/11/08 23:31:28 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.34 2006/11/09 09:56:47 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
+define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
+define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
 
 /**
  * @defgroup project_release_core Core Drupal hooks
@@ -65,7 +67,7 @@ function project_release_settings() {
     '#default_value' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT),
     '#size' => 50,
     '#maxlength' => 255,
-    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."),
+    '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP,
   );
 
   // TODO: isn't this a dead setting, too?
@@ -121,6 +123,9 @@ function project_release_settings_validate($form_id, $form_values, $form) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms', array('%vocab' => check_plain($vocab->name))));
   }
+  
+  // Make sure the default version format has no bad characters.
+  _project_release_validate_format_string($form_values, 'project_release_default_version_format');
 }
 
 /**
@@ -603,6 +608,19 @@ function project_release_get_version_format($project) {
 }
 
 /**
+ * Validates a version format string. Only alphanumeric characters and 
+ * [-_.] are allowed. Calls form_set_error() on error, else returns.
+ * @param $form_values Array of form values passed to validate hook.
+ * @param $element The name of the form element for the format string.
+ * @ingroup project_release_internal
+ */
+function _project_release_validate_format_string($form_values, $element) {
+  if (!preg_match('/^[a-zA-Z0-9_\-.!%#]+$/', $form_values[$element])) {
+    form_set_error($element, PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
+  }
+}
+
+/**
  * Returns the formatted version string for a given release node.
  * @ingroup project_release_api
  */
@@ -848,6 +866,8 @@ function project_release_alter_project_form(&$form) {
     );
   }
 
+  $form['project']['uri']['#description'] .= ' '. t("This string is also used to generate the name of releases associated with this project.");
+
   // TODO: disable this form element if the "Enable releases" checkbox
   // is not checked?
   if (user_access('administer projects')) {
@@ -857,8 +877,21 @@ function project_release_alter_project_form(&$form) {
       '#default_value' => $node->version_format,
       '#size' => 50,
       '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
+      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
     );
+    $form['#validate'] = array_merge($form['#validate'], array('project_release_project_form_validate' => array()));
+  }
+}
+
+/**
+ * Validates the project form regarding release-specific fields.
+ * Ensures that the version format string doesn't contain bad characters.
+ * @ingroup project_release_fapi
+ * @see project_release_alter_project_form
+ */
+function project_release_project_form_validate($form_id, $form_values, $form) {
+  if (!empty($form_values['version_format'])) {
+    _project_release_validate_format_string($form_values, 'version_format');
   }
 }
 
