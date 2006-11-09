@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.10 2006/11/09 09:56:47 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.11 2006/11/09 10:16:20 dww Exp $
 
 /**
  * @file
@@ -154,7 +154,7 @@ function package_releases($type) {
     $check_new = true;
   }
   else {
-    watchdog('release_package', t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
+    watchdog('release_error', t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
     return;
   }
 
@@ -168,7 +168,7 @@ function package_releases($type) {
     $id = $release->uri . '-' . $release->version;
     $tag = $release->tag;
     $nid = $release->nid;
-    $rev = ($tag == 'TRUNK' || $tag == 'HEAD') ? '-A' : "-r $tag";
+    $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
     watchdog('release_package', t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme_placeholder($id), '%tag' => theme_placeholder($tag))));
     $id = escapeshellcmd($id);
     $rev = escapeshellcmd($rev);
@@ -192,8 +192,7 @@ function package_release_core($nid, $id, $rev, $check_new) {
   global $cvs, $tar, $gzip, $rm;
   $rid = 1;
 
-  if (!chdir($tmp_dir)) {
-    watchdog('release_package', t("ERROR: Can't chdir(%dir)", array('%dir' => $tmp_dir)));
+  if (!drupal_chdir($tmp_dir)) {
     return false;
   }
 
@@ -201,13 +200,23 @@ function package_release_core($nid, $id, $rev, $check_new) {
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
 
-  // Actually generate the tarball:
-  `$cvs -q co $rev -Pd $id drupal`;
-  // TODO: do we even care about $check_new?  The old script didn't...
-  `$tar -c --exclude=CVS --file=- $id | $gzip -9 --no-name > $full_dest`;
+  // Don't use drupal_exec or return if this fails, we expect it to be empty.
+  exec("$rm -rf $tmp_dir/$id");
 
-  `$rm -rf $tmp_dir/$id`;
-  // TODO: need better error checking
+  // Actually generate the tarball:
+  if (!drupal_exec("$cvs -q export $rev -d $id drupal")) {
+    return false;
+  }
+
+  // TODO: do we even care about $check_new?  The old script didn't...
+
+  if (!drupal_exec("$tar -c --file=- $id | $gzip -9 --no-name > $full_dest")) {
+    return false;
+  }
+
+  if (!drupal_exec("$rm -rf $tmp_dir/$id")) {
+    return false;
+  }
 
   package_release_update_node($nid, $file_path);
   return true;
@@ -220,7 +229,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   global $license, $trans_install;
   $rid = 2;
   // Files to ignore when checking timestamps:
-  $exclude = array('.', '..', 'CVS', 'LICENSE.txt');
+  $exclude = array('.', '..', 'LICENSE.txt');
 
   $parts = split('/', $dir);
   // modules, themes, theme-engines, or translations
@@ -234,14 +243,24 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
 
-  if (!chdir($tmp_dir)) {
-    watchdog('release_package', t("ERROR: Can't chdir(%dir)", array('%dir' => $tmp_dir)));
+  if (!drupal_chdir($tmp_dir)) {
     return false;
   }
 
+  // Don't use drupal_exec or return if this fails, we expect it to be empty.
+  exec("$rm -rf $tmp_dir/$fulldir");
+
   // Checkout this release from CVS, and see if we need to rebuild it
-  `$cvs -q co $rev $fulldir`;
-  chdir($basedir);
+  if (!drupal_exec("$cvs -q export $rev $fulldir")) {
+    return false;
+  }
+
+  if (!drupal_chdir($basedir)) {
+    // TODO: try to clean up the cvs export we just did?
+    // seems scary if we can't even chdir($basedir)...
+    return false;
+  }
+
   if ($contrib_type == 'translations') {
     $exclude = array_merge($exclude, 'README.txt');
   }
@@ -256,7 +275,9 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   }
 
   // Link not copy, since we want to preserve the date...
-  `$ln -sf $license $uri/LICENSE.txt`;
+  if (!drupal_exec("$ln -sf $license $uri/LICENSE.txt")) {
+    return false;
+  }
   if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
     if ($handle = opendir($uri)) {
       $po_files = array();
@@ -275,18 +296,22 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
         @unlink("$uri/$uri.po");
         $po_targets = "$uri/general.po ";
         $po_targets .= implode(' ', $po_files);
-        `$msgcat $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po`;
+        if (!drupal_exec("$msgcat $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
+          return false;
+        }
       }
     }
     if (is_file("$uri/$uri.po")) {
-      `$msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt`;
+      if (!drupal_exec("$msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt")) {
+        return false;
+      }
       $to_tar = "$uri/*.txt $uri/$uri.po";
       if ($found_installer_po) {
         $to_tar .= " $uri/installer.po";
       }
     }
     else {
-      watchdog('release_package', t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
+      watchdog('release_error', t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
       return false;
     }
   }
@@ -296,10 +321,13 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   }
 
   // 'h' is for dereference, we want to include the files, not the links
-  `$tar -ch --exclude=CVS --file=- $to_tar | $gzip -9 --no-name > $full_dest`;
+  if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $full_dest")) {
+    return false;
+  }
 
-  `$rm -rf $tmp_dir/$basedir/$uri`;
-  // TODO: need better error checking
+  if (!drupal_exec("$rm -rf $tmp_dir/$basedir/$uri")) {
+    return false;
+  }
 
   package_release_update_node($nid, $file_path);
   return true;
@@ -308,6 +336,36 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
 // ------------------------------------------------------------
 // Functions: utility methods
 // ------------------------------------------------------------
+
+/**
+ * Wrapper for exec() that logs errors to the watchdog.
+ * @param $cmd
+ *   String of the command to execute (assumed to be safe, the caller is
+ *   responsible for calling escapeshellcmd() if necessary).
+ * @return true if the command was successful (0 exit status), else false.
+ */
+function drupal_exec($cmd) {
+  // Made sure we grab stderr, too...
+  exec("$cmd 2>&1", $output, $rval);
+  if ($rval) {
+    watchdog('release_error', t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Wrapper for chdir() that logs errors to the watchdog.
+ * @param $dir Directory to change into.
+ * @return true if the command was successful (0 exit status), else false.
+ */
+function drupal_chdir($dir) {
+  if (!chdir($dir)) {
+    watchdog('release_error', t("ERROR: Can't chdir(%dir)", array('%dir' => $dir)));
+    return false;
+  }
+  return true;
+}
 
 /// TODO: remove this before the final script goes live -- debugging only.
 function wprint($var) {
@@ -431,7 +489,7 @@ function translation_report($versions) {
 function translation_number_of_strings($dir, $version) {
   static $number_of_strings = array();
   if (!isset($number_of_strings[$version])) {
-    `$msgcat $dir/general.pot $dir/[^g]*.pot | $msgattrib --no-fuzzy -o $dir/$dir.pot`;
+    drupal_exec("$msgcat $dir/general.pot $dir/[^g]*.pot | $msgattrib --no-fuzzy -o $dir/$dir.pot");
     $line = exec("$msgfmt --statistics $dir/$dir.pot 2>&1");
     $words = preg_split('[\s]', $line, -1, PREG_SPLIT_NO_EMPTY);
     $number_of_strings[$version] = $words[3];
