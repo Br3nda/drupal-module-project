@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.34 2006/11/09 09:56:47 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.35 2006/11/09 10:05:18 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
@@ -231,7 +231,6 @@ function project_release_form(&$release, &$param) {
   $form['#attributes'] = array("enctype" => "multipart/form-data");
   $form['#prefix'] = '<div class="project-release">';
   $form['#suffix'] = '</div>';
- 
 
   if ($is_edit) {
     $form['rel_id'] = array(
@@ -470,12 +469,12 @@ function project_release_validate(&$edit, $form) {
     // TODO: Magic re-setting to "%project_name %version" ??
   }
   elseif (isset($edit->version) && $edit->version !== '') {
-    form_set_value($form['title'], t('%project %version', array('%project' => check_plain($project_name), '%version' => check_plain($edit->version))));
+    form_set_value($form['title'], "$project_name $edit->version");
   }
   elseif (isset($edit->project)) {
     $version = project_release_get_version((object)$edit, $edit->project);
     form_set_value(array('#parents' => array('version')), $version);
-    form_set_value($form['title'], t('%project %version', array('%project' => $edit->project->title, '%version' => $version)));
+    form_set_value($form['title'], "$edit->project->title $version");
   }
 }
 
@@ -664,7 +663,7 @@ function project_release_get_version($release, $project = NULL) {
     }
   }
   $version_format = project_release_get_version_format($node);
-  return check_plain(strtr($version_format, $variables));
+  return strtr($version_format, $variables);
 }
 
 /**
