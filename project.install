@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.9 2006/09/10 06:37:15 dww Exp $
+// $Id: project.install,v 1.10 2006/11/12 13:40:22 dww Exp $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {
@@ -22,25 +22,7 @@ function project_install() {
           KEY project_projects_uri (uri(8))
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE {project_releases} (
-          rid int(10) unsigned NOT NULL default '0',
-          nid int(10) unsigned NOT NULL default '0',
-          fid int(10) unsigned NOT NULL default '0',
-          path varchar(255) NOT NULL default '',
-          created int(10) unsigned NOT NULL default '0',
-          version varchar(255) NOT NULL default '',
-          status tinyint(1) unsigned NOT NULL default '1',
-          changes text,
-          weight tinyint(3) unsigned NOT NULL default '0',
-          changed int(10) unsigned NOT NULL default '0',
-          hash varchar(32) NOT NULL default '',
-          UNIQUE(path),
-          PRIMARY KEY (`rid`),
-          KEY project_releases_nid (nid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
-	
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',
@@ -56,20 +38,6 @@ function project_install() {
           documentation varchar(255) default '' not null,
           license varchar(255) default '' not null,
           PRIMARY KEY (nid)
-        );");
-      db_query("CREATE TABLE {project_releases} (
-          rid int NOT NULL default '0',
-          nid int NOT NULL default '0',
-          fid int NOT NULL default '0',
-          path varchar(255) NOT NULL default '',
-          created int NOT NULL default '0',
-          hash varchar(32) NOT NULL default '',
-          version varchar(255) NOT NULL default '',
-          changes text,
-          weight smallint NOT NULL default '0',
-          changed int NOT NULL default '0',
-          status smallint default '1' not null,
-          PRIMARY KEY (rid)
         );");
       break;
   }

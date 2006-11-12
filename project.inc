@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.91 2006/07/26 07:17:57 dww Exp $ */
+/* $Id: project.inc,v 1.92 2006/11/12 13:40:22 dww Exp $ */
 
 /**
  * Implementation of hook_form().
@@ -173,16 +173,6 @@ function project_project_form(&$node) {
     '#description' => t('Link to a live demo.'),
   );
 
-  if ($releases = project_release_load($node)) {
-    $form['project']['version'] = array(
-      '#type' => 'select',
-      '#title' => t('Default version'),
-      '#default_value' => $node->version,
-      '#options' => $releases,
-      '#description' => t('Default version for downloading.'),
-    );
-  }
-
   $form['#suffix'] = '</div>';
   return $form;
 }
@@ -303,44 +293,8 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     $breadcrumb = project_project_set_location($node, $breadcrumb);
     menu_set_location($breadcrumb);
 
-    if ($releases = project_release_load($node)) {
-      // Determine most suitable release
-      $overview = variable_get('project_release_overview', -1);
-      foreach ($releases as $rid => $version) {
-        // If the project has a preferred release, choose that.
-        if ($rid == $node->version) {
-          $release = $rid;
-          break;
-        }
-        // If the version matches the default on the overview, prefer the first.
-        if (!isset($release) && strpos($version, $overview) === 0) {
-          $release = $rid;
-        }
-      }
-      // Fallback to the latest
-      if (!isset($release)) {
-        reset($releases);
-        list($release) = each($releases);
-      }
-      $release = project_release_load($release);
-
-      // Download section
-      $links = array();
-
-      $links[] = '<a href="'. base_path() . $release->path .'">' . t('Download latest release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->changed, 'small'), '%size' => format_size(filesize($release->path))))  . '</a>';
-
-      if ($release->changes) {
-        $links[] = l(t('Read release notes'), 'node/'. $node->nid .'/release', null, null, 'version-'. $release->version);
-      }
-      if (count($releases) > 1) {
-        $links[] = l(t('View other releases'), 'node/'. $node->nid .'/release');
-      }
-    }
-    if (node_access('update', $node) && !variable_get('project_release_directory', '')) {
-      $links[] = l(t('Add new release'), 'node/'. $node->nid .'/release/add');
-    }
-    if ($links) {
-      $output .= theme('item_list', $links, t('Releases'));
+    if (function_exists('project_release_project_download_table')) {
+      $output = project_release_project_download_table($node);
     }
 
     // Misc section
@@ -402,22 +356,6 @@ function project_project_view(&$node, $teaser = false, $page = false) {
   }
 }
 
-function project_project_releases() {
-  $node = node_load(arg(1));
-
-  // Breadcrumb navigation
-  $breadcrumb[] = array('path' => 'node/'. $node->nid .'/', 'title' => $node->title);
-  $breadcrumb[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('Releases'));
-  $breadcrumb = project_project_set_location($node, $breadcrumb);
-
-  menu_set_location($breadcrumb);
-
-  $output = project_release_list($node);
-
-  drupal_set_title(check_plain($node->title));
-  return $output;
-}
-
 function project_project_load($node) {
   $project = db_fetch_object(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
 
@@ -449,17 +387,16 @@ function project_project_nodeapi(&$node, $op, $arg) {
 
 function project_project_insert($node) {
   db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, release_directory, mail, version, screenshots, documentation, license) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d, '%s', '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->mail, $node->version, $node->screenshots, $node->documentation, $node->license);
-  project_release_scan_directory($node->uri);
+//  project_release_scan_directory($node->uri);
 }
 
 function project_project_update($node) {
   db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', release_directory = '%s', mail = '%s', version = %d, screenshots = '%s', documentation = '%s', license = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->release_directory, $node->mail, $node->version, $node->screenshots, $node->documentation, $node->license, $node->nid);
-  project_release_scan_directory($node->uri);
+//  project_release_scan_directory($node->uri);
 }
 
 function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
-  db_query('DELETE FROM {project_releases} WHERE nid = %d', $node->nid);
 }
 
 function project_project_access($op, $node) {

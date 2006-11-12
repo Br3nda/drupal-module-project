@@ -1,0 +1,17 @@
+/* $Id: project_release.css,v 1.2 2006/11/12 13:40:22 dww Exp $ */
+
+.node-form .project-release .version-elements fieldset .form-item {
+  float: left;
+  padding-right: 0.8em;
+  margin: 0.05em 0.1em;
+}
+
+.node-form .project-release fieldset:after {
+  content: ".";
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+.node-form .project-release .version-elements fieldset {display: inline-table;}

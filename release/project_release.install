@@ -1,0 +1,81 @@
+<?php
+// $Id: project_release.install,v 1.2 2006/11/12 13:40:22 dww Exp $
+
+function project_release_install() {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_nodes} (
+          nid int unsigned NOT NULL default 0,
+          pid int unsigned NOT NULL default 0,
+          version varchar(255) NOT NULL default '',
+          tag varchar(255) NOT NULL default '',
+          file_path varchar(255) NOT NULL default '',
+          file_date int unsigned NOT NULL default 0,
+          file_hash varchar(32) NOT NULL default '',
+          rebuild tinyint default '0',
+          version_major int default NULL,
+          version_minor int default NULL,
+          version_patch int default NULL,
+          version_extra varchar(255) default NULL,
+          PRIMARY KEY (`nid`),
+          KEY project_releases_pid (pid)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
+          nid int unsigned NOT NULL default 0,
+          releases tinyint NOT NULL default '1',
+          version_format varchar(255) NOT NULL default '',
+          PRIMARY KEY (`nid`),
+          KEY project_release_projects_releases (`releases`)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+
+    case 'pgsql':
+      if (!project_release_db_table_exists('project_release_nodes')) {
+        db_query("CREATE TABLE {project_release_nodes} (
+            nid int NOT NULL default '0',
+            pid int NOT NULL default '0',
+            version varchar(255) NOT NULL default '',
+            tag varchar(255) NOT NULL default '',
+            file_path varchar(255) NOT NULL default '',
+            file_date int NOT NULL default '0',
+            file_hash varchar(32) NOT NULL default '',
+            rebuild smallint default '0',
+            version_major int default NULL,
+            version_minor int default NULL,
+            version_patch int default NULL,
+            version_extra varchar(255) default NULL,
+            PRIMARY KEY (nid),
+            KEY project_releases_pid (pid)
+          );");
+      }
+      if (!project_release_db_table_exists('project_release_projects')) {
+        db_query("CREATE TABLE {project_release_projects} (
+            nid int NOT NULL default '0',
+            releases smallint NOT NULL default '1',
+            version_format varchar(255) NOT NULL default '',
+            PRIMARY KEY (nid),
+            KEY project_release_projects_releases (releases),
+          );");
+      }
+      break;
+  }
+  db_query("UPDATE {system} SET weight = 2 WHERE name = 'project_release'");
+  db_query("DELETE FROM {variable} WHERE name = 'project_browse_releases'");
+}
+
+function project_release_db_table_exists($table) {
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      return db_num_rows(db_query("SHOW TABLES LIKE '{" . db_escape_table($table) . "}'"));
+      break;
+
+    case 'pgsql':
+      return db_num_rows(db_query("SELECT relname FROM pg_class WHERE relname = '{" . db_escape_table($table) . "}'"));
+      break;
+  }
+}
+
