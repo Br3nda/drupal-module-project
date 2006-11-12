@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.11 2006/11/09 10:16:20 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.12 2006/11/12 05:36:45 dww Exp $
 
 /**
  * @file
@@ -390,7 +390,7 @@ function initialize_repository_info() {
  */
 function package_release_update_node($nid, $file_path) {
   global $dest_root;
-  $full_path = $dest_root . '/' . $file;
+  $full_path = $dest_root . '/' . $file_path;
 
   // Now that we have the official file, compute some metadata:
   $file_date = filemtime($full_path);
