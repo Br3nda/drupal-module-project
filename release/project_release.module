@@ -1,5 +1,5 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.35 2006/11/09 10:05:18 dww Exp $ */
+/* $Id: project_release.module,v 1.1.2.36 2006/11/12 10:50:31 dww Exp $ */
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
@@ -291,7 +291,7 @@ function project_release_form(&$release, &$param) {
     '#default_value' => $release->body,
     '#rows' => 10,
     '#cols' => 40,
-    '#required' => TRUE,
+    '#required' => $admin ? FALSE : TRUE,
     '#description' => t('Enter a description of this release, such as a list of the major changes or updates.'),
   );
   $form['body_filter']['format'] = filter_form($node->format);
