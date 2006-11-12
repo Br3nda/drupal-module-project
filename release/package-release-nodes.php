@@ -1,7 +1,7 @@
 #!/usr/local/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.12 2006/11/12 05:36:45 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.13 2006/11/12 09:47:00 dww Exp $
 
 /**
  * @file
@@ -74,6 +74,7 @@ $msgcat = 'msgcat';
 $msgattrib = 'msgattrib';
 $msgfmt = 'msgfmt';
 
+
 // ------------------------------------------------------------
 // Initialization
 // (Real work begins here, nothing else to customize)
@@ -133,6 +134,7 @@ if (!chdir($drupal_root)) {
 require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
+initialize_tmp_dir($task);
 initialize_repository_info();
 
 package_releases($task);
@@ -370,6 +372,28 @@ function drupal_chdir($dir) {
 /// TODO: remove this before the final script goes live -- debugging only.
 function wprint($var) {
   watchdog('package_debug', '<pre>' . var_export($var, TRUE));
+}
+
+
+/**
+ * Initialize the tmp directory. Use different subdirs for building
+ * snapshots than official tags, so there's no potential directory
+ * collisions and race conditions if both are running at the same time
+ * (due to how long it takes to complete a branch snapshot run, and
+ * how often we run this for tag-based releases).
+ */
+function initialize_tmp_dir($task) {
+  global $tmp_dir;
+  $task_dir = $tmp_dir . '/' . $task;
+  if (!is_dir($tmp_dir)) {
+    watchdog('release_error', t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => $tmp_dir)));
+    exit(1);
+  }
+  if (!is_dir($task_dir) && !@mkdir($task_dir)) {
+    watchdog('release_error', t("ERROR: mkdir(%dir) failed", array('%dir' => $task_dir)));
+    exit(1);
+  }
+  $tmp_dir = $task_dir;
 }
 
 /**
