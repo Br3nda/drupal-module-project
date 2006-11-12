@@ -269,3 +269,6 @@ project.module
 -----------------
 project.module
 - initial commit of project.module.
+
+$Id: CHANGELOG.txt,v 1.5.2.2 2006/11/12 13:49:07 dww Exp $
+$Name:  $

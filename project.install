@@ -1,5 +1,6 @@
 <?php
-// $Id: project.install,v 1.2.2.6 2006/09/10 06:37:17 dww Exp $
+// $Id: project.install,v 1.2.2.7 2006/11/12 13:49:07 dww Exp $
+// $Name:  $
 
 function project_install() {
   switch ($GLOBALS['db_type']) {

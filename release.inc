@@ -1,5 +1,6 @@
 <?php
-/* $Id: release.inc,v 1.70.2.3 2006/08/04 03:19:50 dww Exp $ */
+// $Id: release.inc,v 1.70.2.4 2006/11/12 13:49:07 dww Exp $
+// $Name:  $
 
 function project_release_scan() {
   project_release_scan_directory();
