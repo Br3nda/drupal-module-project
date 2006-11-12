@@ -32,4 +32,5 @@ Upgrading
    your database to prepare your data for use with the project_issue
    module.  See modules/project_issue/INSTALL.txt for more information.
 
-$Id: INSTALL.txt,v 1.4.2.3.2.1 2006/10/25 08:28:16 dww Exp $
+$Id: INSTALL.txt,v 1.4.2.3.2.2 2006/11/12 13:52:35 dww Exp $
+$Name:  $

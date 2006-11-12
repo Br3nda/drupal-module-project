@@ -270,6 +270,9 @@ project.module
 - revisions are complex!
 - fixed a crash bug and did some parsing changes
 
+$Id: CHANGELOG.txt,v 1.5.2.1.2.2 2006/11/12 13:52:35 dww Exp $
+$Name:  $
+
 16. December 2001
 -----------------
 project.module

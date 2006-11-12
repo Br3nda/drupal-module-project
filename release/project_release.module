@@ -1,5 +1,6 @@
 <?php
-/* $Id: project_release.module,v 1.1.2.36 2006/11/12 10:50:31 dww Exp $ */
+// $Id: project_release.module,v 1.1.2.37 2006/11/12 13:52:35 dww Exp $
+// $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));

@@ -35,4 +35,5 @@ http://drupal.org/node/58066
 http://drupal.org/node/75053
 http://drupal.org/node/86694
 
-$Id: README.txt,v 1.1.2.2 2006/10/25 09:27:36 dww Exp $
+$Id: README.txt,v 1.1.2.3 2006/11/12 13:52:35 dww Exp $
+$Name:  $
