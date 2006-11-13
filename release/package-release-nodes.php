@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.16 2006/11/13 04:27:22 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.17 2006/11/13 19:23:47 dww Exp $
 // $Name:  $
 
 /**
@@ -146,12 +146,13 @@ package_releases($task);
 
 function package_releases($type) {
   if ($type == 'tag') {
-    $where = " AND prn.rebuild = 0 AND (prn.file_path IS NULL OR prn.file_path = '')";
+    $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = 'tags';
     $check_new = false;
   }
   elseif ($type == 'branch') {
-    $where = " AND prn.rebuild = 1";
+    $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
+    $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
     $plural = 'branches';
     $check_new = true;
   }
@@ -162,7 +163,7 @@ function package_releases($type) {
 
   watchdog('release_package', t("Starting to package all releases from $plural."));
 
-  $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri');
+  $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri');
 
   $num_built = 0;
   $num_considered = 0;
