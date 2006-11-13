@@ -1,7 +1,7 @@
-#!/usr/local/bin/php
+#!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.14 2006/11/12 13:52:35 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.15 2006/11/13 04:18:53 dww Exp $
 // $Name:  $
 
 /**
