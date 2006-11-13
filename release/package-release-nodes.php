@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.17 2006/11/13 19:23:47 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.18 2006/11/13 22:19:02 dww Exp $
 // $Name:  $
 
 /**
@@ -439,7 +439,8 @@ function file_find_youngest($dir, $timestamp, $exclude) {
           $timestamp = file_find_youngest("$dir/$file", $timestamp, $exclude);
         }
         else {
-          $timestamp = (filectime("$dir/$file") > $timestamp) ? filectime("$dir/$file") : $timestamp;
+          $mtime = filemtime("$dir/$file");
+          $timestamp = ($mtime > $timestamp) ? $mtime : $timestamp;
         }
       }
     }
