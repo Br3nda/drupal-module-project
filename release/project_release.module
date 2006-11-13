@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.38 2006/11/13 03:52:11 dww Exp $
+// $Id: project_release.module,v 1.1.2.39 2006/11/13 19:25:16 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -727,14 +727,17 @@ function project_release_project_releases() {
  * Get an array of release nodes
  * @ingroup project_release_api
  */
-function project_release_get_releases($project, $nodes = true, $sort_by = 'version') {
+function project_release_get_releases($project, $nodes = true, $sort_by = 'version', $filter_by = 'all') {
   if ($sort_by == 'date') {
     $order_by = 'n.created';
   }
   else {
     $order_by = 'r.version';
   }
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE r.pid = %d AND n.status = 1 ORDER BY $order_by DESC"), $project->nid);
+  if ($filter_by == 'files') {
+    $where = "AND (r.file_path <> '')";
+  }
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) AND (n.status = 1) $where ORDER BY $order_by DESC"), $project->nid);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {
@@ -757,7 +760,7 @@ function project_release_get_releases($project, $nodes = true, $sort_by = 'versi
  * @ingroup project_release_callback
  */
 function project_release_list($project, $main = 0) {
-  if ($releases = project_release_get_releases($project, 1, 'date')) {
+  if ($releases = project_release_get_releases($project, 1, 'date', 'files')) {
     foreach ($releases as $release) {
       $output .= node_view($release);
     }
@@ -857,7 +860,7 @@ function project_release_alter_project_form(&$form) {
     '#default_value' => isset($node->releases) ? $node->releases : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
-  if ($releases = project_release_get_releases($node, false)) {
+  if ($releases = project_release_get_releases($node, false, 'version', 'files')) {
     $form['release']['version'] = array(
       '#type' => 'select',
       '#title' => t('Default version'),
