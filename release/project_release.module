@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.37 2006/11/12 13:52:35 dww Exp $
+// $Id: project_release.module,v 1.1.2.38 2006/11/13 03:52:11 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -677,7 +677,8 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   if ($page) {
     // Breadcrumb navigation
     $breadcrumb[] = array('path' => 'node/'. $project->nid, 'title' => $project->title);
-    $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
+    $breadcrumb[] = array('path' => 'node/'. $project->nid . '/release', 'title' => t('Releases'));
+    $breadcrumb[] = array('path' => 'node/'. $release->nid, 'title' => $release->title);
     $breadcrumb = project_project_set_location($project, $breadcrumb);
     menu_set_location($breadcrumb);
   }
