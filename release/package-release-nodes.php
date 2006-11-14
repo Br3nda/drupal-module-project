@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.18 2006/11/13 22:19:02 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.19 2006/11/14 15:30:03 dww Exp $
 // $Name:  $
 
 /**
@@ -117,6 +117,8 @@ switch($task) {
     print "ERROR: $argv[0] invoked with invalid argument: \"$task\"\n";
     exit (1);
 }
+$err_level = 'package_error';
+$msg_level = 'package_' . $task;
 
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
@@ -145,6 +147,7 @@ package_releases($task);
 // ------------------------------------------------------------
 
 function package_releases($type) {
+  global $msg_level, $err_level;
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = 'tags';
@@ -154,14 +157,13 @@ function package_releases($type) {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
     $plural = 'branches';
+    watchdog($msg_level, t("Starting to package all snapshot releases."));
     $check_new = true;
   }
   else {
-    watchdog('release_error', t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
+    watchdog($err_level, t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
     return;
   }
-
-  watchdog('release_package', t("Starting to package all releases from $plural."));
 
   $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri');
 
@@ -172,7 +174,7 @@ function package_releases($type) {
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    watchdog('release_package', t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme_placeholder($id), '%tag' => theme_placeholder($tag))));
+    watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme_placeholder($id), '%tag' => theme_placeholder($tag))));
     $id = escapeshellcmd($id);
     $rev = escapeshellcmd($rev);
     if ($release->rid == 1) {
@@ -187,7 +189,9 @@ function package_releases($type) {
     }
     $num_considered++;
   }
-  watchdog('release_package', t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
+  if ($num_built || $type == 'branch') {
+    watchdog($msg_level, t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
+  }
 }
 
 function package_release_core($nid, $id, $rev, $check_new) {
@@ -230,6 +234,8 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   global $cvs, $tar, $gzip, $rm, $ln;
   global $msgcat, $msgattrib, $msgfmt;
   global $license, $trans_install;
+  global $msg_level, $err_level;
+
   $rid = 2;
   // Files to ignore when checking timestamps:
   $exclude = array('.', '..', 'LICENSE.txt');
@@ -272,7 +278,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
     if (filectime($full_dest) + 300 > $youngest) {
       // The existing tarball for this release is newer than the youngest
       // file in the directory, we're done.
-      watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+      watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
       return false;
     }
   }
@@ -314,7 +320,7 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
       }
     }
     else {
-      watchdog('release_error', t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
+      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
       return false;
     }
   }
@@ -348,10 +354,11 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
  * @return true if the command was successful (0 exit status), else false.
  */
 function drupal_exec($cmd) {
+  global $err_level;
   // Made sure we grab stderr, too...
   exec("$cmd 2>&1", $output, $rval);
   if ($rval) {
-    watchdog('release_error', t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
+    watchdog($err_level, t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
     return false;
   }
   return true;
@@ -363,8 +370,9 @@ function drupal_exec($cmd) {
  * @return true if the command was successful (0 exit status), else false.
  */
 function drupal_chdir($dir) {
+  global $err_level;
   if (!chdir($dir)) {
-    watchdog('release_error', t("ERROR: Can't chdir(%dir)", array('%dir' => $dir)));
+    watchdog($err_level, t("ERROR: Can't chdir(%dir)", array('%dir' => $dir)));
     return false;
   }
   return true;
@@ -384,14 +392,15 @@ function wprint($var) {
  * how often we run this for tag-based releases).
  */
 function initialize_tmp_dir($task) {
-  global $tmp_dir;
+  global $tmp_dir, $err_level;
+
   $task_dir = $tmp_dir . '/' . $task;
   if (!is_dir($tmp_dir)) {
-    watchdog('release_error', t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => $tmp_dir)));
+    watchdog($err_level, t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => $tmp_dir)));
     exit(1);
   }
   if (!is_dir($task_dir) && !@mkdir($task_dir)) {
-    watchdog('release_error', t("ERROR: mkdir(%dir) failed", array('%dir' => $task_dir)));
+    watchdog($err_level, t("ERROR: mkdir(%dir) failed", array('%dir' => $task_dir)));
     exit(1);
   }
   $tmp_dir = $task_dir;
