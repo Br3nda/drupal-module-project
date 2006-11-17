@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.39 2006/11/13 19:25:16 dww Exp $
+// $Id: project_release.module,v 1.1.2.40 2006/11/17 23:55:30 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -475,7 +475,8 @@ function project_release_validate(&$edit, $form) {
   elseif (isset($edit->project)) {
     $version = project_release_get_version((object)$edit, $edit->project);
     form_set_value(array('#parents' => array('version')), $version);
-    form_set_value($form['title'], "$edit->project->title $version");
+    $title = $edit->project->title;
+    form_set_value($form['title'], "$title $version");
   }
 }
 
