@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.19 2006/11/14 15:30:03 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.20 2006/11/17 20:09:46 dww Exp $
 // $Name:  $
 
 /**
@@ -151,14 +151,12 @@ function package_releases($type) {
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = 'tags';
-    $check_new = false;
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
     $plural = 'branches';
     watchdog($msg_level, t("Starting to package all snapshot releases."));
-    $check_new = true;
   }
   else {
     watchdog($err_level, t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
@@ -176,13 +174,14 @@ function package_releases($type) {
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
     watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme_placeholder($id), '%tag' => theme_placeholder($tag))));
     $id = escapeshellcmd($id);
+    $version = escapeshellcmd($release->version);
     $rev = escapeshellcmd($rev);
     if ($release->rid == 1) {
-      $built = package_release_core($nid, $id, $rev, $check_new);
+      $built = package_release_core($nid, $id, $version, $rev);
     }
     else {
       $dir = escapeshellcmd($release->directory);
-      $built = package_release_contrib($nid, $id, $rev, $dir, $check_new);
+      $built = package_release_contrib($nid, $id, $version, $rev, $dir);
     }
     if ($built) {
       $num_built++;
@@ -194,7 +193,7 @@ function package_releases($type) {
   }
 }
 
-function package_release_core($nid, $id, $rev, $check_new) {
+function package_release_core($nid, $id, $version, $rev) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
   $rid = 1;
@@ -215,7 +214,23 @@ function package_release_core($nid, $id, $rev, $check_new) {
     return false;
   }
 
-  // TODO: do we even care about $check_new?  The old script didn't...
+  $info_files = array();
+  $exclude = array('.', '..', 'LICENSE.txt');
+  $youngest = file_find_youngest($id, 0, $exclude, $info_files);
+  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+    // The existing tarball for this release is newer than the youngest
+    // file in the directory, we're done.
+    watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    return false;
+  }
+
+  // Fix any .info files
+  foreach ($info_files as $file) {
+    if (!fix_info_file_version($file, $version)) {
+      watchdog('release_error', t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      return false;
+    }
+  }
 
   if (!drupal_exec("$tar -c --file=- $id | $gzip -9 --no-name > $full_dest")) {
     return false;
@@ -229,7 +244,7 @@ function package_release_core($nid, $id, $rev, $check_new) {
   return true;
 }
 
-function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
+function package_release_contrib($nid, $id, $version, $rev, $dir) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
   global $msgcat, $msgattrib, $msgfmt;
@@ -263,7 +278,10 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   if (!drupal_exec("$cvs -q export $rev $fulldir")) {
     return false;
   }
-
+  if (!is_dir($fulldir)) {
+    watchdog('release_error', t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))));
+    return false;
+  }
   if (!drupal_chdir($basedir)) {
     // TODO: try to clean up the cvs export we just did?
     // seems scary if we can't even chdir($basedir)...
@@ -273,12 +291,19 @@ function package_release_contrib($nid, $id, $rev, $dir, $check_new) {
   if ($contrib_type == 'translations') {
     $exclude = array_merge($exclude, 'README.txt');
   }
-  if (is_file($full_dest) && $check_new) {
-    $youngest = file_find_youngest($uri, 0, $exclude);
-    if (filectime($full_dest) + 300 > $youngest) {
-      // The existing tarball for this release is newer than the youngest
-      // file in the directory, we're done.
-      watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+  $info_files = array();
+  $youngest = file_find_youngest($uri, 0, $exclude, $info_files);
+  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+    // The existing tarball for this release is newer than the youngest
+    // file in the directory, we're done.
+    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    return false;
+  }
+
+  // Fix any .info files
+  foreach ($info_files as $file) {
+    if (!fix_info_file_version($file, $version)) {
+      watchdog($err_level, t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
       return false;
     }
   }
@@ -419,6 +444,25 @@ function initialize_repository_info() {
   }
 }
 
+
+/**
+ * Fix the given .info file with the specified version string
+ */
+function fix_info_file_version($file, $version) {
+  global $err_level;
+  $vers_line = "\n; version added by drupal.org packaging script on " . date('Y-m-d') . "\nversion = \"$version\"\n";
+  if (!$info_fd = fopen($file, 'ab')) { 
+    watchdog($err_level, t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
+    return false;
+  }
+  if (!fwrite($info_fd, $vers_line)) { 
+    watchdog($err_level, t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $vers_line);
+    return false;
+  }
+  return true;
+}
+
+
 /**
  * Update the DB with the new file info for a given release node.
  */
@@ -438,18 +482,25 @@ function package_release_update_node($nid, $file_path) {
 /**
  * Find the youngest (newest) file in a directory tree.
  * Stolen wholesale from the original package-drupal.php script.
+ * Modified to also notice any files that end with ".info" and store
+ * all of them in the array passed in as an argument. Since we have to
+ * recurse through the whole directory tree already, we should just
+ * record all the info we need in one pass instead of doing it twice.
  */
-function file_find_youngest($dir, $timestamp, $exclude) {
+function file_find_youngest($dir, $timestamp, $exclude, &$info_files) {
   if (is_dir($dir)) {
     $fp = opendir($dir);
     while (FALSE !== ($file = readdir($fp))) {
       if (!in_array($file, $exclude)) {
         if (is_dir("$dir/$file")) {
-          $timestamp = file_find_youngest("$dir/$file", $timestamp, $exclude);
+          $timestamp = file_find_youngest("$dir/$file", $timestamp, $exclude, $info_files);
         }
         else {
           $mtime = filemtime("$dir/$file");
           $timestamp = ($mtime > $timestamp) ? $mtime : $timestamp;
+          if (preg_match('/^.+\.info$/', $file)) {
+            $info_files[] = "$dir/$file";
+          }
         }
       }
     }
