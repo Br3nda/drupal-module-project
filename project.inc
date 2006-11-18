@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.8 2006/11/12 13:52:35 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.9 2006/11/18 02:28:03 dww Exp $
 // $Name:  $
 
 /**
@@ -405,7 +405,15 @@ function project_project_access($op, $node) {
 
   switch ($op) {
     case 'view':
-      return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
+      if (user_access('access own projects') && $node->uid == $user->uid) {
+         return TRUE;
+      }
+      elseif (!user_access('access projects')) {
+         return FALSE;
+      }
+      else {
+        return NULL;
+      }
     case 'create':
       if ($user->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
