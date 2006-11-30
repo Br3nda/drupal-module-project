@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.21 2006/11/17 22:47:14 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.22 2006/11/30 07:08:30 dww Exp $
 // $Name:  $
 
 /**
@@ -345,7 +345,7 @@ function package_release_contrib($nid, $id, $version, $rev, $dir) {
       }
     }
     else {
-      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"))));
+      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"), '%version' => theme('placeholder', $version))));
       return false;
     }
   }
