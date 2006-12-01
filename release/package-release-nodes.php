@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.22 2006/11/30 07:08:30 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.23 2006/12/01 22:26:42 dww Exp $
 // $Name:  $
 
 /**
@@ -168,20 +168,21 @@ function package_releases($type) {
   $num_built = 0;
   $num_considered = 0;
   while ($release = db_fetch_object($query)) {
-    $id = $release->uri . '-' . $release->version;
+    $version = $release->version;
+    $uri = $release->uri;
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme('placeholder', $id), '%tag' => theme('placeholder', $tag))));
-    $id = escapeshellcmd($id);
-    $version = escapeshellcmd($release->version);
+    watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme('placeholder', $uri . '-' . $version), '%tag' => theme('placeholder', $tag))));
+    $uri = escapeshellcmd($uri);
+    $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
     if ($release->rid == 1) {
-      $built = package_release_core($nid, $id, $version, $rev);
+      $built = package_release_core($nid, $uri, $version, $rev);
     }
     else {
       $dir = escapeshellcmd($release->directory);
-      $built = package_release_contrib($nid, $id, $version, $rev, $dir);
+      $built = package_release_contrib($nid, $uri, $version, $rev, $dir);
     }
     if ($built) {
       $num_built++;
@@ -193,7 +194,7 @@ function package_releases($type) {
   }
 }
 
-function package_release_core($nid, $id, $version, $rev) {
+function package_release_core($nid, $uri, $version, $rev) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
   $rid = 1;
@@ -202,6 +203,7 @@ function package_release_core($nid, $id, $version, $rev) {
     return false;
   }
 
+  $id = $uri . '-' . $version;
   $file_name = $id . '.tar.gz';
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
@@ -226,7 +228,7 @@ function package_release_core($nid, $id, $version, $rev) {
 
   // Fix any .info files
   foreach ($info_files as $file) {
-    if (!fix_info_file_version($file, $version)) {
+    if (!fix_info_file_version($file, $uri, $version)) {
       watchdog('release_error', t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
       return false;
     }
@@ -244,7 +246,7 @@ function package_release_core($nid, $id, $version, $rev) {
   return true;
 }
 
-function package_release_contrib($nid, $id, $version, $rev, $dir) {
+function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
   global $msgcat, $msgattrib, $msgfmt;
@@ -261,6 +263,7 @@ function package_release_contrib($nid, $id, $version, $rev, $dir) {
   // specific directory (same as uri)
   $uri = $parts[2];
 
+  $id = $uri . '-' . $version;
   $basedir = $repositories[$rid]['modules'] . '/' . $contrib_type;
   $fulldir = $basedir . '/' . $uri;
   $file_name = $id . '.tar.gz';
@@ -302,7 +305,7 @@ function package_release_contrib($nid, $id, $version, $rev, $dir) {
 
   // Fix any .info files
   foreach ($info_files as $file) {
-    if (!fix_info_file_version($file, $version)) {
+    if (!fix_info_file_version($file, $uri, $version)) {
       watchdog($err_level, t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
       return false;
     }
@@ -448,15 +451,21 @@ function initialize_repository_info() {
 /**
  * Fix the given .info file with the specified version string
  */
-function fix_info_file_version($file, $version) {
+function fix_info_file_version($file, $uri, $version) {
   global $err_level;
-  $vers_line = "\n; version added by drupal.org packaging script on " . date('Y-m-d') . "\nversion = \"$version\"\n";
+  global $site_name;
+
+  $info = "\n; Information added by $site_name packaging script on " . date('Y-m-d') . "\n";
+  $info .= "version = \"$version\"\n";
+  $info .= "project = \"$uri\"\n";
+  $info .= "\n";
+
   if (!$info_fd = fopen($file, 'ab')) { 
     watchdog($err_level, t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
     return false;
   }
-  if (!fwrite($info_fd, $vers_line)) { 
-    watchdog($err_level, t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $vers_line);
+  if (!fwrite($info_fd, $info)) { 
+    watchdog($err_level, t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $info);
     return false;
   }
   return true;
