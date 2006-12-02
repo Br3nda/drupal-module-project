@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.9 2006/11/18 02:28:03 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.10 2006/12/02 03:43:16 dww Exp $
 // $Name:  $
 
 /**
@@ -272,27 +272,31 @@ function project_project_content($node, $teaser = false) {
   return node_prepare($node, $teaser);
 }
 
-function project_project_set_location(&$node, $extra = array()) {
-  $breadcrumb = array();
+function project_project_set_breadcrumb($node = NULL, $extra = array()) {
+  global $_menu;
 
-  $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-  if (project_use_taxonomy()) {
+  $breadcrumb = array();
+  $breadcrumb[] = l(t('Home'), NULL);
+
+  // Find out if the site has created a menu name for /project and use that
+  $pid = $_menu['path index']['project'];
+  $name = $_menu['items'][$pid]['title'];
+  $breadcrumb[] = l($name, 'project', array('title' => t('Browse projects')));
+
+  if (!empty($node) && project_use_taxonomy()) {
     $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = 0 AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
     $term = db_fetch_object($result);
-    $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
+    $breadcrumb[] = l($term->name, 'project/'. $term->name);
   }
   $breadcrumb = array_merge($breadcrumb, $extra);
-
-  return $breadcrumb;
+  drupal_set_breadcrumb($breadcrumb);
 }
 
 function project_project_view(&$node, $teaser = false, $page = false) {
   $node = project_project_content($node, $teaser);
   if ($page) {
     // Breadcrumb navigation
-    $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
-    $breadcrumb = project_project_set_location($node, $breadcrumb);
-    menu_set_location($breadcrumb);
+    project_project_set_breadcrumb($node);
 
     if (function_exists('project_release_project_download_table')) {
       $output = project_release_project_download_table($node);
