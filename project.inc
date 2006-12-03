@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.10 2006/12/02 03:43:16 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.11 2006/12/03 02:25:46 dww Exp $
 // $Name:  $
 
 /**
@@ -432,7 +432,7 @@ function project_project_access($op, $node) {
       return FALSE;
     case 'update':
     case 'delete':
-      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+      return project_check_admin_access($node);
   }
 }
 
