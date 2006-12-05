@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.43 2006/12/03 02:25:46 dww Exp $
+// $Id: project_release.module,v 1.1.2.44 2006/12/05 11:38:16 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -38,6 +38,12 @@ function project_release_menu($may_cache) {
         $items[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('releases'), 'callback' => 'project_release_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
         if (node_access('update', $node)) {
           $items[] = array('path' => 'node/'. arg(1) .'/release/overview', 'title' => t('overview'), 'callback' => 'project_release_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
+          $items[] = array(
+            'path' => 'node/'. arg(1) .'/edit/releases',
+            'title' => t('releases'),
+            'callback' => 'project_release_project_edit_releases',
+            'weight' => 0, 'type' => MENU_LOCAL_TASK,
+          );
         }
       }
     }
@@ -817,14 +823,18 @@ function project_release_form_alter($form_id, &$form) {
  * @see project_release_form_alter
  */
 function project_release_alter_project_form(&$form) {
-  $node = $form['#node'];
-  $form['release'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Release information'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  );
-  $form['release']['releases'] = array(
+  $form['project']['uri']['#description'] .= ' '. t("This string is also used to generate the name of releases associated with this project.");
+}
+
+/**
+ * Releases subtab for the project edit tab.
+ */
+function project_release_project_edit_releases() {
+  $node = node_load(arg(1));
+  project_project_set_breadcrumb($node);
+  drupal_set_title(check_plain($node->title));
+
+  $form['releases'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable releases'),
     '#return_value' => 1,
@@ -832,42 +842,65 @@ function project_release_alter_project_form(&$form) {
     '#default_value' => isset($node->releases) ? $node->releases : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
-  if ($releases = project_release_get_releases($node, false, 'version', 'files')) {
-    $form['release']['version'] = array(
-      '#type' => 'select',
-      '#title' => t('Default version'),
-      '#default_value' => $node->version,
-      '#options' => $releases,
-      '#description' => t('Default version for downloading.'),
-    );
+  if ($node->releases) {
+    if ($releases = project_release_get_releases($node, false, 'version', 'files')) {
+      $form['version'] = array(
+        '#type' => 'select',
+        '#title' => t('Default version'),
+        '#default_value' => $node->version,
+        '#options' => $releases,
+        '#description' => t('Default version for downloading.'),
+      );
+    }
+
+    if (user_access('administer projects')) {
+      $form['version_format'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Version format string'),
+        '#default_value' => $node->version_format,
+        '#size' => 50,
+        '#maxlength' => 255,
+        '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
+      );
+      $form['#validate'] = array_merge($form['#validate'], array('project_release_project_edit_form_validate' => array()));
+    }
   }
 
-  $form['project']['uri']['#description'] .= ' '. t("This string is also used to generate the name of releases associated with this project.");
+  $form['nid'] = array('#type' => 'value', '#value' => $node->nid);
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+    '#weight' => 45,
+  );
 
-  // TODO: disable this form element if the "Enable releases" checkbox
-  // is not checked?
-  if (user_access('administer projects')) {
-    $form['release']['version_format'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Version format string'),
-      '#default_value' => $node->version_format,
-      '#size' => 50,
-      '#maxlength' => 255,
-      '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
-    );
-    $form['#validate'] = array_merge($form['#validate'], array('project_release_project_form_validate' => array()));
-  }
+  return drupal_get_form('project_release_project_edit_form', $form);
 }
 
 /**
  * Validates the project form regarding release-specific fields.
  * Ensures that the version format string doesn't contain bad characters.
  * @ingroup project_release_fapi
- * @see project_release_alter_project_form
+ * @see project_release_project_edit_releases
  */
-function project_release_project_form_validate($form_id, $form_values, $form) {
+function project_release_project_edit_form_validate($form_id, $form_values, $form) {
   if (!empty($form_values['version_format'])) {
     _project_release_validate_format_string($form_values, 'version_format');
+  }
+}
+
+/**
+ * Submit handler when project admins use the releases subtab.
+ * @ingroup project_release_fapi
+ * @see project_release_project_edit_releases
+ */
+function project_release_project_edit_form_submit($form_id, $form_values) {
+  if (!empty($form_values['releases'])) {
+    db_query("UPDATE {project_release_projects} SET releases = %d, version_format = '%s' WHERE nid = %d", $form_values['releases'], $form_values['version_format'], $form_values['nid']);
+    db_query("UPDATE {project_projects} SET version = %d WHERE nid = %d", $form_values['version'], $form_values['nid']);
+  }
+  else {
+    db_query("UPDATE {project_release_projects} SET releases = 0, version_format = '' WHERE nid = %d", $form_values['nid']);
+    db_query("UPDATE {project_projects} SET version = 0 WHERE nid = %d", $form_values['nid']);
   }
 }
 
@@ -966,11 +999,7 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
       break;
 
     case 'insert':
-      db_query("INSERT INTO {project_release_projects} (nid, releases, version_format) VALUES (%d, %d, '%s')", $node->nid, $node->releases, $node->version_format);
-      break;
-
-    case 'update':
-      db_query("UPDATE {project_release_projects} SET releases = %d, version_format = '%s' WHERE nid = %d", $node->releases, $node->version_format, $node->nid);
+      db_query("INSERT INTO {project_release_projects} (nid, releases, version_format) VALUES (%d, %d, '%s')", $node->nid, 1, '');
       break;
 
     case 'delete':

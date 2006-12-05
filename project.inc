@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.11 2006/12/03 02:25:46 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.12 2006/12/05 11:38:16 dww Exp $
 // $Name:  $
 
 /**
@@ -7,6 +7,7 @@
  */
 function project_project_form(&$node) {
   global $user;
+  project_project_set_breadcrumb($node);
 
   /*
   ** Allow the following fields to be initialized via $_GET
