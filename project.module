@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.16 2006/12/06 04:54:01 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.17 2006/12/06 05:04:36 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -288,7 +288,7 @@ function project_menu($may_cache) {
   return $items;
 }
 
-function project_check_admin_access($project) {
+function project_check_admin_access($project, $cvs_access = TRUE) {
   global $user;
   if (empty($user->uid)) {
     return FALSE;
@@ -304,7 +304,7 @@ function project_check_admin_access($project) {
     if ($user->uid == $project_obj->uid) {
        return TRUE;
     }
-    if (module_exist('cvs')) {
+    if (module_exist('cvs') && $cvs_access) {
       if (db_num_rows(db_query("SELECT * FROM {cvs_project_maintainers} WHERE uid = %d AND nid = %d", $user->uid, $project_obj->nid))) {
         return TRUE;
       }
