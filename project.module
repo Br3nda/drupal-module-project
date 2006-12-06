@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.18 2006/12/06 19:08:05 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.19 2006/12/06 19:42:31 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -630,8 +630,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     }
 
     // Make sure we have the latest release
-    // TODO: this needs help to handle projects with N branches for the
-    // same compatibility version...
     if ($project->release_count > 1) {
       unset($values);
       $values[] = $project->nid;
