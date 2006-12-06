@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.10 2006/11/12 13:52:35 dww Exp $
+// $Id: project_release.install,v 1.1.2.11 2006/12/06 04:54:01 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -7,28 +7,35 @@ function project_release_install() {
     case 'mysql':
     case 'mysqli':
       db_query("CREATE TABLE IF NOT EXISTS {project_release_nodes} (
-          nid int unsigned NOT NULL default 0,
-          pid int unsigned NOT NULL default 0,
+          nid int unsigned NOT NULL default '0',
+          pid int unsigned NOT NULL default '0',
           version varchar(255) NOT NULL default '',
           tag varchar(255) NOT NULL default '',
           file_path varchar(255) NOT NULL default '',
-          file_date int unsigned NOT NULL default 0,
+          file_date int unsigned NOT NULL default '0',
           file_hash varchar(32) NOT NULL default '',
           rebuild tinyint default '0',
           version_major int default NULL,
           version_minor int default NULL,
           version_patch int default NULL,
           version_extra varchar(255) default NULL,
-          PRIMARY KEY (`nid`),
+          PRIMARY KEY (nid),
           KEY project_releases_pid (pid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
-          nid int unsigned NOT NULL default 0,
+          nid int unsigned NOT NULL default '0',
           releases tinyint NOT NULL default '1',
           version_format varchar(255) NOT NULL default '',
-          PRIMARY KEY (`nid`),
-          KEY project_release_projects_releases (`releases`)
+          PRIMARY KEY (nid),
+          KEY project_release_projects_releases (releases)
+        ) TYPE=MyISAM
+        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_default_versions} (
+          nid int unsigned NOT NULL default '0',
+          tid int unsigned NOT NULL default '0',
+          major int unsigned NOT NULL default '0',
+          PRIMARY KEY (nid, tid)
         ) TYPE=MyISAM
         /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
@@ -58,14 +65,69 @@ function project_release_install() {
             releases smallint NOT NULL default '1',
             version_format varchar(255) NOT NULL default '',
             PRIMARY KEY (nid),
-            KEY project_release_projects_releases (releases),
+            KEY project_release_projects_releases (releases)
           );");
+      }
+      if (!project_release_db_table_exists('project_release_default_versions')) {
+        db_query("CREATE TABLE {project_release_default_versions} (
+            nid int NOT NULL default '0',
+            tid int NOT NULL default '0',
+            major int NOT NULL default '0',
+            PRIMARY KEY (nid, tid)
+          );"); 
       }
       break;
   }
   db_query("UPDATE {system} SET weight = 2 WHERE name = 'project_release'");
   db_query("DELETE FROM {variable} WHERE name = 'project_browse_releases'");
 }
+
+/**
+ * Adds the {project_release_default_versions} table for branch-aware
+ * default versions and populates it the best it can.
+ */
+function project_release_update_1() {
+  $ret = array();
+
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql(
+        "CREATE TABLE IF NOT EXISTS {project_release_default_versions} (
+          nid int unsigned NOT NULL default '0',
+          tid int unsigned NOT NULL default '0',
+          major int unsigned NOT NULL default '0',
+          PRIMARY KEY (nid, tid)
+        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+    case 'pgsql':
+      if (!project_release_db_table_exists('project_release_default_versions')) {
+        $ret[] = update_sql(
+          "CREATE TABLE {project_release_default_versions} (
+            nid int NOT NULL default '0',
+            tid int NOT NULL default '0',
+            major int NOT NULL default '0',
+            PRIMARY KEY (nid, tid)
+          );"); 
+      }
+      break;
+  }
+
+  // Initially populate based on the existing default release, if that
+  // release is a real release with a valid compatibility taxonomy.
+  $ret[] = update_sql("INSERT INTO {project_release_default_versions} (nid, tid, major) SELECT pp.nid, tn.tid, prn.version_major FROM {project_projects} pp INNER JOIN {project_release_nodes} prn ON pp.version = prn.nid INNER JOIN {term_node} tn ON tn.nid = prn.nid");
+
+  // Now, add in values for any other distinct branches we know about
+  // for each project, for all active compatibility terms.
+  $tids = variable_get('project_release_active_compatibility_tids', '');
+  if (!empty($tids)) {
+    $where_tid = 'AND tn.tid IN (' . implode(',', array_filter($tids)) . ') ';
+  }
+  $ret[] = update_sql("INSERT INTO {project_release_default_versions} (nid, tid, major) SELECT prn.pid, tn.tid, MIN(prn.version_major) FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = prn.pid AND prdv.tid = tn.tid WHERE prn.version_major IS NOT NULL AND prdv.nid IS NULL AND prdv.tid IS NULL $where_tid GROUP BY prn.pid, tn.tid");
+
+  return $ret;
+}
+
 
 function project_release_db_table_exists($table) {
   switch ($GLOBALS['db_type']) {

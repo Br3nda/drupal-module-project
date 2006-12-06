@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.15 2006/12/05 11:38:16 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.16 2006/12/06 04:54:01 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -544,7 +544,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           $release_settings['parameters'][] = $version;
         }
         else {
-           $release_settings['joins'] = array('INNER JOIN {project_release_nodes} prn ON p.version = prn.nid');
+           $release_settings['joins'] = array('INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid');
         }
         $sql_settings = array_merge_recursive($sql_settings, $release_settings);
       }
@@ -608,6 +608,16 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 AND n.type = 'project_project' ORDER BY n.title ASC"));
   }
   $class = 'even';
+  if ($version != -1) {
+    $joins = 'INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major';
+    $wheres = 'AND t.tid = %d';
+    $order_bys = 'ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC';
+  }
+  else {
+    $joins = '';
+    $wheres = '';
+    $order_bys = 'ORDER BY p.file_date DESC';
+  }
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
     if (project_use_taxonomy()) {
@@ -627,11 +637,9 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       unset($values);
       $values[] = $project->nid;
       if ($version != -1) {
-        $VERSION_JOIN = 'INNER JOIN {term_node} t ON p.nid = t.nid';
-        $VERSION_WHERE = 'AND t.tid = %d';
         $values[] = $version;
       }
-      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p $VERSION_JOIN WHERE p.pid = %d $VERSION_WHERE ORDER BY file_date DESC", $values, 0, 1));
+      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p $joins WHERE p.pid = %d $wheres $order_bys", $values, 0, 1));
       $project->file_path = $latest->file_path;
       $project->version = $latest->version;
     }
