@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.45 2006/12/06 04:54:01 dww Exp $
+// $Id: project_release.module,v 1.1.2.46 2006/12/06 05:02:04 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1118,16 +1118,160 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
  * TODO: this should be themeable.
  */
 function project_release_project_download_table($node) {
-  $release = node_load($node->version);
-  // Make sure the release we think is the default is valid...
-  if ($release->type == 'project_release' && $release->pid == $node->nid) {
-    $links[] = l(t('Download default release (%version, %date, %size)', array('%version' => $release->version, '%date' => format_date($release->file_date, 'small'), '%size' => format_size(filesize($release->file_path)))), file_create_url($release->file_path));
-  }
+  $output = '<h3>' . t('Releases') . '</h3>';
+  $output .= project_release_table($node, 1, 1, FALSE, 'default-official', t('Official releases'));
+  $output .= project_release_table($node, 1, 3, FALSE, 'snapshot', t('Development snapshots'));
   $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
   if (project_check_admin_access($node->nid)) {
     $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
   }
-  return theme('item_list', $links, t('Releases'));
+  $output .= theme('item_list', $links);
+  return $output;
+}
+
+function project_release_table($project, $versions = 3, $releases_per_version = 3, $release_notes = FALSE, $filter = 'all', $title = NULL) {
+  if (empty($title)) {
+    $title = t('Version');
+  }
+  $select = $join = $where = $order_by = '';
+  $tids = project_release_compatibility_list();
+  if ($tids) {
+    unset($tids[-1]); // get rid of that one.
+    $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in (' 
+      . implode(',', array_keys($tids)) . ') ' 
+      . ' INNER JOIN {term_data} td ON td.tid = tn.tid ';
+    $selects[] = 'tn.tid';
+    $orderby[] = 'td.weight';
+    $orderby[] = 'td.name';
+  }
+
+  if ($release_notes) {
+    $join .= ' INNER JOIN {node_revisions} nr ON nr.vid = n.vid ';
+    $selects[] = 'nr.body, nr.format';
+  }
+
+  if ($tids) {
+    $default_join = ' INNER JOIN {project_release_default_versions} prdv ON prdv.nid = r.pid AND prdv.tid = tn.tid AND prdv.major = r.version_major ';
+  }
+  else {
+    // TODO
+    $default_join = '';
+  }
+  switch ($filter) {
+    case 'default-official':
+      $join .= $default_join;
+      $where = 'AND r.rebuild <> 1';
+      break;
+    case 'default-all':
+      $join .= $default_join;
+      // Make sure snapshots come first so we only show official
+      // releases (if any) when limiting the # of rows in the table.
+      $orderby[] = 'r.rebuild DESC';
+      break;
+    case 'official':
+      $where = 'AND r.rebuild <> 1';
+      break;
+    case 'snapshot':
+      $where = 'AND r.rebuild = 1';
+      break;
+    default:
+      $orderby[] = 'r.rebuild'; // make sure dev versions come last
+      break;
+  }
+  $orderby[] = 'r.version_major';
+  $orderby[] = 'r.version_minor';
+  $orderby[] = 'r.version_patch';
+  $orderby[] = 'r.file_date';
+
+  if ($orderby) {
+    $order_by = ' ORDER BY ' . implode(', ', $orderby);
+  }
+  if ($selects) {
+    $select = implode(', ', $selects) . ',';
+  }
+  $result = db_query(db_rewrite_sql(
+    "SELECT n.nid, $select r.* FROM {node} n " .
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid " . $join . 
+    "WHERE (r.pid = %d) AND (n.status = 1) " . $where . ' ' . $order_by),
+    $project->nid);
+
+  $items = array();
+  $can_edit = node_access('update', $project);
+
+  while ($release = db_fetch_object($result)) {
+    $links = array(
+      l(t('Download'), file_create_url($release->file_path)),
+      l(t('Release notes'), "node/$release->nid"),
+    );
+
+    if ($can_edit) {
+      $links[] = l(t('Edit'), "node/$release->nid/edit");
+    }
+    if (!is_array($items[$release->tid])) {
+      $items[$release->tid][] = array();
+    }
+    $items[$release->tid][] = array(
+      // class of <tr>
+      'class' => $release->rebuild ? 'release-dev' : 'release',
+      'data' => array(
+        array(
+          'class' => 'release-title',
+          'data' => l($release->version, "node/$release->nid"),
+        ),
+        array(
+          'class' => 'release-date',
+          'data' => format_date($release->file_date, 'custom', 'Y-M-d'),
+        ),
+        array(
+          'class' => 'release-size',
+          'data' => format_size(filesize(file_create_path($release->file_path))),
+        ),
+        array(
+          'class' => 'release-links',
+          'data' => theme('links', $links),
+        ),
+      ),
+    );
+    if ($release_notes) {
+      $items[$release->tid][] = array(
+        'colspan' => 4,
+        'class' => 'release-notes',
+        'data' => check_markup($release->body, $release->format, FALSE),
+      );
+    }
+  }
+  $header = array(
+    array(
+      'class' => 'release-title',
+      'data' => $title),
+    array(
+      'class' => 'release-date',
+      'data' => t('Date'),
+    ),
+    array(
+      'class' => 'release-size',
+      'data' => t('Size'),
+    ),
+    array(
+      'class' => 'release-links',
+      'data' => t('Links'),
+    ),
+  );
+
+  foreach ($items as $tid => $item) {
+    if ($releases_per_version) {
+      $hide_num = count($item) - $releases_per_version;
+      for ($i = 0; $i < $hide_num; $i++) {
+        array_shift($item); // pop off items we're not going to see.
+      }
+    }
+    $rows = array_merge($rows, $item);
+  }
+  $output = '';
+  if (!empty($rows)) {
+    $output = theme('table', $header, $rows, array('class' => 'releases'));
+  }
+  return $output;
 }
 
 /**

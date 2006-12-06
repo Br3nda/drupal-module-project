@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.1.2.2 2006/11/12 13:52:35 dww Exp $ */
+/* $Id: project_release.css,v 1.1.2.3 2006/12/06 05:02:04 dww Exp $ */
 /* $Name:  $ */
 
 .node-form .project-release .version-elements fieldset .form-item {
@@ -16,3 +16,28 @@
 }
 
 .node-form .project-release .version-elements fieldset {display: inline-table;}
+
+/***************************
+* CSS for tables of releases
+*/
+table.releases {
+  width: 100%;
+  margin-top: .5em;
+}
+
+table.releases .release-title {
+  width: 30%;
+}
+
+table.releases .release-date {
+  width: 15%;
+}
+
+table.releases .release-size {
+  width: 15%;
+}
+
+table.releases .release-links {
+  width: 40%;
+}
+
