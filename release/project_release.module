@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.48 2006/12/07 09:08:18 dww Exp $
+// $Id: project_release.module,v 1.1.2.49 2006/12/07 20:37:12 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -994,14 +994,16 @@ function project_release_project_edit_form_validate($form_id, $form_values, $for
 function project_release_project_edit_form_submit($form_id, $form_values) {
   db_query("UPDATE {project_release_projects} SET releases = %d, version_format = '%s' WHERE nid = %d", $form_values['releases'], $form_values['version_format'], $form_values['nid']);
 
-  foreach ($form_values['default_versions'] as $tid => $values) {
-    if ($obj = db_fetch_object(db_query("SELECT * FROM {project_release_default_versions} WHERE nid = %d AND tid = %d", $form_values['nid'], $tid))) {
-      if ($obj->major != $values['major']) {
-        db_query("UPDATE {project_release_default_versions} SET major = %d WHERE nid = %d AND tid = %d", $values['major'], $form_values['nid'], $tid);
+  if (!empty($form_values['default_versions'])) {
+    foreach ($form_values['default_versions'] as $tid => $values) {
+      if ($obj = db_fetch_object(db_query("SELECT * FROM {project_release_default_versions} WHERE nid = %d AND tid = %d", $form_values['nid'], $tid))) {
+        if ($obj->major != $values['major']) {
+          db_query("UPDATE {project_release_default_versions} SET major = %d WHERE nid = %d AND tid = %d", $values['major'], $form_values['nid'], $tid);
+        }
       }
-    }
-    else {
-      db_query("INSERT INTO {project_release_default_versions} (nid, tid, major) VALUES (%d, %d, %d)", $form_values['nid'], $tid, $values['major']);
+      else {
+        db_query("INSERT INTO {project_release_default_versions} (nid, tid, major) VALUES (%d, %d, %d)", $form_values['nid'], $tid, $values['major']);
+      }
     }
   }
 }
