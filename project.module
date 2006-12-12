@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.18 2006/12/12 08:41:13 dww Exp $
+// $Id: project.module,v 1.239.2.19 2006/12/12 16:42:56 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -554,7 +554,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'prefix' => NULL,
           'glue' => NULL,
           'pieces' => array(
-            $type->tid
+            isset($term) ? $term->tid : $type->tid
           )
         )
       );
