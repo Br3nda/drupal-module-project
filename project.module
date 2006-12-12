@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.20 2006/12/12 06:24:11 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.21 2006/12/12 07:30:17 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -512,7 +512,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'prefix' => NULL,
           'glue' => NULL,
           'pieces' => array(
-            $term->tid
+            $type->tid
           )
         )
       );
