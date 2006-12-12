@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.21 2006/12/12 07:30:17 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.22 2006/12/12 08:31:29 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -582,7 +582,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         if (!arg(3) || !db_num_rows($result)) {
           return $output;
         }
-        drupal_set_title(t('%project_type: %category', array('%project_type' => filter_xss($type->name), '%category' => theme('placeholder', $term->name))));
+        drupal_set_title(t('%project_type: %category', array('%project_type' => check_plain($type->name), '%category' => theme('placeholder', $term->name))));
       }
     }
     // If taxonomy is enabled but no termname is selected, show a list of terms to choose from.
