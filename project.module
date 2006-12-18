@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.195.2.10 2006/08/11 17:48:15 dww Exp $
+// $Id: project.module,v 1.195.2.11 2006/12/18 06:34:04 dww Exp $
 
 // project nodes    -> project_projects
 // project releases -> project_releases
@@ -432,7 +432,7 @@ function project_page_user($arg = 0) {
     }
     $user = db_fetch_object(db_query("SELECT uid, name FROM {users} WHERE $where", $arg));
     if ($user) {
-      drupal_set_title(t('Projects by %user', array('%user' => $user->name)));
+      drupal_set_title(t('Projects by %user', array('%user' => check_plain($user->name))));
     }
   }
 

@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.7 2006/06/20 00:53:09 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.8 2006/12/18 06:34:04 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -362,7 +362,7 @@ function project_project_retrieve($key = 0) {
 function project_developers($nid = 0) {
   if ($project = node_load(array('nid' => $nid))) {
     $output = module_invoke('cvs', 'get_project_contributors', $nid);
-    drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
+    drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
     print theme('page', $output);
   }
   else {
@@ -374,7 +374,7 @@ function project_cvs($nid = 0) {
   if ($project = node_load(array('nid' => $nid))) {
     $_REQUEST['nid'] = $nid;
     $output = module_invoke('cvs', 'show_messages');
-    drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
+    drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
     print theme('page', $output);
   }
   else {
