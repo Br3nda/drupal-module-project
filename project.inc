@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.8 2006/12/18 06:34:04 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.9 2006/12/18 18:41:34 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -155,13 +155,6 @@ function project_project_validate(&$node) {
   return $node;
 }
 
-/**
- * Implementation of hook_content().
- */
-function project_project_content($node, $teaser = false) {
-  return node_prepare($node, $teaser);
-}
-
 function project_project_set_location(&$node, $extra = array()) {
   $breadcrumb = array();
 
@@ -175,7 +168,7 @@ function project_project_set_location(&$node, $extra = array()) {
 }
 
 function project_project_view(&$node, $teaser = false, $page = false) {
-  $node = project_project_content($node, $teaser);
+  $node = node_prepare($node, $teaser);
 
   if ($page) {
     // Breadcrumb navigation

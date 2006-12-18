@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.20 2006/12/18 06:34:04 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.21 2006/12/18 18:41:34 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -397,15 +397,8 @@ function project_issue_validate(&$node) {
   return $node;
 }
 
-/**
- * Implementation of hook_content().
- */
-function project_issue_content($node, $teaser = false) {
-  return node_prepare($node, $teaser);
-}
-
 function project_issue_view(&$node, $teaser = false, $page = false) {
-  $node = project_issue_content($node, $teaser);
+  $node = node_prepare($node, $teaser);
 
   if (!$teaser) {
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
