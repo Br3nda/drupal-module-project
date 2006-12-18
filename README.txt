@@ -26,4 +26,5 @@ General
 Projects
  - Integrate image module galleries for screenshots.
 
-$Id: README.txt,v 1.7 2006/07/25 07:42:33 dww Exp $
+$Id: README.txt,v 1.8 2006/12/18 09:02:39 dww Exp $
+$Name:  $

@@ -1,11 +1,13 @@
 <?php
-/* $Id: project.inc,v 1.92 2006/11/12 13:40:22 dww Exp $ */
+// $Id: project.inc,v 1.93 2006/12/18 09:02:39 dww Exp $
+// $Name:  $
 
 /**
  * Implementation of hook_form().
  */
 function project_project_form(&$node) {
   global $user;
+  project_project_set_breadcrumb($node);
 
   /*
   ** Allow the following fields to be initialized via $_GET
@@ -271,27 +273,31 @@ function project_project_content($node, $teaser = false) {
   return node_prepare($node, $teaser);
 }
 
-function project_project_set_location(&$node, $extra = array()) {
-  $breadcrumb = array();
+function project_project_set_breadcrumb($node = NULL, $extra = array()) {
+  global $_menu;
 
-  $breadcrumb[] = array('path' => 'project', 'title' => t('projects'));
-  if (project_use_taxonomy()) {
+  $breadcrumb = array();
+  $breadcrumb[] = l(t('Home'), NULL);
+
+  // Find out if the site has created a menu name for /project and use that
+  $pid = $_menu['path index']['project'];
+  $name = $_menu['items'][$pid]['title'];
+  $breadcrumb[] = l($name, 'project', array('title' => t('Browse projects')));
+
+  if (!empty($node) && project_use_taxonomy()) {
     $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = 0 AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
     $term = db_fetch_object($result);
-    $breadcrumb[] = array('path' => 'project/'. $term->name, 'title' => $term->name);
+    $breadcrumb[] = l($term->name, 'project/'. $term->name);
   }
   $breadcrumb = array_merge($breadcrumb, $extra);
-
-  return $breadcrumb;
+  drupal_set_breadcrumb($breadcrumb);
 }
 
 function project_project_view(&$node, $teaser = false, $page = false) {
   $node = project_project_content($node, $teaser);
   if ($page) {
     // Breadcrumb navigation
-    $breadcrumb[] = array('path' => 'node/'. $node->nid, 'title' => $node->title);
-    $breadcrumb = project_project_set_location($node, $breadcrumb);
-    menu_set_location($breadcrumb);
+    project_project_set_breadcrumb($node);
 
     if (function_exists('project_release_project_download_table')) {
       $output = project_release_project_download_table($node);
@@ -404,7 +410,15 @@ function project_project_access($op, $node) {
 
   switch ($op) {
     case 'view':
-      return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
+      if (user_access('access own projects') && $node->uid == $user->uid) {
+         return TRUE;
+      }
+      elseif (!user_access('access projects')) {
+         return FALSE;
+      }
+      else {
+        return NULL;
+      }
     case 'create':
       if ($user->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
@@ -418,8 +432,9 @@ function project_project_access($op, $node) {
       }
       return FALSE;
     case 'update':
+      return project_check_admin_access($node);
     case 'delete':
-      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+      return project_check_admin_access($node, FALSE);
   }
 }
 
@@ -444,7 +459,7 @@ function project_project_retrieve($key = 0) {
 function project_developers($nid = 0) {
   if ($project = node_load($nid)) {
     $output = module_invoke('cvs', 'get_project_contributors', $nid);
-    drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
+    drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
     return $output;
   }
   else {
@@ -456,7 +471,7 @@ function project_cvs($nid = 0) {
   if ($project = node_load($nid)) {
     $_REQUEST['nid'] = $nid;
     $output = module_invoke('cvs', 'show_messages');
-    drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
+    drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
     return $output;
   }
   else {

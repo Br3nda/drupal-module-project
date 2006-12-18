@@ -1,5 +1,6 @@
 <?php
-/* $Id: project_release_scan.inc,v 1.2 2006/11/12 13:40:22 dww Exp $ */
+// $Id: project_release_scan.inc,v 1.3 2006/12/18 09:02:39 dww Exp $
+// $Name:  $
 
 /**
  * All of the release scanning code is probably dead code at this
