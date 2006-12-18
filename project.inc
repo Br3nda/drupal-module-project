@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.19 2006/12/02 03:43:25 dww Exp $
+// $Id: project.inc,v 1.75.2.20 2006/12/18 06:34:22 dww Exp $
 // $Name:  $
 
 /**
@@ -520,7 +520,7 @@ function project_project_retrieve($key = 0) {
 function project_developers($nid = 0) {
   if ($project = node_load($nid)) {
     $output = module_invoke('cvs', 'get_project_contributors', $nid);
-    drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
+    drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
     return $output;
   }
   else {
@@ -532,7 +532,7 @@ function project_cvs($nid = 0) {
   if ($project = node_load($nid)) {
     $_REQUEST['nid'] = $nid;
     $output = module_invoke('cvs', 'show_messages');
-    drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
+    drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
     return $output;
   }
   else {
