@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.93 2006/12/18 09:02:39 dww Exp $
+// $Id: project.inc,v 1.94 2006/12/18 18:47:43 dww Exp $
 // $Name:  $
 
 /**
@@ -266,13 +266,6 @@ function project_project_validate(&$node) {
   }
 }
 
-/**
- * Implementation of hook_content().
- */
-function project_project_content($node, $teaser = false) {
-  return node_prepare($node, $teaser);
-}
-
 function project_project_set_breadcrumb($node = NULL, $extra = array()) {
   global $_menu;
 
@@ -294,7 +287,7 @@ function project_project_set_breadcrumb($node = NULL, $extra = array()) {
 }
 
 function project_project_view(&$node, $teaser = false, $page = false) {
-  $node = project_project_content($node, $teaser);
+  $node = node_prepare($node, $teaser);
   if ($page) {
     // Breadcrumb navigation
     project_project_set_breadcrumb($node);
