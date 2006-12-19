@@ -1,11 +1,11 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.16 2006/12/19 01:50:45 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.17 2006/12/19 01:56:04 dww Exp $
 // $Name:  $
 
 /**
  * Implementation of hook_form().
  */
-function project_project_form(&$node) {
+function project_project_form($node) {
   global $user;
   project_project_set_breadcrumb($node);
 
@@ -28,7 +28,7 @@ function project_project_form(&$node) {
     // See if there are any project specific taxonomy terms already
     // saved in this node (i.e. we're editing an existing project) and
     // if so, extract the right default values for our custom form
-    // elements... 
+    // elements...
     if ($node->taxonomy) {
       foreach ($node->taxonomy as $tid => $obj) {
         if ($top_level[$tid]) {
@@ -38,7 +38,7 @@ function project_project_form(&$node) {
           $current_options[$tid] = $tid;
         }
       }
-    } 
+    }
     $form['project_taxonomy'] = array(
       '#type' => 'fieldset',
       '#weight' => '-30',
@@ -245,7 +245,7 @@ function project_project_validate(&$node) {
       if ($term->parents[0] == 0) {
         $top_level[$term->tid] = $term->name;
       }
-    }  
+    }
     foreach ($top_level as $tid => $name) {
       if ($node->project_type != $tid) {
         $tid_field = 'tid_' . $tid;
@@ -308,7 +308,6 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($node->issues) {
-      #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
       $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
       $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
       $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
