@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.15 2006/12/18 18:47:16 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.16 2006/12/19 01:50:45 dww Exp $
 // $Name:  $
 
 /**
@@ -8,15 +8,6 @@
 function project_project_form(&$node) {
   global $user;
   project_project_set_breadcrumb($node);
-
-  /*
-  ** Allow the following fields to be initialized via $_GET
-  */
-  foreach (array('uri', 'mail', 'homepage') as $field) {
-    if ($_GET['edit'][$field]) {
-      $node->$field = $_GET['edit'][$field];
-    }
-  }
 
   $form['#prefix'] = '<div class="project">';
 
