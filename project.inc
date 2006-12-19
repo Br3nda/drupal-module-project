@@ -1,5 +1,5 @@
 <?php
-/* $Id: project.inc,v 1.50.2.9 2006/12/18 18:41:34 dww Exp $ */
+/* $Id: project.inc,v 1.50.2.10 2006/12/19 01:50:37 dww Exp $ */
 
 function project_project_node_name() {
   return t('project');
@@ -13,15 +13,6 @@ function project_project_form(&$node) {
   }
   else {
     $node->components = "Code\nDocumentation\nMiscellaneous\nUser interface";
-  }
-
-  /*
-  ** Allow the following fields to be initialized via $_GET
-  */
-  foreach (array('uri', 'mail', 'homepage', 'issues', 'mail_reminder', 'mail_digest') as $field) {
-    if ($_GET['edit'][$field]) {
-      $node->$field = $_GET['edit'][$field];
-    }
   }
 
   //$output .= form_textfield(t('Full project name'), 'title', $node->title, 40, 255, t('This is the publicly visible project name.'));
