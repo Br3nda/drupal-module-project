@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.21 2006/12/18 18:46:41 dww Exp $
+// $Id: project.inc,v 1.75.2.22 2006/12/19 00:31:14 dww Exp $
 // $Name:  $
 
 /**
@@ -404,11 +404,9 @@ function project_project_releases() {
   $node = node_load(arg(1));
 
   // Breadcrumb navigation
-  $breadcrumb[] = array('path' => 'node/'. $node->nid .'/', 'title' => $node->title);
-  $breadcrumb[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('Releases'));
-  $breadcrumb = project_project_set_location($node, $breadcrumb);
-
-  menu_set_location($breadcrumb);
+  $breadcrumb[] = l($node->title, 'node/' . $node->nid);
+  $breadcrumb[] = l(t('Releases'), 'node/'. $node->nid .'/release');
+  project_project_set_breadcrumb($node, $breadcrumb);
 
   $output = project_release_list($node);
 
