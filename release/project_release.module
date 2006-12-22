@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.3 2006/12/18 09:02:39 dww Exp $
+// $Id: project_release.module,v 1.4 2006/12/22 23:53:20 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -16,8 +16,6 @@ define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %
  */
 function project_release_help($section) {
   switch ($section) {
-    case 'admin/modules#description':
-      return t('Provides a project release node type.');
     case 'node/add#project_release':
       return t('A release of a project with a specific version number.');
   }
@@ -35,19 +33,41 @@ function project_release_menu($may_cache) {
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       if ($node->type == 'project_project') {
-        $items[] = array('path' => 'node/'. arg(1) .'/release', 'title' => t('releases'), 'callback' => 'project_release_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
+        $items[] = array(
+          'path' => 'node/'. arg(1) .'/release',
+          'title' => t('Releases'),
+          'callback' => 'project_release_project_releases',
+          'access' => node_access('view', $node),
+          'type' => MENU_CALLBACK,
+        );
         if (node_access('update', $node)) {
-          $items[] = array('path' => 'node/'. arg(1) .'/release/overview', 'title' => t('overview'), 'callback' => 'project_release_project_releases', 'access' => node_access('view', $node), 'weight' => 0, 'type' => MENU_CALLBACK);
+          $items[] = array(
+            'path' => 'node/'. arg(1) .'/release/overview',
+            'title' => t('Overview'),
+            'callback' => 'project_release_project_releases',
+            'access' => node_access('view', $node),
+            'type' => MENU_CALLBACK,
+          );
           $items[] = array(
             'path' => 'node/'. arg(1) .'/edit/releases',
-            'title' => t('releases'),
+            'title' => t('Releases'),
             'callback' => 'project_release_project_edit_releases',
-            'weight' => 0, 'type' => MENU_LOCAL_TASK,
+            'type' => MENU_LOCAL_TASK,
           );
         }
       }
     }
-    theme_add_style(drupal_get_path('module', 'project_release') .'/project_release.css');
+    $items[] = array(
+      'path' => 'admin/project/project-release-settings',
+      'description' => t('Configure the default version string for releases and other settings for the Project release module.'),
+      'title' => t('Project release settings'),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => 'project_release_settings_form',
+      'access' => user_access('administer projects'),
+      'weight' => 1,
+      'type' => MENU_NORMAL_ITEM,
+    );
+    drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
     project_release_get_api_taxonomy();
   }
   return $items;
@@ -57,7 +77,7 @@ function project_release_menu($may_cache) {
  * Callback for the main settings page.
  * @ingroup project_release_core
  */
-function project_release_settings() {
+function project_release_settings_form() {
   if ($rel_dir = variable_get('project_release_directory', '')) {
     $form['project_release_directory'] = array(
       '#type' => 'textfield',
@@ -93,10 +113,10 @@ function project_release_settings() {
     $tids = variable_get('project_release_active_compatibility_tids', '');
     $form['project_release_active_compatibility_tids'] = array(
       '#type' => 'checkboxes',
-      '#title' => t('Active %vocab terms', array('%vocab' => check_plain($vocab->name))),
+      '#title' => t('Active @vocab terms', array('@vocab' => $vocab->name)),
       '#default_value' => $tids,
       '#options' => $terms,
-      '#description' => t('Terms from the %vocab vocabulary that should be visibile to end users and project maintainers.', array('%vocab' => theme('placeholder', $vocab->name))),
+      '#description' => t('Terms from the %vocab vocabulary that should be visibile to end users and project maintainers.', array('%vocab' => $vocab->name)),
     );
 
     // TODO: put these 2 in a fieldset?
@@ -115,13 +135,15 @@ function project_release_settings() {
       '#required' => TRUE,
       '#description' => t('Default release version to list on the overview page.'),
     );
+/*
     $setting_valid = array('project_release_settings_validate' => array());
     $form['#validate'] = isset($form['#validate']) ? array_merge($form['#validate'], $setting_valid) : $setting_valid;
+*/
   }
-  return $form;
+  return system_settings_form($form);
 }
 
-function project_release_settings_validate($form_id, $form_values, $form) {
+function project_release_settings_form_validate($form_id, $form_values, $form) {
   if (!empty($form_values['project_release_directory'])) {
     form_set_error('project_release_directory', t('Release directory setting has been deprecated.'));
   }
@@ -129,7 +151,7 @@ function project_release_settings_validate($form_id, $form_values, $form) {
   $default_tid = $form_values['project_release_overview'];
   if ($default_tid != -1 && !$tids[$default_tid]) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
-    form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms', array('%vocab' => check_plain($vocab->name))));
+    form_set_error('project_release_overview', t('Project release overview must be one of the active @vocab terms', array('@vocab' => $vocab->name)));
   }
   
   // Make sure the default version format has no bad characters.
@@ -173,7 +195,10 @@ function project_release_access($op, $node) {
  */
 function project_release_node_info() {
   return array(
-    'project_release' => array('name' => t('project release'), 'base' => 'project_release'),
+    'project_release' => array(
+      'name' => t('project release'),
+      'module' => 'project_release'
+     ),
   );
 }
 
@@ -181,7 +206,7 @@ function project_release_node_info() {
  * Implementation of hook_form().
  * @ingroup project_release_node
  */
-function project_release_form(&$release, &$param) {
+function project_release_form($release) {
   if (arg(1) == 'add') {
     if (!is_numeric(arg(3))) {
       drupal_set_message(t('You can only add releases from a project page.'));
@@ -192,7 +217,7 @@ function project_release_form(&$release, &$param) {
     $release->pid = arg(3);
     $project = node_load($release->pid);
     if (!isset($project) || $project->type != 'project_project') {
-      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->pid)));
+      drupal_set_message(t('Node !nid is not a valid project.', array('!nid' => $release->pid)));
       drupal_not_found();
       module_invoke_all('exit');
       exit;
@@ -387,7 +412,7 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
  * @ingroup project_release_node
  */
 function project_release_validate(&$edit, $form) {
-  if ($_POST['edit']['validate_version']) {
+  if ($_POST['validate_version']) {
     if (!isset($edit->version_major) && !isset($edit->version_minor) &&
         !isset($edit->version_patch) &&
         (!($edit->version_extra) || $edit->version_extra === '')) {
@@ -397,7 +422,7 @@ function project_release_validate(&$edit, $form) {
     foreach (array('version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
       $val = $edit->$field;
       if (isset($val) && $val !== '' && !is_numeric($val)) {
-        form_set_error($field, t('%name must be a number.', array('%name' => $name)));
+        form_set_error($field, t('!name must be a number.', array('!name' => $name)));
       }
     }
     $val = $edit->version_patch;
@@ -433,7 +458,7 @@ function project_release_validate(&$edit, $form) {
 
   // With cvs.module installed, this validation is already handled.
   // We only want to do it here if we're *not* doing the N-page form...
-  if (!module_exist('cvs') && !isset($edit->nid) && project_release_exists($edit)) {
+  if (!module_exists('cvs') && !isset($edit->nid) && project_release_exists($edit)) {
     // TODO: is there a better form element to mark with this error?
     form_set_error('version_patch', t('This version already exists for this project.'));
   }
@@ -479,7 +504,7 @@ function project_release_load($node) {
  */
 function project_release_insert($node) {
   project_release_db_save($node, true);
-  if (module_exist('cvs')) {
+  if (module_exists('cvs')) {
     if ($node->rebuild) {
       $msg = variable_get('cvs_message_new_release_branch', '');
     }
@@ -557,7 +582,7 @@ function project_release_db_save($node, $is_new) {
 
   // If this is the first release for a given compatibility term, add
   // a record into the {project_release_default_versions} table.
-  if ($is_new && module_exist('taxonomy')) {
+  if ($is_new && module_exists('taxonomy')) {
     $vid = _project_release_get_api_vid();
     if (isset($node->taxonomy[$vid])) {
       $tid = $node->taxonomy[$vid];
@@ -667,8 +692,9 @@ function project_release_get_version($release, $project = NULL) {
  * Implementation of hook_view().
  * @ingroup project_release_node
  */
-function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
-  $project = node_load($release->pid);
+function project_release_view($node, $teaser = FALSE, $page = FALSE) {
+  $node = node_prepare($node, $teaser);
+  $project = node_load($node->pid);
 
   if ($page) {
     // Breadcrumb navigation
@@ -677,24 +703,25 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
     project_project_set_breadcrumb($project, $breadcrumb);
   }
 
-  $links = array();
-  if ($release->rebuild) {
-    $output .= t('Nightly development snapshot from %tag', array('%tag' => check_plain($release->tag))) . '<br />';
+  if ($node->rebuild) {
+    $output .= t('Nightly development snapshot from !tag', array('!tag' => check_plain($node->tag))) . '<br />';
   }
-  if ($release->file_path) {
-    $output .= '<small>' . t('Download: %file', array('%file' => l(basename($release->file_path), file_create_url($release->file_path)))) . '</small><br />';
-    $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) . '</small><br />';
-    $output .= '<small>' . t('md5_file hash: %file_hash', array('%file_hash' => $release->file_hash)) . '</small><br />';
+  if ($node->file_path) {
+    $output .= '<small>' . t('Download: !file', array('!file' => l(basename($node->file_path), file_create_url($node->file_path)))) . '</small><br />';
+    $output .= '<small>' . t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->file_path))))) . '</small><br />';
+    $output .= '<small>' . t('md5_file hash: !file_hash', array('!file_hash' => $node->file_hash)) . '</small><br />';
   }
-  if ($release->created) {
-    $output .= '<small>' . t('First released: %created', array('%created' => format_date($release->created))) . '</small><br />';
+  if ($node->created) {
+    $output .= '<small>' . t('First released: !created', array('!created' => format_date($node->created))) . '</small><br />';
   }
-  if ($release->changed  && ($release->changed != $release->created)) {
-    $output .= '<small>' . t('Last updated: %changed', array('%changed' => format_date($release->file_date))) . '</small><br />';
+  if ($node->changed  && ($node->changed != $node->created)) {
+    $output .= '<small>' . t('Last updated: !changed', array('!changed' => format_date($node->file_date))) . '</small><br />';
   }
-  $output .= theme('links', $links);
-
-  $release->body = '<div class="project-release">' . $output . '</div>' . check_markup($release->body, $release->format, FALSE);
+  $node->content['release_info'] = array(
+    '#value' => '<div class="project-release">' . $output . '</div>',
+    '#weight' => -1,
+  );
+  return $node;
 }
 
 /**
@@ -710,7 +737,7 @@ function project_release_project_releases() {
 
   $output = project_release_list($node);
 
-  drupal_set_title(t('Releases for %project', array('%project' => theme('placeholder', $node->title))));
+  drupal_set_title(t('Releases for %project', array('%project' => $node->title)));
   return $output;
 }
 
@@ -785,19 +812,28 @@ function project_release_compatibility_list() {
  * projects on a site with 'project_release_browse_versions' enabled.
  * @see project_page_overview
  */
-function project_release_version_filter_form($version) {
+function project_release_version_filter_form($version = NULL) {
   if ($terms = project_release_compatibility_list()) {
+    if (is_null($version)) {
+      $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+    }
     $form['version_tid'] = array(
       '#type' => 'select',
       '#default_value' => $version,
       '#options' => $terms,
     );
     $form['submit'] = array(
-      '#type' => 'button',
+      '#type' => 'submit',
       '#value' => t('Go')
     );
   }
-  return $form;
+  return isset($form) ? $form : '';
+}
+
+function project_release_version_filter_form_submit($form_id, $form_values) {
+  if (isset($form_values['version_tid'])) {
+    $_SESSION['project_version'] = $form_values['version_tid'];
+  }
 }
 
 function theme_project_release_version_filter_form($form) {
@@ -808,7 +844,7 @@ function theme_project_release_version_filter_form($form) {
   else {
     $label = t('version');
   }
-  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => $label)) . form_render($form) . '</div>';
+  $output = '<div class="container-inline">' . t('Filter by !label:', array('!label' => $label)) . drupal_render($form) . '</div>';
   return $output;
 }
 
@@ -846,12 +882,15 @@ function project_release_project_edit_releases() {
   $node = node_load(arg(1));
   project_project_set_breadcrumb($node);
   drupal_set_title(check_plain($node->title));
+  return drupal_get_form('project_release_project_edit_form');
+}
 
+function project_release_project_edit_form() {
   $form['advanced'] = array(
     '#type' => 'fieldset',
     '#title' => t('Advanced options'),
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+    '#collapsed' => $node->releases,
     '#weight' => 5,
   );
 
@@ -926,7 +965,7 @@ function project_release_project_edit_releases() {
         '#default_value' => $node->version_format,
         '#size' => 50,
         '#maxlength' => 255,
-        '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
+        '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT))),
       );
       $form['#validate'] = array_merge($form['#validate'], array('project_release_project_edit_form_validate' => array()));
     }
@@ -937,7 +976,7 @@ function project_release_project_edit_releases() {
       '#title' => t('Display snapshot releases on project page'),
       '#return_value' => 1,
       '#default_value' => isset($node->snapshot_table) ? $node->snapshot_table : 1,
-      '#description' => t('Note: Even if the current default release for a given %vocabulary_name is a development snapshot, it will only be show if this checkbox is enabled.', array('%vocabulary_name' => $vocab)),
+      '#description' => t('Note: Even if the current default release for a given !vocabulary_name is a development snapshot, it will only be show if this checkbox is enabled.', array('!vocabulary_name' => $vocab)),
     );
   }
 
@@ -948,7 +987,7 @@ function project_release_project_edit_releases() {
     '#weight' => 45,
   );
 
-  return drupal_get_form('project_release_project_edit_form', $form);
+  return $form;
 }
 
 function theme_project_release_form_value($element) {
@@ -967,20 +1006,20 @@ function theme_project_release_project_edit_form($form) {
   }
   foreach (element_children($form['default_versions']) as $tid) {
     $row = array();
-    $row[] = form_render($form['default_versions'][$tid]['name']);
+    $row[] = drupal_render($form['default_versions'][$tid]['name']);
     unset($form['default_versions'][$tid]['major']['#title']);
-    $row[] = form_render($form['default_versions'][$tid]['major']);
-    $row[] = form_render($form['default_versions'][$tid]['current_release']);
+    $row[] = drupal_render($form['default_versions'][$tid]['major']);
+    $row[] = drupal_render($form['default_versions'][$tid]['current_release']);
     $rows[] = $row;
   }
   if (count($rows)) {
     $output .= '<h3>'. t('Default versions') .'</h3>';
     $output .= theme('table', $header, $rows);
-    $output .= '<div class="form-item"><div class="description">'. t('This table allows you to specify the default version to download for any given %vocabulary_name. If there are releases from more than one major version number, you can select which major version should be used. For each %vocabulary_name, the current default release based on the saved major version is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release is used.', array('%vocabulary_name' => theme('placeholder', $vocab->name))) ."</div></div>\n";
+    $output .= '<div class="form-item"><div class="description">'. t('This table allows you to specify the default version to download for any given %vocabulary_name. If there are releases from more than one major version number, you can select which major version should be used. For each %vocabulary_name, the current default release based on the saved major version is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release is used.', array('%vocabulary_name' => $vocab->name)) ."</div></div>\n";
   }
-  $output .= form_render($form['snapshot_table']);
-  $output .= form_render($form['advanced']);
-  $output .= form_render($form);
+  $output .= drupal_render($form['snapshot_table']);
+  $output .= drupal_render($form['advanced']);
+  $output .= drupal_render($form);
   return $output;
 }
 
@@ -1140,6 +1179,7 @@ function project_release_project_download_table($node) {
   if ($node->snapshot_table) {
     $output .= project_release_table($node, 'defaults', 'snapshot', t('Development snapshots'));
   }
+  $links = array();
   $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
   if (project_check_admin_access($node->nid)) {
     $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
@@ -1240,13 +1280,20 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   $can_edit = node_access('update', $project);
 
   while ($release = db_fetch_object($result)) {
-    $links = array(
-      l(t('Download'), file_create_url($release->file_path)),
-      l(t('Release notes'), "node/$release->nid"),
+    $links = array();
+    $links['project_release_download'] = array(
+      'title' => t('Download'),
+      'href' => file_create_url($release->file_path),
     );
-
+    $links['project_release_notes'] = array(
+      'title' => t('Release notes'),
+      'href' => "node/$release->nid",
+    );
     if ($can_edit) {
-      $links[] = l(t('Edit'), "node/$release->nid/edit");
+      $links['project_release_edit'] = array(
+        'title' => t('Edit'),
+        'href' => "node/$release->nid/edit",
+      );
     }
     if (!is_array($items[$release->tid])) {
       $items[$release->tid] = array();
@@ -1332,7 +1379,7 @@ function project_release_taxonomy($op, $type, $object = NULL) {
  * API compatibility vocabulary, otherwise, it returns false.
  */
 function project_release_get_api_taxonomy() {
-  if (!module_exist('taxonomy')) {
+  if (!module_exists('taxonomy')) {
     return false;
   }
   return taxonomy_get_tree(_project_release_get_api_vid());

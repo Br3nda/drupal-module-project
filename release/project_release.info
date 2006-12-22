@@ -1,0 +1,6 @@
+; $Id: project_release.info,v 1.1 2006/12/22 23:53:20 dww Exp $
+name = Project releases
+description = Provides a release node type to represent releases of projects.
+package = Project
+dependencies = project
+version = "$Name:  $"

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.258 2006/12/22 19:12:13 dww Exp $
+// $Id: project.module,v 1.259 2006/12/22 23:53:20 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -9,11 +9,7 @@ if (file_exists("$path/project.inc")) {
 
 function project_help($section) {
   switch ($section) {
-    case 'admin/modules#description':
-      return t('Provides a project node type and browsing of projects.');
-    case 'node/add#project_project':
-      return t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.' );
-    case 'node/add/project_project':
+    case 'node/add/project-project':
       if (project_use_taxonomy()) {
         $tree = taxonomy_get_tree(_project_get_vid());
         // Extract the different project types, and, for the first type, up to three categories.
@@ -41,7 +37,7 @@ function project_help($section) {
         return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, "Projects", has been created automatically.</p>
         <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., "modules", "themes", "translations".</p>
         <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, "modules" might have sub-terms including "mail" and "XML".</p>
-        <p>Use the <a href="%taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('%taxonomy-admin' => url('admin/taxonomy/' . $vid)));
+        <p>Use the <a href="!taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('!taxonomy-admin' => url('admin/content/taxonomy/' . $vid)));
       }
       break;
   }
@@ -56,19 +52,19 @@ function project_block($op = 'list', $delta = 0) {
     return $blocks;
   }
   else if ($op == 'view') {
-    $uris = NULL;
-    $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options($uris, FALSE, 'node/'));
     $block['subject'] = t('Project navigation');
-    $form = project_quick_navigate_form($projects);
-    $block['content'] = drupal_get_form('project_quick_navigate_form', $form);
-
+    $block['content'] = drupal_get_form('project_quick_navigate_form');
     return $block;
   }
 }
 
 function project_node_info() {
   return array(
-    'project_project' => array('name' => t('project'), 'base' => 'project_project'),
+    'project_project' => array(
+      'name' => t('project'),
+      'module' => 'project_project',
+      'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.' ),
+    ),
   );
 }
 
@@ -85,7 +81,7 @@ function project_perm() {
 /**
  * Callback for the main settings page.
  */
-function project_main_settings() {
+function project_settings_form() {
   $sort_methods = drupal_map_assoc(array_keys(module_invoke_all('project_sort_methods', 'methods')));
 
   if (project_use_taxonomy()) {
@@ -122,13 +118,13 @@ function project_main_settings() {
     '#description' => t('The default maximum number of projects to list when browsing lists, e.g., by category.')
   );
 
-  if (module_exist('forum') && project_use_taxonomy()) {
+  if (module_exists('forum') && project_use_taxonomy()) {
     $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
   }
 
   // If the project_sort_method setting has changed, the menu will need to be rebuilt.
   menu_rebuild();
-  return system_settings_form('project_main_settings', $form);
+  return system_settings_form($form);
 }
 
 function project_link($type, $node = 0, $main = 0) {
@@ -137,9 +133,9 @@ function project_link($type, $node = 0, $main = 0) {
     case 'page':
       if (user_access('access projects')) {
         $links['project_view_all'] = array(
-          '#title' => t('projects'),
-          '#href' => 'project',
-          '#attributes' => array('title' => t('View all projects.')),
+          'title' => t('Projects'),
+          'href' => 'project',
+          'attributes' => array('title' => t('View all projects.')),
         );
       }
       break;
@@ -215,19 +211,13 @@ function project_menu($may_cache) {
     $access = user_access('access projects');
 
     $items[] = array('path' => 'project',
-      'title' => t('projects'),
+      'title' => t('Projects'),
       'callback' => 'project_page_overview',
       'access' => $access,
       'type' => MENU_NORMAL_ITEM);
 
-    $items[] = array('path' => 'project/goto',
-      'title' => t('project navigation'),
-      'callback' => 'project_goto',
-      'access' => $access,
-      'type' => MENU_CALLBACK);
-
     $items[] = array('path' => 'project/autocomplete',
-      'title' => t('autocomplete project'),
+      'title' => t('Autocomplete project'),
       'callback' => 'project_autocomplete',
       'access' => $access,
       'type' => MENU_CALLBACK);
@@ -250,7 +240,7 @@ function project_menu($may_cache) {
           $term_methods = array_filter(variable_get('project_sort_method_used_' . $term->tid, $sort_methods));
           foreach ($term_methods as $sort_method) {
             $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
-                 'title' => t('browse by %sort_method', array('%sort_method' => $sort_method)),
+                 'title' => t('Browse by !sort_method', array('!sort_method' => $sort_method)),
                  'access' => $access,
                  'type' => (($sort_method == variable_get('project_sort_method', 'category') || (($j == 0) && !in_array(variable_get('project_sort_method', 'category'), $term_methods))) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
                  'weight' => ($sort_method == variable_get('project_sort_method', 'category')) ? -10 : $j,
@@ -262,14 +252,10 @@ function project_menu($may_cache) {
     }
 
     // Developers
-    $items[] = array('path' => 'project/developers', 'title' => t('developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
+    $items[] = array('path' => 'project/developers', 'title' => t('Developers'), 'callback' => 'project_developers', 'access' => $access, 'type' => MENU_CALLBACK);
 
     // CVS messages:
     $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
-
-    // Create projects
-    $access = project_project_access('create', NULL);
-    $items[] = array('path' => 'node/add/project_project', 'title' => t('project'), 'callback' => 'node_page', 'access' => $access, 'type' => MENU_NORMAL_ITEM);
 
   }
   else {
@@ -277,17 +263,33 @@ function project_menu($may_cache) {
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       if ($node->type == 'project_project' && node_access('update', $node) &&
-          (module_exist('project_issue') || module_exist('project_release'))) {
+          (module_exists('project_issue') || module_exists('project_release'))) {
         $items[] = array(
           'path' => 'node/'. arg(1) .'/edit/project',
-          'title' => t('project'),
+          'title' => t('Project'),
           'callback' => 'node_page',
           'weight' => -5, 'type' => MENU_DEFAULT_LOCAL_TASK,
         );
       }
     }
+    $items[] = array(
+      'path' => 'admin/project',
+      'title' => t('Project administration'),
+      'description' => t('Administrative interface for project management and related modules.'),
+      'callback' => 'system_admin_menu_block_page',
+      'access' => user_access('administer projects'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+    $items[] = array(
+      'path' => 'admin/project/project-settings',
+      'title' => t('Project settings'),
+      'description' => t('Configure the behavior and appearance of the project browsing pages and other settings for the Project module.'),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('project_settings_form'),
+      'access' => user_access('administer projects'),
+      'type' => MENU_NORMAL_ITEM,
+    );
   }
-
   return $items;
 }
 
@@ -307,7 +309,7 @@ function project_check_admin_access($project, $cvs_access = TRUE) {
     if ($user->uid == $project_obj->uid) {
        return TRUE;
     }
-    if (module_exist('cvs') && $cvs_access) {
+    if (module_exists('cvs') && $cvs_access) {
       if (db_num_rows(db_query("SELECT * FROM {cvs_project_maintainers} WHERE uid = %d AND nid = %d", $user->uid, $project_obj->nid))) {
         return TRUE;
       }
@@ -343,7 +345,7 @@ function project_form_alter($form_id, &$form) {
       }
       else {
         unset($form['path']['path']);
-        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
+        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => $url_alias)));
       }
     }
   }
@@ -363,19 +365,6 @@ function project_nodeapi(&$node, $op, $arg) {
   }
 }
 
-/**
- * Callback used in the project block to navigate to a requested project, or back to the requested page if no project specified.
- */
-function project_goto() {
-  if (!empty($_REQUEST['edit']['project_goto'])) {
-    unset($_REQUEST['edit']['destination']);
-    drupal_goto($_REQUEST['edit']['project_goto']);
-  }
-  else {
-    drupal_goto();
-  }
-}
-
 function project_page() {
   global $user;
 
@@ -392,22 +381,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   project_project_set_breadcrumb();
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
-  if (module_exist('project_release') && variable_get('project_release_browse_versions', 0)) {
+  if (module_exists('project_release') && variable_get('project_release_browse_versions', 0)) {
     // Read in requested version, if any.
-    if ($_POST['edit']['version_tid']) {
-      $version = $_POST['edit']['version_tid'];
-    }
-    else if ($_SESSION['project_version']) {
-      $version = $_SESSION['project_version'];
-    }
-    else {
-      $version = variable_get('project_release_overview', -1);
-    }
-    $form = project_release_version_filter_form($version);
-    $version_form = drupal_get_form('project_release_version_filter_form', $form);
-    if ($_POST['edit']['version_tid']) {
-      $_SESSION['project_version'] = $form_values['version_tid'];
-    }
+    $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+    $version_form = drupal_get_form('project_release_version_filter_form', $version);
     $output .= $version_form;
   }
 
@@ -419,7 +396,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $type = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE t.vid = %d AND t.name = '%s'", 't', 'tid'), $vid, $termname));
       if (!$sort_method) {
         // For the default, we use the overall default if enabled for this term, and if not we use the first enabled method.
-        $term_methods = array_filter(variable_get('project_sort_method_used_' . $type->tid, $sort_methods));
+        $term_methods = array_filter(variable_get('project_sort_method_used_' . $type->tid, array_keys($sort_methods)));
         $sort_method = in_array(variable_get('project_sort_method', 'category'), $term_methods) ? variable_get('project_sort_method', 'category') : array_shift($term_methods);
       }
 
@@ -429,9 +406,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
       $module = $sort_methods[$sort_method];
       if (module_invoke($module, 'project_sort_methods', 'set term', $sort_method)) {
-
         $tree = taxonomy_get_tree(_project_get_vid(), $type->tid);
-
         $terms = array();
         if ($tree) {
           $tids = array();
@@ -524,7 +499,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       // If the site has enabled issue tracking via the project_issue
       // module, we want to add 1 more field and JOIN to our query so
       // we can provide the link for "Bugs and feature requests"...
-      if (module_exist('project_issue')) {
+      if (module_exists('project_issue')) {
         $sql_elements['fields']['pieces'][] = 'pip.issues';
         $sql_elements['joins']['pieces'][] = 'INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
       }
@@ -596,7 +571,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         if (!arg(3) || !db_num_rows($result)) {
           return $output;
         }
-        drupal_set_title(t('%project_type: %category', array('%project_type' => check_plain($type->name), '%category' => theme('placeholder', $term->name))));
+        drupal_set_title(t('@project_type: %category', array('@project_type' => $type->name, '%category' => $term->name)));
+      }
+      else {
+        drupal_set_title(check_plain($type->name));
       }
     }
     // If taxonomy is enabled but no termname is selected, show a list of terms to choose from.
@@ -615,13 +593,23 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     // If the site has enabled issue tracking via the project_issue
     // module, we want to add 1 more field and JOIN to our query so
     // we can provide the link for "Bugs and feature requests"...
-    if (module_exist('project_issue')) {
+    if (module_exists('project_issue')) {
       $ISSUES = ', pip.issues';
       $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
     }
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 AND n.type = 'project_project' ORDER BY n.title ASC"));
   }
   $class = 'even';
+  if ($version != -1) {
+    $joins = 'INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major';
+    $wheres = 'AND t.tid = %d';
+    $order_bys = 'ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC';
+  }
+  else {
+    $joins = '';
+    $wheres = '';
+    $order_bys = 'ORDER BY p.file_date DESC';
+  }
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
     if (project_use_taxonomy()) {
@@ -629,7 +617,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $project->terms = array();
       foreach (taxonomy_node_get_terms($project->nid) as $term) {
         if ($term->name != $termname) {
-          $project->terms[] = l($term->name, project_term_path($term));
+          $project->terms[$term->name] = array(
+            'title' => $term->name,
+            'href' => project_term_path($term),
+          );
         }
       }
     }
@@ -644,7 +635,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $project->links = array();
     if ($version != -1) {
       if ($project->file_path) {
-        $project->links[] = l(t('Download'), file_create_url($project->file_path));
+        $project->links['project_download'] = array(
+          'title' => t('Download'),
+          'href' => file_create_url($project->file_path),
+        );
       }
     }
     else {
@@ -652,20 +646,14 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       $project->download_table = project_release_table($project, 'defaults', $release_type, t('Version'), FALSE);
     }
 
-    if ($project->file_path) {
-      $project->links['project_download'] = array(
-        '#title' => t('Download'),
-        '#href' => file_create_url($project->file_path),
-      );
-    }
     $project->links['project_more_info'] = array(
-      '#title' => t('Find out more'),
-      '#href' => "node/$project->nid",
+      'title' => t('Find out more'),
+      'href' => "node/$project->nid",
     );
     if ($project->issues) {
       $project->links['project_issues'] = array(
-        '#title' => t('Bugs and feature requests'),
-        '#href' => "project/issues/$project->nid",
+        'title' => t('Bugs and feature requests'),
+        'href' => "project/issues/$project->nid",
       );
     }
     if (module_invoke($module, 'project_sort_methods', 'group by date', $sort_method) && $date = _project_date($project->changed)) {
@@ -806,7 +794,7 @@ function _project_date($timestamp) {
  */
 function project_projects_select_options(&$project_urls, $issues = TRUE, $key_prefix = NULL) {
   $projects = array();
-  if ($issues && module_exist('project_issue')) {
+  if ($issues && module_exists('project_issue')) {
     $ISSUE_JOIN ='INNER JOIN {project_issue_projects} pip ON n.nid = pip.nid';
     $ISSUE_WHERE = 'AND pip.issues = 1';
   }
@@ -840,23 +828,26 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
   return $projects;
 }
 
-function project_quick_navigate_form($projects) {
+function project_quick_navigate_form() {
+  $uris = NULL;
+  $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options($uris, FALSE, 'node/'));
   $form = array();
   $form['project_goto'] = array(
     '#type' => 'select',
     '#default_value' => '0',
     '#options' => $projects
   );
-  $form['destination'] = array(
-    '#type' => 'hidden',
-    '#value' => $_REQUEST['q']
-  );
   $form['submit'] = array(
-    '#type' => 'button',
+    '#type' => 'submit',
     '#value' => t('Go')
   );
-  $form['#action'] = url('project/goto');
   return $form;
+}
+
+function project_quick_navigate_form_submit($form_id, $form_values) {
+  if (!empty($form_values['project_goto']) && (string)$form_values['project_goto'] != '0') {
+    drupal_goto($form_values['project_goto']);
+  }
 }
 
 // Themables
@@ -887,7 +878,7 @@ function theme_project_summary($project) {
   $output = '<div class="' . $project->class . '">';
   $output .= '<h2>'. l($project->title, "node/$project->nid") .'</h2>';
   if ($project->changed) {
-    $output .= '<p><small>' . t('Last changed: %interval ago', array('%interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
+    $output .= '<p><small>' . t('Last changed: !interval ago', array('!interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
   }
   $output .= $project->body;
   $output .= theme('links', $project->links);
@@ -895,7 +886,7 @@ function theme_project_summary($project) {
     $output .= $project->download_table;
   }
   if ($project->terms) {
-    $output .= '<br />' . theme('links', $project->terms);
+    $output .= theme('links', $project->terms);
   }
   $output .= '</div>';
   return $output;
@@ -949,5 +940,5 @@ function project_autocomplete($string) {
  * taxonomy-specific functionality.
  */
 function project_use_taxonomy() {
-  return module_exist('taxonomy') && taxonomy_get_tree(_project_get_vid());
+  return module_exists('taxonomy') && taxonomy_get_tree(_project_get_vid());
 }

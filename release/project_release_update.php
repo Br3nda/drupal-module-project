@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.3 2006/12/18 09:02:39 dww Exp $
+// $Id: project_release_update.php,v 1.4 2006/12/22 23:53:20 dww Exp $
 // $Name:  $
 
 /**
@@ -97,7 +97,7 @@ function convert_all_releases() {
   $query = db_query("SELECT nid, rid FROM {project_release_legacy}");
   while ($result = db_fetch_object($query)) {
     $nids_by_rid[$result->rid] = $result->nid;
-    if (module_exist('project_issue')) {
+    if (module_exists('project_issue')) {
       db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $result->nid, $result->rid);
     }
   }
@@ -256,7 +256,7 @@ function convert_release($old_release) {
   // convert all the project_issue nodes to the new value.  We'll have
   // to fix all the followup comments only after we have the complete
   // mapping of rid -> nid
-  if (module_exist('project_issue')) {
+  if (module_exists('project_issue')) {
     list($usec, $sec) = explode(' ', microtime());
     $pre_update = (float)$usec + (float)$sec;
     db_query("UPDATE {project_issues} SET rid = %d WHERE rid = %d", $nid, $rid);
@@ -282,7 +282,7 @@ function convert_release($old_release) {
 }
 
 function convert_issue_followups() {
-  if (!module_exist('project_issue')) {
+  if (!module_exists('project_issue')) {
     return;
   }
   global $nids_by_rid;
@@ -440,7 +440,7 @@ if (!ini_get('safe_mode')) {
   set_time_limit(2000);
 }
 
-if (!module_exist('project_release')) {
+if (!module_exists('project_release')) {
   print '<b>' . t('ERROR: project_release_update.php requires that you first install the project_release.module') . '</b>';
   exit(1);
 }

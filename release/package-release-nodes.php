@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.3 2006/12/18 09:02:17 dww Exp $
+// $Id: package-release-nodes.php,v 1.4 2006/12/22 23:53:20 dww Exp $
 // $Name:  $
 
 /**
@@ -159,7 +159,7 @@ function package_releases($type) {
     watchdog($msg_level, t("Starting to package all snapshot releases."));
   }
   else {
-    watchdog($err_level, t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
+    watchdog($err_level, t("ERROR: package_releases() called with unknown type: %type", array('%type' => $type)));
     return;
   }
 
@@ -173,7 +173,7 @@ function package_releases($type) {
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme('placeholder', $uri . '-' . $version), '%tag' => theme('placeholder', $tag))));
+    watchdog($msg_level, t("Working on !type release: %id from $type: %tag", array('!type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => $uri . '-' . $version, '%tag' => $tag)));
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
@@ -190,7 +190,7 @@ function package_releases($type) {
     $num_considered++;
   }
   if ($num_built || $type == 'branch') {
-    watchdog($msg_level, t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
+    watchdog($msg_level, t("Done packaging releases from $plural: !num_built built, !num_considered considered.", array('!num_built' => $num_built, '!num_considered' => $num_considered)));
   }
 }
 
@@ -222,7 +222,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => $id)));
     return false;
   }
 
@@ -282,7 +282,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if (!is_dir($fulldir)) {
-    watchdog('release_error', t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))));
+    watchdog('release_error', t("ERROR: %dir does not exist after cvs export %rev", array('%dir' => $fulldir, '%rev' =>  $rev)));
     return false;
   }
   if (!drupal_chdir($basedir)) {
@@ -299,7 +299,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => $id)));
     return false;
   }
 
@@ -348,7 +348,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
       }
     }
     else {
-      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"), '%version' => theme('placeholder', $version))));
+      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)));
       return false;
     }
   }
@@ -386,7 +386,7 @@ function drupal_exec($cmd) {
   // Made sure we grab stderr, too...
   exec("$cmd 2>&1", $output, $rval);
   if ($rval) {
-    watchdog($err_level, t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
+    watchdog($err_level, t("ERROR: %cmd failed with status !rval", array('%cmd' => $cmd, '!rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
     return false;
   }
   return true;
@@ -400,7 +400,7 @@ function drupal_exec($cmd) {
 function drupal_chdir($dir) {
   global $err_level;
   if (!chdir($dir)) {
-    watchdog($err_level, t("ERROR: Can't chdir(%dir)", array('%dir' => $dir)));
+    watchdog($err_level, t("ERROR: Can't chdir(@dir)", array('@dir' => $dir)));
     return false;
   }
   return true;
@@ -424,11 +424,11 @@ function initialize_tmp_dir($task) {
 
   $task_dir = $tmp_dir . '/' . $task;
   if (!is_dir($tmp_dir)) {
-    watchdog($err_level, t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => $tmp_dir)));
+    watchdog($err_level, t("ERROR: tmp_dir: @dir is not a directory", array('@dir' => $tmp_dir)));
     exit(1);
   }
   if (!is_dir($task_dir) && !@mkdir($task_dir)) {
-    watchdog($err_level, t("ERROR: mkdir(%dir) failed", array('%dir' => $task_dir)));
+    watchdog($err_level, t("ERROR: mkdir(@dir) failed", array('@dir' => $task_dir)));
     exit(1);
   }
   $tmp_dir = $task_dir;
@@ -461,11 +461,11 @@ function fix_info_file_version($file, $uri, $version) {
   $info .= "\n";
 
   if (!$info_fd = fopen($file, 'ab')) { 
-    watchdog($err_level, t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
+    watchdog($err_level, t("ERROR: fopen(@file, 'ab') failed", array('@file' => $file)));
     return false;
   }
   if (!fwrite($info_fd, $info)) { 
-    watchdog($err_level, t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $info);
+    watchdog($err_level, t("ERROR: fwrite(@file) failed", array('@file' => $file)) . '<pre>' . $info);
     return false;
   }
   return true;

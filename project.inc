@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.96 2006/12/19 02:43:17 dww Exp $
+// $Id: project.inc,v 1.97 2006/12/22 23:53:20 dww Exp $
 // $Name:  $
 
 /**
@@ -57,7 +57,7 @@ function project_project_form($node) {
     $select_size = max(5, 2*count($top_level));
     foreach ($options as $tid => $values) {
       $form['project_taxonomy']["tid_$tid"] = array(
-        '#title' => t('%type categories', array('%type' => $top_level[$tid])),
+        '#title' => t('!type categories', array('!type' => $top_level[$tid])),
         '#type' => 'select',
         '#multiple' => TRUE,
         '#options' => $values,
@@ -90,7 +90,7 @@ function project_project_form($node) {
     '#rows' => 10,
     '#required' => TRUE,
   );
-  $form['project']['format'] = filter_form($node->format); 
+  $form['project']['format'] = filter_form($node->format);
   $form['project']['uri'] = array(
     '#type' => 'textfield',
     '#title' => t('Short project name'),
@@ -233,7 +233,7 @@ function project_project_validate(&$node) {
   // Make sure all URL fields actually contain URLs.
   foreach (array('homepage', 'changelog', 'cvs', 'demo') as $uri) {
     if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
-      form_set_error($uri, t('%field is not a valid URL.', array('%field' => t(ucfirst($uri)))));
+      form_set_error($uri, t('!field is not a valid URL.', array('!field' => t(ucfirst($uri)))));
     }
   }
 
@@ -250,7 +250,7 @@ function project_project_validate(&$node) {
       if ($node->project_type != $tid) {
         $tid_field = 'tid_' . $tid;
         if (!empty($node->$tid_field)) {
-          form_set_error($tid, t('Project type %project_type was selected, you can not use values from %invalid_type categories', array('%project_type' => theme('placeholder', $top_level[$node->project_type]), '%invalid_type' => theme('placeholder', $top_level[$tid]))));
+          form_set_error($tid, t('Project type %project_type was selected, you can not use values from %invalid_type categories', array('%project_type' => $top_level[$node->project_type], '%invalid_type' => $top_level[$tid])));
         }
       }
     }
@@ -277,14 +277,18 @@ function project_project_set_breadcrumb($node = NULL, $extra = array()) {
   drupal_set_breadcrumb($breadcrumb);
 }
 
-function project_project_view(&$node, $teaser = false, $page = false) {
+function project_project_view($node, $teaser = false, $page = false) {
   $node = node_prepare($node, $teaser);
+
   if ($page) {
     // Breadcrumb navigation
     project_project_set_breadcrumb($node);
 
     if (function_exists('project_release_project_download_table')) {
-      $output = project_release_project_download_table($node);
+      $node->content['download_table'] = array(
+        '#value' => project_release_project_download_table($node),
+        '#weight' => 1,
+      );
     }
 
     // Misc section
@@ -297,13 +301,15 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($links) {
-      $output .= theme('item_list', $links, t('Resources'));
+      $node->content['resources'] = array(
+        '#value' => theme('item_list', $links, t('Resources')),
+        '#weight' => 2,
+      );
     }
 
     // Support section
     $links = array();
-
-    if (module_exist('forum') && ($support_forum = variable_get('project_support_forum', ''))) {
+    if (module_exists('forum') && ($support_forum = variable_get('project_support_forum', ''))) {
       $links[] = l(t('Support forum'), 'forum/' . $support_forum);
     }
 
@@ -315,14 +321,15 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($links) {
-      $output .= theme('item_list', $links, t('Support'));
+      $node->content['support'] = array(
+        '#value' => theme('item_list', $links, t('Support')),
+        '#weight' => 3,
+      );
     }
 
     // Developer section
     $links = array();
-
     if ($node->issues) {
-      #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
       $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
       $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
       $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
@@ -332,17 +339,19 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
     }
 
-    if (module_exist('cvs')) {
+    if (module_exists('cvs')) {
       $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
       $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
     }
 
     if ($links) {
-      $output .= theme('item_list', $links, t('Development'));
+      $node->content['development'] = array(
+        '#value' => theme('item_list', $links, t('Development')),
+        '#weight' => 4,
+      );
     }
-
-    $node->body .= $output;
   }
+  return $node;
 }
 
 function project_project_load($node) {
@@ -359,14 +368,14 @@ function project_project_nodeapi(&$node, $op, $arg) {
   switch ($op) {
     case 'insert':
       _project_save_taxonomy($node);
-      if (module_exist('path')) {
+      if (module_exists('path')) {
         path_set_alias("node/$node->nid", "project/$node->uri");
       }
       break;
 
     case 'update':
       _project_save_taxonomy($node);
-      if (module_exist('path')) {
+      if (module_exists('path')) {
         path_set_alias("node/$node->nid");  // Clear existing alias.
         path_set_alias("node/$node->nid", "project/$node->uri");
       }
@@ -406,7 +415,7 @@ function project_project_access($op, $node) {
       if ($user->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
         // special-case uid 1 to always allow everything.
-        if ($user->uid != 1 && module_exist('cvs') && variable_get('cvs_restrict_project_creation',1)) {
+        if ($user->uid != 1 && module_exists('cvs') && variable_get('cvs_restrict_project_creation',1)) {
           return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d AND status = %d", $user->uid, CVS_APPROVED)) ? TRUE : FALSE;
         }
         else {
