@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.24 2006/12/18 06:46:32 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.25 2006/12/22 19:12:03 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -850,7 +850,7 @@ function theme_project_term_list($terms, $path) {
   $depth = 0;
   $output = "\n<ul class=\"project-terms\">\n";
   foreach ($terms as $term) {
-    $link = l(t('%name (%count)', array('%name' => $term->name, '%count' => $term->count)), check_url("$path/$term->tid"));
+    $link = l($term->name .' ('. $term->count .')', "$path/$term->tid");
     $output .= '<li class="leaf">' . $link . "</li>\n";
   }
   $output .= "\n</ul>\n";
