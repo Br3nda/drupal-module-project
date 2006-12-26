@@ -1,4 +1,4 @@
-/* $Id: project.css,v 1.27.2.5 2006/11/12 13:49:07 dww Exp $ */
+/* $Id: project.css,v 1.27.2.6 2006/12/26 01:11:38 dww Exp $ */
 /* $Name:  $ */
 
 .project td {
@@ -109,10 +109,6 @@
 
 .node-form .project fieldset {
   display: block;
-}
-
-.node-form .project .form-checkbox {
-  display: inline;
 }
 
 .node-form .project .project-taxonomy-element {
