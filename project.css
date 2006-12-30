@@ -1,4 +1,4 @@
-/* $Id: project.css,v 1.27.2.4.2.2 2006/12/26 01:11:34 dww Exp $ */
+/* $Id: project.css,v 1.27.2.4.2.3 2006/12/30 18:26:04 dww Exp $ */
 /* $Name:  $ */
 
 .project td {
@@ -107,11 +107,11 @@
   width: 150px;
 }
 
-.node-form .project fieldset {
+.project .node-form fieldset {
   display: block;
 }
 
-.node-form .project .project-taxonomy-element {
+.project .node-form .project-taxonomy-element {
   float: left;
   padding-right: 2em;
 }
