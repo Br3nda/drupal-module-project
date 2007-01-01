@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.259 2006/12/22 23:53:20 dww Exp $
+// $Id: project.module,v 1.260 2007/01/01 23:56:12 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -635,10 +635,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $project->links = array();
     if ($version != -1) {
       if ($project->file_path) {
-        $project->links['project_download'] = array(
-          'title' => t('Download'),
-          'href' => file_create_url($project->file_path),
-        );
+        $project->links['project_download'] = project_release_download_link($project->file_path, t('Download'), TRUE);
       }
     }
     else {
