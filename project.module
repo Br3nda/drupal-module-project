@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.260 2007/01/01 23:56:12 dww Exp $
+// $Id: project.module,v 1.261 2007/01/03 01:26:49 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -121,10 +121,17 @@ function project_settings_form() {
   if (module_exists('forum') && project_use_taxonomy()) {
     $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
   }
-
-  // If the project_sort_method setting has changed, the menu will need to be rebuilt.
-  menu_rebuild();
+  // Custom submit handler
+  $form['#submit']['project_settings_form_extra_submit'] = array();
+  // system_settings_form() doesn't add the default if #submit already exists.
+  $form['#submit']['system_settings_form_submit'] = array();  
   return system_settings_form($form);
+}
+
+function project_settings_form_extra_submit($form_id, $form_values) {
+  // If the project_sort_method setting has changed, the menu will
+  // need to be rebuilt.
+  menu_rebuild();
 }
 
 function project_link($type, $node = 0, $main = 0) {
