@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.97 2006/12/22 23:53:20 dww Exp $
+// $Id: project.inc,v 1.98 2007/01/05 07:18:33 nedjo Exp $
 // $Name:  $
 
 /**
@@ -13,6 +13,7 @@ function project_project_form($node) {
 
   /* Project taxonomy */
   if (project_use_taxonomy()) {
+    drupal_add_js(drupal_get_path('module', 'project') .'/project.js');
     $tree = taxonomy_get_tree(_project_get_vid());
     $top_level = array();
     $options = array();
