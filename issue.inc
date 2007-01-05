@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.21 2006/12/18 18:41:34 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.22 2007/01/05 23:21:38 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -271,7 +271,7 @@ function project_issue_form(&$node, &$param) {
     // Load the project and initialize some support arrays.
     $project = node_load(array('nid' => $node->pid, 'type' => 'project_project'));
     if (trim($project->help)) {
-      drupal_set_message($project->help);
+      drupal_set_message(filter_xss($project->help));
     }
     if ($releases = project_release_load($project)) {
       $releases = array(t('<none>')) + $releases;
