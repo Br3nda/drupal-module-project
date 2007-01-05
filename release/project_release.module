@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.57 2007/01/01 23:54:34 dww Exp $
+// $Id: project_release.module,v 1.1.2.58 2007/01/05 06:56:25 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -800,19 +800,29 @@ function project_release_compatibility_list() {
  * projects on a site with 'project_release_browse_versions' enabled.
  * @see project_page_overview
  */
-function project_release_version_filter_form($version) {
+function project_release_version_filter_form($version = NULL) {
   if ($terms = project_release_compatibility_list()) {
+    if (is_null($version)) {
+      $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+    }
     $form['version_tid'] = array(
       '#type' => 'select',
       '#default_value' => $version,
       '#options' => $terms,
     );
     $form['submit'] = array(
-      '#type' => 'button',
+      '#type' => 'submit',
       '#value' => t('Go')
     );
+    $form['#redirect'] = FALSE;
   }
-  return $form;
+  return isset($form) ? $form : '';
+}
+
+function project_release_version_filter_form_submit($form_id, $form_values) {
+  if (isset($form_values['version_tid'])) {
+    $_SESSION['project_version'] = $form_values['version_tid'];
+  }
 }
 
 function theme_project_release_version_filter_form($form) {
