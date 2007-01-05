@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.7 2007/01/01 23:56:12 dww Exp $
+// $Id: project_release.module,v 1.8 2007/01/05 22:52:04 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1083,6 +1083,7 @@ function project_release_project_edit_form_submit($form_id, $form_values) {
 function project_release_alter_release_form(&$form) {
   global $user;
   $node = $form['#node'];
+  $tid = $node->version_api_tid;
   $vid = _project_release_get_api_vid();
   if (!project_release_get_api_taxonomy() && isset($form['taxonomy'][$vid])) {
     unset($form['taxonomy'][$vid]);
@@ -1091,7 +1092,6 @@ function project_release_alter_release_form(&$form) {
 /*
     if (isset($node->pid)) {
       $project->nid = $node->pid;
-      $tid = $node->version_api_tid;
     }
     elseif (arg(1) == 'add' && is_numeric(arg(3))) {
       $project->nid = arg(3);
@@ -1103,20 +1103,24 @@ function project_release_alter_release_form(&$form) {
         // we restrict their options for the compatibility taxonomy.
         if (isset($tid)) { 
           // If we already have the term, we want to force it to stay.
-          $options[$tid] = $form['taxonomy'][$vid]['#options'][$tid];
+          $indexes = form_get_options($form['taxonomy'][$vid], $tid);
+          if ($indexes !== FALSE) {
+            foreach ($indexes as $index) {
+              $options[] = $form['taxonomy'][$vid]['#options'][$index];
+            }
+          }
           $form['taxonomy'][$vid]['#default_value'] = $tid;
         }
         elseif ($tids = variable_get('project_release_active_compatibility_tids', '')) {
           // We don't have the term since we're adding a new release.
           // Restrict to the active terms (if any).
-          foreach ($tids as $tid) {
-            $index = form_get_option_key($form['taxonomy'][$vid], $tid);
-            if ($index !== FALSE) {
-              $options[$tid] = $form['taxonomy'][$vid]['#options'][$index];
+          foreach (array_filter($tids) as $tid) {
+            $indexes = form_get_options($form['taxonomy'][$vid], $tid);
+            if ($indexes !== FALSE) {
+              foreach ($indexes as $index) {
+                $options[$index] = $form['taxonomy'][$vid]['#options'][$index];
+              }
             }
-          }
-          if (!empty($options)) {
-            $options = array(0 => $form['taxonomy'][$vid]['#options'][0]) + $options;
           }
         }
         if (!empty($options)) {
