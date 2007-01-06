@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.99 2007/01/06 00:19:30 dww Exp $
+// $Id: project.inc,v 1.100 2007/01/06 09:13:09 dww Exp $
 // $Name:  $
 
 /**
@@ -20,7 +20,7 @@ function project_project_form($node) {
     foreach ($tree as $i => $term) {
       if ($term->parents[0] == 0) {
         $last_top = $term->tid;
-        $top_level[$term->tid] = $term->name;
+        $top_level[$term->tid] = check_plain($term->name);
       }
       else {
         $options[$last_top][$term->tid] = $term->name;
