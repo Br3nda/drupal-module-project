@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.18 2007/01/06 00:19:26 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.19 2007/01/06 00:26:44 dww Exp $
 // $Name:  $
 
 /**
@@ -329,7 +329,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($node->cvs) {
-      $links[] = l(t('Browse the CVS repository'), $node->cvs));
+      $links[] = l(t('Browse the CVS repository'), $node->cvs);
     }
 
     if (module_exist('cvs')) {
