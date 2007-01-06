@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.17 2006/12/19 01:56:04 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.18 2007/01/06 00:19:26 dww Exp $
 // $Name:  $
 
 /**
@@ -292,7 +292,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
 
     foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
       if (!empty($node->$uri)) {
-        $links[] = sprintf('<a href="%s">%s</a>', $node->$uri, $name);
+        $links[] = l($name, $node->$uri);
       }
     }
 
@@ -329,7 +329,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
     }
 
     if ($node->cvs) {
-      $links[] = sprintf('<a href="%s">%s</a>', $node->cvs, t('Browse the CVS repository'));
+      $links[] = l(t('Browse the CVS repository'), $node->cvs));
     }
 
     if (module_exist('cvs')) {
