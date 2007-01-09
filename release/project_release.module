@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.58 2007/01/05 06:56:25 dww Exp $
+// $Id: project_release.module,v 1.1.2.59 2007/01/09 01:47:25 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1095,6 +1095,8 @@ function project_release_alter_release_form(&$form) {
         else {
           unset($form['taxonomy'][$vid]);
         }
+        // If they're not project admins, remove the delete button (if any).
+        unset($form['delete']);
       }
 //    }
   }
