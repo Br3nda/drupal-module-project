@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.12 2007/01/13 07:36:22 dww Exp $
+// $Id: project_release.module,v 1.13 2007/01/13 07:38:10 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -734,7 +734,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   if ($node->created) {
     $output .= '<small>' . t('First released: !created', array('!created' => format_date($node->created))) . '</small><br />';
   }
-  if ($release->file_date  && ($release->file_date != $release->created)) {
+  if ($node->file_date  && ($node->file_date != $node->created)) {
     $output .= '<small>' . t('Last updated: !changed', array('!changed' => format_date($node->file_date))) . '</small><br />';
   }
   $node->content['release_info'] = array(
