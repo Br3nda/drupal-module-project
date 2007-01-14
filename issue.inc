@@ -1,5 +1,5 @@
 <?php
-/* $Id: issue.inc,v 1.102.2.23 2007/01/06 01:01:05 dww Exp $ */
+/* $Id: issue.inc,v 1.102.2.24 2007/01/14 03:53:35 dww Exp $ */
 
 function project_issue_node_name() {
   return t('issue');
@@ -478,13 +478,22 @@ function project_issue_access($op, $node) {
   global $user;
   switch ($op) {
     case 'view':
-      return user_access('access project issues') || (user_access('access own project issues') && $node->uid == $user->uid);
+      if (user_access('access own project issues') && $node->uid == $user->uid) {
+        return TRUE;
+      }
+      if (!user_access('access project issues')) {
+        return FALSE;
+      }
     case 'create':
       return user_access('create project issues');
     case 'update':
-      return user_access('administer projects') || (user_access('edit own project issues') && $node->uid == $user->uid);
+      if (user_access('administer projects') || (user_access('edit own project issues') && $node->uid == $user->uid)) {
+        return TRUE;
+      }
     case 'delete':
-      return user_access('administer projects');
+      if (user_access('administer projects')) {
+        return TRUE;
+      }
   }
 }
 
