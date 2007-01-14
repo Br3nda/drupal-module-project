@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.27 2007/01/06 09:12:52 dww Exp $
+// $Id: project.inc,v 1.75.2.28 2007/01/14 03:25:23 dww Exp $
 // $Name:  $
 
 /**
@@ -456,11 +456,8 @@ function project_project_access($op, $node) {
       if (user_access('access own projects') && $node->uid == $user->uid) {
          return TRUE;
       }
-      elseif (!user_access('access projects')) {
+      if (!user_access('access projects')) {
          return FALSE;
-      }
-      else {
-        return NULL;
       }
     case 'create':
       if ($user->uid && user_access('maintain projects')) {
@@ -476,7 +473,9 @@ function project_project_access($op, $node) {
       return FALSE;
     case 'update':
     case 'delete':
-      return $user->uid && ($user->uid == $node->uid || user_access('administer projects'));
+      if (user_access('administer projects')) {
+        return TRUE;
+      }
   }
 }
 
