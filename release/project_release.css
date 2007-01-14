@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.4 2006/12/22 23:53:20 dww Exp $ */
+/* $Id: project_release.css,v 1.5 2007/01/14 03:06:19 dww Exp $ */
 /* $Name:  $ */
 
 .project-release .node-form .version-elements fieldset .form-item {
@@ -14,8 +14,6 @@
   clear: both;
   visibility: hidden;
 }
-
-.project-release .node-form .version-elements fieldset {display: inline-table;}
 
 /***************************
 * CSS for tables of releases
