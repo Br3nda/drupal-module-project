@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.101 2007/01/14 03:25:27 dww Exp $
+// $Id: project.inc,v 1.102 2007/01/14 04:11:35 dww Exp $
 // $Name:  $
 
 /**
@@ -295,7 +295,7 @@ function project_project_view($node, $teaser = false, $page = false) {
     // Misc section
     $links = array();
 
-    foreach (array('documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
+    foreach (array('homepage' => t('Home page'), 'documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
       if (!empty($node->$uri)) {
         $links[] = l($name, $node->$uri);
       }
