@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.22 2007/01/14 04:11:31 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.23 2007/01/15 10:09:14 dww Exp $
 // $Name:  $
 
 /**
@@ -399,6 +399,7 @@ function project_project_access($op, $node) {
       if (!user_access('access projects')) {
          return FALSE;
       }
+      break;
     case 'create':
       if ($user->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
@@ -410,15 +411,17 @@ function project_project_access($op, $node) {
           return TRUE;
         }
       }
-      return FALSE;
+      break;
     case 'update':
       if (project_check_admin_access($node)) {
         return TRUE;
       }
+      break;
     case 'delete':
       if (project_check_admin_access($node, FALSE)) {
         return TRUE;
       }
+      break;
   }
 }
 
