@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.13 2007/01/13 07:38:10 dww Exp $
+// $Id: project_release.module,v 1.14 2007/01/15 08:57:44 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -833,19 +833,37 @@ function project_release_compatibility_list() {
  * @see project_page_overview
  */
 function project_release_version_filter_form($version = NULL) {
+  global $user;
   if ($terms = project_release_compatibility_list()) {
-    if (is_null($version)) {
-      $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+    if ($user->uid) {
+      if (is_null($version)) {
+        $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+      }
+      $form['version_tid'] = array(
+        '#type' => 'select',
+        '#default_value' => $version,
+        '#options' => $terms,
+      );
+      $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Go')
+      );
     }
-    $form['version_tid'] = array(
-      '#type' => 'select',
-      '#default_value' => $version,
-      '#options' => $terms,
-    );
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Go')
-    );
+    else {
+      $destination = drupal_get_destination();
+      $default_version = variable_get('project_release_overview', -1);
+      $form['version_tid'] = array(
+        '#type' => 'select',
+        '#default_value' => $default_version,
+        '#options' => array($default_version => $terms[$default_version]),
+        '#disabled' => TRUE,
+      );
+      $register = '';
+      if (variable_get('user_register', 1)) {
+        $register = ' or ' . l(t('register'), 'user/register', array(), $destination) .' ';
+      }
+      $form['version_login'] = array('#value' => l(t('Login'), 'user/login', array(), $destination) . $register . t('to modify the filter.'));
+    }
   }
   return isset($form) ? $form : '';
 }
@@ -853,6 +871,14 @@ function project_release_version_filter_form($version = NULL) {
 function project_release_version_filter_form_submit($form_id, $form_values) {
   if (isset($form_values['version_tid'])) {
     $_SESSION['project_version'] = $form_values['version_tid'];
+  }
+}
+
+function project_release_version_filter_form_validate($form_id, $form_values, $form) {
+  global $user;
+  if (!$user->uid && $form_values['version_tid'] != variable_get('project_release_overview', -1)) {
+    $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
+    form_set_error('version_tid', t('You must login or register to modify the @vocab filter.', array('@vocab' => $vocab->name)));
   }
 }
 
