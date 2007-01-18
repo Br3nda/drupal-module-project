@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.15 2007/01/18 23:30:10 dww Exp $
+// $Id: project_release.module,v 1.16 2007/01/18 23:30:45 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -124,10 +124,6 @@ function project_release_settings_form() {
       '#required' => TRUE,
       '#description' => t('Default release version to list on the overview page.'),
     );
-/*
-    $setting_valid = array('project_release_settings_validate' => array());
-    $form['#validate'] = isset($form['#validate']) ? array_merge($form['#validate'], $setting_valid) : $setting_valid;
-*/
   }
   $form['project_release_download_base'] = array(
     '#type' => 'textfield',
