@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.23 2006/12/01 22:26:42 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.24 2007/01/18 23:58:13 dww Exp $
 // $Name:  $
 
 /**
@@ -197,6 +197,7 @@ function package_releases($type) {
 function package_release_core($nid, $uri, $version, $rev) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
+  global $msg_level, $err_level;
   $rid = 1;
 
   if (!drupal_chdir($tmp_dir)) {
@@ -222,14 +223,14 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    watchdog('release_package', t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
     return false;
   }
 
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      watchdog('release_error', t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      watchdog($err_level, t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
       return false;
     }
   }
@@ -282,7 +283,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if (!is_dir($fulldir)) {
-    watchdog('release_error', t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))));
+    watchdog($err_level, t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))));
     return false;
   }
   if (!drupal_chdir($basedir)) {
