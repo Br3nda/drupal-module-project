@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.261 2007/01/03 01:26:49 dww Exp $
+// $Id: project.module,v 1.262 2007/01/18 23:30:10 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -389,10 +389,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
   if (module_exists('project_release') && variable_get('project_release_browse_versions', 0)) {
-    // Read in requested version, if any.
-    $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
     $version_form = drupal_get_form('project_release_version_filter_form', $version);
     $output .= $version_form;
+    // Read in requested version, if any.
+    $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
   }
 
   // If browsing by taxonomy, only fetch projects for this term.

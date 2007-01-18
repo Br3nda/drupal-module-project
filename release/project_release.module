@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.14 2007/01/15 08:57:44 dww Exp $
+// $Id: project_release.module,v 1.15 2007/01/18 23:30:10 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -150,7 +150,7 @@ function project_release_settings_form_validate($form_id, $form_values, $form) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     form_set_error('project_release_overview', t('Project release overview must be one of the active @vocab terms', array('@vocab' => $vocab->name)));
   }
-  
+
   // Make sure the default version format has no bad characters.
   _project_release_validate_format_string($form_values, 'project_release_default_version_format');
 
@@ -864,6 +864,7 @@ function project_release_version_filter_form($version = NULL) {
       }
       $form['version_login'] = array('#value' => l(t('Login'), 'user/login', array(), $destination) . $register . t('to modify the filter.'));
     }
+    $form['#redirect'] = FALSE;
   }
   return isset($form) ? $form : '';
 }
