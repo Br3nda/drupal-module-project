@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.7 2007/01/19 01:11:48 dww Exp $
+// $Id: package-release-nodes.php,v 1.8 2007/01/19 03:14:15 dww Exp $
 // $Name:  $
 
 /**
@@ -201,7 +201,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   }
 
   $id = $uri . '-' . $version;
-  $view_link = l(t('view', 'node/' . $nid);
+  $view_link = l(t('view'), 'node/' . $nid);
   $file_name = $id . '.tar.gz';
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
