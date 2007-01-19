@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.24 2007/01/18 23:58:13 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.25 2007/01/19 09:55:01 dww Exp $
 // $Name:  $
 
 /**
@@ -117,8 +117,6 @@ switch($task) {
     print "ERROR: $argv[0] invoked with invalid argument: \"$task\"\n";
     exit (1);
 }
-$err_level = 'package_error';
-$msg_level = 'package_' . $task;
 
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
@@ -147,7 +145,6 @@ package_releases($task);
 // ------------------------------------------------------------
 
 function package_releases($type) {
-  global $msg_level, $err_level;
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = 'tags';
@@ -156,10 +153,10 @@ function package_releases($type) {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
     $plural = 'branches';
-    watchdog($msg_level, t("Starting to package all snapshot releases."));
+    wd_msg(t("Starting to package all snapshot releases."));
   }
   else {
-    watchdog($err_level, t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
+    wd_err(t("ERROR: package_releases() called with unknown type: %type", array('%type' => theme('placeholder', $type))));
     return;
   }
 
@@ -173,7 +170,7 @@ function package_releases($type) {
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    watchdog($msg_level, t("Working on %type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme('placeholder', $uri . '-' . $version), '%tag' => theme('placeholder', $tag))));
+    wd_msg(t("Working on !type release: %id from $type: %tag", array('%type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => theme('placeholder', $uri . '-' . $version), '%tag' => theme('placeholder', $tag))), l(t('view'), 'node/' . $nid));
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
@@ -190,14 +187,14 @@ function package_releases($type) {
     $num_considered++;
   }
   if ($num_built || $type == 'branch') {
-    watchdog($msg_level, t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
+
+    wd_msg(t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
   }
 }
 
 function package_release_core($nid, $uri, $version, $rev) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
-  global $msg_level, $err_level;
   $rid = 1;
 
   if (!drupal_chdir($tmp_dir)) {
@@ -205,6 +202,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   }
 
   $id = $uri . '-' . $version;
+  $view_link = l(t('view'), 'node/' . $nid);
   $file_name = $id . '.tar.gz';
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
@@ -223,14 +221,14 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))), $view_link);
     return false;
   }
 
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      watchdog($err_level, t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
       return false;
     }
   }
@@ -252,7 +250,6 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   global $cvs, $tar, $gzip, $rm, $ln;
   global $msgcat, $msgattrib, $msgfmt;
   global $license, $trans_install;
-  global $msg_level, $err_level;
 
   $rid = 2;
   // Files to ignore when checking timestamps:
@@ -265,6 +262,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   $uri = $parts[2];
 
   $id = $uri . '-' . $version;
+  $view_link = l(t('view'), 'node/' . $nid);
   $basedir = $repositories[$rid]['modules'] . '/' . $contrib_type;
   $fulldir = $basedir . '/' . $uri;
   $file_name = $id . '.tar.gz';
@@ -283,7 +281,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if (!is_dir($fulldir)) {
-    watchdog($err_level, t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))));
+    wd_err(t("ERROR: %dif does not exist after cvs export %rev", array('%dir' => theme('placeholder', $fulldir), '%rev' => theme('placeholder', $rev))), $view_link);
     return false;
   }
   if (!drupal_chdir($basedir)) {
@@ -300,14 +298,14 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    watchdog($msg_level, t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))));
+    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => theme('placeholder', $id))), $view_link);
     return false;
   }
 
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      watchdog($err_level, t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
       return false;
     }
   }
@@ -349,7 +347,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
       }
     }
     else {
-      watchdog($err_level, t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"), '%version' => theme('placeholder', $version))));
+      wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => theme('placeholder', $uri), '%uri_po' => theme('placeholder', "$uri.po"), '%version' => theme('placeholder', $version))), $view_link);
       return false;
     }
   }
@@ -383,11 +381,10 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
  * @return true if the command was successful (0 exit status), else false.
  */
 function drupal_exec($cmd) {
-  global $err_level;
   // Made sure we grab stderr, too...
   exec("$cmd 2>&1", $output, $rval);
   if ($rval) {
-    watchdog($err_level, t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
+    wd_err(t("ERROR: %cmd failed with status %rval", array('%cmd' => theme('placeholder', $cmd), '%rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
     return false;
   }
   return true;
@@ -399,9 +396,8 @@ function drupal_exec($cmd) {
  * @return true if the command was successful (0 exit status), else false.
  */
 function drupal_chdir($dir) {
-  global $err_level;
   if (!chdir($dir)) {
-    watchdog($err_level, t("ERROR: Can't chdir(%dir)", array('%dir' => $dir)));
+    wd_err(t("ERROR: Can't chdir(%dir)", array('%dir' => theme('placeholder', $dir))));
     return false;
   }
   return true;
@@ -412,6 +408,21 @@ function wprint($var) {
   watchdog('package_debug', '<pre>' . var_export($var, TRUE));
 }
 
+/**
+ * Wrapper function for watchdog() to log notice messages. Uses a
+ * different watchdog message type depending on the task (branch vs. tag).
+ */
+function wd_msg($msg, $link = NULL) {
+  global $task;
+  watchdog('package_' . $task, $msg, WATCHDOG_NOTICE, $link);
+}
+
+/**
+ * Wrapper function for watchdog() to log error messages.
+ */
+function wd_err($msg, $link = NULL) {
+  watchdog('package_error', $msg, WATCHDOG_ERROR, $link);
+}
 
 /**
  * Initialize the tmp directory. Use different subdirs for building
@@ -421,15 +432,15 @@ function wprint($var) {
  * how often we run this for tag-based releases).
  */
 function initialize_tmp_dir($task) {
-  global $tmp_dir, $err_level;
+  global $tmp_dir;
 
   $task_dir = $tmp_dir . '/' . $task;
   if (!is_dir($tmp_dir)) {
-    watchdog($err_level, t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => $tmp_dir)));
+    wd_err(t("ERROR: tmp_dir: %dir is not a directory", array('%dir' => theme('placeholder', $tmp_dir))));
     exit(1);
   }
   if (!is_dir($task_dir) && !@mkdir($task_dir)) {
-    watchdog($err_level, t("ERROR: mkdir(%dir) failed", array('%dir' => $task_dir)));
+    wd_err(t("ERROR: mkdir(%dir) failed", array('%dir' => theme('placeholder', $task_dir))));
     exit(1);
   }
   $tmp_dir = $task_dir;
@@ -453,7 +464,6 @@ function initialize_repository_info() {
  * Fix the given .info file with the specified version string
  */
 function fix_info_file_version($file, $uri, $version) {
-  global $err_level;
   global $site_name;
 
   $info = "\n; Information added by $site_name packaging script on " . date('Y-m-d') . "\n";
@@ -462,11 +472,11 @@ function fix_info_file_version($file, $uri, $version) {
   $info .= "\n";
 
   if (!$info_fd = fopen($file, 'ab')) { 
-    watchdog($err_level, t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
+    wd_err(t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
     return false;
   }
   if (!fwrite($info_fd, $info)) { 
-    watchdog($err_level, t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $info);
+    wd_err(t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $info);
     return false;
   }
   return true;
