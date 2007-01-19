@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.6 2007/01/19 00:44:06 dww Exp $
+// $Id: package-release-nodes.php,v 1.7 2007/01/19 01:11:48 dww Exp $
 // $Name:  $
 
 /**
@@ -170,7 +170,7 @@ function package_releases($type) {
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    wd_msg(t("Working on !type release: %id from $type: %tag", array('!type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => $uri . '-' . $version, '%tag' => $tag)));
+    wd_msg(t("Working on !type release: %id from $type: %tag", array('!type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => $uri . '-' . $version, '%tag' => $tag)), l(t('view'), 'node/' . $nid));
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
@@ -201,6 +201,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   }
 
   $id = $uri . '-' . $version;
+  $view_link = l(t('view', 'node/' . $nid);
   $file_name = $id . '.tar.gz';
   $file_path = $dest_rel . '/' . $file_name;
   $full_dest = $dest_root . '/' . $file_path;
@@ -219,14 +220,14 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)), WATCHDOG_NOTICE, $id_link);
+    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)), $view_link);
     return false;
   }
 
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
       return false;
     }
   }
@@ -260,7 +261,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   $uri = $parts[2];
 
   $id = $uri . '-' . $version;
-  $id_link = l($id, 'node/' . $nid);
+  $view_link = l(t('view'), 'node/' . $nid);
   $basedir = $repositories[$rid]['modules'] . '/' . $contrib_type;
   $fulldir = $basedir . '/' . $uri;
   $file_name = $id . '.tar.gz';
@@ -279,7 +280,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if (!is_dir($fulldir)) {
-    wd_err(t("ERROR: %dir does not exist after cvs export %rev", array('%dir' => $fulldir, '%rev' =>  $rev)));
+    wd_err(t("ERROR: %dir does not exist after cvs export %rev", array('%dir' => $fulldir, '%rev' =>  $rev)), $view_link);
     return false;
   }
   if (!drupal_chdir($basedir)) {
@@ -296,14 +297,14 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)));
+    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)), $view_link);
     return false;
   }
 
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)));
+      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
       return false;
     }
   }
@@ -345,7 +346,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
       }
     }
     else {
-      wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)));
+      wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)), $view_link);
       return false;
     }
   }
