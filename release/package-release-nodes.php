@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.9 2007/01/19 09:42:33 dww Exp $
+// $Id: package-release-nodes.php,v 1.10 2007/01/19 19:49:31 dww Exp $
 // $Name:  $
 
 /**
@@ -35,8 +35,9 @@ $site_name = '';
 // $cvs_root = ':pserver:anonymous@cvs.drupal.org:/cvs/drupal';
 $cvs_root = '';
 
-// Temporary directory where you want packages to be created.
-$tmp_dir = '';
+// Root of the temporary directory where you want packages to be
+// made. Subdirectories will be created depending on the task.
+$tmp_root = '';
 
 // Location of the LICENSE.txt file you want included in all packages.
 $license = '';
@@ -85,7 +86,7 @@ $vars = array(
   'drupal_root' => $drupal_root,
   'site_name' => $site_name,
   'cvs_root' => $cvs_root,
-  'tmp_dir' => $tmp_dir,
+  'tmp_root' => $tmp_root,
   'license' => $license,
   'trans_install' => $trans_install,
 );
@@ -136,15 +137,18 @@ if (!chdir($drupal_root)) {
 require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
-initialize_tmp_dir($task);
-initialize_repository_info();
-
 if ($task == 'check' || $task == 'repair') {
   verify_packages($task);
 }
 else {
+  initialize_tmp_dir($task);
+  initialize_repository_info();
   package_releases($task);
+  // Now that we're done, clean out the tmp/task dir we created
+  chdir($tmp_root);
+  drupal_exec("$rm -rf $tmp_dir");
 }
+
 
 // ------------------------------------------------------------
 // Functions: main work
@@ -242,11 +246,11 @@ function package_release_core($nid, $uri, $version, $rev) {
     return false;
   }
 
-  if (!drupal_exec("$rm -rf $tmp_dir/$id")) {
-    return false;
-  }
-
+  // As soon as the tarball exists, we want to update the DB about it.
   package_release_update_node($nid, $file_path);
+
+  // Don't consider failure to remove this directory a build failure.
+  drupal_exec("$rm -rf $tmp_dir/$id");
   return true;
 }
 
@@ -366,11 +370,11 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
 
-  if (!drupal_exec("$rm -rf $tmp_dir/$basedir/$uri")) {
-    return false;
-  }
-
+  // As soon as the tarball exists, update the DB
   package_release_update_node($nid, $file_path);
+
+  // Don't consider failure to remove this directory a build failure.
+  drupal_exec("$rm -rf $tmp_dir/$basedir/$uri");
   return true;
 }
 
@@ -554,18 +558,22 @@ function wd_check($msg, $link = NULL) {
  * how often we run this for tag-based releases).
  */
 function initialize_tmp_dir($task) {
-  global $tmp_dir;
+  global $tmp_dir, $tmp_root;
 
-  $task_dir = $tmp_dir . '/' . $task;
-  if (!is_dir($tmp_dir)) {
-    wd_err(t("ERROR: tmp_dir: @dir is not a directory", array('@dir' => $tmp_dir)));
+  if (!is_dir($tmp_root)) {
+    wd_err(t("ERROR: tmp_root: @dir is not a directory", array('@dir' => $tmp_root)));
     exit(1);
   }
-  if (!is_dir($task_dir) && !@mkdir($task_dir)) {
-    wd_err(t("ERROR: mkdir(@dir) failed", array('@dir' => $task_dir)));
+
+  $tmp_dir = $tmp_root . '/' . $task;
+  if (is_dir($tmp_dir)) {
+    // Make sure we start with a clean slate
+    drupal_exec("$rm -rf $tmp_dir/*");
+  }
+  else if (!@mkdir($tmp_dir)) {
+    wd_err(t("ERROR: mkdir(@dir) failed", array('@dir' => $tmp_dir)));
     exit(1);
   }
-  $tmp_dir = $task_dir;
 }
 
 /**
@@ -611,6 +619,10 @@ function fix_info_file_version($file, $uri, $version) {
 function package_release_update_node($nid, $file_path) {
   global $dest_root;
   $full_path = $dest_root . '/' . $file_path;
+
+  // PHP will cache the results of stat() and give us stale answers
+  // here, unless we manually tell it otherwise!
+  clearstatcache();
 
   // Now that we have the official file, compute some metadata:
   $file_date = filemtime($full_path);
