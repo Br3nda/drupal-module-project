@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.60 2007/01/15 09:18:00 dww Exp $
+// $Id: project_release.module,v 1.1.2.61 2007/01/24 00:33:21 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -166,7 +166,7 @@ function project_release_access($op, $node) {
   global $user;
   switch ($op) {
     case 'view':
-      return user_access('access projects') || (user_access('access own projects') && $node->uid == $user->uid);
+      return project_project_access($op, $node);
     case 'create':
       // We only want to allow creating releases if the project is
       // specified in the URL
