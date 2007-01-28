@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.103 2007/01/15 10:00:13 dww Exp $
+// $Id: project.inc,v 1.104 2007/01/28 18:48:53 dww Exp $
 // $Name:  $
 
 /**
@@ -308,15 +308,21 @@ function project_project_view($node, $teaser = false, $page = false) {
       );
     }
 
-    // Support section
-    $links = array();
-    if (module_exists('forum') && ($support_forum = variable_get('project_support_forum', ''))) {
-      $links[] = l(t('Support forum'), 'forum/' . $support_forum);
-    }
+    // Flags that indicate what kind of access to project issues to allow.
+    $has_issues = module_exists('project_issue') && $node->issues;
+    $view_issues = $has_issues && user_access('access project issues');
+    $make_issues = $has_issues && user_access('create project issues');
 
-    if ($node->issues) {
+    // Support section.
+    $links = array();
+    if ($view_issues) {
+      $links[] = l(t('View all support requests'), 'project/issues/'. $node->uri, null, 'categories=support&states=all', null);
+      $links[] = l(t('View pending support requests'), 'project/issues/'. $node->uri, null, 'categories=support', null);
       $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
       $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+    }
+    if ($make_issues) {
+      $links[] = l(t('Request support'), 'node/add/project_issue/'. $node->uri .'/support');
       $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
       $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
     }
@@ -330,10 +336,10 @@ function project_project_view($node, $teaser = false, $page = false) {
 
     // Developer section
     $links = array();
-    if ($node->issues) {
+    if ($view_issues) {
       $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
       $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
-      $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
+      $links[] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
     }
 
     if ($node->cvs) {

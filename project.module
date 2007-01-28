@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.262 2007/01/18 23:30:10 dww Exp $
+// $Id: project.module,v 1.263 2007/01/28 18:48:53 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -118,9 +118,6 @@ function project_settings_form() {
     '#description' => t('The default maximum number of projects to list when browsing lists, e.g., by category.')
   );
 
-  if (module_exists('forum') && project_use_taxonomy()) {
-    $form['project_support_forum'] = taxonomy_form(_forum_get_vid(), variable_get('project_support_forum', ''), t('Select the support forum for projects'), 'project_support_forum');
-  }
   // Custom submit handler
   $form['#submit']['project_settings_form_extra_submit'] = array();
   // system_settings_form() doesn't add the default if #submit already exists.
