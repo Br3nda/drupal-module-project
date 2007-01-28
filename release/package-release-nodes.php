@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.10 2007/01/19 19:49:31 dww Exp $
+// $Id: package-release-nodes.php,v 1.11 2007/01/28 19:51:56 dww Exp $
 // $Name:  $
 
 /**
@@ -121,6 +121,8 @@ switch($task) {
     exit (1);
 }
 
+$project_id = $argv[2];
+
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
 $_SERVER['REQUEST_URI'] = '/' . $script_name;
@@ -138,12 +140,12 @@ require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
 if ($task == 'check' || $task == 'repair') {
-  verify_packages($task);
+  verify_packages($task, $project_id);
 }
 else {
   initialize_tmp_dir($task);
   initialize_repository_info();
-  package_releases($task);
+  package_releases($task, $project_id);
   // Now that we're done, clean out the tmp/task dir we created
   chdir($tmp_root);
   drupal_exec("$rm -rf $tmp_dir");
@@ -154,7 +156,7 @@ else {
 // Functions: main work
 // ------------------------------------------------------------
 
-function package_releases($type) {
+function package_releases($type, $project_id) {
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = 'tags';
@@ -163,14 +165,24 @@ function package_releases($type) {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
     $plural = 'branches';
-    wd_msg(t("Starting to package all snapshot releases."));
+    if (empty($project_id)) {
+      wd_msg(t("Starting to package all snapshot releases."));
+    }
+    else {
+      wd_msg(t("Starting to package snapshot releases for project id: @project_id.", array('@project_id' => $project_id)), l(t('view'), 'node/' . $project_id));
+    }
   }
   else {
     wd_err(t("ERROR: package_releases() called with unknown type: %type", array('%type' => $type)));
     return;
   }
+  $args = array();
+  if (!empty($project_id)) {
+    $where .= ' AND prn.pid = %d';
+    $args[] = $project_id;
+  }
 
-  $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri');
+  $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
@@ -197,7 +209,12 @@ function package_releases($type) {
     $num_considered++;
   }
   if ($num_built || $type == 'branch') {
-    wd_msg(t("Done packaging releases from $plural: !num_built built, !num_considered considered.", array('!num_built' => $num_built, '!num_considered' => $num_considered)));
+    if (!empty($project_id)) {
+      wd_msg(t("Done packaging releases for $uri from $plural: !num_built built, !num_considered considered.", array('!num_built' => $num_built, '!num_considered' => $num_considered)));
+    }
+    else {
+      wd_msg(t("Done packaging releases from $plural: !num_built built, !num_considered considered.", array('!num_built' => $num_built, '!num_considered' => $num_considered)));
+    }
   }
 }
 
@@ -385,10 +402,16 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
 /**
  * Check that file metadata on disk matches the values stored in the DB.
  */
-function verify_packages($task) {
+function verify_packages($task, $project_id) {
   global $dest_root;
   $do_repair = $task == 'repair' ? TRUE : FALSE;
-  $query = db_query("SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE n.status = 1 AND prn.file_path <> ''");
+  $args = array();
+  $where = '';
+  if (!empty($project_id)) {
+    $where = ' AND prn.pid = %d';
+    $args[] = $project_id;
+  }
+  $query = db_query("SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE n.status = 1 AND prn.file_path <> '' $where", $args);
   while ($release = db_fetch_object($query)) {
     // Grab all the results into RAM to free up the DB connection for
     // when we need to update the DB to correct metadata or log messages.
@@ -483,7 +506,13 @@ function verify_packages($task) {
     wd_check(t('Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars));
   }
   else {
-    wd_check(t('Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars));
+    if (empty($project_id)) {
+      wd_check(t('Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars));
+    }
+    else {
+      $num_vars['@project_id'] = $project_id;
+      wd_check(t('Done checking releases for project id @project_id: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars), l(t('view'), 'node/' . $project_id));
+    }
   }
 }
 
