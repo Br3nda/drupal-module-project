@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.61 2007/01/24 00:33:21 dww Exp $
+// $Id: project_release.module,v 1.1.2.62 2007/01/29 20:32:34 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -740,10 +740,15 @@ function project_release_get_releases($project, $nodes = true, $sort_by = 'versi
   else {
     $order_by = 'r.version';
   }
-  if ($filter_by == 'files') {
-    $where = "AND (r.file_path <> '')";
+  $where = '';
+  if (!project_check_admin_access($project)) {
+    $where = 'AND (n.status = 1)';
+    if ($filter_by == 'files') {
+      $where .= " AND (r.file_path <> '')";
+    }
   }
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) AND (n.status = 1) $where ORDER BY $order_by DESC"), $project->nid);
+
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $project->nid);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {
