@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.27 2007/01/05 06:56:25 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.28 2007/01/30 08:35:31 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -517,6 +517,14 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       // Only the 'pieces' are returned; the prefix and glue elements remain unchanged.
       $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
 
+      if (module_exists('project_release')) {
+        $project_release_sql = array(
+          'joins' => array('INNER JOIN {project_release_projects} prp ON n.nid = prp.nid'),
+          'wheres' => array('prp.releases = 1'),
+        );
+        $sql_settings = array_merge_recursive($sql_settings, $project_release_sql);
+      }
+
       if (variable_get('project_release_browse_versions', 0)) {
         $release_settings = array(
           'fields' => array('prn.file_path', 'prn.version', 'MAX(prn.file_date) AS changed', 'COUNT(*) AS release_count'),
@@ -526,15 +534,16 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         if ($version != -1) {
           $release_settings['joins'] = array(
             'INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid',
-            'INNER JOIN {term_node} tr ON tr.nid = prn.nid'
+            'INNER JOIN {term_node} tr ON tr.nid = prn.nid',
+            'INNER JOIN {node} rn ON rn.nid = prn.nid',
           );
           $release_settings['wheres'][] = 'tr.tid = %d';
+          $release_settings['wheres'][] = 'rn.status = 1';
           $release_settings['parameters'][] = $version;
         }
         else {
           $release_settings['joins'] = array(
             'INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid',
-            'INNER JOIN {project_release_projects} prp ON n.nid = prp.nid',
           );
           $release_settings['fields'][] = 'prp.snapshot_table';
           // We need to grab the uid and type for the project node, so 
@@ -621,7 +630,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
     // Make sure we have the latest release
     if ($project->release_count > 1 && $version != -1) {
-      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major WHERE p.pid = %d AND t.tid = %d ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC", $project->nid, $version, 0, 1));
+      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major WHERE p.pid = %d AND t.tid = %d AND n.status = 1 ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC", $project->nid, $version, 0, 1));
       $project->file_path = $latest->file_path;
       $project->version = $latest->version;
     }
