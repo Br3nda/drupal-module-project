@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.18 2007/02/08 22:40:24 merlinofchaos Exp $
+// $Id: project_release.module,v 1.19 2007/02/25 18:40:24 merlinofchaos Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -189,7 +189,7 @@ function project_release_data($project = NULL, $api_version = NULL, $major_versi
 
   // Compress the data to reduce bandwidth usage. Base64 because binary data
   // does not seem to survive the XMLRPC transfer.
-  $data = base64_encode(gzencode(serialize($data, 9, FORCE_GZIP)));
+  $data = base64_encode(gzencode(serialize($data), 9, FORCE_GZIP));
   // If we performed the query for 'all', cache the results for 15 minutes.
   if (!is_array($project) && $project == 'all') {
     cache_set($cid, 'cache', $data, time() + (60 * 15));
