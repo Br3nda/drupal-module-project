@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.4 2006/12/22 23:53:20 dww Exp $
+// $Id: project_release.install,v 1.5 2007/03/01 22:08:17 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -56,9 +56,9 @@ function project_release_install() {
             version_minor int default NULL,
             version_patch int default NULL,
             version_extra varchar(255) default NULL,
-            PRIMARY KEY (nid),
-            KEY project_releases_pid (pid)
+            PRIMARY KEY (nid)
           );");
+        db_query("CREATE INDEX {project_release_nodes}_pid_idx ON {project_release_nodes} (pid)");
       }
       if (!db_table_exists('project_release_projects')) {
         db_query("CREATE TABLE {project_release_projects} (
@@ -66,9 +66,9 @@ function project_release_install() {
             releases smallint NOT NULL default '1',
             snapshot_table smallint NOT NULL default '1',
             version_format varchar(255) NOT NULL default '',
-            PRIMARY KEY (nid),
-            KEY project_release_projects_releases (releases)
+            PRIMARY KEY (nid)
           );");
+        db_query("CREATE INDEX {project_release_projects}_releases_idx ON {project_release_projects} (releases)");
       }
       if (!db_table_exists('project_release_default_versions')) {
         db_query("CREATE TABLE {project_release_default_versions} (
