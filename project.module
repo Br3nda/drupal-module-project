@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.265 2007/02/08 22:40:24 merlinofchaos Exp $
+// $Id: project.module,v 1.266 2007/03/08 20:36:07 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -570,6 +570,9 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           $sql_elements['group_bys']['pieces'] = array();
         }
         $sql_elements['fields']['pieces'] = array("COUNT($first_field)");
+        // ORDER BY can screw up COUNT(DISTINCT), and we don't care
+        // about the order for the count query.
+        unset($sql_elements['order_bys']);
         $count_query = project_build_query($sql_elements);
         $result = pager_query($sql, variable_get('project_browse_nodes', 30), 0, $count_query, $parameters);
       }
