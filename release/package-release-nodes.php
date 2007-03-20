@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.27 2007/01/19 19:49:37 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.28 2007/03/20 17:19:35 dww Exp $
 // $Name:  $
 
 /**
@@ -342,7 +342,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
         @unlink("$uri/$uri.po");
         $po_targets = "$uri/general.po ";
         $po_targets .= implode(' ', $po_files);
-        if (!drupal_exec("$msgcat $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
+        if (!drupal_exec("$msgcat --use-first $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
           return false;
         }
       }
