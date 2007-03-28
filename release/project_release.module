@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.19 2007/02/25 18:40:24 merlinofchaos Exp $
+// $Id: project_release.module,v 1.20 2007/03/28 00:34:34 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -46,6 +46,10 @@ function project_release_menu($may_cache) {
         }
       }
     }
+    drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
+    project_release_get_api_taxonomy();
+  }
+  else {    // $may_cache
     $items[] = array(
       'path' => 'admin/project/project-release-settings',
       'description' => t('Configure the default version string for releases and other settings for the Project release module.'),
@@ -56,8 +60,6 @@ function project_release_menu($may_cache) {
       'weight' => 1,
       'type' => MENU_NORMAL_ITEM,
     );
-    drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
-    project_release_get_api_taxonomy();
   }
   return $items;
 }

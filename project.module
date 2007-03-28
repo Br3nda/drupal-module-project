@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.266 2007/03/08 20:36:07 dww Exp $
+// $Id: project.module,v 1.267 2007/03/28 00:34:34 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -261,21 +261,7 @@ function project_menu($may_cache) {
     // CVS messages:
     $items[] = array('path' => 'project/cvs', 'title' => t('CVS'), 'callback' => 'project_cvs', 'access' => $access, 'type' => MENU_CALLBACK);
 
-  }
-  else {
-    drupal_add_css(drupal_get_path('module', 'project') .'/project.css');
-    if (arg(0) == 'node' && is_numeric(arg(1))) {
-      $node = node_load(arg(1));
-      if ($node->type == 'project_project' && node_access('update', $node) &&
-          (module_exists('project_issue') || module_exists('project_release'))) {
-        $items[] = array(
-          'path' => 'node/'. arg(1) .'/edit/project',
-          'title' => t('Project'),
-          'callback' => 'node_page',
-          'weight' => -5, 'type' => MENU_DEFAULT_LOCAL_TASK,
-        );
-      }
-    }
+    // Administration pages
     $items[] = array(
       'path' => 'admin/project',
       'title' => t('Project administration'),
@@ -293,6 +279,21 @@ function project_menu($may_cache) {
       'access' => user_access('administer projects'),
       'type' => MENU_NORMAL_ITEM,
     );
+  }
+  else {
+    drupal_add_css(drupal_get_path('module', 'project') .'/project.css');
+    if (arg(0) == 'node' && is_numeric(arg(1))) {
+      $node = node_load(arg(1));
+      if ($node->type == 'project_project' && node_access('update', $node) &&
+          (module_exists('project_issue') || module_exists('project_release'))) {
+        $items[] = array(
+          'path' => 'node/'. arg(1) .'/edit/project',
+          'title' => t('Project'),
+          'callback' => 'node_page',
+          'weight' => -5, 'type' => MENU_DEFAULT_LOCAL_TASK,
+        );
+      }
+    }
   }
   return $items;
 }
