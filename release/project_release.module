@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.20 2007/03/28 00:34:34 dww Exp $
+// $Id: project_release.module,v 1.21 2007/03/28 05:56:03 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -166,7 +166,7 @@ function project_release_data($project = NULL, $api_version = NULL, $major_versi
   // Only published release nodes
   $where[] = 'n.status > 0';
 
-  $query = "SELECT DISTINCT(n.nid), prn.file_path, prn.file_date, prn.file_hash, prn.version, prn.pid, prn.version_major, prn.version_minor, prn.version_patch, prn.version_extra, p.uri, pn.title FROM {node} n ";
+  $query = "SELECT DISTINCT(n.nid), prn.nid AS release_nid, prn.file_path, prn.file_date, prn.file_hash, prn.version, prn.pid, prn.version_major, prn.version_minor, prn.version_patch, prn.version_extra, p.uri, pn.title FROM {node} n ";
   $query .= implode(' ', $joins);
   $query .= " WHERE " . implode(' AND ', $where);
   $query .= " ORDER BY prn.version_major DESC, prn.version_minor DESC, prn.version_patch DESC, prn.file_date DESC";
@@ -182,6 +182,7 @@ function project_release_data($project = NULL, $api_version = NULL, $major_versi
         'version_patch' => $release->version_patch,
         'version_extra' => $release->version_extra,
         'link' => url("node/$release->pid", NULL, NULL, TRUE),
+        'release' => url("node/$release->release_nid", NULL, NULL, TRUE),
         'download' => project_release_download_link($release->file_path, NULL, 'url'),
         'date' => $release->file_date,
         'md5hash' => $release->file_hash,
