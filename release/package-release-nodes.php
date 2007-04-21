@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.12 2007/03/20 17:19:04 dww Exp $
+// $Id: package-release-nodes.php,v 1.13 2007/04/21 02:19:51 dww Exp $
 // $Name:  $
 
 /**
@@ -192,7 +192,6 @@ function package_releases($type, $project_id) {
     $tag = $release->tag;
     $nid = $release->nid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
-    wd_msg(t("Working on !type release: %id from $type: %tag", array('!type' => $release->rid == 1 ? t('core') : t('contrib'), '%id' => $uri . '-' . $version, '%tag' => $tag)), l(t('view'), 'node/' . $nid));
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
@@ -247,7 +246,6 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)), $view_link);
     return false;
   }
 
@@ -265,6 +263,8 @@ function package_release_core($nid, $uri, $version, $rev) {
 
   // As soon as the tarball exists, we want to update the DB about it.
   package_release_update_node($nid, $file_path);
+
+  wd_msg(t("%id has changed, re-packaged.", array('%id' => $id)), $view_link);
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$id");
@@ -324,7 +324,6 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    wd_msg(t("%id is unchanged, not re-packaging", array('%id' => $id)), $view_link);
     return false;
   }
 
@@ -389,6 +388,8 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
 
   // As soon as the tarball exists, update the DB
   package_release_update_node($nid, $file_path);
+
+  wd_msg(t("%id has changed, re-packaged.", array('%id' => $id)), $view_link);
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$basedir/$uri");
