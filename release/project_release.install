@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.5 2007/03/01 22:08:17 dww Exp $
+// $Id: project_release.install,v 1.6 2007/05/07 19:39:23 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -103,7 +103,7 @@ function project_release_update_1() {
         ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
     case 'pgsql':
-      if (!project_release_db_table_exists('project_release_default_versions')) {
+      if (!db_table_exists('project_release_default_versions')) {
         $ret[] = update_sql(
           "CREATE TABLE {project_release_default_versions} (
             nid int NOT NULL default '0',
