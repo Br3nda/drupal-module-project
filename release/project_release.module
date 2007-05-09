@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.21 2007/03/28 05:56:03 dww Exp $
+// $Id: project_release.module,v 1.22 2007/05/09 02:32:09 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -954,7 +954,8 @@ function project_release_list($project, $main = 0) {
  * @ingroup project_release_api
  */
 function project_release_compatibility_list() {
-  if ($tree = project_release_get_api_taxonomy()) {
+  static $terms = array();
+  if (empty($terms) && $tree = project_release_get_api_taxonomy()) {
     $tids = variable_get('project_release_active_compatibility_tids', '');
     $terms[-1] = '<' . t('all') . '>';
     foreach ($tree as $term) {
