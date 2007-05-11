@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.13 2007/04/21 02:19:51 dww Exp $
+// $Id: package-release-nodes.php,v 1.14 2007/05/11 17:08:50 dww Exp $
 // $Name:  $
 
 /**
@@ -629,6 +629,7 @@ function fix_info_file_version($file, $uri, $version) {
   $info = "\n; Information added by $site_name packaging script on " . date('Y-m-d') . "\n";
   $info .= "version = \"$version\"\n";
   $info .= "project = \"$uri\"\n";
+  $info .= 'datestamp = "'. time() ."\"\n";
   $info .= "\n";
 
   if (!$info_fd = fopen($file, 'ab')) { 
