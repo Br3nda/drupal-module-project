@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.267 2007/03/28 00:34:34 dww Exp $
+// $Id: project.module,v 1.268 2007/05/13 22:40:53 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -107,7 +107,6 @@ function project_settings_form() {
         '#title' => $term->name,
         '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
         '#options' => $sort_methods,
-        '#description' => t('Sorting options to enable for %term', array('%term' => $term->name))
       );
     }
   }
