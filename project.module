@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.268 2007/05/13 22:40:53 dww Exp $
+// $Id: project.module,v 1.269 2007/05/13 23:12:34 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -99,6 +99,7 @@ function project_settings_form() {
     $form['sort_methods'] = array(
       '#type' => 'fieldset',
       '#title' => t('Enabled sorting options'),
+      '#description' => t('Each type of project on your site will have its own project browsing page at %link. Each browsing page can be configured for different browsing options (by name, by date, etc). The settings below determine which browsing methods are available for each project type.', array('%link' => url('project', NULL, NULL, TRUE) . '/[type]')),
     );
     $tree = taxonomy_get_tree(_project_get_vid(), 0 , -1, 1);
     foreach ($tree as $term) {
