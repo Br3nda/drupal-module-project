@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.14 2007/05/11 17:08:50 dww Exp $
+// $Id: package-release-nodes.php,v 1.15 2007/05/16 16:01:19 dww Exp $
 // $Name:  $
 
 /**
@@ -632,6 +632,10 @@ function fix_info_file_version($file, $uri, $version) {
   $info .= 'datestamp = "'. time() ."\"\n";
   $info .= "\n";
 
+  if (!chmod($file, 0644)) {
+    wd_err(t("ERROR: chmod(@file, 0644) failed", array('@file' => $file)));
+    return false;
+  }
   if (!$info_fd = fopen($file, 'ab')) { 
     wd_err(t("ERROR: fopen(@file, 'ab') failed", array('@file' => $file)));
     return false;
