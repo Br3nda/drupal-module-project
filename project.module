@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.269 2007/05/13 23:12:34 dww Exp $
+// $Id: project.module,v 1.270 2007/05/16 19:23:20 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -31,7 +31,7 @@ function project_help($section) {
       }
       $help .= variable_get('project_help_node_add', '');
       return $help;
-    case 'admin/settings/project':
+    case 'admin/project/project-settings':
       if (project_use_taxonomy()) {
         $vid = _project_get_vid();
         return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, "Projects", has been created automatically.</p>
