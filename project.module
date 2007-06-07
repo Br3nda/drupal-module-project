@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.21 2007/03/08 20:36:13 dww Exp $
+// $Id: project.module,v 1.239.2.22 2007/06/07 18:25:22 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -649,14 +649,15 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $class = 'even';
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
-    if (project_use_taxonomy()) {
-      $project->term = $termname;
-      $project->terms = array();
-      foreach (taxonomy_node_get_terms($project->nid) as $term) {
-        if ($term->name != $termname) {
-          $project->terms[] = l($term->name, project_term_path($term));
-        }
+    if (module_exist('taxonomy')) {
+      $project->taxonomy = taxonomy_node_get_terms($project->nid);
+      if (isset($type)) {
+         // Hide the top-level project type term from the links, but add it to
+         // the $project object for theme_project_summary() to use if it wants.
+        unset($project->taxonomy[$type->tid]);
+        $project->term = $termname;
       }
+      $project->terms = taxonomy_link('taxonomy terms', $project);
     }
 
     // Make sure we have the latest release
