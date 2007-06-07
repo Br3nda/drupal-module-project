@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.29 2007/03/08 20:36:11 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.30 2007/06/07 17:18:43 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -517,7 +517,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       // Only the 'pieces' are returned; the prefix and glue elements remain unchanged.
       $sql_settings = module_invoke($module, 'project_sort_methods', 'sql_settings', $sort_method);
 
-      if (module_exists('project_release')) {
+      if (module_exist('project_release')) {
         $project_release_sql = array(
           'joins' => array('INNER JOIN {project_release_projects} prp ON n.nid = prp.nid'),
           'wheres' => array('prp.releases = 1'),
