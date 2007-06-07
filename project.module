@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.270 2007/05/16 19:23:20 dww Exp $
+// $Id: project.module,v 1.271 2007/06/07 18:25:07 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -629,17 +629,15 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   }
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
-    if (project_use_taxonomy()) {
-      $project->term = $termname;
-      $project->terms = array();
-      foreach (taxonomy_node_get_terms($project->nid) as $term) {
-        if ($term->name != $termname) {
-          $project->terms[$term->name] = array(
-            'title' => $term->name,
-            'href' => project_term_path($term),
-          );
-        }
+    if (module_exists('taxonomy')) {
+      $project->taxonomy = taxonomy_node_get_terms($project->nid);
+      if (isset($type)) {
+        // Hide the top-level project type term from the links, but add it to
+        // the $project object for theme_project_summary() to use if it wants.
+        unset($project->taxonomy[$type->tid]);
+        $project->term = $termname;
       }
+      $project->terms = taxonomy_link('taxonomy terms', $project);
     }
 
     // Make sure we have the latest release
