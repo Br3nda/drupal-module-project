@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.15 2007/05/16 16:01:19 dww Exp $
+// $Id: package-release-nodes.php,v 1.16 2007/06/08 06:47:11 dww Exp $
 // $Name:  $
 
 /**
@@ -628,6 +628,14 @@ function fix_info_file_version($file, $uri, $version) {
 
   $info = "\n; Information added by $site_name packaging script on " . date('Y-m-d') . "\n";
   $info .= "version = \"$version\"\n";
+  // .info files started with 5.x, so we don't have to worry about version
+  // strings like "4.7.x-1.0" in this regular expression. If we can't parse
+  // the version (also from an old "HEAD" release), or the version isn't at
+  // least 6.x, don't add any "core" attribute at all.
+  $matches = array();
+  if (preg_match('/^((\d+)\.x)-.*/', $version, $matches) && $matches[2] >= 6) {
+    $info .= "core = \"$matches[1]\"\n";
+  }
   $info .= "project = \"$uri\"\n";
   $info .= 'datestamp = "'. time() ."\"\n";
   $info .= "\n";
