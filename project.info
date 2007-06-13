@@ -1,5 +1,4 @@
-; $Id: project.info,v 1.1 2006/12/20 01:41:41 dww Exp $
+; $Id: project.info,v 1.2 2007/06/13 19:33:16 dww Exp $
 name = Project
 description = Provides a project node type and browsing of projects.
 package = Project
-version = "$Name:  $"
