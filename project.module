@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.271 2007/06/07 18:25:07 dww Exp $
+// $Id: project.module,v 1.272 2007/06/14 22:55:14 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -156,7 +156,14 @@ function _project_get_vid() {
     // Check to see if a project module vocabulary exists.
     $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module='%s'", 'project'));
     if (!$vid) {
-      $edit = array('name' => t('Projects'), 'multiple' => 1, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project', 'nodes' => array('project_project' => 1));
+      $edit = array(
+        'name' => t('Project types'),
+        'multiple' => 1,
+        'hierarchy' => 1,
+        'relations' => 0,
+        'module' => 'project',
+        'nodes' => array('project_project' => 1),
+      );
       // If there is already a vocabulary assigned to 'project_project' nodes, use it.
       $vocabularies = taxonomy_get_vocabularies('project_project');
       if (count($vocabularies)) {
