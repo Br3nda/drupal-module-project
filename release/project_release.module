@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.62 2007/01/29 20:32:34 dww Exp $
+// $Id: project_release.module,v 1.1.2.63 2007/06/14 23:55:47 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -240,8 +240,8 @@ function project_release_form(&$release, &$param) {
       '#collapsible' => TRUE,
     );
   }
-  _project_release_form_add_text_element($form['rel_id']['title'], t('Title'), $release->title, $is_edit, $admin, true, 40);
-  _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->version, $is_edit, $admin, true, 20);
+  _project_release_form_add_text_element($form['rel_id']['title'], t('Title'), $release->title, $is_edit, $admin, true, 40, 128);
+  _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->version, $is_edit, $admin, true, 20, 255);
 
   $form['pid'] = array(
     '#type' => 'value',
@@ -294,12 +294,12 @@ function project_release_form(&$release, &$param) {
   );
   $form['body_filter']['format'] = filter_form($node->format);
 
-  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $is_edit, $admin);
+  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $is_edit, $admin, true, 40, 255);
   $form['tag']['rebuild'] = array(
     '#type' => 'value',
     '#value' => $release->rebuild,
   );
-  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $is_edit, $admin, false);
+  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $is_edit, $admin, false, 40, 255);
   _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $is_edit, false);
   _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $is_edit, false);
 
@@ -375,7 +375,7 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
  * @param $admin Boolean for if the edit is by a project administrator
  * @param $required Boolean for if the field should be required
  */
-function _project_release_form_add_text_element(&$form, $title, $value, $is_edit, $admin, $required = true, $size = 40) {
+function _project_release_form_add_text_element(&$form, $title, $value, $is_edit, $admin, $required = true, $size = 40, $maxlength = 50) {
   if ($is_edit && !empty($value)) {
     $form = array(
       '#type' => 'textfield',
@@ -383,7 +383,7 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
       '#default_value' => $value,
       '#required' => $required,
       '#size' => $size,
-      '#maxlength' => $size+10,
+      '#maxlength' => $maxlength,
     );
     if(!$admin) {
       $form['#attributes']['disabled'] = 'disabled';
