@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.1 2007/05/11 21:54:53 dww Exp $
+// $Id: project-release-create-history.php,v 1.2 2007/06/16 18:38:32 dww Exp $
 // $Name:  $
 
 /**
@@ -158,7 +158,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid) {
   $where[] = 'tn.tid = %d';
   $parameters[] = $api_tid;
 
-  $query = "SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash, prn.version, prn.version_major, prn.version_minor, prn.version_patch, prn.version_extra, n.title, n.status FROM {node} n ";
+  $query = "SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash, prn.version, prn.version_major, prn.version_minor, prn.version_patch, prn.version_extra, prn.tag, n.title, n.status FROM {node} n ";
 
   $query .= implode(' ', $joins);
   $query .= " WHERE " . implode(' AND ', $where);
@@ -169,6 +169,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid) {
     $xml .= " <release>\n";
     $xml .= '  <name>'. check_plain($release->title) ."</name>\n";
     $xml .= '  <version>'. check_plain($release->version) ."</version>\n";
+    $xml .= '  <tag>'. check_plain($release->tag) ."</tag>\n";
     foreach (array('major', 'minor', 'patch', 'extra') as $type) {
       $vers_type = "version_$type";
       if (isset($release->$vers_type)) {
