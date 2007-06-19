@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.272 2007/06/14 22:55:14 dww Exp $
+// $Id: project.module,v 1.273 2007/06/19 18:47:44 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -422,9 +422,23 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         $terms = array();
         if ($tree) {
           $tids = array();
-          if (variable_get('project_release_browse_versions', 0) && $version != -1) {
+          if (variable_get('project_release_browse_versions', 0)) {
+            $version_params = array();
+            if ($version != -1) {
+              $version_where = 'tr.tid = %d';
+              $version_params[] = $version;
+            }
+            else {
+              $placeholders = array();
+              $active_tids = project_release_compatibility_list();
+              foreach ($active_tids as $tid => $term) {
+                $placeholders[] = '%d';
+                $version_params[] = $tid;
+              }
+              $version_where = 'tr.tid IN ('. implode(',', $placeholders) .')';
+            }
             // Find all terms associated with the requested version.
-            $result = db_query("SELECT tp.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} tp INNER JOIN {project_release_nodes} p ON tp.nid = p.pid INNER JOIN {node} n ON n.nid = p.pid INNER JOIN {term_node} tr ON tr.nid = p.nid WHERE tr.tid = %d AND (p.file_path <> '') AND (n.status = 1) GROUP BY tp.tid", $version);
+            $result = db_query("SELECT tp.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} tp INNER JOIN {project_release_nodes} p ON tp.nid = p.pid INNER JOIN {node} n ON n.nid = p.pid INNER JOIN {term_node} tr ON tr.nid = p.nid WHERE $version_where AND (p.file_path <> '') AND (n.status = 1) GROUP BY tp.tid", $version_params);
             $tids = array();
             while ($item = db_fetch_object($result)) {
               $tids[$item->tid] = $item->count;
@@ -533,20 +547,26 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'wheres' => array("prn.file_path <> ''"),
           'group_bys' => array('n.nid'),
         );
+        $release_settings['joins'] = array(
+          'INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid',
+          'INNER JOIN {term_node} tr ON tr.nid = prn.nid',
+          'INNER JOIN {node} rn ON rn.nid = prn.nid',
+        );
+        $release_settings['wheres'][] = 'rn.status = 1';
         if ($version != -1) {
-          $release_settings['joins'] = array(
-            'INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid',
-            'INNER JOIN {term_node} tr ON tr.nid = prn.nid',
-            'INNER JOIN {node} rn ON rn.nid = prn.nid',
-          );
           $release_settings['wheres'][] = 'tr.tid = %d';
-          $release_settings['wheres'][] = 'rn.status = 1';
           $release_settings['parameters'][] = $version;
         }
         else {
-          $release_settings['joins'] = array(
-            'INNER JOIN {project_release_nodes} prn ON n.nid = prn.pid',
-          );
+          $placeholders = array();
+          $active_tids = project_release_compatibility_list();
+          foreach ($active_tids as $tid => $term) {
+            $placeholders[] = '%d';
+            $release_settings['parameters'][] = $tid;
+          }
+          $where = 'tr.tid IN ('. implode(',', $placeholders) .')';
+          $release_settings['wheres'][] = $where;
+
           $release_settings['fields'][] = 'prp.snapshot_table';
           // We need to grab the uid and type for the project node, so 
           // that node_access() will work properly without a full
