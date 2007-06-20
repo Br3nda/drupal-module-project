@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.273 2007/06/19 18:47:44 dww Exp $
+// $Id: project.module,v 1.274 2007/06/20 21:54:46 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -34,10 +34,11 @@ function project_help($section) {
     case 'admin/project/project-settings':
       if (project_use_taxonomy()) {
         $vid = _project_get_vid();
-        return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, "Projects", has been created automatically.</p>
+        $vocabulary = taxonomy_get_vocabulary($vid);
+        return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, %vocabulary_name, has been created automatically.</p>
         <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., "modules", "themes", "translations".</p>
         <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, "modules" might have sub-terms including "mail" and "XML".</p>
-        <p>Use the <a href="!taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('!taxonomy-admin' => url('admin/content/taxonomy/' . $vid)));
+        <p>Use the <a href="!taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('!taxonomy-admin' => url('admin/content/taxonomy/' . $vid), '%vocabulary_name' => $vocabulary->name));
       }
       break;
   }
