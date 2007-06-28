@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.24 2007/06/14 23:55:43 dww Exp $
+// $Id: project_release.module,v 1.25 2007/06/28 10:41:36 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -46,18 +46,28 @@ function project_release_menu($may_cache) {
         }
       }
     }
-    if (variable_get('project_release_history_xml', true)
-        && arg(0) == 'project' && arg(1) == 'release-history') {
-      $project = arg(2);
-      $api = arg(3);
-      $items[] = array(
-        'path' => 'project/release-history',
-        'title' => t('Project release history'),
-        'access' => user_access('access content'),
-        'type' => MENU_CALLBACK,
-        'callback' => 'project_release_history_xml',
-        'callback arguments' => array($project, $api),
-      );
+    if (variable_get('project_release_history_xml', true)) {
+      $path = '';
+      if (arg(0) == 'release-history') {
+        $project = arg(1);
+        $api = arg(2);
+        $path = 'release-history';
+      }
+      elseif (arg(0) == 'project' && arg(1) == 'release-history') {
+        $project = arg(2);
+        $api = arg(3);
+        $path = 'project/release-history';
+      }
+      if (!empty($path)) {
+        $items[] = array(
+          'path' => $path,
+          'title' => t('Project release history'),
+          'access' => user_access('access content'),
+          'type' => MENU_CALLBACK,
+          'callback' => 'project_release_history_xml',
+          'callback arguments' => array($project, $api),
+        );
+      }
     }
     drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
     project_release_get_api_taxonomy();
