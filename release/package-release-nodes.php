@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.16 2007/06/08 06:47:11 dww Exp $
+// $Id: package-release-nodes.php,v 1.17 2007/06/30 05:55:25 dww Exp $
 // $Name:  $
 
 /**
@@ -75,6 +75,8 @@ $msgcat = 'msgcat';
 $msgattrib = 'msgattrib';
 $msgfmt = 'msgfmt';
 
+// The taxonomy id (tid) of the "Security update" term on drupal.org
+define('SECURITY_UPDATE_TID', 100);
 
 // ------------------------------------------------------------
 // Initialization
@@ -660,7 +662,7 @@ function fix_info_file_version($file, $uri, $version) {
  * Update the DB with the new file info for a given release node.
  */
 function package_release_update_node($nid, $file_path) {
-  global $dest_root;
+  global $dest_root, $task;
   $full_path = $dest_root . '/' . $file_path;
 
   // PHP will cache the results of stat() and give us stale answers
@@ -673,6 +675,13 @@ function package_release_update_node($nid, $file_path) {
 
   // Finally, update the node in the DB about this file:
   db_query("UPDATE {project_release_nodes} SET file_path = '%s', file_hash = '%s', file_date = %d WHERE nid = %d", $file_path, $file_hash, $file_date, $nid);
+
+  // Don't auto-publish security updates.
+  if ($task == 'tag' && db_num_rows(db_query("SELECT * FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
+    watchdog('package_security', t("Not auto-publishing security update release."), WATCHDOG_NOTICE, l(t('view'), 'node/'. $nid));
+    return;
+  }
+
   db_query("UPDATE {node} SET status = 1 WHERE nid = %d", $nid);
 }
 
