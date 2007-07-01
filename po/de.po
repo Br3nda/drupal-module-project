@@ -1,0 +1,1111 @@
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from files:
+#  comment.inc,v 1.65 2006/04/24 18:34:45 dww
+#  release.inc,v 1.70 2006/04/22 21:09:40 dww
+#  issue.inc,v 1.169 2006/04/28 15:40:26 dww
+#  project.module,v 1.238 2006/04/22 16:44:46 dww
+#  mail.inc,v 1.60 2006/04/22 21:14:57 dww
+#  project.inc,v 1.75 2006/04/22 16:44:46 dww
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: project 5.x\n"
+"POT-Creation-Date: 2006-05-11 20:50+0300\n"
+"PO-Revision-Date: 2007-07-01 22:09+0100\n"
+"Last-Translator: Alexander Hass\n"
+"Language-Team: Alexander Hass\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"X-Poedit-Language: German\n"
+"X-Poedit-Country: GERMANY\n"
+
+#: project.inc:46
+msgid "Project categories"
+msgstr "Projektkategorien"
+
+#: project.inc:50
+msgid "Project type"
+msgstr "Projekttyp"
+
+#: project.inc:61
+msgid "!type categories"
+msgstr "!type Kategorien"
+
+#: project.inc:76
+msgid "Project information"
+msgstr "Projektinformation"
+
+#: project.inc:81
+msgid "Full project name"
+msgstr "Vollständiger Projektname"
+
+#: project.inc:88
+msgid "Full description"
+msgstr "Vollständige Beschreibung"
+
+#: project.inc:97
+msgid "Short project name"
+msgstr "Kurzer Projektname"
+
+# not literally
+#: project.inc:101
+msgid "This will be used to generate a /project/&lt;shortname&gt;/ URL for your project."
+msgstr "Der Name wird verwendet, um eine /project/&lt;Kurzname&gt;/ URL für das Projekt zu erstellen."
+
+#: project.inc:106
+msgid "Project e-mail"
+msgstr "Projekt E-Mail"
+
+#: project.inc:110
+msgid "E-mail address where the project owners can be contacted."
+msgstr "Die E-Mail Adresse zur Kontaktaufnahme mit den Projektbesitzern."
+
+#: project.inc:115
+msgid "Homepage"
+msgstr "Homepage"
+
+#: project.inc:119
+msgid "Link to project homepage."
+msgstr "Verweis zur Projekthomepage"
+
+#: project.inc:123
+msgid "Documentation"
+msgstr "Dokumentation"
+
+#: project.inc:127
+msgid "Link to project documentation."
+msgstr "Verweis zur Projektdokumentation."
+
+#: project.inc:131
+msgid "License"
+msgstr "Lizenz"
+
+#: project.inc:135
+msgid "Link to project license."
+msgstr "Verweis zur Projektlizenz."
+
+#: project.inc:139
+msgid "Screenshots"
+msgstr "Screenshots"
+
+#: project.inc:143
+msgid "Link to project screenshots."
+msgstr "Verweis zu Projektscreenshots."
+
+#: project.inc:147
+msgid "Changelog"
+msgstr "Änderungsliste"
+
+#: project.inc:151
+msgid "Link to changelog."
+msgstr "Verweis zu Änderungsliste."
+
+#: project.inc:155
+msgid "CVS tree"
+msgstr "CVS Baum"
+
+#: project.inc:159
+msgid "Link to webcvs/viewcvs."
+msgstr "Verweis zu webcvs/viewcvs."
+
+#: project.inc:163
+msgid "Demo site"
+msgstr "Demo Website"
+
+#: project.inc:167
+msgid "Link to a live demo."
+msgstr "Verweis zu einer Livedemo"
+
+#: project.inc:186
+#: ;201
+msgid "This project name is already in use."
+msgstr "Dieser Projektname ist schon in Verwendung."
+
+#: project.inc:191
+msgid "A short project name is required."
+msgstr "Ein kurzer Projektname ist erforderlich."
+
+#: project.inc:196
+msgid "Please only use alphanumerical characters for the project name."
+msgstr "Bitte nur alphanumerische Zeichen für den Projektnamen verwenden."
+
+#: project.inc:207
+msgid "You must add a project description."
+msgstr "Eine Projektbeschreibung muss hinzugefügt werden."
+
+#: project.inc:212
+msgid "You must specify a project e-mail."
+msgstr "Eine Projekt E-Mail muss angegeben werden."
+
+#: project.inc:237
+msgid "!field is not a valid URL."
+msgstr "!field ist keine zulässige URL."
+
+#: project.inc:254
+msgid "Project type %project_type was selected, you can not use values from %invalid_type categories"
+msgstr "Es können keine Werte aus den Kategorien %invalid_type verwendet werden, da der Projekttyp %project_type ausgewählt wurde."
+
+#: project.inc:265
+msgid "Home"
+msgstr "Startseite"
+
+#: project.inc:270
+msgid "Browse projects"
+msgstr "Projekte durchsuchen"
+
+#: project.inc:305
+msgid "Home page"
+msgstr "Homepage"
+
+#: project.inc:305
+msgid "Read documentation"
+msgstr "Dokumentation durchlesen"
+
+#: project.inc:305
+msgid "Read license"
+msgstr "Lizenz durchlesen"
+
+#: project.inc:305
+msgid "Read complete log of changes"
+msgstr "Vollständige Änderungsliste durchlesen"
+
+#: project.inc:305
+msgid "Try out a demonstration"
+msgstr "Eine Demonstration ausprobieren"
+
+#: project.inc:305
+msgid "Look at screenshots"
+msgstr "Screenshots anschauen"
+
+#: project.inc:313
+msgid "Resources"
+msgstr "Ressourcen"
+
+#: project.inc:326
+msgid "View all support requests"
+msgstr "Alle Unterstützungsanfragen ansehen"
+
+#: project.inc:327
+msgid "View pending support requests"
+msgstr "Anstehende Unterstützungsanfragen ansehen"
+
+#: project.inc:328
+msgid "View pending bug reports"
+msgstr "Anstehende Fehlerberichte ansehen"
+
+#: project.inc:329
+msgid "View pending feature requests"
+msgstr "Anstehende Featureanfragen ansehen"
+
+#: project.inc:332
+#, fuzzy
+msgid "Request support"
+msgstr "Unterstützung anfragen"
+
+#: project.inc:333
+msgid "Report new bug"
+msgstr "Einen neuen Fehler melden"
+
+#: project.inc:334
+#, fuzzy
+msgid "Request new feature"
+msgstr "Neues Feature anfragen"
+
+#: project.inc:339
+#, fuzzy
+msgid "Support"
+msgstr "Unterstützung"
+
+#: project.inc:347
+msgid "View pending patches"
+msgstr "Anstehende Korrekturen ansehen"
+
+#: project.inc:348
+msgid "View available tasks"
+msgstr "Vorhandene Aufgaben ansehen"
+
+#: project.inc:349
+msgid "View all pending issues"
+msgstr "Alle anstehenden Punkte ansehen"
+
+#: project.inc:353
+msgid "Browse the CVS repository"
+msgstr "CVS Repository durchsuchen"
+
+#: project.inc:357
+msgid "View CVS messages"
+msgstr "CVS Nachrichten ansehen"
+
+#: project.inc:358
+#: project.module:260
+msgid "Developers"
+msgstr "Entwickler"
+
+#: project.inc:363
+msgid "Development"
+msgstr "Entwicklung"
+
+#: project.inc:472
+msgid "Developers for %name"
+msgstr "Entwickler für %name"
+
+#: project.inc:485
+msgid "CVS messages for %name"
+msgstr "CVS Nachrichten für %name"
+
+#: project.module:25
+msgid "<p>Properly categorizing your project will help ensure that users can find it easily. Please follow these steps:</p><ul><li>Select <em>one</em> of the first-level terms (%types) as the project type.</li><li>Then choose <em>one or more</em> categories below this term to classify your project. For example, for %type, you would choose from the various %type types: %categories, and so on.</li></ul>"
+msgstr ""
+
+#: project.module:34
+msgid "<p>The project module makes special use of the taxonomy (category) system. A special vocabulary, %vocabulary_name, has been created automatically.</p><p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary. The first level will be the basic project types, e.g., \"modules\", \"themes\", \"translations\".</p><p>Subterms of each of these types will be the categories that users can select to classify the projects. For example, \"modules\" might have sub-terms including \"mail\" and \"XML\".</p><p>Use the <a href=\"!taxonomy-admin\">vocabulary admin page</a> to view and add terms.</p>"
+msgstr "<p>Das Projektmodul verwendet das Taxonomie (Kategorie) System auf besondere Weise. Ein spezielles Vokabular %vocabulary_name wurde automatisch erstellt.</p><p>Fügen Sie zuerst 2 Ebenen mit Begriffen zu diesem Vokabular hinzu, um die gesamten Vorteile der Projektkategorisierung nutzen zu können. Die erste Ebene werden die Basis-Projekttypen, z.b. „Module“, „Themes“ und „Übersetzungen“.</p><p>Unterbegriffe jeder dieser Projekttypen werden die Kategorien, damit Benutzer diese zur Klassifikation der Projekte auswählen können. Beispielsweise können „Module“ einen Unterbegriff haben, der „Mail“ und „XML“ einschließt.</p><p>Die <a href=\"!taxonomy-admin\">Vokabular-Verwaltungseite</a> verwenden, um Begriffe anzusehen und hinzuzufügen.</p>"
+
+#: project.module:45
+#: ;49
+msgid "Project navigation"
+msgstr "Projektnavigation"
+
+#: project.module:58
+#: ;292 project.info:0
+#: ;0 release/project_release.info:0
+msgid "Project"
+msgstr "Projekt"
+
+#: project.module:60
+msgid "A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on."
+msgstr "Ein Projekt ist etwas an dem eine Gruppe arbeitet. Dieses kann Optional eine Problemverfolgung, eine Integration mit einer Revisionsverwaltungssystem, Veröffentlichungen, und so weiter beinhalten."
+
+#: project.module:88
+msgid "Default sort option"
+msgstr "Standard Sortieroption"
+
+#: project.module:91
+msgid "Default sorting option to use on the overview page"
+msgstr "Die Standard-Sortierreihenfolge, welche auf der Übersichtsseite verwendet werden soll."
+
+#: project.module:95
+msgid "Enabled sorting options"
+msgstr "Sortieroptionen aktivieren"
+
+#: project.module:96
+msgid "Each type of project on your site will have its own project browsing page at %link. Each browsing page can be configured for different browsing options (by name, by date, etc). The settings below determine which browsing methods are available for each project type."
+msgstr "Jede Projektart wird auf der Website unter %link eine eigene Projektsuchseite bekommen. Für jede Suchseite können unterschiedliche Suchoptionen konfiguriert werden (nach Name, nach Datum, usw.). Die nachstehenden Einstellungen legen die verfügbaren Suchmethoden für jeden Projekttyp fest."
+
+#: project.module:109
+msgid "Number of projects to list in paged browsing"
+msgstr "Anzahl der aufzulistenden Projekte in der Seitensuche"
+
+#: project.module:112
+msgid "The default maximum number of projects to list when browsing lists, e.g., by category."
+msgstr "Die maximale Anzahl der standardmässig aufzulistenden Projekte, wenn Listen durchsucht werden, z.b. über die Kategorie."
+
+#: project.module:134
+#: ;219;721
+msgid "Projects"
+msgstr "Projekte"
+
+#: project.module:136
+msgid "View all projects."
+msgstr "Alle Projekte ansehen."
+
+#: project.module:154
+#: ;625
+msgid "Project types"
+msgstr "Projekttypen"
+
+#: project.module:225
+msgid "Autocomplete project"
+msgstr "Projekt automatisch Vervollständigen"
+
+#: project.module:248
+#, fuzzy
+msgid "Browse by !sort_method"
+msgstr "Durchsuchen mit !sort_method"
+
+#: project.module:263
+msgid "CVS"
+msgstr "CVS"
+
+#: project.module:268
+msgid "Project administration"
+msgstr "Projektverwaltung"
+
+#: project.module:269
+#, fuzzy
+msgid "Administrative interface for project management and related modules."
+msgstr "Verwaltungsoberfläche für Projektverwaltung und abhängige Module."
+
+#: project.module:276
+msgid "Project settings"
+msgstr "Projekteinstellungen"
+
+#: project.module:277
+msgid "Configure the behavior and appearance of the project browsing pages and other settings for the Project module."
+msgstr ""
+
+#: project.module:354
+msgid "Automatically generated path alias: %url"
+msgstr "Automatisch erstellter Pfad-Alias: %url"
+
+#: project.module:608
+msgid "Categories"
+msgstr "Kategorien"
+
+#: project.module:612
+msgid "@project_type: %category"
+msgstr "@project_type: %category"
+
+#: project.module:674
+#: release/project_release.module:1571
+msgid "Download"
+msgstr "Herunterladen"
+
+#: project.module:679
+#: release/project_release.module:1503
+msgid "Version"
+msgstr "Version"
+
+#: project.module:683
+msgid "Find out more"
+msgstr "Mehr herausfinden"
+
+#: project.module:688
+#, fuzzy
+msgid "Bugs and feature requests"
+msgstr "Fehler und Featureanfragen"
+
+#: project.module:866
+msgid "<select a project>"
+msgstr "<Ein Projekt auswählen>"
+
+#: project.module:875
+#: release/project_release.module:1082
+msgid "Filter"
+msgstr "Filter"
+
+#: project.module:914
+msgid "Last changed: !interval ago"
+msgstr "Zuletzt geändert: vor !interval"
+
+#: project.module:67
+msgid "administer projects"
+msgstr "Projekte verwalten"
+
+#: project.module:68
+msgid "maintain projects"
+msgstr "Projekte pflegen"
+
+#: project.module:69
+msgid "access projects"
+msgstr "Zugriff auf Projekte"
+
+#: project.module:70
+msgid "access own projects"
+msgstr "Zugriff auf eigene Projekte"
+
+#: project.module:0
+msgid "project"
+msgstr "Projekt"
+
+#: project.info:0
+msgid "Provides a project node type and browsing of projects."
+msgstr "Erstellt einen Projektinhaltstyp und die Suche von Projekten."
+
+#: release/package-release-nodes.php:170
+msgid "Starting to package all snapshot releases."
+msgstr "Zusammenpacken aller Veröffentlichungen von Momentaufnahmen gestartet."
+
+#: release/package-release-nodes.php:173
+msgid "Starting to package snapshot releases for project id: @project_id."
+msgstr "Zusammenpacken der Veröffentlichungen von Momentaufnahmen für die Projekt ID gestartet: @project_id."
+
+#: release/package-release-nodes.php:173
+#: ;231;292;437;516;680
+msgid "view"
+msgstr "Anzeigen"
+
+#: release/package-release-nodes.php:177
+msgid "ERROR: package_releases() called with unknown type: %type"
+msgstr "FEHLER: package_releases() wurde mit einem unbekanntem Typ aufgerufen: %type"
+
+#: release/package-release-nodes.php:213
+msgid "Done packaging releases for %uri from %plural: !num_built built, !num_considered considered."
+msgstr "Zusammenpacken von Veröffentlichungen für %uri von %plural: !num_built erstellt, !num_considered berücksichtigt."
+
+#: release/package-release-nodes.php:216
+msgid "Done packaging releases from %plural: !num_built built, !num_considered considered."
+msgstr ""
+
+#: release/package-release-nodes.php:256
+#: ;334
+msgid "ERROR: Failed to update version in %file, aborting packaging"
+msgstr "FEHLER: Aktualisierung der Version in %file fehlgeschlagen, Zusammenpacken abgebrochen"
+
+#: release/package-release-nodes.php:268
+#: ;393
+msgid "%id has changed, re-packaged."
+msgstr "%id hat sich geändert, Neu-Zusammengepackt."
+
+#: release/package-release-nodes.php:311
+msgid "ERROR: %dir does not exist after cvs export %rev"
+msgstr "FEHLER: %dir ist nach CVS Export %rev nicht vorhanden"
+
+#: release/package-release-nodes.php:376
+msgid "ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging"
+msgstr "ERROR: %uri Übersetzung enthält keine %uri_po Datei für die Version %version, wird nicht Zusammengepackt"
+
+#: release/package-release-nodes.php:445
+msgid "WARNING: %file does not exist."
+msgstr "WARNUNG: %file ist nicht vorhanden."
+
+#: release/package-release-nodes.php:473
+msgid "All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash"
+msgstr "Das Dateidatum für %file ist fehlerhaft: gespeichertes Datum: !db_date (!db_date_raw), tatsächliches Datum: !real_date (!real_date_raw)"
+
+#: release/package-release-nodes.php:476
+msgid "File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)"
+msgstr "Das Dateidatum für %file ist fehlerhaft: gespeichertes Datum: !db_date (!db_date_raw), tatsächliches Datum: !real_date (!real_date_raw)"
+
+#: release/package-release-nodes.php:479
+msgid "File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash"
+msgstr "Der md5hash für die Datei %file ist ungültig: gespeichert: @db_hash, tatsächlich: @real_hash"
+
+#: release/package-release-nodes.php:486
+msgid "ERROR: db_query() failed trying to update metadata for %file"
+msgstr ""
+
+#: release/package-release-nodes.php:502
+msgid "ERROR: unable to repair !num_failed releases due to db_query() failures."
+msgstr ""
+
+#: release/package-release-nodes.php:505
+msgid "ERROR: !num_not_exist files are in the database but do not exist on disk."
+msgstr ""
+
+#: release/package-release-nodes.php:508
+msgid "Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
+msgstr ""
+
+#: release/package-release-nodes.php:512
+msgid "Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
+msgstr ""
+
+#: release/package-release-nodes.php:516
+msgid "Done checking releases for project id @project_id: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
+msgstr ""
+
+#: release/package-release-nodes.php:536
+msgid "ERROR: %cmd failed with status !rval"
+msgstr "FEHLER: %cmd mit Status !rval fehlgeschlagen"
+
+#: release/package-release-nodes.php:549
+msgid "ERROR: Can't chdir(@dir)"
+msgstr "FEHLER: chdir(@dir) fehlgeschlagen"
+
+#: release/package-release-nodes.php:595
+msgid "ERROR: tmp_root: @dir is not a directory"
+msgstr "FEHLER: tmp_root: @dir ist kein Verzeichnis"
+
+#: release/package-release-nodes.php:605
+msgid "ERROR: mkdir(@dir) failed"
+msgstr "FEHLER: mkdir(@dir) fehlgeschlagen"
+
+#: release/package-release-nodes.php:645
+msgid "ERROR: chmod(@file, 0644) failed"
+msgstr "FEHLER: chmod(@file, 0644) fehlgeschlagen"
+
+#: release/package-release-nodes.php:649
+msgid "ERROR: fopen(@file, 'ab') failed"
+msgstr "FEHLER: fopen(@file, 'ab') fehlgeschlagen"
+
+#: release/package-release-nodes.php:653
+#: release/project-release-history.php:255
+msgid "ERROR: fwrite(@file) failed"
+msgstr "FEHLER: fwrite(@file) fehlgeschlagen"
+
+#: release/package-release-nodes.php:680
+msgid "Not auto-publishing security update release."
+msgstr ""
+
+#: release/package-release-nodes.php:557
+msgid "package_debug"
+msgstr "package_debug"
+
+#: release/package-release-nodes.php:573
+msgid "package_error"
+msgstr "package_error"
+
+#: release/package-release-nodes.php:581
+msgid "package_check"
+msgstr "package_check"
+
+#: release/package-release-nodes.php:680
+msgid "package_security"
+msgstr "package_security"
+
+#: release/project-release-history.php:77
+msgid "ERROR: History directory (%directory) does not exist, aborting.\n"
+msgstr "FEHLER: Abbruch, Historienverzeichnis (%directory) ist nicht vorhanden.\n"
+
+#: release/project-release-history.php:94
+msgid "Generating XML release history files for all projects."
+msgstr "Erstelle XML Dateien mit Veröffentlichungshistorie für alle Projekte."
+
+#: release/project-release-history.php:102
+msgid "Completed XML release history files for @num_projects."
+msgstr "Erstellen von XML Dateien mit Veröffentlichungshistorie für @num_projects abgeschlossen."
+
+#: release/project-release-history.php:125
+msgid "API compatibility term %tid not found."
+msgstr "API Kompatibilitätsbegriff %tid wurde nicht gefunden."
+
+#: release/project-release-history.php:134
+msgid "Project ID %pid not found"
+msgstr "Projekt ID %pid wurde nicht gefunden"
+
+#: release/project-release-history.php:139
+msgid "No release found for project %project_name compatible with %api_version."
+msgstr "Keine kompatible %api_version Veröffentlichung für das Projekt %project_name gefunden."
+
+#: release/project-release-history.php:241
+msgid "ERROR: mkdir(@dir) failed, can't write history for %project."
+msgstr "FEHLE: mkdir(@dir) fehlgeschlagen, Historie für %project kann nicht geschrieben werden."
+
+#: release/project-release-history.php:246
+msgid "ERROR: unlink(@file) failed, can't write history for %project."
+msgstr "FEHLER: unlink(@file) fehlgeschlagen, Historie für %project kann nicht geschrieben werden."
+
+#: release/project-release-history.php:251
+msgid "ERROR: fopen(@file, 'xb') failed"
+msgstr "FEHLER: fopen(@file, 'xb') fehlgeschlagen"
+
+#: release/project-release-history.php:263
+msgid "ERROR: rename(@old, @new) failed, can't write history for %project."
+msgstr "FEHLER: rename(@old, @new) fehlgeschlagen, Historie für %project kann nicht geschrieben werden."
+
+#: release/project-release-history.php:278
+msgid "release_history"
+msgstr "release_history"
+
+#: release/project-release-history.php:285
+msgid "release_hist_error"
+msgstr "release_hist_error"
+
+#: release/project-release-history.php:102
+msgid "1 project/version pair"
+msgid_plural "@count project/version pairs"
+msgstr[0] "1 Projekt/Versionspaar"
+msgstr[1] "@count Projekte/Versionspaare"
+
+#: release/project_release_update.php:85
+msgid "Added %num records to the {project_release_projects} table in %ms ms<br />"
+msgstr "%num Einträge innerhalb von %ms ms zur Tabelle {project_release_projects} hinzugefügt<br />"
+
+#: release/project_release_update.php:122
+msgid "Considered %num_considered releases, converted %num_converted into nodes in %interval<br />"
+msgstr ""
+
+#: release/project_release_update.php:194
+msgid "<b>ERROR:</b> release %old_release_rid of %old_release_project_title has malformed version (%old_release_version)<br />"
+msgstr ""
+
+#: release/project_release_update.php:208
+msgid "<b>WARNING:</b> release %old_release_rid of %old_release_project_title has unexpected patch-level version (%matches)<br />"
+msgstr ""
+
+#: release/project_release_update.php:235
+msgid "HEAD"
+msgstr "HEAD"
+
+#: release/project_release_update.php:241
+msgid "%project %version"
+msgstr "%project %version"
+
+#: release/project_release_update.php:327
+msgid "Converted %num issue followups in %interval"
+msgstr ""
+
+#: release/project_release_update.php:329
+msgid "ERROR: problem during conversion of %num issue followups"
+msgstr ""
+
+#: release/project_release_update.php:444
+msgid "ERROR: project_release_update.php requires that you first install the project_release.module"
+msgstr ""
+
+#: release/project_release_scan.inc:23
+#, fuzzy
+msgid "scan for releases"
+msgstr "Nach Veröffentlichungen suchen"
+
+#: release/project_release_scan.inc:42
+msgid "Release directory scan"
+msgstr ""
+
+#: release/project_release_scan.inc:44
+#, fuzzy
+msgid "Releases %type: %count."
+msgstr "%type Veröffentlichungen: %count."
+
+#: release/project_release_scan.inc:46
+#, fuzzy
+msgid "Scan completed."
+msgstr "Suche abgeschlossen."
+
+#: release/project_release_scan.inc:65
+msgid "unpublished"
+msgstr "unveröffentlicht"
+
+#: release/project_release_scan.inc:128
+msgid "updated"
+msgstr "aktualisiert"
+
+#: release/project_release_scan.inc:131
+msgid "created"
+msgstr "erstellt"
+
+#: release/project_release.module:6
+msgid "The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."
+msgstr ""
+
+#: release/project_release.module:7
+msgid "Available variables are:"
+msgstr "Mögliche Variablen sind:"
+
+#: release/project_release.module:7
+msgid "The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."
+msgstr ""
+
+#: release/project_release.module:27
+#: ;42;949;1464
+msgid "Releases"
+msgstr "Veröffentlichungen"
+
+#: release/project_release.module:35
+msgid "Overview"
+msgstr "Übersicht"
+
+#: release/project_release.module:64
+msgid "Project release history"
+msgstr "Historie der Projektveröffentlichungen"
+
+#: release/project_release.module:78
+msgid "Configure the default version string for releases and other settings for the Project release module."
+msgstr ""
+
+#: release/project_release.module:79
+msgid "Project release settings"
+msgstr "Einstellungen für Projektveröffentlichungen"
+
+#: release/project_release.module:103
+msgid "You must specify a project name to display the release history of."
+msgstr ""
+
+#: release/project_release.module:107
+msgid "You must specify an API compatibility version as the final argument to the path."
+msgstr "Eine API Kompatibilitätsversion muss im Pfad als abschließender Parameter angegeben werden."
+
+#: release/project_release.module:126
+msgid "Can not find the requested API compatibility term: @term."
+msgstr "Der angefragte API Kompatibiltätsbegriff konnte nicht gefunden werden: @term."
+
+#: release/project_release.module:133
+msgid "No release history was found for the requested project (@project): the project directory (@directory) was not found."
+msgstr "Eine Veröffentlichungshistorie konnte für das angefragte Projekt (@project) nicht gefunden werden. Das Projektverzeichnis (@directory) wurde nicht gefunden."
+
+#: release/project_release.module:140
+msgid "No release history available for @project @version."
+msgstr "Eine Veröffentlichungshistorie für @project @version ist nicht verfügbar."
+
+#: release/project_release.module:155
+msgid "Provides versioning data for a project or array of projects"
+msgstr "Stellt Versionierungsdaten für ein Projekt oder eine größere Anzahl von Projekten bereit"
+
+#: release/project_release.module:291
+msgid "Release directory"
+msgstr "Veröffentlichungsverzeichnis"
+
+#: release/project_release.module:295
+msgid "This setting has been temporarily deprecated. If your site depends on scanning for releases generated by an external tool, you should wait to upgrade until a future version of the project_release.module is available that restores this functionality. Set the value blank to acknowlege that you do not need this behavior, and this error will disappear."
+msgstr ""
+
+#: release/project_release.module:300
+msgid "Default version format string"
+msgstr "Standard-Zeichenkette für Versionsformatierung"
+
+#: release/project_release.module:304
+msgid "Customize the default format of the version strings for releases of projects on this site. Users with \"administer projects\" permissions can override this setting for each project."
+msgstr "Das Standardformat der Versionszeichenkette für Veröffentlichungen von Projekten dieser Website anpassen. Benutzer mit den Berechtigungen „Projekte verwalten“ können diese Einstellung für jedes Projekt überschreiben."
+
+#: release/project_release.module:310
+#, fuzzy
+msgid "Unmoderate projects with releases"
+msgstr "De-Moderation von Projekten mit Veröffentlichungen"
+
+#: release/project_release.module:312
+msgid "Disabled"
+msgstr "Deaktiviert"
+
+#: release/project_release.module:312
+msgid "Enabled"
+msgstr "Aktiviert"
+
+#: release/project_release.module:323
+msgid "Active @vocab terms"
+msgstr "Aktive @vocab Begriffe"
+
+#: release/project_release.module:326
+msgid "Terms from the %vocab vocabulary that should be visibile to end users and project maintainers."
+msgstr "Begriffe aus dem Vokabular %vocab, die für Endbenutzer und Projektpfleger sichtbar sein sollten."
+
+#: release/project_release.module:330
+#: ;1053
+msgid "all"
+msgstr "Alle"
+
+#: release/project_release.module:333
+msgid "Browse projects by release versions"
+msgstr "Projekte nach Veröffentlichungsversionen durchsuchen"
+
+# not literally
+#: release/project_release.module:335
+msgid "Checking this box will cause the project browsing page to have a version select."
+msgstr "Die Aktivierung veranlasst die Projektseite eine Versionsauswahl anzuzeigen."
+
+#: release/project_release.module:339
+msgid "Default release overview"
+msgstr "Standard-Veröffentlichungsübersicht"
+
+#: release/project_release.module:343
+msgid "Default release version to list on the overview page."
+msgstr "Standard-Veröffentlichungsversion, die auf der Übersichtsseite aufgelistet werden soll."
+
+#: release/project_release.module:348
+#: ;387
+msgid "Download link base URL"
+msgstr "Basis URL des Downloadverweises"
+
+#: release/project_release.module:352
+msgid "By default, all download links to releases will use the standard download path for the site. However, if you wish to host the downloads at a different location, you can specify the base of the URL that should be used for download links. For example, if you stored releases in %files_path and you want to have download links pointing to %ftp_url, you would set this to %ftp_setting. Note that if you define this, the value should end with a slash ('/')."
+msgstr ""
+
+#: release/project_release.module:356
+msgid "Provide release history via XML"
+msgstr "Veröffentlichungshistorie per XML bereitstellen"
+
+#: release/project_release.module:358
+msgid "Checking this box will provide XML files of the full release history for each project at @path."
+msgstr "Die Aktivierung wird XML Dateien für jedes Projekt mit der gesamten Veröffentlichungshistorie in @path erstellen."
+
+#: release/project_release.module:362
+msgid "Directory for XML release history"
+msgstr "Verzeichnis für die XML Veröffentlichungshistorie"
+
+#: release/project_release.module:365
+msgid "Subdirectory in the '%dir' directory where XML release history files will be stored."
+msgstr "Ein Unterverzeichnis im Verzeichnis „%dir“, indem XML Dateien mit der Veröffentlichungshistorie gespeichert werden."
+
+#: release/project_release.module:372
+msgid "Release directory setting has been deprecated."
+msgstr ""
+
+#: release/project_release.module:378
+msgid "Project release overview must be one of the active @vocab terms"
+msgstr "Die Veröffentlichungsübersicht der Projekte muss einen der aktiven Begriffe @vocab enthalten"
+
+#: release/project_release.module:387
+#, fuzzy
+msgid "The %download_base_setting should end with a slash."
+msgstr "Das %download_base_setting sollte mit einem Schrägstrich abschließen."
+
+#: release/project_release.module:438
+msgid "Project release"
+msgstr "Projektveröffentlichung"
+
+#: release/project_release.module:440
+msgid "A release of a project with a specific version number. You can only create these for projects you maintain, using the links on the project home pages or the !my_projects page"
+msgstr ""
+
+#: release/project_release.module:440
+msgid "My projects"
+msgstr "Meine Projekte"
+
+#: release/project_release.module:452
+msgid "You can only add releases from a project page."
+msgstr "Veröffentlichungen können nur auf der Projektseite hinzugefügt werden."
+
+#: release/project_release.module:460
+msgid "Node !nid is not a valid project."
+msgstr "Beitrag !nid ist kein zulässiges Projekt."
+
+#: release/project_release.module:493
+#, fuzzy
+msgid "Release identification"
+msgstr "Veröffentlichungskennzeichnung"
+
+#: release/project_release.module:500
+msgid "Title"
+msgstr "Titel"
+
+#: release/project_release.module:501
+msgid "Version string"
+msgstr "Versionszeichenkette"
+
+#: release/project_release.module:509
+msgid "Version number elements"
+msgstr "Bestandteile der Versionsnummer"
+
+#: release/project_release.module:517
+msgid "Major"
+msgstr "Haupt"
+
+#: release/project_release.module:519
+msgid "Minor"
+msgstr "Neben"
+
+#: release/project_release.module:521
+msgid "Patch-level"
+msgstr "Korrekturstand"
+
+#: release/project_release.module:523
+msgid "Extra identifier"
+msgstr "Zusatzkennzeichnung"
+
+#: release/project_release.module:523
+msgid "Optionally specify other identifying information for this version, for example \"beta-1\", \"rc-1\" or \"dev\". In most cases, this should be left blank."
+msgstr ""
+
+#: release/project_release.module:527
+msgid "File information"
+msgstr "Dateiinformation"
+
+#: release/project_release.module:532
+msgid "File"
+msgstr "Datei"
+
+#: release/project_release.module:534
+msgid "Choose the file that will be associated with this release."
+msgstr "Die Datei auswählen, die mit der Veröffentlichung verknüpft wird."
+
+#: release/project_release.module:540
+msgid "Description"
+msgstr "Beschreibung"
+
+#: release/project_release.module:544
+msgid "Body"
+msgstr "Textkörper"
+
+#: release/project_release.module:550
+msgid "Enter a description of this release, such as a list of the major changes or updates."
+msgstr "Eine Beschreibung dieser Veröffentlichung eingeben, wie etwa eine Liste der größeren Veränderungen oder Aktualisierungen."
+
+#: release/project_release.module:554
+msgid "Tag"
+msgstr "Tag"
+
+#: release/project_release.module:559
+msgid "File path"
+msgstr "Dateipfad"
+
+#: release/project_release.module:560
+msgid "File md5 hash"
+msgstr "md5 Dateiprüfsumme"
+
+#: release/project_release.module:561
+msgid "File date"
+msgstr "Dateidatum"
+
+#: release/project_release.module:666
+msgid "You must fill in some version information."
+msgstr "Die Versionsinformationen müssen ausgefüllt werden."
+
+#: release/project_release.module:672
+msgid "!name must be a number."
+msgstr "!name muss eine Zahl sein."
+
+#: release/project_release.module:677
+msgid "Patch-level version number must be numeric or the char 'x'."
+msgstr "Die Versionsnummer des Korrekturstandes muss numerisch oder das Zeichen „x“ sein."
+
+#: release/project_release.module:690
+msgid "There was a problem uploading the specified file."
+msgstr "Es gab ein Problem beim hochladen der angegeben Datei."
+
+#: release/project_release.module:710
+msgid "This version already exists for this project."
+msgstr "Diese Version ist für dieses Projekt schon vorhanden."
+
+#: release/project_release.module:954
+msgid "Nightly development snapshot from !tag"
+msgstr "Nächtliche Entwicklungsmomentaufnahme von !tag"
+
+#: release/project_release.module:957
+msgid "Download: !file"
+msgstr "Dateidownload: !file"
+
+#: release/project_release.module:958
+msgid "Size: !size"
+msgstr "Größe: !size"
+
+#: release/project_release.module:959
+msgid "md5_file hash: !file_hash"
+msgstr "md5_file Prüfsumme: !file_hash"
+
+#: release/project_release.module:962
+msgid "First released: !created"
+msgstr "Erste Veröffentlichung: !created"
+
+#: release/project_release.module:965
+msgid "Last updated: !changed"
+msgstr "Zuletzt aktualisiert: !changed"
+
+#: release/project_release.module:987
+msgid "Releases for %project"
+msgstr "Veröffentlichungen für %project"
+
+#: release/project_release.module:1039
+msgid "There are no published releases for this project. Recently added releases will not be published until the packaging scripts have run."
+msgstr ""
+
+#: release/project_release.module:1096
+msgid "register"
+msgstr "Registrieren"
+
+#: release/project_release.module:1098
+msgid "Login"
+msgstr "Anmelden"
+
+#: release/project_release.module:1098
+msgid "to modify the filter."
+msgstr "um den Filter zu verändern."
+
+#: release/project_release.module:1115
+msgid "You must login or register to modify the @vocab filter."
+msgstr "Anmelden oder Registrieren um den @vocab Filter zu ändern."
+
+#: release/project_release.module:1125
+#: ;1253
+msgid "version"
+msgstr "Version"
+
+#: release/project_release.module:1127
+msgid "Filter by !label:"
+msgstr "Über !label filtern:"
+
+#: release/project_release.module:1155
+msgid "This string is also used to generate the name of releases associated with this project."
+msgstr "Diese Zeichenkette wird auch verwendet, um den Namen von mit dem Projekt verknüpften Veröffentlichungen zu erstellen."
+
+#: release/project_release.module:1171
+msgid "Advanced options"
+msgstr "Erweiterte Optionen"
+
+#: release/project_release.module:1179
+msgid "Enable releases"
+msgstr "Veröffentlichungen aktivieren"
+
+#: release/project_release.module:1183
+msgid "Allow releases of this project with specific versions."
+msgstr "Ermöglicht Veröffentlichungen dieses Projektes mit besonderen Versionen."
+
+#: release/project_release.module:1214
+#: ;1283
+msgid "Major version"
+msgstr "Hauptversion"
+
+#: release/project_release.module:1244
+msgid "Version format string"
+msgstr "Zeichenkette für Versionsformatierung"
+
+#: release/project_release.module:1248
+msgid "Customize the format of the version strings for releases of this project."
+msgstr "Das Format der Versionszeichenkette für die Veröffentlichung dieses Projektes anpassen."
+
+#: release/project_release.module:1248
+msgid "If blank, this project will use the site-wide default (currently set to: %default)"
+msgstr "Das Projekt wird den auf der gesamten Website gültigen Standard verwenden (derzeit eingestellt: %default), wenn das Feld leer gelassen wird."
+
+#: release/project_release.module:1256
+msgid "Display snapshot releases on project page"
+msgstr "Veröffentlichungen von Momentaufnahmen auf der Projektseite anzeigen"
+
+#: release/project_release.module:1259
+msgid "Note: Even if the current default release for a given !vocabulary_name is a development snapshot, it will only be show if this checkbox is enabled."
+msgstr ""
+
+#: release/project_release.module:1266
+msgid "Submit"
+msgstr "Speichern"
+
+#: release/project_release.module:1284
+msgid "Current default release"
+msgstr "Aktuelle Standardveröffentlichung"
+
+#: release/project_release.module:1296
+msgid "Default versions"
+msgstr "Standardversionen"
+
+#: release/project_release.module:1298
+msgid "This table allows you to specify the default version to download for any given %vocabulary_name. If there are releases from more than one major version number, you can select which major version should be used. For each %vocabulary_name, the current default release based on the saved major version is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release is used."
+msgstr ""
+
+#: release/project_release.module:1339
+msgid "Release settings have been saved."
+msgstr "Veröffentlichungseinstellungen wurden gespeichert."
+
+#: release/project_release.module:1465
+msgid "Official releases"
+msgstr "Offizielle Veröffentlichungen"
+
+#: release/project_release.module:1467
+msgid "Development snapshots"
+msgstr "Entwicklungsmomentaufnahmen"
+
+#: release/project_release.module:1470
+msgid "View all releases"
+msgstr "Alle Veröffentlichungen anzeigen"
+
+#: release/project_release.module:1472
+msgid "Add new release"
+msgstr "Neue Veröffentlichung hinzufügen"
+
+#: release/project_release.module:1573
+msgid "Release notes"
+msgstr "Anmerkungen zur Veröffentlichung"
+
+#: release/project_release.module:1578
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: release/project_release.module:1618
+msgid "Date"
+msgstr "Datum"
+
+#: release/project_release.module:1624
+msgid "Size"
+msgstr "Größe"
+
+#: release/project_release.module:1629
+msgid "Links"
+msgstr "Verweise"
+
+#: release/project_release.module:1681
+msgid "Project release API compatibility"
+msgstr "API Kompatibilität der Projektveröffentlichungen"
+
+#: release/project_release.module:0
+msgid "project_release"
+msgstr "project_release"
+
+#: release/project_release.info:0
+msgid "Project releases"
+msgstr "Projektveröffentlichungen"
+
+#: release/project_release.info:0
+msgid "Provides a release node type to represent releases of projects."
+msgstr "Stellt einen Inhaltstyp für Veröffentlichungen bereit, um Veröffentlichungen von Projekten darzustellen."
+
