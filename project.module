@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.35 2007/07/13 05:27:58 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.36 2007/07/13 06:25:00 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -295,11 +295,23 @@ function project_menu($may_cache) {
   return $items;
 }
 
-function project_check_admin_access($project, $cvs_access = TRUE) {
+function project_check_admin_access($project, $cvs_access = NULL) {
   global $user;
   if (empty($user->uid)) {
     return FALSE;
   }
+  
+  // If $cvs_access is not defined, check to make sure the user has cvs access
+  // and that the user's cvs account is approved.
+  if (project_use_cvs($project) && !isset($cvs_access)) {
+    if (db_num_rows(db_query("SELECT * FROM {cvs_accounts} WHERE uid = %d AND status = %d", $user->uid, CVS_APPROVED))) {
+      $cvs_access = TRUE;
+    }
+    else {
+      $cvs_access = FALSE;
+    }  
+  }
+
   $project_obj = is_numeric($project) ? node_load($project) : $project;
   if (!isset($project_obj) || $project_obj->type != 'project_project') {
     return FALSE;
