@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.3 2007/07/13 00:57:26 dww Exp $
+// $Id: project-release-create-history.php,v 1.4 2007/07/13 01:05:22 dww Exp $
 // $Name:  $
 
 /**
@@ -284,5 +284,5 @@ function wd_msg($msg, $link = NULL) {
  * Wrapper function for watchdog() to log error messages.
  */
 function wd_err($msg, $link = NULL) {
-  watchdog('release_hist_error', $msg, WATCHDOG_ERROR, $link);
+  watchdog('release_hist_err', $msg, WATCHDOG_ERROR, $link);
 }
