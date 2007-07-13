@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: project 5.x\n"
 "POT-Creation-Date: 2006-05-11 20:50+0300\n"
-"PO-Revision-Date: 2007-07-12 23:08+0100\n"
+"PO-Revision-Date: 2007-07-14 00:09+0100\n"
 "Last-Translator: Alexander Hass\n"
 "Language-Team: Alexander Hass\n"
 "MIME-Version: 1.0\n"
@@ -626,7 +626,7 @@ msgstr "%project %version"
 
 #: release/project_release_update.php:327
 msgid "Converted %num issue followups in %interval"
-msgstr "Converted %num issue followups in %interval"
+msgstr ""
 
 #: release/project_release_update.php:329
 msgid "ERROR: problem during conversion of %num issue followups"
