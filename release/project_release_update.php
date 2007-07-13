@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.4 2006/12/22 23:53:20 dww Exp $
+// $Id: project_release_update.php,v 1.5 2007/07/13 03:23:59 dww Exp $
 // $Name:  $
 
 /**
@@ -353,8 +353,7 @@ function create_legacy_tables() {
         PRIMARY KEY (`rid`),
         KEY project_release_legacy_pid (`pid`),
         KEY project_release_legacy_nid (`nid`)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_comments_conversion_errors} (
         cid int(10) unsigned NOT NULL default '0',
         pid int(10) unsigned NOT NULL default '0',
@@ -364,8 +363,7 @@ function create_legacy_tables() {
         KEY project_comments_conversion_errors_pid (`pid`),
         KEY project_comments_conversion_errors_old_rid (`old_rid`),
         KEY project_comments_conversion_errors_new_rid (`new_rid`)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
     case 'pgsql':
       if (!project_db_table_exists('project_release_legacy')) {
