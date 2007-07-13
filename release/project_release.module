@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.63 2007/06/14 23:55:47 dww Exp $
+// $Id: project_release.module,v 1.1.2.64 2007/07/13 03:43:20 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -984,7 +984,6 @@ function project_release_project_edit_releases() {
         '#maxlength' => 255,
         '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => theme('placeholder', variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT)))),
       );
-      $form['#validate'] = array_merge($form['#validate'], array('project_release_project_edit_form_validate' => array()));
     }
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     $vocab = isset($vocab) ? theme('placeholder', $vocab->name) : t('version');
