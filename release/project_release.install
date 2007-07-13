@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.13 2007/03/01 22:08:22 dww Exp $
+// $Id: project_release.install,v 1.1.2.14 2007/07/13 03:24:08 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -21,8 +21,7 @@ function project_release_install() {
           version_extra varchar(255) default NULL,
           PRIMARY KEY (nid),
           KEY project_releases_pid (pid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
           nid int unsigned NOT NULL default '0',
           releases tinyint NOT NULL default '1',
@@ -30,15 +29,13 @@ function project_release_install() {
           version_format varchar(255) NOT NULL default '',
           PRIMARY KEY (nid),
           KEY project_release_projects_releases (releases)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_release_default_versions} (
           nid int unsigned NOT NULL default '0',
           tid int unsigned NOT NULL default '0',
           major int unsigned NOT NULL default '0',
           PRIMARY KEY (nid, tid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
 
     case 'pgsql':

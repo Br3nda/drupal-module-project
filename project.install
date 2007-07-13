@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.6.2.7 2006/11/12 13:52:35 dww Exp $
+// $Id: project.install,v 1.2.2.6.2.8 2007/07/13 03:24:08 dww Exp $
 // $Name:  $
 
 function project_install() {
@@ -21,8 +21,7 @@ function project_install() {
           license varchar(255) not null default '',
           PRIMARY KEY (`nid`),
           KEY project_projects_uri (uri(8))
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
@@ -136,8 +135,7 @@ function project_update_4() {
           license varchar(255) not null default '',
           PRIMARY KEY (`nid`),
           KEY project_projects_uri (uri(8))
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       $ret[] = update_sql("CREATE TABLE {project_issue_projects} (
           nid int(10) unsigned NOT NULL default '0',
           issues tinyint(4) NOT NULL default '0',
@@ -149,8 +147,7 @@ function project_update_4() {
           mail_copy_filter_state varchar(255) NOT NULL default '',
           mail_reminder tinyint(4) NOT NULL default '0',
           PRIMARY KEY (nid)
-        ) TYPE=MyISAM
-        /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
     case 'pgsql':
       $ret[] = update_sql("CREATE TABLE {project_projects} (
