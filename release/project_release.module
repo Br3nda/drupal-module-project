@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.64 2007/07/13 03:43:20 dww Exp $
+// $Id: project_release.module,v 1.1.2.65 2007/07/13 05:27:58 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -448,7 +448,7 @@ function project_release_validate(&$edit, $form) {
 
   // With cvs.module installed, this validation is already handled.
   // We only want to do it here if we're *not* doing the N-page form...
-  if (!module_exist('cvs') && !isset($edit->nid) && project_release_exists($edit)) {
+  if (!project_use_cvs($edit) && !isset($edit->nid) && project_release_exists($edit)) {
     // TODO: is there a better form element to mark with this error?
     form_set_error('version_patch', t('This version already exists for this project.'));
   }
@@ -494,7 +494,7 @@ function project_release_load($node) {
  */
 function project_release_insert($node) {
   project_release_db_save($node, true);
-  if (module_exist('cvs')) {
+  if (project_use_cvs($node->project)) {
     if ($node->rebuild) {
       $msg = variable_get('cvs_message_new_release_branch', '');
     }

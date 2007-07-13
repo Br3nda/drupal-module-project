@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.34 2007/06/20 21:54:49 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.35 2007/07/13 05:27:58 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -311,7 +311,7 @@ function project_check_admin_access($project, $cvs_access = TRUE) {
     if ($user->uid == $project_obj->uid) {
        return TRUE;
     }
-    if (module_exist('cvs') && $cvs_access) {
+    if (project_use_cvs($project) && $cvs_access) {
       if (db_num_rows(db_query("SELECT * FROM {cvs_project_maintainers} WHERE uid = %d AND nid = %d", $user->uid, $project_obj->nid))) {
         return TRUE;
       }
@@ -965,4 +965,14 @@ function project_autocomplete($string) {
  */
 function project_use_taxonomy() {
   return module_exist('taxonomy') && taxonomy_get_tree(_project_get_vid());
+}
+
+/**
+ * Returns whether or not the project uses
+ * version control or not
+ */
+function project_use_cvs($project) {
+  if (module_exist('cvs')) {
+    return isset($project->cvs_repository) && ($project->cvs_repository != 0);
+  }
 }
