@@ -1,4 +1,4 @@
-/* $Id: project.js,v 1.1 2007/01/05 07:18:33 nedjo Exp $ */
+/* $Id: project.js,v 1.2 2007/07/13 21:11:08 dww Exp $ */
 
 Drupal.projectAutoAttach = function () {
   // The initially selected term, if any.
@@ -22,14 +22,14 @@ Drupal.projectSetTaxonomy = function (tid) {
     if (this.id == 'edit-tid-' + tid) {
       // Hide not the select but its containing div (which also contains
       // the label).
-      $(this).ancestors('div.form-item').show();
+      $(this).parents('div.form-item').show();
     }
     // Otherwise, empty it and hide it.
     else {
       // In case terms were previously selected, unselect them.
       // They are no longer valid.
       this.selectedIndex = -1;
-      $(this).ancestors('div.form-item').hide();
+      $(this).parents('div.form-item').hide();
     }
   });
 }
