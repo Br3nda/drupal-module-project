@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.65 2007/07/13 05:27:58 dww Exp $
+// $Id: project_release.module,v 1.1.2.66 2007/07/14 13:30:48 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -819,7 +819,7 @@ function project_release_version_filter_form($version = NULL) {
       );
       $form['submit'] = array(
         '#type' => 'submit',
-        '#value' => t('Go')
+        '#value' => t('Filter'),
       );
     }
     else {
