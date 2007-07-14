@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.36 2007/07/13 06:25:00 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.37 2007/07/14 13:22:00 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -359,7 +359,11 @@ function project_form_alter($form_id, &$form) {
       }
       else {
         unset($form['path']['path']);
-        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
+        $form['path']['value'] = array(
+          '#prefix' => '<div>',
+          '#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))),
+          '#suffix' => '</div>',
+        );
       }
     }
   }
