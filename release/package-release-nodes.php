@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.28 2007/03/20 17:19:35 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.29 2007/07/14 15:17:20 dww Exp $
 // $Name:  $
 
 /**
@@ -157,12 +157,12 @@ else {
 function package_releases($type) {
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
-    $plural = 'tags';
+    $plural = t('tags');
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
-    $plural = 'branches';
+    $plural = t('branches');
     wd_msg(t("Starting to package all snapshot releases."));
   }
   else {
@@ -197,8 +197,7 @@ function package_releases($type) {
     $num_considered++;
   }
   if ($num_built || $type == 'branch') {
-
-    wd_msg(t("Done packaging releases from $plural: %num_built built, %num_considered considered.", array('%num_built' => $num_built, '%num_considered' => $num_considered)));
+    wd_msg(t("Done packaging releases from %plural: %num_built built, %num_considered considered.", array('%plural' => $plural, '%num_built' => $num_built, '%num_considered' => $num_considered)));
   }
 }
 
@@ -446,10 +445,10 @@ function verify_packages($task) {
     }
 
     if (!$valid_date && !$valid_hash) {
-      wd_check(t('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw) real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables), $view_link);
+      wd_check(t('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables), $view_link);
     }
     else if (!$valid_date) {
-      wd_check(t('File date for %file is incorrect: saved date: !db_date (!db_date_raw) real date: !real_date (!real_date_raw)', $variables), $view_link);
+      wd_check(t('File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)', $variables), $view_link);
     }
     else { // !$valid_hash
       wd_check(t('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables), $view_link);

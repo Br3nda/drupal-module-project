@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.19 2007/07/13 03:24:08 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.20 2007/07/14 15:17:20 dww Exp $
 // $Name:  $
 
 /**
@@ -41,7 +41,7 @@ function populate_project_release_projects() {
   $num_prp = db_result(db_query("SELECT count(nid) FROM {project_release_projects}"));
   $num_projects = db_result(db_query("SELECT count(nid) FROM {project_projects}"));
   if ($num_prp == $num_projects) {
-    print("The {project_release_projects} table is already full<br>");
+    print t("The {project_release_projects} table is already full") .'<br />';
     return;
   }
   // First, insert a record with the right nid for all projects
@@ -82,7 +82,7 @@ function populate_project_release_projects() {
   list($usec, $sec) = explode(' ', microtime());
   $stop = (float)$usec + (float)$sec;
   $diff = round(($stop - $start) * 1000, 2);
-  print t('Added %num records to the {project_release_projects} table in %ms ms<br>', array('%num' => $num_prp, '%ms' => $diff));
+  print t('Added %num records to the {project_release_projects} table in %ms ms', array('%num' => $num_prp, '%ms' => $diff)) .'<br />';
 }
 
 /**
@@ -119,7 +119,7 @@ function convert_all_releases() {
     $num_considered++;
   }
 
-  print t('Considered %num_considered releases, converted %num_converted into nodes in %interval<br>', array('%num_considered' => $num_considered, '%num_converted' => $num_converted, '%interval' => format_interval(time() - $start_time)));
+  print t('Considered %num_considered releases, converted %num_converted into nodes in %interval', array('%num_considered' => $num_considered, '%num_converted' => $num_converted, '%interval' => format_interval(time() - $start_time))) .'<br />';
 }
 
 /**
@@ -191,7 +191,7 @@ function convert_release($old_release) {
       $target_api = "$matches[1].$matches[2].x";
     }
     else {
-      print("<b>ERROR:</b> release $old_release->rid of $old_release->project_title has malformed version ($old_release->version)<br>");
+      print t('<b>ERROR:</b> release %old_release_rid of %old_release_project_title has malformed version (%old_release_version)', array('%old_release_rid' => $old_release->rid, '%old_release_project_title' => $old_release->project_title, '%old_release_version' => $old_release->version)) .'<br />';
       return false;
     }
   }
@@ -205,7 +205,7 @@ function convert_release($old_release) {
     // Nightly tarball from a specific branch.
     preg_match('/^(\d+)\.(\d+)\.(\d+)$/', $old_release->version, $matches);
     if ($matches[3] != 0) {
-      print("<b>warning:</b> release $old_release->rid of $old_release->project_title has unexpected patch-level version ($matches[3])<br>");
+      print t('<b>WARNING:</b> release %old_release_rid of %old_release_project_title has unexpected patch-level version (%matches)', array('%old_release_rid' => $old_release->rid, '%old_release_project_title' => $old_release->project_title, '%matches' => $matches[3])) .'<br />';
     }
     $target_api = "$matches[1].$matches[2].x";
     $node->version_major = 1;
@@ -324,9 +324,9 @@ function convert_issue_followups() {
     db_query("UPDATE {project_comments} SET data = '%s' WHERE cid = %d", serialize($data), $comment->cid);
     $num++;
   }
-  print t('Converted %num issue followups in %interval', array('%num' => $num, '%interval' => format_interval(time() - $start_time))) . '<br>';
+  print t('Converted %num issue followups in %interval', array('%num' => $num, '%interval' => format_interval(time() - $start_time))) .'<br />';
   if ($errors) {
-    print '<b>' . t('ERROR: problem during conversion of %num issue followups', array('%num' => $errors)) . '</b><br>';
+    print '<b>'. t('ERROR: problem during conversion of %num issue followups', array('%num' => $errors)) .'</b><br />';
   }
 }
 
