@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.28 2007/07/14 13:30:31 dww Exp $
+// $Id: project_release.module,v 1.29 2007/07/14 13:34:58 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -951,7 +951,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   if ($node->rebuild) {
-    $output .= t('Nightly development snapshot from !tag', array('!tag' => check_plain($node->tag))) . '<br />';
+    $output .= t('Nightly development snapshot from @tag', array('@tag' => $node->tag)) .'<br />';
   }
   if ($node->file_path) {
     $output .= '<small>' . t('Download: !file', array('!file' => project_release_download_link($node->file_path))) . '</small><br />';
