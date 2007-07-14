@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.277 2007/07/14 13:21:50 dww Exp $
+// $Id: project.module,v 1.278 2007/07/14 13:25:58 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -62,7 +62,7 @@ function project_block($op = 'list', $delta = 0) {
 function project_node_info() {
   return array(
     'project_project' => array(
-      'name' => t('project'),
+      'name' => t('Project'),
       'module' => 'project_project',
       'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.' ),
     ),
