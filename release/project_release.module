@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.69 2007/07/14 16:45:50 dww Exp $
+// $Id: project_release.module,v 1.1.2.70 2007/07/14 17:19:13 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -206,6 +206,7 @@ function project_release_form(&$release, &$param) {
     }
     $release->pid = arg(3);
     $project = node_load($release->pid);
+    project_project_set_breadcrumb($project, TRUE);
     if (!isset($project) || $project->type != 'project_project') {
       drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->pid)));
       drupal_not_found();
@@ -223,6 +224,10 @@ function project_release_form(&$release, &$param) {
     $admin = user_access('administer projects');
     $is_edit = true;
     $project->nid = $release->pid;
+    $project = node_load($project);
+    $breadcrumb[] = l($project->title, 'node/'. $project->nid);
+    $breadcrumb[] = l(t('Releases'), 'node/'. $project->nid . '/release');
+    project_project_set_breadcrumb($project, $breadcrumb);
     $format = project_release_get_version_format($project);
   }
 
