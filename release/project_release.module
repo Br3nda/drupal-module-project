@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.68 2007/07/14 15:17:20 dww Exp $
+// $Id: project_release.module,v 1.1.2.69 2007/07/14 16:45:50 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1279,7 +1279,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
     $select = implode(', ', $selects) .',';
   }
   $result = db_query(db_rewrite_sql(
-    "SELECT n.nid, $select r.* FROM {node} n ".
+    "SELECT n.nid, n.created, $select r.* FROM {node} n ".
     "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ". $join . 
     "WHERE (r.pid = %d) AND (n.status = 1) ". $where .' '. $order_by),
     $project->nid);
@@ -1288,7 +1288,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
     // Work-around for releases without a compatibility term
     // (e.g. unclassified HEAD releases on drupal.org).
     $result = db_query(db_rewrite_sql(
-      "SELECT n.nid, r.* FROM {node} n ".
+      "SELECT n.nid, n.created, r.* FROM {node} n ".
       "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
       "WHERE (r.pid = %d) AND (n.status = 1) ". $where), $project->nid);
   }
@@ -1297,11 +1297,11 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   $can_edit = node_access('update', $project);
 
   while ($release = db_fetch_object($result)) {
-    $links = array(
-      project_release_download_link($release->file_path, t('Download')),
-      l(t('Release notes'), "node/$release->nid"),
-    );
-
+    $links = array();
+    if (!empty($release->file_path)) { 
+      $links[] = project_release_download_link($release->file_path, t('Download'));
+    }
+    $links[] = l(t('Release notes'), "node/$release->nid");
     if ($can_edit) {
       $links[] = l(t('Edit'), "node/$release->nid/edit");
     }
@@ -1319,14 +1319,14 @@ function project_release_table($project, $table_type = 'defaults', $release_type
         ),
         array(
           'class' => 'release-date',
-          'data' => format_date($release->file_date, 'custom', 'Y-M-d'),
+          'data' => !empty($release->file_path) ? format_date($release->file_date, 'custom', 'Y-M-d') : format_date($release->created, 'custom', 'Y-M-d'),
         ),
       ),
     );
     if ($print_size) {
       $row['data'][] = array(
         'class' => 'release-size',
-        'data' => format_size(filesize(file_create_path($release->file_path))),
+        'data' => !empty($release->file_path) ? format_size(filesize(file_create_path($release->file_path))) : t('n/a'),
       );
     }
     $row['data'][] = array(
