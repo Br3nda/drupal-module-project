@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.66 2007/07/14 13:30:48 dww Exp $
+// $Id: project_release.module,v 1.1.2.67 2007/07/14 13:46:33 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -328,7 +328,7 @@ function project_release_form(&$release, &$param) {
  * @param $required Boolean for if the form element should be required
  */
 function _project_release_form_add_version_element(&$form, $release, $modify, $format, $name, $title, $description = '', $size = 10) {
-  $var_name = 'version_' . $name;
+  $var_name = 'version_'. $name;
   $regexp = "@.*[!#%]$name.*@";
   if (preg_match($regexp, $format)) {
     $form['version']['num'][$var_name] = array(
@@ -647,8 +647,8 @@ function project_release_get_version($release, $project = NULL) {
     $var = "version_$field";
     if (isset($release->$var) && $release->$var !== '') {
       $variables["!$field"] = $release->$var;
-      $variables["%$field"] = '.' . $release->$var;
-      $variables["#$field"] = '-' . $release->$var;
+      $variables["%$field"] = '.'. $release->$var;
+      $variables["#$field"] = '-'. $release->$var;
     }
     else {
       $variables["!$field"] = '';
@@ -670,8 +670,8 @@ function project_release_get_version($release, $project = NULL) {
     if (isset($tid)) {
       $term = taxonomy_get_term($tid);
       $variables["!api"] = $term->name;
-      $variables["%api"] = '.' . $term->name;
-      $variables["#api"] = '-' . $term->name;
+      $variables["%api"] = '.'. $term->name;
+      $variables["#api"] = '-'. $term->name;
     }
   }
   $version_format = project_release_get_version_format($node);
@@ -688,28 +688,28 @@ function project_release_view(&$release, $teaser = FALSE, $page = FALSE) {
   if ($page) {
     // Breadcrumb navigation
     $breadcrumb[] = l($project->title, 'node/'. $project->nid);
-    $breadcrumb[] = l(t('Releases'), 'node/'. $project->nid . '/release');
+    $breadcrumb[] = l(t('Releases'), 'node/'. $project->nid .'/release');
     project_project_set_breadcrumb($project, $breadcrumb);
   }
 
   $links = array();
   if ($release->rebuild) {
-    $output .= t('Nightly development snapshot from %tag', array('%tag' => check_plain($release->tag))) . '<br />';
+    $output .= t('Nightly development snapshot from %tag', array('%tag' => check_plain($release->tag))) .'<br />';
   }
   if ($release->file_path) {
-    $output .= '<small>' . t('Download: %file', array('%file' => project_release_download_link($release->file_path))) . '</small><br />';
-    $output .= '<small>' . t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) . '</small><br />';
-    $output .= '<small>' . t('md5_file hash: %file_hash', array('%file_hash' => $release->file_hash)) . '</small><br />';
+    $output .= '<small>'. t('Download: %file', array('%file' => project_release_download_link($release->file_path))) .'</small><br />';
+    $output .= '<small>'. t('Size: %size', array('%size' => format_size(filesize(file_create_path($release->file_path))))) .'</small><br />';
+    $output .= '<small>'. t('md5_file hash: %file_hash', array('%file_hash' => $release->file_hash)) .'</small><br />';
   }
   if ($release->created) {
-    $output .= '<small>' . t('First released: %created', array('%created' => format_date($release->created))) . '</small><br />';
+    $output .= '<small>'. t('First released: %created', array('%created' => format_date($release->created))) .'</small><br />';
   }
   if ($release->file_date  && ($release->file_date != $release->created)) {
-    $output .= '<small>' . t('Last updated: %changed', array('%changed' => format_date($release->file_date))) . '</small><br />';
+    $output .= '<small>'. t('Last updated: %changed', array('%changed' => format_date($release->file_date))) .'</small><br />';
   }
   $output .= theme('links', $links);
 
-  $release->body = '<div class="project-release">' . $output . '</div>' . check_markup($release->body, $release->format, FALSE);
+  $release->body = '<div class="project-release">'. $output .'</div>'. check_markup($release->body, $release->format, FALSE);
 }
 
 /**
@@ -790,7 +790,7 @@ function project_release_list($project, $main = 0) {
 function project_release_compatibility_list() {
   if ($tree = project_release_get_api_taxonomy()) {
     $tids = variable_get('project_release_active_compatibility_tids', '');
-    $terms[-1] = '<' . t('all') . '>';
+    $terms[-1] = '<'. t('all') .'>';
     foreach ($tree as $term) {
       if (($tids && !empty($tids[$term->tid])) || !$tids) {
         $terms[$term->tid] = $term->name;
@@ -833,7 +833,7 @@ function project_release_version_filter_form($version = NULL) {
       );
       $register = '';
       if (variable_get('user_register', 1)) {
-        $register = ' or ' . l(t('register'), 'user/register', array(), $destination) .' ';
+        $register = ' or '. l(t('register'), 'user/register', array(), $destination) .' ';
       }
       $form['version_login'] = array('#value' => l(t('Login'), 'user/login', array(), $destination) . $register . t('to modify the filter.'));
     }
@@ -864,7 +864,7 @@ function theme_project_release_version_filter_form($form) {
   else {
     $label = t('version');
   }
-  $output = '<div class="container-inline">' . t('Filter by %label:', array('%label' => $label)) . form_render($form) . '</div>';
+  $output = '<div class="container-inline">'. t('Filter by %label:', array('%label' => $label)) . form_render($form) .'</div>';
   return $output;
 }
 
@@ -1192,7 +1192,7 @@ function project_release_project_download_table($node) {
   if (!$node->releases) {
     return;
   }
-  $output = '<h3>' . t('Releases') . '</h3>';
+  $output = '<h3>'. t('Releases') .'</h3>';
   $output .= project_release_table($node, 'defaults', 'official', t('Official releases'));
   if ($node->snapshot_table) {
     $output .= project_release_table($node, 'defaults', 'snapshot', t('Development snapshots'));
@@ -1237,8 +1237,8 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   if ($tids) {
     unset($tids[-1]); // get rid of that one.
     $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in (' 
-      . implode(',', array_keys($tids)) . ') ' 
-      . ' INNER JOIN {term_data} td ON td.tid = tn.tid ';
+      . implode(',', array_keys($tids)) .') ' 
+      .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
     $selects[] = 'tn.tid';
     $orderby[] = 'td.weight';
     $orderby[] = 'td.name';
@@ -1264,7 +1264,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
         // If we're generating the default releases table, we want the
         // dev snapshots to be first in the query results, so that we 
         // skip over them and only show official releases (if any).
-      $orderby[] = 'r.rebuild' . (($table_type == 'defaults') ? ' DESC' : '');
+      $orderby[] = 'r.rebuild'. (($table_type == 'defaults') ? ' DESC' : '');
       break;
   }
   $orderby[] = 'r.version_major';
@@ -1273,24 +1273,24 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   $orderby[] = 'r.file_date';
 
   if ($orderby) {
-    $order_by = ' ORDER BY ' . implode(', ', $orderby);
+    $order_by = ' ORDER BY '. implode(', ', $orderby);
   }
   if ($selects) {
-    $select = implode(', ', $selects) . ',';
+    $select = implode(', ', $selects) .',';
   }
   $result = db_query(db_rewrite_sql(
-    "SELECT n.nid, $select r.* FROM {node} n " .
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid " . $join . 
-    "WHERE (r.pid = %d) AND (n.status = 1) " . $where . ' ' . $order_by),
+    "SELECT n.nid, $select r.* FROM {node} n ".
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ". $join . 
+    "WHERE (r.pid = %d) AND (n.status = 1) ". $where .' '. $order_by),
     $project->nid);
 
   if (!db_num_rows($result) && $release_type != 'official' && $tids) {
     // Work-around for releases without a compatibility term
     // (e.g. unclassified HEAD releases on drupal.org).
     $result = db_query(db_rewrite_sql(
-      "SELECT n.nid, r.* FROM {node} n " .
-      "INNER JOIN {project_release_nodes} r ON r.nid = n.nid " .
-      "WHERE (r.pid = %d) AND (n.status = 1) " . $where), $project->nid);
+      "SELECT n.nid, r.* FROM {node} n ".
+      "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
+      "WHERE (r.pid = %d) AND (n.status = 1) ". $where), $project->nid);
   }
 
   $items = array();
