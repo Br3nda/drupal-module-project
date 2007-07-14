@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.32 2007/07/14 16:45:42 dww Exp $
+// $Id: project_release.module,v 1.33 2007/07/14 16:56:08 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -263,7 +263,7 @@ function project_release_data($project = NULL, $api_version = NULL, $major_versi
         'version_extra' => $release->version_extra,
         'link' => url("node/$release->pid", NULL, NULL, TRUE),
         'release' => url("node/$release->release_nid", NULL, NULL, TRUE),
-        'download' => project_release_download_link($release->file_path, NULL, 'url'),
+        'download' => theme('project_release_download_link', $release->file_path, NULL, 'url'),
         'date' => $release->file_date,
         'md5hash' => $release->file_hash,
       );
@@ -954,7 +954,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
     $output .= t('Nightly development snapshot from @tag', array('@tag' => $node->tag)) .'<br />';
   }
   if ($node->file_path) {
-    $output .= '<small>'. t('Download: !file', array('!file' => project_release_download_link($node->file_path))) .'</small><br />';
+    $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $node->file_path))) .'</small><br />';
     $output .= '<small>'. t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->file_path))))) .'</small><br />';
     $output .= '<small>'. t('md5_file hash: !file_hash', array('!file_hash' => $node->file_hash)) .'</small><br />';
   }
@@ -1568,7 +1568,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   while ($release = db_fetch_object($result)) {
     $links = array();
     if (!empty($release->file_path)) { 
-      $links['project_release_download'] = project_release_download_link($release->file_path, t('Download'), TRUE);
+      $links['project_release_download'] = theme('project_release_download_link', $release->file_path, t('Download'), TRUE);
     }
     $links['project_release_notes'] = array(
       'title' => t('Release notes'),
@@ -1748,7 +1748,7 @@ function project_release_exists($version) {
  * @return
  *   The link itself, as a structured array.
  */
-function project_release_download_link($file_path, $link_text = NULL, $as_array = FALSE) {
+function theme_project_release_download_link($file_path, $link_text = NULL, $as_array = FALSE) {
   if (empty($link_text)) {
     $link_text = basename($file_path);
   }
