@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.33 2007/07/14 16:56:08 dww Exp $
+// $Id: project_release.module,v 1.34 2007/07/14 17:08:26 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1453,10 +1453,9 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
 }
 
 /**
- * Returns the appropriate release download table for a project node.
- * TODO: this should be themeable.
+ * Theme the appropriate release download table for a project node.
  */
-function project_release_project_download_table($node) {
+function theme_project_release_project_download_table($node) {
   if (!$node->releases) {
     return;
   }
@@ -1474,9 +1473,25 @@ function project_release_project_download_table($node) {
   return $output;
 }
 
+/**
+ * Theme function that calls project_release_table().
+ * 
+ * The main purpose of this theme wrapper function is to make it easier
+ * to display a different kind of table (for example, $tabel_type=all)
+ * from the project_page_overview() function in project.module.
+ * 
+ * The parameters are described at project_release_table().
+ *
+ * @see project_page_overview()
+ * @see project_release_table()
+ */
+function theme_project_release_table_overview($project, $table_type, $release_type, $title, $print_size) {
+  return project_release_table($project, $table_type, $release_type, $title, $print_size);
+}
 
 /**
  * Generate a table of releases for a given project.
+ *
  * @param $project
  *   The project object (as returned by node_load(), for example).
  *

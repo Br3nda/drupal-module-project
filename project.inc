@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.108 2007/07/14 15:01:11 dww Exp $
+// $Id: project.inc,v 1.109 2007/07/14 17:08:25 dww Exp $
 // $Name:  $
 
 /**
@@ -298,9 +298,14 @@ function project_project_view($node, $teaser = false, $page = false) {
     // Breadcrumb navigation
     project_project_set_breadcrumb($node);
 
-    if (function_exists('project_release_project_download_table')) {
+    // If theme_project_release_project_download_table is implemented, format
+    // the download table.  If this function is not implemented (eg. if the
+    // project_release module is not enabled), there will not be an error
+    // but of course there will be no release table.
+    $project_table_output = theme('project_release_project_download_table', $node);
+    if (!empty($project_table_output)) {
       $node->content['download_table'] = array(
-        '#value' => project_release_project_download_table($node),
+        '#value' => $project_table_output,
         '#weight' => 1,
       );
     }
