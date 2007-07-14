@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.22 2007/06/07 18:25:22 dww Exp $
+// $Id: project.module,v 1.239.2.23 2007/07/14 13:22:18 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -378,7 +378,11 @@ function project_form_alter($form_id, &$form) {
       }
       else {
         unset($form['path']['path']);
-        $form['path']['value'] = array('#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))));
+        $form['path']['value'] = array(
+          '#prefix' => '<div>',
+          '#value' => t('Automatically generated path alias: %url', array('%url' => theme('placeholder', $url_alias))),
+          '#suffix' => '</div>',
+        );
       }
     }
   }
