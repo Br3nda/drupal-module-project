@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.32 2007/06/19 23:22:01 dww Exp $
+// $Id: project.inc,v 1.75.2.33 2007/07/14 15:01:22 dww Exp $
 // $Name:  $
 
 /**
@@ -240,9 +240,15 @@ function project_project_validate(&$node) {
   }
 
   // Make sure all URL fields actually contain URLs.
-  foreach (array('homepage', 'changelog', 'cvs', 'demo') as $uri) {
+  $fields = array(
+    'homepage' => t('Homepage'),
+    'changelog' => t('Changelog'),
+    'cvs' => t('CVS tree'),
+    'demo' => t('Demo site'),
+  );
+  foreach ($fields as $uri => $name) {
     if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
-      form_set_error($uri, t('%field is not a valid URL.', array('%field' => t(ucfirst($uri)))));
+      form_set_error($uri, t('%field is not a valid URL.', array('%field' => $name)));
     }
   }
 
