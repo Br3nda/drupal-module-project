@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.2 2007/07/10 01:25:40 dww Exp $
+// $Id: project-release-serve-history.php,v 1.3 2007/07/18 06:16:19 dww Exp $
 
 /**
  * @file
@@ -69,6 +69,7 @@ if (!is_file($full_path)) {
 $stat = stat($full_path);
 $mtime = $stat[9];
 header('Last-Modified: '. gmdate('D, d M Y H:i:s', $mtime) .' GMT');
+header('Cache-Control: max-age=3600');
 
 // Serve the contents.
 echo '<?xml version="1.0" encoding="utf-8"?>' ."\n";
