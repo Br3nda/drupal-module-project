@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.28 2007/07/14 15:01:17 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.29 2007/07/23 23:30:38 dww Exp $
 // $Name:  $
 
 /**
@@ -417,7 +417,7 @@ function project_project_access($op, $node) {
       if ($user->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
         // special-case uid 1 to always allow everything.
-        if ($user->uid != 1 && project_use_cvs($node) && variable_get('cvs_restrict_project_creation',1)) {
+        if ($user->uid != 1 && module_exist('cvs') && variable_get('cvs_restrict_project_creation', 1)) {
           return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d AND status = %d", $user->uid, CVS_APPROVED)) ? TRUE : FALSE;
         }
         else {
