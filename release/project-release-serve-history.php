@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.3 2007/07/18 06:16:19 dww Exp $
+// $Id: project-release-serve-history.php,v 1.4 2007/07/26 22:28:33 dww Exp $
 
 /**
  * @file
@@ -64,12 +64,15 @@ if (!is_file($full_path)) {
   exit(1);
 }
 
-// Set the Last-Modified to the timestamp of the file, so that we properly
-// clear any HTTP caches once the file has been updated.
+// Set the Last-Modified to the timestamp of the file.  Otherwise, disable all
+// caching since a) we continue to have problems with squid on d.o and b)
+// we're going to need this as soon as we start collecting stats.
 $stat = stat($full_path);
 $mtime = $stat[9];
 header('Last-Modified: '. gmdate('D, d M Y H:i:s', $mtime) .' GMT');
-header('Cache-Control: max-age=3600');
+header("Expires: Sun, 19 Nov 1978 05:00:00 GMT");
+header("Cache-Control: store, no-cache, must-revalidate");
+header("Cache-Control: post-check=0, pre-check=0", FALSE);
 
 // Serve the contents.
 echo '<?xml version="1.0" encoding="utf-8"?>' ."\n";
