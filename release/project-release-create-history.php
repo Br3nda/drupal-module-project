@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.5 2007/07/13 01:27:40 dww Exp $
+// $Id: project-release-create-history.php,v 1.6 2007/07/26 21:07:44 dww Exp $
 // $Name:  $
 
 /**
@@ -183,7 +183,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid) {
       $xml .= "  <status>published</status>\n";
       $xml .= '  <release_link>'. url("node/$release->nid", NULL, NULL, TRUE) ."</release_link>\n";
       if (!empty($release->file_path)) {
-        $download_link = project_release_download_link($release->file_path, NULL, TRUE);
+        $download_link = theme('project_release_download_link', $release->file_path, NULL, TRUE);
         $xml .= '  <download_link>'. $download_link['href'] ."</download_link>\n";
       }
     }
