@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.6 2007/07/26 21:07:44 dww Exp $
+// $Id: project-release-create-history.php,v 1.7 2007/07/31 15:51:17 dww Exp $
 // $Name:  $
 
 /**
@@ -261,7 +261,7 @@ function project_release_history_write_xml($project, $api_version, $xml) {
   fclose($hist_fd);
 
   // Now we can atomically rename the .new into place in the "live" spot.
-  if (!rename($tmp_filename, $filename)) {
+  if (!_rename($tmp_filename, $filename)) {
     wd_err(t("ERROR: rename(@old, @new) failed, can't write history for %project.", array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title)));
     return FALSE;
   }
@@ -285,4 +285,21 @@ function wd_msg($msg, $link = NULL) {
  */
 function wd_err($msg, $link = NULL) {
   watchdog('release_hist_err', $msg, WATCHDOG_ERROR, $link);
+}
+
+/**
+ * Rename on Windows isn't atomic like it is on *nix systems.
+ * See http://www.php.net/rename about this bug.
+ */
+function _rename($oldfile, $newfile) {
+  if (substr(PHP_OS, 0, 3) == 'WIN') {
+    if (copy($oldfile, $newfile)) {
+      unlink($oldfile);
+      return TRUE;
+    }
+    return FALSE;
+  }
+  else {
+    return rename($oldfile, $newfile);
+  }
 }
