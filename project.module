@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.23 2007/07/14 13:22:18 dww Exp $
+// $Id: project.module,v 1.239.2.24 2007/07/31 18:32:24 thehunmonkgroup Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -834,7 +834,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
   }
   if (project_use_taxonomy()) {
     $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name, p.uri FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY n.title ORDER BY d.weight, n.title", 'p'), $vid);
+    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name, p.uri FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY p.nid, n.title, d.name, p.uri, d.weight ORDER BY d.weight, n.title", 'p'), $vid);
     while ($project = db_fetch_object($result)) {
       if (isset($project->name)) {
         if (!isset($projects[$project->name])) {
