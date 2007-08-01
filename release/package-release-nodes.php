@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.18 2007/07/14 15:17:13 dww Exp $
+// $Id: package-release-nodes.php,v 1.19 2007/08/01 20:53:13 dww Exp $
 // $Name:  $
 
 /**
@@ -153,6 +153,14 @@ else {
   drupal_exec("$rm -rf $tmp_dir");
 }
 
+if ($task == 'branch') {
+  // Clear any cached data set to expire.
+  cache_clear_all(NULL, 'cache_project_release');
+}
+elseif ($task == 'repair') {
+  // Clear all cached data
+  cache_clear_all('*', 'cache_project_release', TRUE);
+}
 
 // ------------------------------------------------------------
 // Functions: main work
@@ -184,15 +192,17 @@ function package_releases($type, $project_id) {
     $args[] = $project_id;
   }
 
-  $query = db_query("SELECT pp.uri, prn.nid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri', $args);
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
+  $project_nids = array();
   while ($release = db_fetch_object($query)) {
     $version = $release->version;
     $uri = $release->uri;
     $tag = $release->tag;
     $nid = $release->nid;
+    $pid = $release->pid;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
@@ -206,6 +216,7 @@ function package_releases($type, $project_id) {
     }
     if ($built) {
       $num_built++;
+      $project_nids[$pid] = TRUE;
     }
     $num_considered++;
   }
@@ -216,6 +227,12 @@ function package_releases($type, $project_id) {
     else {
       wd_msg(t("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered)));
     }
+  }
+
+  // Finally, clear the project_release_table() cache for any projects that we
+  // generated new tarballs for, since those tables are now stale.
+  foreach ($project_nids as $pid => $value) {
+    cache_clear_all('table:'. $pid .':', 'cache_project_release', TRUE);
   }
 }
 

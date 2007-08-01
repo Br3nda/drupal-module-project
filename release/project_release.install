@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.7 2007/07/13 03:23:59 dww Exp $
+// $Id: project_release.install,v 1.8 2007/08/01 20:53:13 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -36,6 +36,15 @@ function project_release_install() {
           major int unsigned NOT NULL default '0',
           PRIMARY KEY (nid, tid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE IF NOT EXISTS {cache_project_release} (
+        cid varchar(255) BINARY NOT NULL default '',
+        data longblob,
+        expire int NOT NULL default '0',
+        created int NOT NULL default '0',
+        headers text,
+        PRIMARY KEY (cid),
+        INDEX expire (expire)
+      ) /*!40100 DEFAULT CHARACTER SET UTF8 */ ");
       break;
 
     case 'pgsql':
@@ -74,6 +83,17 @@ function project_release_install() {
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
           );"); 
+      }
+      if (!db_table_exists('cache_project_release')) {
+        db_query("CREATE TABLE {cache_project_release} (
+          cid varchar(255) NOT NULL default '',
+          data bytea,
+          expire int NOT NULL default '0',
+          created int NOT NULL default '0',
+          headers text,
+          PRIMARY KEY (cid)
+        )");
+        db_query("CREATE INDEX {cache_project_release}_expire_idx ON {cache_project_release} (expire)");
       }
       break;
   }
@@ -140,6 +160,41 @@ function project_release_update_2() {
       break;
     case 'pgsql':
       db_add_column($ret, 'project_release_projects', 'snapshot_table', 'smallint', array('default' => 1, 'not null' => TRUE));
+      break;
+  }
+  return $ret;
+}
+
+/**
+ * Add a cache table {cache_project_release}.
+ */
+function project_release_update_5000() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {cache_project_release} (
+        cid varchar(255) BINARY NOT NULL default '',
+        data longblob,
+        expire int NOT NULL default '0',
+        created int NOT NULL default '0',
+        headers text,
+        PRIMARY KEY (cid),
+        INDEX expire (expire)
+      ) /*!40100 DEFAULT CHARACTER SET UTF8 */ ");
+      break;
+    case 'pgsql':
+      if (!db_table_exists('cache_project_release')) {
+        $ret[] = update_sql("CREATE TABLE {cache_project_release} (
+          cid varchar(255) NOT NULL default '',
+          data bytea,
+          expire int NOT NULL default '0',
+          created int NOT NULL default '0',
+          headers text,
+          PRIMARY KEY (cid)
+        )");
+        $ret[] = update_sql("CREATE INDEX {cache_project_release}_expire_idx ON {cache_project_release} (expire)");
+      }
       break;
   }
   return $ret;
