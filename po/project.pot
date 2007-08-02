@@ -1,23 +1,23 @@
-# $Id: project.pot,v 1.3 2007/07/01 20:11:03 hass Exp $
+# $Id: project.pot,v 1.4 2007/08/02 20:03:29 hass Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
-#  project.inc,v 1.106 2007/06/19 23:21:52 dww
-#  project.module,v 1.274 2007/06/20 21:54:46 dww
+#  project.inc,v 1.112 2007/08/02 07:04:52 dww
+#  project.module,v 1.284 2007/08/02 14:55:47 dww
 #  project.info,v 1.2 2007/06/13 19:33:16 dww
 #  project_release.info,v 1.2 2007/06/13 19:33:16 dww
-#  project_release.module,v 1.25 2007/06/28 10:41:36 dww
-#  package-release-nodes.php,v 1.17 2007/06/30 05:55:25 dww
-#  project-release-history.php,v 1.2 2007/06/16 18:38:32 dww
-#  project_release_update.php,v 1.4 2006/12/22 23:53:20 dww
+#  project_release.module,v 1.36 2007/08/01 20:53:13 dww
+#  package-release-nodes.php,v 1.20 2007/08/02 17:53:22 dww
+#  project-release-create-history.php,v 1.7 2007/07/31 15:51:17 dww
+#  project_release_update.php,v 1.6 2007/07/14 15:17:14 dww
 #  project_release_scan.inc,v 1.3 2006/12/18 09:02:39 dww
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2007-07-01 22:06+0200\n"
+"POT-Creation-Date: 2007-08-02 21:42+0200\n"
 "PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
@@ -66,7 +66,7 @@ msgstr ""
 msgid "E-mail address where the project owners can be contacted."
 msgstr ""
 
-#: project.inc:115
+#: project.inc:115;246
 msgid "Homepage"
 msgstr ""
 
@@ -98,7 +98,7 @@ msgstr ""
 msgid "Link to project screenshots."
 msgstr ""
 
-#: project.inc:147
+#: project.inc:147;247
 msgid "Changelog"
 msgstr ""
 
@@ -106,7 +106,7 @@ msgstr ""
 msgid "Link to changelog."
 msgstr ""
 
-#: project.inc:155
+#: project.inc:155;248
 msgid "CVS tree"
 msgstr ""
 
@@ -114,7 +114,7 @@ msgstr ""
 msgid "Link to webcvs/viewcvs."
 msgstr ""
 
-#: project.inc:163
+#: project.inc:163;249
 msgid "Demo site"
 msgstr ""
 
@@ -122,7 +122,7 @@ msgstr ""
 msgid "Link to a live demo."
 msgstr ""
 
-#: project.inc:186;201
+#: project.inc:186;211
 msgid "This project name is already in use."
 msgstr ""
 
@@ -134,263 +134,263 @@ msgstr ""
 msgid "Please only use alphanumerical characters for the project name."
 msgstr ""
 
-#: project.inc:207
+#: project.inc:217
 msgid "You must add a project description."
 msgstr ""
 
-#: project.inc:212
+#: project.inc:222
 msgid "You must specify a project e-mail."
 msgstr ""
 
-#: project.inc:237
+#: project.inc:253
 msgid "!field is not a valid URL."
 msgstr ""
 
-#: project.inc:254
+#: project.inc:270
 msgid "Project type %project_type was selected, you can not use values from %invalid_type categories"
 msgstr ""
 
-#: project.inc:265
+#: project.inc:281
 msgid "Home"
 msgstr ""
 
-#: project.inc:270
+#: project.inc:286
 msgid "Browse projects"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Home page"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Read documentation"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Read license"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Read complete log of changes"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Try out a demonstration"
 msgstr ""
 
-#: project.inc:305
+#: project.inc:326
 msgid "Look at screenshots"
 msgstr ""
 
-#: project.inc:313
+#: project.inc:334
 msgid "Resources"
 msgstr ""
 
-#: project.inc:326
+#: project.inc:347
 msgid "View all support requests"
 msgstr ""
 
-#: project.inc:327
+#: project.inc:348
 msgid "View pending support requests"
 msgstr ""
 
-#: project.inc:328
+#: project.inc:349
 msgid "View pending bug reports"
 msgstr ""
 
-#: project.inc:329
+#: project.inc:350
 msgid "View pending feature requests"
 msgstr ""
 
-#: project.inc:332
+#: project.inc:353
 msgid "Request support"
 msgstr ""
 
-#: project.inc:333
+#: project.inc:354
 msgid "Report new bug"
 msgstr ""
 
-#: project.inc:334
+#: project.inc:355
 msgid "Request new feature"
 msgstr ""
 
-#: project.inc:339
+#: project.inc:363
 msgid "Support"
 msgstr ""
 
-#: project.inc:347
+#: project.inc:371
 msgid "View pending patches"
 msgstr ""
 
-#: project.inc:348
+#: project.inc:372
 msgid "View available tasks"
 msgstr ""
 
-#: project.inc:349
+#: project.inc:373
 msgid "View all pending issues"
 msgstr ""
 
-#: project.inc:353
+#: project.inc:377
 msgid "Browse the CVS repository"
 msgstr ""
 
-#: project.inc:357
+#: project.inc:381
 msgid "View CVS messages"
 msgstr ""
 
-#: project.inc:358 project.module:260
+#: project.inc:382 project.module:267
 msgid "Developers"
 msgstr ""
 
-#: project.inc:363
+#: project.inc:387
 msgid "Development"
 msgstr ""
 
-#: project.inc:472
+#: project.inc:496
 msgid "Developers for %name"
 msgstr ""
 
-#: project.inc:485
+#: project.inc:509
 msgid "CVS messages for %name"
 msgstr ""
 
 #: project.module:25
-msgid "<p>Properly categorizing your project will help ensure that users can find it easily. Please follow these steps:</p><ul><li>Select <em>one</em> of the first-level terms (%types) as the project type.</li><li>Then choose <em>one or more</em> categories below this term to classify your project. For example, for %type, you would choose from the various %type types: %categories, and so on.</li></ul>"
+msgid "<p>Properly categorizing your project will help ensure that users can find it easily.  Please follow these steps:</p>\n          <ul>\n            <li>Select <em>one</em> of the first-level terms (%types) as the project type.</li>\n            <li>Then choose <em>one or more</em> categories below this term to classify your project.  For example, for %type, you would choose from the various %type types: %categories, and so on.</li>\n          </ul>"
 msgstr ""
 
-#: project.module:34
-msgid "<p>The project module makes special use of the taxonomy (category) system. A special vocabulary, %vocabulary_name, has been created automatically.</p><p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary. The first level will be the basic project types, e.g., \"modules\", \"themes\", \"translations\".</p><p>Subterms of each of these types will be the categories that users can select to classify the projects. For example, \"modules\" might have sub-terms including \"mail\" and \"XML\".</p><p>Use the <a href=\"!taxonomy-admin\">vocabulary admin page</a> to view and add terms.</p>"
+#: project.module:38
+msgid "<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, %vocabulary_name, has been created automatically.</p>\n        <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., \"modules\", \"themes\", \"translations\".</p>\n        <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, \"modules\" might have sub-terms including \"mail\" and \"XML\".</p>\n        <p>Use the <a href=\"!taxonomy-admin\">vocabulary admin page</a> to view and add terms.</p>"
 msgstr ""
 
-#: project.module:45;49
+#: project.module:52;56
 msgid "Project navigation"
 msgstr ""
 
-#: project.module:58;292 project.info:0;0 release/project_release.info:0
+#: project.module:65;299 project.info:0;0 release/project_release.info:0
 msgid "Project"
 msgstr ""
 
-#: project.module:60
+#: project.module:67
 msgid "A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on."
 msgstr ""
 
-#: project.module:88
+#: project.module:95
 msgid "Default sort option"
 msgstr ""
 
-#: project.module:91
+#: project.module:98
 msgid "Default sorting option to use on the overview page"
 msgstr ""
 
-#: project.module:95
+#: project.module:102
 msgid "Enabled sorting options"
 msgstr ""
 
-#: project.module:96
+#: project.module:103
 msgid "Each type of project on your site will have its own project browsing page at %link. Each browsing page can be configured for different browsing options (by name, by date, etc). The settings below determine which browsing methods are available for each project type."
 msgstr ""
 
-#: project.module:109
+#: project.module:116
 msgid "Number of projects to list in paged browsing"
 msgstr ""
 
-#: project.module:112
+#: project.module:119
 msgid "The default maximum number of projects to list when browsing lists, e.g., by category."
 msgstr ""
 
-#: project.module:134;219;721
+#: project.module:141;226;749
 msgid "Projects"
 msgstr ""
 
-#: project.module:136
+#: project.module:143
 msgid "View all projects."
 msgstr ""
 
-#: project.module:154;625
+#: project.module:161;653
 msgid "Project types"
 msgstr ""
 
-#: project.module:225
+#: project.module:232
 msgid "Autocomplete project"
 msgstr ""
 
-#: project.module:248
+#: project.module:255
 msgid "Browse by !sort_method"
 msgstr ""
 
-#: project.module:263
+#: project.module:270
 msgid "CVS"
 msgstr ""
 
-#: project.module:268
+#: project.module:275
 msgid "Project administration"
 msgstr ""
 
-#: project.module:269
+#: project.module:276
 msgid "Administrative interface for project management and related modules."
 msgstr ""
 
-#: project.module:276
+#: project.module:283
 msgid "Project settings"
 msgstr ""
 
-#: project.module:277
+#: project.module:284
 msgid "Configure the behavior and appearance of the project browsing pages and other settings for the Project module."
 msgstr ""
 
-#: project.module:354
+#: project.module:377
 msgid "Automatically generated path alias: %url"
 msgstr ""
 
-#: project.module:608
+#: project.module:636
 msgid "Categories"
 msgstr ""
 
-#: project.module:612
+#: project.module:640
 msgid "@project_type: %category"
 msgstr ""
 
-#: project.module:674 release/project_release.module:1571
+#: project.module:702 release/project_release.module:1605
 msgid "Download"
 msgstr ""
 
-#: project.module:679 release/project_release.module:1503
+#: project.module:707 release/project_release.module:1531
 msgid "Version"
 msgstr ""
 
-#: project.module:683
+#: project.module:711
 msgid "Find out more"
 msgstr ""
 
-#: project.module:688
+#: project.module:716
 msgid "Bugs and feature requests"
 msgstr ""
 
-#: project.module:866
+#: project.module:894
 msgid "<select a project>"
 msgstr ""
 
-#: project.module:875 release/project_release.module:1082
-msgid "Filter"
+#: project.module:903
+msgid "Go"
 msgstr ""
 
-#: project.module:914
+#: project.module:942
 msgid "Last changed: !interval ago"
 msgstr ""
 
-#: project.module:67
+#: project.module:74
 msgid "administer projects"
 msgstr ""
 
-#: project.module:68
+#: project.module:75
 msgid "maintain projects"
 msgstr ""
 
-#: project.module:69
+#: project.module:76
 msgid "access projects"
 msgstr ""
 
-#: project.module:70
+#: project.module:77
 msgid "access own projects"
 msgstr ""
 
@@ -402,202 +402,214 @@ msgstr ""
 msgid "Provides a project node type and browsing of projects."
 msgstr ""
 
-#: release/package-release-nodes.php:170
-msgid "Starting to package all snapshot releases."
-msgstr ""
-
-#: release/package-release-nodes.php:173
-msgid "Starting to package snapshot releases for project id: @project_id."
-msgstr ""
-
-#: release/package-release-nodes.php:173;231;292;437;516;680
-msgid "view"
+#: release/package-release-nodes.php:172
+msgid "tags"
 msgstr ""
 
 #: release/package-release-nodes.php:177
+msgid "branches"
+msgstr ""
+
+#: release/package-release-nodes.php:179
+msgid "Starting to package all snapshot releases."
+msgstr ""
+
+#: release/package-release-nodes.php:182
+msgid "Starting to package snapshot releases for project id: @project_id."
+msgstr ""
+
+#: release/package-release-nodes.php:182;249;310;455;534;698
+msgid "view"
+msgstr ""
+
+#: release/package-release-nodes.php:186
 msgid "ERROR: package_releases() called with unknown type: %type"
 msgstr ""
 
-#: release/package-release-nodes.php:213
-msgid "Done packaging releases for %uri from %plural: !num_built built, !num_considered considered."
+#: release/package-release-nodes.php:225
+msgid "Done packaging releases for @uri from !plural: !num_built built, !num_considered considered."
 msgstr ""
 
-#: release/package-release-nodes.php:216
-msgid "Done packaging releases from %plural: !num_built built, !num_considered considered."
+#: release/package-release-nodes.php:228
+msgid "Done packaging releases from !plural: !num_built built, !num_considered considered."
 msgstr ""
 
-#: release/package-release-nodes.php:256;334
+#: release/package-release-nodes.php:274;352
 msgid "ERROR: Failed to update version in %file, aborting packaging"
 msgstr ""
 
-#: release/package-release-nodes.php:268;393
+#: release/package-release-nodes.php:286;411
 msgid "%id has changed, re-packaged."
 msgstr ""
 
-#: release/package-release-nodes.php:311
+#: release/package-release-nodes.php:329
 msgid "ERROR: %dir does not exist after cvs export %rev"
 msgstr ""
 
-#: release/package-release-nodes.php:376
+#: release/package-release-nodes.php:394
 msgid "ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging"
 msgstr ""
 
-#: release/package-release-nodes.php:445
+#: release/package-release-nodes.php:463
 msgid "WARNING: %file does not exist."
 msgstr ""
 
-#: release/package-release-nodes.php:473
+#: release/package-release-nodes.php:491
 msgid "All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash"
 msgstr ""
 
-#: release/package-release-nodes.php:476
+#: release/package-release-nodes.php:494
 msgid "File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)"
 msgstr ""
 
-#: release/package-release-nodes.php:479
+#: release/package-release-nodes.php:497
 msgid "File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash"
 msgstr ""
 
-#: release/package-release-nodes.php:486
+#: release/package-release-nodes.php:504
 msgid "ERROR: db_query() failed trying to update metadata for %file"
 msgstr ""
 
-#: release/package-release-nodes.php:502
+#: release/package-release-nodes.php:520
 msgid "ERROR: unable to repair !num_failed releases due to db_query() failures."
 msgstr ""
 
-#: release/package-release-nodes.php:505
+#: release/package-release-nodes.php:523
 msgid "ERROR: !num_not_exist files are in the database but do not exist on disk."
 msgstr ""
 
-#: release/package-release-nodes.php:508
+#: release/package-release-nodes.php:526
 msgid "Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
 msgstr ""
 
-#: release/package-release-nodes.php:512
+#: release/package-release-nodes.php:530
 msgid "Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
 msgstr ""
 
-#: release/package-release-nodes.php:516
+#: release/package-release-nodes.php:534
 msgid "Done checking releases for project id @project_id: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
 msgstr ""
 
-#: release/package-release-nodes.php:536
+#: release/package-release-nodes.php:554
 msgid "ERROR: %cmd failed with status !rval"
 msgstr ""
 
-#: release/package-release-nodes.php:549
+#: release/package-release-nodes.php:567
 msgid "ERROR: Can't chdir(@dir)"
 msgstr ""
 
-#: release/package-release-nodes.php:595
+#: release/package-release-nodes.php:613
 msgid "ERROR: tmp_root: @dir is not a directory"
 msgstr ""
 
-#: release/package-release-nodes.php:605
+#: release/package-release-nodes.php:623
 msgid "ERROR: mkdir(@dir) failed"
 msgstr ""
 
-#: release/package-release-nodes.php:645
+#: release/package-release-nodes.php:663
 msgid "ERROR: chmod(@file, 0644) failed"
 msgstr ""
 
-#: release/package-release-nodes.php:649
+#: release/package-release-nodes.php:667
 msgid "ERROR: fopen(@file, 'ab') failed"
 msgstr ""
 
-#: release/package-release-nodes.php:653 release/project-release-history.php:255
+#: release/package-release-nodes.php:671 release/project-release-create-history.php:257
 msgid "ERROR: fwrite(@file) failed"
 msgstr ""
 
-#: release/package-release-nodes.php:680
+#: release/package-release-nodes.php:698
 msgid "Not auto-publishing security update release."
 msgstr ""
 
-#: release/package-release-nodes.php:557
+#: release/package-release-nodes.php:575
 msgid "package_debug"
 msgstr ""
 
-#: release/package-release-nodes.php:573
+#: release/package-release-nodes.php:591
 msgid "package_error"
 msgstr ""
 
-#: release/package-release-nodes.php:581
+#: release/package-release-nodes.php:599
 msgid "package_check"
 msgstr ""
 
-#: release/package-release-nodes.php:680
+#: release/package-release-nodes.php:698
 msgid "package_security"
 msgstr ""
 
-#: release/project-release-history.php:77
+#: release/project-release-create-history.php:77
 msgid "ERROR: History directory (%directory) does not exist, aborting.\n"
 msgstr ""
 
-#: release/project-release-history.php:94
+#: release/project-release-create-history.php:94
 msgid "Generating XML release history files for all projects."
 msgstr ""
 
-#: release/project-release-history.php:102
+#: release/project-release-create-history.php:102
 msgid "Completed XML release history files for @num_projects."
 msgstr ""
 
-#: release/project-release-history.php:125
+#: release/project-release-create-history.php:125
 msgid "API compatibility term %tid not found."
 msgstr ""
 
-#: release/project-release-history.php:134
+#: release/project-release-create-history.php:134
 msgid "Project ID %pid not found"
 msgstr ""
 
-#: release/project-release-history.php:139
+#: release/project-release-create-history.php:139
 msgid "No release found for project %project_name compatible with %api_version."
 msgstr ""
 
-#: release/project-release-history.php:241
+#: release/project-release-create-history.php:243
 msgid "ERROR: mkdir(@dir) failed, can't write history for %project."
 msgstr ""
 
-#: release/project-release-history.php:246
+#: release/project-release-create-history.php:248
 msgid "ERROR: unlink(@file) failed, can't write history for %project."
 msgstr ""
 
-#: release/project-release-history.php:251
+#: release/project-release-create-history.php:253
 msgid "ERROR: fopen(@file, 'xb') failed"
 msgstr ""
 
-#: release/project-release-history.php:263
+#: release/project-release-create-history.php:265
 msgid "ERROR: rename(@old, @new) failed, can't write history for %project."
 msgstr ""
 
-#: release/project-release-history.php:278
+#: release/project-release-create-history.php:280
 msgid "release_history"
 msgstr ""
 
-#: release/project-release-history.php:285
-msgid "release_hist_error"
+#: release/project-release-create-history.php:287
+msgid "release_hist_err"
 msgstr ""
 
-#: release/project-release-history.php:102
+#: release/project-release-create-history.php:102
 msgid "1 project/version pair"
 msgid_plural "@count project/version pairs"
 msgstr[0] ""
 msgstr[1] ""
 
+#: release/project_release_update.php:44
+msgid "The {project_release_projects} table is already full"
+msgstr ""
+
 #: release/project_release_update.php:85
-msgid "Added %num records to the {project_release_projects} table in %ms ms<br />"
+msgid "Added %num records to the {project_release_projects} table in %ms ms"
 msgstr ""
 
 #: release/project_release_update.php:122
-msgid "Considered %num_considered releases, converted %num_converted into nodes in %interval<br />"
+msgid "Considered %num_considered releases, converted %num_converted into nodes in %interval"
 msgstr ""
 
 #: release/project_release_update.php:194
-msgid "<b>ERROR:</b> release %old_release_rid of %old_release_project_title has malformed version (%old_release_version)<br />"
+msgid "<b>ERROR:</b> release %old_release_rid of %old_release_project_title has malformed version (%old_release_version)"
 msgstr ""
 
 #: release/project_release_update.php:208
-msgid "<b>WARNING:</b> release %old_release_rid of %old_release_project_title has unexpected patch-level version (%matches)<br />"
+msgid "<b>WARNING:</b> release %old_release_rid of %old_release_project_title has unexpected patch-level version (%matches)"
 msgstr ""
 
 #: release/project_release_update.php:235
@@ -616,7 +628,7 @@ msgstr ""
 msgid "ERROR: problem during conversion of %num issue followups"
 msgstr ""
 
-#: release/project_release_update.php:444
+#: release/project_release_update.php:442
 msgid "ERROR: project_release_update.php requires that you first install the project_release.module"
 msgstr ""
 
@@ -660,7 +672,7 @@ msgstr ""
 msgid "The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."
 msgstr ""
 
-#: release/project_release.module:27;42;949;1464
+#: release/project_release.module:27;42;486;959;1476
 msgid "Releases"
 msgstr ""
 
@@ -740,7 +752,7 @@ msgstr ""
 msgid "Terms from the %vocab vocabulary that should be visibile to end users and project maintainers."
 msgstr ""
 
-#: release/project_release.module:330;1053
+#: release/project_release.module:330;1063
 msgid "all"
 msgstr ""
 
@@ -812,259 +824,267 @@ msgstr ""
 msgid "You can only add releases from a project page."
 msgstr ""
 
-#: release/project_release.module:460
+#: release/project_release.module:461
 msgid "Node !nid is not a valid project."
 msgstr ""
 
-#: release/project_release.module:493
+#: release/project_release.module:498
 msgid "Release identification"
 msgstr ""
 
-#: release/project_release.module:500
+#: release/project_release.module:505
 msgid "Title"
 msgstr ""
 
-#: release/project_release.module:501
+#: release/project_release.module:506
 msgid "Version string"
 msgstr ""
 
-#: release/project_release.module:509
+#: release/project_release.module:514
 msgid "Version number elements"
 msgstr ""
 
-#: release/project_release.module:517
+#: release/project_release.module:522
 msgid "Major"
 msgstr ""
 
-#: release/project_release.module:519
+#: release/project_release.module:524
 msgid "Minor"
 msgstr ""
 
-#: release/project_release.module:521
+#: release/project_release.module:526
 msgid "Patch-level"
 msgstr ""
 
-#: release/project_release.module:523
+#: release/project_release.module:528
 msgid "Extra identifier"
 msgstr ""
 
-#: release/project_release.module:523
+#: release/project_release.module:528
 msgid "Optionally specify other identifying information for this version, for example \"beta-1\", \"rc-1\" or \"dev\". In most cases, this should be left blank."
 msgstr ""
 
-#: release/project_release.module:527
+#: release/project_release.module:532
 msgid "File information"
 msgstr ""
 
-#: release/project_release.module:532
+#: release/project_release.module:537
 msgid "File"
 msgstr ""
 
-#: release/project_release.module:534
+#: release/project_release.module:539
 msgid "Choose the file that will be associated with this release."
 msgstr ""
 
-#: release/project_release.module:540
+#: release/project_release.module:545
 msgid "Description"
 msgstr ""
 
-#: release/project_release.module:544
+#: release/project_release.module:549
 msgid "Body"
 msgstr ""
 
-#: release/project_release.module:550
+#: release/project_release.module:555
 msgid "Enter a description of this release, such as a list of the major changes or updates."
 msgstr ""
 
-#: release/project_release.module:554
+#: release/project_release.module:559
 msgid "Tag"
 msgstr ""
 
-#: release/project_release.module:559
+#: release/project_release.module:564
 msgid "File path"
 msgstr ""
 
-#: release/project_release.module:560
+#: release/project_release.module:565
 msgid "File md5 hash"
 msgstr ""
 
-#: release/project_release.module:561
+#: release/project_release.module:566
 msgid "File date"
 msgstr ""
 
-#: release/project_release.module:666
+#: release/project_release.module:671
 msgid "You must fill in some version information."
 msgstr ""
 
-#: release/project_release.module:672
+#: release/project_release.module:677
 msgid "!name must be a number."
 msgstr ""
 
-#: release/project_release.module:677
-msgid "Patch-level version number must be numeric or the char 'x'."
+#: release/project_release.module:682
+msgid "Patch-level version number must be numeric or the letter 'x'."
 msgstr ""
 
-#: release/project_release.module:690
+#: release/project_release.module:695
 msgid "There was a problem uploading the specified file."
 msgstr ""
 
-#: release/project_release.module:710
+#: release/project_release.module:715
 msgid "This version already exists for this project."
 msgstr ""
 
-#: release/project_release.module:954
-msgid "Nightly development snapshot from !tag"
+#: release/project_release.module:964
+msgid "Nightly development snapshot from @tag"
 msgstr ""
 
-#: release/project_release.module:957
+#: release/project_release.module:967
 msgid "Download: !file"
 msgstr ""
 
-#: release/project_release.module:958
+#: release/project_release.module:968
 msgid "Size: !size"
 msgstr ""
 
-#: release/project_release.module:959
+#: release/project_release.module:969
 msgid "md5_file hash: !file_hash"
 msgstr ""
 
-#: release/project_release.module:962
+#: release/project_release.module:972
 msgid "First released: !created"
 msgstr ""
 
-#: release/project_release.module:965
+#: release/project_release.module:975
 msgid "Last updated: !changed"
 msgstr ""
 
-#: release/project_release.module:987
+#: release/project_release.module:997
 msgid "Releases for %project"
 msgstr ""
 
-#: release/project_release.module:1039
+#: release/project_release.module:1049
 msgid "There are no published releases for this project. Recently added releases will not be published until the packaging scripts have run."
 msgstr ""
 
-#: release/project_release.module:1096
+#: release/project_release.module:1092
+msgid "Filter"
+msgstr ""
+
+#: release/project_release.module:1106
 msgid "register"
 msgstr ""
 
-#: release/project_release.module:1098
+#: release/project_release.module:1108
 msgid "Login"
 msgstr ""
 
-#: release/project_release.module:1098
+#: release/project_release.module:1108
 msgid "to modify the filter."
 msgstr ""
 
-#: release/project_release.module:1115
+#: release/project_release.module:1125
 msgid "You must login or register to modify the @vocab filter."
 msgstr ""
 
-#: release/project_release.module:1125;1253
+#: release/project_release.module:1135;1262
 msgid "version"
 msgstr ""
 
-#: release/project_release.module:1127
+#: release/project_release.module:1137
 msgid "Filter by !label:"
 msgstr ""
 
-#: release/project_release.module:1155
+#: release/project_release.module:1165
 msgid "This string is also used to generate the name of releases associated with this project."
 msgstr ""
 
-#: release/project_release.module:1171
+#: release/project_release.module:1181
 msgid "Advanced options"
 msgstr ""
 
-#: release/project_release.module:1179
+#: release/project_release.module:1189
 msgid "Enable releases"
 msgstr ""
 
-#: release/project_release.module:1183
+#: release/project_release.module:1193
 msgid "Allow releases of this project with specific versions."
 msgstr ""
 
-#: release/project_release.module:1214;1283
+#: release/project_release.module:1224;1292
 msgid "Major version"
 msgstr ""
 
-#: release/project_release.module:1244
+#: release/project_release.module:1254
 msgid "Version format string"
 msgstr ""
 
-#: release/project_release.module:1248
+#: release/project_release.module:1258
 msgid "Customize the format of the version strings for releases of this project."
 msgstr ""
 
-#: release/project_release.module:1248
+#: release/project_release.module:1258
 msgid "If blank, this project will use the site-wide default (currently set to: %default)"
 msgstr ""
 
-#: release/project_release.module:1256
+#: release/project_release.module:1265
 msgid "Display snapshot releases on project page"
 msgstr ""
 
-#: release/project_release.module:1259
+#: release/project_release.module:1268
 msgid "Note: Even if the current default release for a given !vocabulary_name is a development snapshot, it will only be show if this checkbox is enabled."
 msgstr ""
 
-#: release/project_release.module:1266
+#: release/project_release.module:1275
 msgid "Submit"
 msgstr ""
 
-#: release/project_release.module:1284
+#: release/project_release.module:1293
 msgid "Current default release"
 msgstr ""
 
-#: release/project_release.module:1296
+#: release/project_release.module:1305
 msgid "Default versions"
 msgstr ""
 
-#: release/project_release.module:1298
+#: release/project_release.module:1307
 msgid "This table allows you to specify the default version to download for any given %vocabulary_name. If there are releases from more than one major version number, you can select which major version should be used. For each %vocabulary_name, the current default release based on the saved major version is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release is used."
 msgstr ""
 
-#: release/project_release.module:1339
+#: release/project_release.module:1352
 msgid "Release settings have been saved."
 msgstr ""
 
-#: release/project_release.module:1465
+#: release/project_release.module:1477
 msgid "Official releases"
 msgstr ""
 
-#: release/project_release.module:1467
+#: release/project_release.module:1479
 msgid "Development snapshots"
 msgstr ""
 
-#: release/project_release.module:1470
+#: release/project_release.module:1482
 msgid "View all releases"
 msgstr ""
 
-#: release/project_release.module:1472
+#: release/project_release.module:1484
 msgid "Add new release"
 msgstr ""
 
-#: release/project_release.module:1573
+#: release/project_release.module:1608
 msgid "Release notes"
 msgstr ""
 
-#: release/project_release.module:1578
+#: release/project_release.module:1613
 msgid "Edit"
 msgstr ""
 
-#: release/project_release.module:1618
+#: release/project_release.module:1638
+msgid "n/a"
+msgstr ""
+
+#: release/project_release.module:1653
 msgid "Date"
 msgstr ""
 
-#: release/project_release.module:1624
+#: release/project_release.module:1659
 msgid "Size"
 msgstr ""
 
-#: release/project_release.module:1629
+#: release/project_release.module:1664
 msgid "Links"
 msgstr ""
 
-#: release/project_release.module:1681
+#: release/project_release.module:1718
 msgid "Project release API compatibility"
 msgstr ""
 
