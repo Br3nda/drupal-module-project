@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.19 2007/08/01 20:53:13 dww Exp $
+// $Id: package-release-nodes.php,v 1.20 2007/08/02 17:53:22 dww Exp $
 // $Name:  $
 
 /**
@@ -336,7 +336,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   }
 
   if ($contrib_type == 'translations') {
-    $exclude = array_merge($exclude, 'README.txt');
+    $exclude[] = 'README.txt';
   }
   $info_files = array();
   $youngest = file_find_youngest($uri, 0, $exclude, $info_files);
