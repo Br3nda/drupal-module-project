@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.284 2007/08/02 14:55:47 dww Exp $
+// $Id: project.module,v 1.285 2007/08/03 09:58:47 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -450,7 +450,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
             else {
               $placeholders = array();
               $active_tids = project_release_compatibility_list();
-              foreach ($active_tids as $tid => $term) {
+              foreach ($active_tids as $tid => $api_term) {
                 $placeholders[] = '%d';
                 $version_params[] = $tid;
               }
