@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.41 2007/08/03 20:20:39 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.42 2007/08/03 23:11:22 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -130,18 +130,6 @@ function project_settings() {
   // If the project_sort_method setting has changed, the menu will need to be rebuilt.
   menu_rebuild();
   return $form;
-}
-
-function project_link($type, $node = 0, $main = 0) {
-  $links = array();
-  switch ($type) {
-    case 'page':
-      if (user_access('access projects')) {
-        $links[] = l(t('projects'), 'project', array('title' => t('View all projects.')));
-      }
-      break;
-  }
-  return $links;
 }
 
 /**
