@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.36 2007/08/01 20:53:13 dww Exp $
+// $Id: project_release.module,v 1.37 2007/08/03 23:02:05 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1539,12 +1539,14 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   $tids = project_release_compatibility_list();
   if ($tids) {
     unset($tids[-1]); // get rid of that one.
-    $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in (' 
-      . implode(',', array_keys($tids)) .') ' 
-      .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
-    $selects[] = 'tn.tid';
-    $orderby[] = 'td.weight';
-    $orderby[] = 'td.name';
+    if (!empty($tids)) {
+      $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in (' 
+        . implode(',', array_keys($tids)) .') ' 
+        .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
+      $selects[] = 'tn.tid';
+      $orderby[] = 'td.weight';
+      $orderby[] = 'td.name';
+    }
   }
 
   if ($table_type == 'defaults') {
