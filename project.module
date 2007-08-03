@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.25 2007/08/03 19:48:19 dww Exp $
+// $Id: project.module,v 1.239.2.26 2007/08/03 20:20:52 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -17,28 +17,6 @@ function project_help($section) {
       return t('Provides a project node type and manages downloads of project releases.');
     case 'node/add#project_project':
       return t('A project is anything that has releases which can be downloaded');
-    case 'node/add/project_project':
-      if (project_use_taxonomy()) {
-        $tree = taxonomy_get_tree(_project_get_vid());
-        // Extract the different project types, and, for the first type, up to three categories.
-        foreach ($tree as $index => $term) {
-          if ($term->depth == 0) {
-            $types[] = $term->name;
-          }
-          elseif (($term->depth == 1) && ($index == 1) && (count($categories)< 3)) {
-            $categories[] = $term->name;
-          }
-        }
-        if (count($categories)) {
-          $help = t('<p>Properly categorizing your project will help ensure that users can find it easily.  Please follow these steps:</p>
-          <ul>
-            <li>Select <em>one</em> of the first-level terms (%types) as the project type.</li>
-            <li>Then choose <em>one or more</em> categories below this term to classify your project.  For example, for %type, you would choose from the various %type types: %categories, and so on.</li>
-          </ul>', array('%types' => implode (', ', $types), '%type' => $types[0], '%categories' => implode (', ', $categories)));
-        }
-      }
-      $help .= variable_get('project_help_node_add', '');
-      return $help;
     case 'admin/settings/project':
       if (project_use_taxonomy()) {
          return _project_taxonomy_help();
