@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.286 2007/08/03 19:48:09 dww Exp $
+// $Id: project.module,v 1.287 2007/08/03 20:20:19 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -9,28 +9,6 @@ if (file_exists("$path/project.inc")) {
 
 function project_help($section) {
   switch ($section) {
-    case 'node/add/project-project':
-      if (project_use_taxonomy()) {
-        $tree = taxonomy_get_tree(_project_get_vid());
-        // Extract the different project types, and, for the first type, up to three categories.
-        foreach ($tree as $index => $term) {
-          if ($term->depth == 0) {
-            $types[] = $term->name;
-          }
-          elseif (($term->depth == 1) && ($index == 1) && (count($categories)< 3)) {
-            $categories[] = $term->name;
-          }
-        }
-        if (count($categories)) {
-          $help = t('<p>Properly categorizing your project will help ensure that users can find it easily.  Please follow these steps:</p>
-          <ul>
-            <li>Select <em>one</em> of the first-level terms (%types) as the project type.</li>
-            <li>Then choose <em>one or more</em> categories below this term to classify your project.  For example, for %type, you would choose from the various %type types: %categories, and so on.</li>
-          </ul>', array('%types' => implode (', ', $types), '%type' => $types[0], '%categories' => implode (', ', $categories)));
-        }
-      }
-      $help .= variable_get('project_help_node_add', '');
-      return $help;
     case 'admin/project/project-settings':
       if (project_use_taxonomy()) {
         return _project_taxonomy_help();
