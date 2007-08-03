@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.285 2007/08/03 09:58:47 dww Exp $
+// $Id: project.module,v 1.286 2007/08/03 19:48:09 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -33,15 +33,38 @@ function project_help($section) {
       return $help;
     case 'admin/project/project-settings':
       if (project_use_taxonomy()) {
-        $vid = _project_get_vid();
-        $vocabulary = taxonomy_get_vocabulary($vid);
-        return t('<p>The project module makes special use of the taxonomy (category) system.  A special vocabulary, %vocabulary_name, has been created automatically.</p>
-        <p>To take full advantage of project categorization, add at least two levels of terms to this vocabulary.  The first level will be the basic project types, e.g., "modules", "themes", "translations".</p>
-        <p>Subterms of each of these types will be the categories that users can select to classify the projects.  For example, "modules" might have sub-terms including "mail" and "XML".</p>
-        <p>Use the <a href="!taxonomy-admin">vocabulary admin page</a> to view and add terms.</p>', array('!taxonomy-admin' => url('admin/content/taxonomy/' . $vid), '%vocabulary_name' => $vocabulary->name));
+        return _project_taxonomy_help();
       }
       break;
   }
+  if (arg(0) == 'admin' && arg(1) == 'content' && arg(2) == 'taxonomy') {
+    $vid = _project_get_vid();
+    if (arg(3) == $vid) {
+      return _project_taxonomy_help($vid, FALSE);
+    }
+  }
+}
+
+/**
+ * Prints out a help message about how to configure the project vocabulary.
+ *
+ * @param $vid
+ *   Vocabulary ID of the project taxonomy.
+ * @param $vocab_link
+ *   Boolean that controls if a link to the vocabulary admin page is added.
+ */
+function _project_taxonomy_help($vid = 0, $vocab_link = TRUE) {
+  if (!$vid) {
+    $vid = _project_get_vid();
+  }
+  $vocabulary = taxonomy_get_vocabulary($vid);
+  $text = '<p>'. t('The project module makes special use of the taxonomy (category) system. A special vocabulary, %vocabulary_name, has been created automatically.', array('%vocabulary_name' => $vocabulary->name)) .'</p>';
+  $text .= '<p>'. t('To take full advantage of project categorization, add at least two levels of terms to this vocabulary. The first level will be the basic project types, e.g., "Modules", "Themes", "Translations".') .'</p>';
+  $text .= '<p>'. t('Subterms of each of these types will be the categories that users can select to classify the projects. For example, "Modules" might have sub-terms including "Mail" and "XML".') .'</p>';
+  if ($vocab_link) {
+    $text .= '<p>'. t('Use the <a href="@taxonomy-admin">vocabulary admininistration page</a> to view and add terms.', array('@taxonomy-admin' => url('admin/content/taxonomy/'. $vid))) .'</p>';
+  }
+  return $text;
 }
 
 /**
