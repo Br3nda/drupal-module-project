@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.37 2007/08/03 23:02:05 dww Exp $
+// $Id: project_release.module,v 1.38 2007/08/05 06:25:46 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1265,7 +1265,7 @@ function project_release_project_edit_form($node) {
       '#title' => t('Display snapshot releases on project page'),
       '#return_value' => 1,
       '#default_value' => isset($node->snapshot_table) ? $node->snapshot_table : 1,
-      '#description' => t('Note: Even if the current default release for a given !vocabulary_name is a development snapshot, it will only be show if this checkbox is enabled.', array('!vocabulary_name' => $vocab)),
+      '#description' => t('Note: Even if the current default release for a given !vocabulary_name is a development snapshot, it will only be shown if this checkbox is enabled.', array('!vocabulary_name' => $vocab)),
     );
   }
 
