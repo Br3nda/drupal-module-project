@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.38 2007/08/05 06:25:46 dww Exp $
+// $Id: project_release.module,v 1.39 2007/08/06 05:30:01 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1805,5 +1805,29 @@ function theme_project_release_download_link($file_path, $link_text = NULL, $as_
   }
   else {
     return l($link_text, $link_path);
+  }
+}
+
+/**
+ * Implementation of hook_file_download().
+ *
+ * @param $filepath
+ *   The name of the file to download.
+ * @return
+ *   An array of header fields for the download.
+ */
+function project_release_file_download($filename) {
+  $filepath = file_create_path($filename);
+  $result = db_query("SELECT f.nid FROM {project_release_nodes} f WHERE file_path = '%s'", $filepath);
+  if ($nid = db_result($result)) {
+    $node = node_load($nid);
+    if (node_access('view', $node)) {
+      return array(
+        'Content-Type: application/octet-stream',
+        'Content-Length: '. filesize($filepath),
+        'Content-Disposition: attachment; filename='. mime_header_encode($filename),
+      );
+    }
+    return -1;
   }
 }
