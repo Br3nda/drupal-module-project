@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.288 2007/08/03 23:11:06 dww Exp $
+// $Id: project.module,v 1.289 2007/08/06 19:14:31 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -442,7 +442,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
               $version_where = 'tr.tid IN ('. implode(',', $placeholders) .')';
             }
             // Find all terms associated with the requested version.
-            $result = db_query("SELECT tp.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} tp INNER JOIN {project_release_nodes} p ON tp.nid = p.pid INNER JOIN {node} n ON n.nid = p.pid INNER JOIN {term_node} tr ON tr.nid = p.nid WHERE $version_where AND (p.file_path <> '') AND (n.status = 1) GROUP BY tp.tid", $version_params);
+            $result = db_query("SELECT tp.tid, COUNT(DISTINCT(n.nid)) AS count FROM {term_node} tp INNER JOIN {project_release_nodes} p ON tp.nid = p.pid INNER JOIN {node} n ON n.nid = p.pid INNER JOIN {term_node} tr ON tr.nid = p.nid WHERE $version_where AND (n.status = 1) GROUP BY tp.tid", $version_params);
             $tids = array();
             while ($item = db_fetch_object($result)) {
               $tids[$item->tid] = $item->count;
@@ -551,7 +551,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       if (variable_get('project_release_browse_versions', 0)) {
         $release_settings = array(
           'fields' => array('prn.file_path', 'prn.version', 'MAX(prn.file_date) AS changed', 'COUNT(*) AS release_count'),
-          'wheres' => array("prn.file_path <> ''"),
           'group_bys' => array('n.nid'),
         );
         $release_settings['joins'] = array(
