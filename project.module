@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.26 2007/08/03 20:20:52 dww Exp $
+// $Id: project.module,v 1.239.2.27 2007/08/06 04:50:41 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -183,18 +183,6 @@ function project_cron() {
     variable_set('project_release_directory_last', time());
     project_release_cron();
   }
-}
-
-function project_link($type, $node = 0, $main = 0) {
-  $links = array();
-  switch ($type) {
-    case 'page':
-      if (user_access('access projects')) {
-        $links[] = l(t('projects'), 'project', array('title' => t('View all projects.')));
-      }
-      break;
-  }
-  return $links;
 }
 
 /**
