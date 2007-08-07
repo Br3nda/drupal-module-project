@@ -8,14 +8,17 @@ the project_issue module (http://drupal.org/project/project_issue),
 and can be integrated with a CVS repository by enabling the CVS
 integration module (http://drupal.org/project/cvslog).
 
-Send feature requests and bug reports to the issue tracking system for
-the project module: http://drupal.org/node/add/project_issue/project.
-
 For installation instructions, see INSTALL.txt.
 
-The project family of modules is currently being co-maintained by:
-Derek Wright (http://drupal.org/user/46549) a.k.a. "dww".
-Chad Phillips (http://drupal.org/user/22079) a.k.a. "hunmonk".
+For instructions when upgrading to newer versions, see UPGRADE.txt.
 
-$Id: README.txt,v 1.4.2.6 2007/08/07 19:03:28 dww Exp $
+Send feature requests and bug reports to the issue tracking system for
+the project module: http://drupal.org/node/add/project_issue/project.
+A TODO list can be found at http://groups.drupal.org/node/5489
+
+The project family of modules is currently being co-maintained by:
+- Derek Wright (http://drupal.org/user/46549) a.k.a. "dww"
+- Chad Phillips (http://drupal.org/user/22079) a.k.a. "hunmonk"
+
+$Id: README.txt,v 1.4.2.7 2007/08/07 20:05:59 dww Exp $
 $Name:  $
