@@ -5,26 +5,18 @@ releases.
 
 Project nodes can have issue tracking associated with them by enabling
 the project_issue module (http://drupal.org/project/project_issue),
-and can be integrated with a CVS repository by enabling the cvslog
-module (http://drupal.org/project/cvslog).
+and can be integrated with a CVS repository by enabling the CVS
+integration module (http://drupal.org/project/cvslog).
 
 Send feature requests and bug reports to the issue tracking system for
 the project module: http://drupal.org/node/add/project_issue/project.
 
-The project module is currently being maintained by:
-Derek Wright <drupal-project@dwwright.net> 
+For installation instructions, see INSTALL.txt.
+For instructions when upgrading to newer versions, see UPGRADE.txt
 
+The project family of modules is currently being co-maintained by:
+Derek Wright (http://drupal.org/user/46549) a.k.a. "dww".
+Chad Phillips (http://drupal.org/user/22079) a.k.a. "hunmonk".
 
-Wish list
---------
+$Id: README.txt,v 1.4.2.3.2.2 2007/08/07 19:00:40 dww Exp $
 
-General
- - Improve themeability of project listings.
- - RSS feeds for projects, new releases, etc.
- - Integration with the Organic Groups module.
-
-Projects
- - Integrate image module galleries for screenshots.
-
-$Id: README.txt,v 1.4.2.3.2.1 2006/11/12 13:52:35 dww Exp $
-$Name:  $
