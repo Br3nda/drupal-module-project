@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.5 2007/08/07 20:21:33 dww Exp $
+// $Id: project-release-serve-history.php,v 1.6 2007/08/07 21:43:12 dww Exp $
 
 /**
  * @file
@@ -64,9 +64,9 @@ $full_path = $project_dir .'/'. $filename;
 
 if (!is_file($full_path)) {
   if (!is_dir($project_dir)) {
-    error(strtr('No release history was found for the requested project (@project).', array('@project' => check_plain($project_name))));
+    error(strtr('No release history was found for the requested project (@project).', array('@project' => _check_plain($project_name))));
   }
-  error(strtr('No release history available for @project @version.', array('@project' => check_plain($project_name), '@version' => check_plain($api_version))));
+  error(strtr('No release history available for @project @version.', array('@project' => _check_plain($project_name), '@version' => _check_plain($api_version))));
   exit(1);
 }
 
@@ -86,7 +86,7 @@ echo file_get_contents($full_path);
 
 
 // Record usage statistics.
-if (isset($_GET['sitekey'])) {
+if (isset($_GET['site_key'])) {
   if (!chdir(DRUPAL_ROOT)) {
     exit(1);
   }
@@ -96,7 +96,7 @@ if (isset($_GET['sitekey'])) {
   // We can't call module_exists without bootstrapping to a higher level so 
   // we'll settle for checking that the table exists.
   if (db_table_exists('project_usage_raw')) {
-    $site_key = $_GET['sitekey'];
+    $site_key = $_GET['site_key'];
     $project_version = isset($_GET['version']) ? $_GET['version'] : '';
 
     // Compute a timestamp for the begining of the day.
@@ -116,7 +116,7 @@ if (isset($_GET['sitekey'])) {
 /**
  * Copy of core's check_plain() function.
  */
-function check_plain($text) {
+function _check_plain($text) {
   return htmlspecialchars($text, ENT_QUOTES);
 }
 
