@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.9 2007/08/07 16:51:34 dww Exp $
+// $Id: project_release.install,v 1.10 2007/08/07 17:19:53 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -205,6 +205,14 @@ function project_release_update_5000() {
  * now handled by project-release-serve-history.php instead.
  */
 function project_release_update_5001() {
-  variable_del('project_release_history_xml');
-  variable_del('project_release_history_directory');
+  $ret = array();
+  $variables = array(
+    'project_release_history_xml',
+    'project_release_history_directory',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+    $ret[] = array('success' => TRUE, 'query' => "variable_del($variable)");
+  }
+  return $ret;
 }
