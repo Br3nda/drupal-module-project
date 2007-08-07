@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.39 2007/08/06 05:30:01 dww Exp $
+// $Id: project_release.module,v 1.40 2007/08/07 16:51:34 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -46,29 +46,6 @@ function project_release_menu($may_cache) {
         }
       }
     }
-    if (variable_get('project_release_history_xml', true)) {
-      $path = '';
-      if (arg(0) == 'release-history') {
-        $project = arg(1);
-        $api = arg(2);
-        $path = 'release-history';
-      }
-      elseif (arg(0) == 'project' && arg(1) == 'release-history') {
-        $project = arg(2);
-        $api = arg(3);
-        $path = 'project/release-history';
-      }
-      if (!empty($path)) {
-        $items[] = array(
-          'path' => $path,
-          'title' => t('Project release history'),
-          'access' => user_access('access content'),
-          'type' => MENU_CALLBACK,
-          'callback' => 'project_release_history_xml',
-          'callback arguments' => array($project, $api),
-        );
-      }
-    }
     drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
     project_release_get_api_taxonomy();
   }
@@ -85,63 +62,6 @@ function project_release_menu($may_cache) {
     );
   }
   return $items;
-}
-
-/**
- * Menu callback for serving a .xml release history file for a given
- * project name and API compatiblity version.  This callback will
- * _always_ return XML, any errors are reported in an <error> tag.
- */
-function project_release_history_xml($project_name, $api_version) {
-  // First, setup the headers so that we just return XML, not a
-  // regular Drupal page.
-  drupal_set_header('Content-Type: text/xml; charset=utf-8');
-  print "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-
-  // Make sure we have the data we need.
-  if (!isset($project_name)) {
-    print '<error>'. t('You must specify a project name to display the release history of.') .'</error>';
-    return;
-  }
-  if (!isset($api_version)) {
-    print '<error>'. t('You must specify an API compatibility version as the final argument to the path.') .'</error>';
-    return;
-  }
-
-  // Sanitize the user-supplied input for use in filenames.
-  $whitelist_regexp = '@[^a-zA-Z0-9_.-]@';
-  $safe_project_name = preg_replace($whitelist_regexp, '#', $project_name);
-  $safe_api_vers = preg_replace($whitelist_regexp, '#', $api_version);
-
-  // Ensure the API compatibility version term we got is known.
-  $api_tid = '';
-  $api_terms = project_release_compatibility_list();
-  foreach ($api_terms as $tid => $term) {
-    if ($api_version == $term) {
-      $api_tid = $tid;
-      break;
-    }
-  }
-  if (empty($api_tid)) {
-    print '<error>'. t('Can not find the requested API compatibility term: @term.', array('@term' => $api_version)) .'</error>';
-    return;
-  }
-  
-  // Figure out the filename for the release history we want to serve.
-  $project_dir = file_create_path(variable_get('project_release_history_directory', 'release-history')) .'/'. $safe_project_name;
-  if (!is_dir($project_dir)) {
-    print '<error>'. t('No release history was found for the requested project (@project): the project directory (@directory) was not found.', array('@project' => $project_name, '@directory' => $project_dir)) .'</error>';
-    return;
-  }
-  $filename = $safe_project_name .'-'. $safe_api_vers .'.xml';
-  $full_path = $project_dir .'/'. $filename;
-
-  if (!is_file($full_path)) {
-    print '<error>'. t('No release history available for @project @version.', array('@project' => $project_name, '@version' => $api_version)) .'</error>';
-    return;
-  }
-
-  print file_get_contents($full_path);
 }
 
 /**
@@ -350,19 +270,6 @@ function project_release_settings_form() {
     '#size' => 50,
     '#maxlength' => 255,
     '#description' => t('By default, all download links to releases will use the standard download path for the site. However, if you wish to host the downloads at a different location, you can specify the base of the URL that should be used for download links. For example, if you stored releases in %files_path and you want to have download links pointing to %ftp_url, you would set this to %ftp_setting. Note that if you define this, the value should end with a slash (\'/\').', array('%files_path' => 'files/projects/foo.tar.gz', '%ftp_url' => 'ftp://ftp.example.com/files/projects/foo.tar.gz', '%ftp_setting' => 'ftp://ftp.example.com/')),
-  );
-  $form['project_release_history_xml'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Provide release history via XML'),
-    '#default_value' => variable_get('project_release_history_xml', 1),
-    '#description' => t('Checking this box will provide XML files of the full release history for each project at @path.', array('@path' => 'project/release-history/[project_shortname]/[API_compatibility_version]')),
-  );
-  $form['project_release_history_directory'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Directory for XML release history'),
-    '#default_value' => variable_get('project_release_history_directory', 'release-history'),
-    '#size' => 50,
-    '#description' => t("Subdirectory in the '%dir' directory where XML release history files will be stored.", array('%dir' => variable_get('file_directory_path', 'files'))),
   );
   return system_settings_form($form);
 }

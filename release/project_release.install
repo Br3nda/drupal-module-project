@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.8 2007/08/01 20:53:13 dww Exp $
+// $Id: project_release.install,v 1.9 2007/08/07 16:51:34 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -198,4 +198,13 @@ function project_release_update_5000() {
       break;
   }
   return $ret;
+}
+
+/**
+ * Remove variables from dead code for serving XML history files, which is 
+ * now handled by project-release-serve-history.php instead.
+ */
+function project_release_update_5001() {
+  variable_del('project_release_history_xml');
+  variable_del('project_release_history_directory');
 }
