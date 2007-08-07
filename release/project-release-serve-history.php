@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.4 2007/07/26 22:28:33 dww Exp $
+// $Id: project-release-serve-history.php,v 1.5 2007/08/07 20:21:33 dww Exp $
 
 /**
  * @file
@@ -22,6 +22,12 @@
  * Required configuration: directory tree for the XML history files.
  */
 define('HISTORY_ROOT', '');
+
+/**
+ * Required configuration: location of your Drupal installation for
+ * bootstrapping and recording usage statistics.
+ */
+define('DRUPAL_ROOT', '');
 
 /**
  * Find and serve the proper history file.
@@ -79,13 +85,32 @@ echo '<?xml version="1.0" encoding="utf-8"?>' ."\n";
 echo file_get_contents($full_path);
 
 
-/**
- * @todo: Record usage statistics?
+// Record usage statistics.
 if (isset($_GET['sitekey'])) {
-  if (isset($_GET['version'])) {
+  if (!chdir(DRUPAL_ROOT)) {
+    exit(1);
+  }
+  include_once './includes/bootstrap.inc';
+  drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
+
+  // We can't call module_exists without bootstrapping to a higher level so 
+  // we'll settle for checking that the table exists.
+  if (db_table_exists('project_usage_raw')) {
+    $site_key = $_GET['sitekey'];
+    $project_version = isset($_GET['version']) ? $_GET['version'] : '';
+
+    // Compute a timestamp for the begining of the day.
+    $time_parts = getdate();
+    $timestamp = mktime(0, 0, 0, $time_parts['mon'], $time_parts['mday'], $time_parts['year']);
+
+    if (db_result(db_query("SELECT COUNT(*) FROM {project_usage_raw} WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $project_name, $timestamp, $site_key))) { 
+      db_query("UPDATE {project_usage_raw} SET api_version = '%s', project_version = '%s' WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $api_version, $project_version, $project_name, $timestamp, $site_key);
+    }
+    else {
+      db_query("INSERT INTO {project_usage_raw} (project_uri, timestamp, site_key, api_version, project_version) VALUES ('%s', %d, '%s', '%s', '%s')", $project_name, $timestamp, $site_key, $api_version, $project_version);
+    }
   }
 }
-*/
 
 
 /**
