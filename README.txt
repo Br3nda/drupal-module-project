@@ -17,5 +17,5 @@ The project family of modules is currently being co-maintained by:
 Derek Wright (http://drupal.org/user/46549) a.k.a. "dww".
 Chad Phillips (http://drupal.org/user/22079) a.k.a. "hunmonk".
 
-$Id: README.txt,v 1.4.2.5 2007/08/07 19:01:40 dww Exp $
-
+$Id: README.txt,v 1.4.2.6 2007/08/07 19:03:28 dww Exp $
+$Name:  $
