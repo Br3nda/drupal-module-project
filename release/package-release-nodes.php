@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.20 2007/08/02 17:53:22 dww Exp $
+// $Id: package-release-nodes.php,v 1.21 2007/08/07 15:42:12 dww Exp $
 // $Name:  $
 
 /**
@@ -582,6 +582,7 @@ function wprint($var) {
 function wd_msg($msg, $link = NULL) {
   global $task;
   watchdog('package_' . $task, $msg, WATCHDOG_NOTICE, $link);
+  echo $msg ."\n";
 }
 
 /**
@@ -589,6 +590,7 @@ function wd_msg($msg, $link = NULL) {
  */
 function wd_err($msg, $link = NULL) {
   watchdog('package_error', $msg, WATCHDOG_ERROR, $link);
+  echo $msg ."\n";
 }
 
 /**
@@ -597,6 +599,7 @@ function wd_err($msg, $link = NULL) {
  */
 function wd_check($msg, $link = NULL) {
   watchdog('package_check', $msg, WATCHDOG_NOTICE, $link);
+  echo $msg ."\n";
 }
 
 /**
