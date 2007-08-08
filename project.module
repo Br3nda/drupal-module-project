@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.289 2007/08/06 19:14:31 dww Exp $
+// $Id: project.module,v 1.290 2007/08/08 01:38:29 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -650,16 +650,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 AND n.type = 'project_project' ORDER BY n.title ASC"));
   }
   $class = 'even';
-  if ($version != -1) {
-    $joins = 'INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major';
-    $wheres = 'AND t.tid = %d';
-    $order_bys = 'ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC';
-  }
-  else {
-    $joins = '';
-    $wheres = '';
-    $order_bys = 'ORDER BY p.file_date DESC';
-  }
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
     if (module_exists('taxonomy')) {
