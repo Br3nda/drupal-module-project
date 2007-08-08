@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.7 2007/07/31 15:51:17 dww Exp $
+// $Id: project-release-create-history.php,v 1.8 2007/08/08 00:36:59 dww Exp $
 // $Name:  $
 
 /**
@@ -93,6 +93,16 @@ function project_release_history_generate_all() {
   $api_terms = project_release_compatibility_list();
   wd_msg(t('Generating XML release history files for all projects.'));
 
+  // Generate all.xml files for projects with releases.
+  $query = db_query("SELECT DISTINCT(pid) FROM {project_release_nodes}");
+  $i = 0;
+  while ($project = db_fetch_object($query)) {
+    project_release_history_generate_project_xml($project->pid);
+    $i++;
+  }
+  wd_msg(format_plural($i, 'Generated an XML release history summary for a project.', 'Generated XML release history summaries for @count projects.'));
+
+  // Generate XML files based on API compatibility.
   $query = db_query("SELECT DISTINCT(prn.pid), tn.tid FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid WHERE tn.tid IN (%s)", implode(',', array_keys($api_terms)));
   $i = 0;
   while ($project = db_fetch_object($query)) {
@@ -114,30 +124,50 @@ function project_release_history_generate_all() {
  * project yet, this function creates one.
  *
  * @param $project_nid
- *  Project ID (node id of the project node) to generate history for.
+ *   Project ID (node id of the project node) to generate history for.
  * @param $api_tid
- *  Taxonomy id (tid) of the API compatibility term to use.
+ *   Taxonomy id (tid) of the API compatibility term to use, or NULL if
+ *   all terms are considered.
  */
-function project_release_history_generate_project_xml($project_nid, $api_tid) {
+function project_release_history_generate_project_xml($project_nid, $api_tid = NULL) {
   $api_vid = _project_release_get_api_vid();
-  $api_terms = project_release_compatibility_list();
-  if (!isset($api_terms[$api_tid])) {
-    wd_err(t('API compatibility term %tid not found.', array('%tid' => $api_tid)));
-    return FALSE;
-  }
-  $api_version = $api_terms[$api_tid];
+  
+  if (isset($api_tid)) {
+    // Restrict output to a specific API compatibility term.
+    $api_terms = project_release_compatibility_list();
+    if (!isset($api_terms[$api_tid])) {
+      wd_err(t('API compatibility term %tid not found.', array('%tid' => $api_tid)));
+      return FALSE;
+    }
+    $api_version = $api_terms[$api_tid];
 
-  // Get project-wide data:
-  $sql = "SELECT n.title, n.nid, p.uri, prdv.major FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = n.nid AND prdv.tid = %d WHERE p.nid = %d";
-  $query = db_query($sql, $api_tid, $project_nid);
-  if (!db_num_rows($query)) {
-    wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
-    return FALSE;
+    // Get project-wide data:
+    $sql = "SELECT n.title, n.nid, p.uri, prdv.major FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = n.nid AND prdv.tid = %d WHERE p.nid = %d";
+    $query = db_query($sql, $api_tid, $project_nid);
+    if (!db_num_rows($query)) {
+      wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
+      return FALSE;
+    }
+    $project = db_fetch_object($query);
+    if (!isset($project->major)) {
+      wd_err(t('No release found for project %project_name compatible with %api_version.', array('%project_name' => $project->uri, '%api_version' => $api_version)));
+      return FALSE;
+    }
   }
-  $project = db_fetch_object($query);
-  if (!isset($project->major)) {
-    wd_err(t('No release found for project %project_name compatible with %api_version.', array('%project_name' => $project->uri, '%api_version' => $api_version)));
-    return FALSE;
+  else {
+    // Consider all API compatibility terms.
+    $api_version = 'all';
+    $sql = "SELECT n.title, n.nid, p.uri, prdv.major FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = n.nid WHERE p.nid = %d";
+    $query = db_query($sql, $project_nid);
+    if (!db_num_rows($query)) {
+      wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
+      return FALSE;
+    }
+    $project = db_fetch_object($query);
+    if (!isset($project->major)) {
+      wd_err(t('No release found for project %project_name.', array('%project_name' => $project->uri)));
+      return FALSE;
+    }
   }
 
   $xml = "<project>\n";
@@ -149,23 +179,57 @@ function project_release_history_generate_project_xml($project_nid, $api_tid) {
   $xml .= "<releases>\n";
 
   // Now, build the query for all the releases for this project and term.
+  $joins = array();
+  $where = array();
+  $parameters = array();
+  $fields = array(
+    'prn.nid',
+    'prn.file_path',
+    'prn.file_date',
+    'prn.file_hash',
+    'prn.version',
+    'prn.version_major',
+    'prn.version_minor',
+    'prn.version_patch',
+    'prn.version_extra',
+    'prn.tag',
+    'n.title',
+    'n.status',
+  );
+
   $joins[] = "INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid";
   $where[] = "prn.pid = '%d'";
   $parameters[] = $project->nid;
 
-  // Restrict releases to the specified API version.
   $joins[] = "INNER JOIN {term_node} tn ON tn.nid = prn.nid";
-  $where[] = 'tn.tid = %d';
-  $parameters[] = $api_tid;
+  // Restrict releases to the specified API version.
+  if (isset($api_tid)) {
+    $where[] = 'tn.tid = %d';
+    $parameters[] = $api_tid;
+  }
+  else {
+    // If we're building a list for all versions, then we also need to sort
+    // our releases based on the API term's weight.  Also, to prevent
+    // duplicate release nodes and ensure we're just looking at the API term,
+    // we need to add a WHERE clause for the API vocabulary id.
+    $joins[] = "INNER JOIN {term_data} td ON tn.tid = td.tid";
+    $where[] = 'td.vid = '. _project_release_get_api_vid();
+    $fields[] = 'td.weight';
+  }
 
-  $query = "SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash, prn.version, prn.version_major, prn.version_minor, prn.version_patch, prn.version_extra, prn.tag, n.title, n.status FROM {node} n ";
-
+  $query = "SELECT ". implode(', ', $fields) ." FROM {node} n ";
   $query .= implode(' ', $joins);
   $query .= " WHERE " . implode(' AND ', $where);
-  $query .= " ORDER BY prn.version_major DESC, prn.version_minor DESC, prn.version_patch DESC, prn.file_date DESC";
-
   $result = db_query($query, $parameters);
+
+  $releases = array();
   while ($release = db_fetch_object($result)) {
+    $releases[] = $release;
+  }
+  // Sort the releases based on our custom sorting function.
+  usort($releases, "_release_sort");
+
+  foreach ($releases as $release) {
     $xml .= " <release>\n";
     $xml .= '  <name>'. check_plain($release->title) ."</name>\n";
     $xml .= '  <version>'. check_plain($release->version) ."</version>\n";
@@ -179,7 +243,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid) {
       }
     }
     if ($release->status) {
-      // Published,  so we should include the links.
+      // Published, so we should include the links.
       $xml .= "  <status>published</status>\n";
       $xml .= '  <release_link>'. url("node/$release->nid", NULL, NULL, TRUE) ."</release_link>\n";
       if (!empty($release->file_path)) {
@@ -301,5 +365,31 @@ function _rename($oldfile, $newfile) {
   }
   else {
     return rename($oldfile, $newfile);
+  }
+}
+
+function _release_sort($a, $b) {
+  // First, check the weight (API version term), since the order is reversed
+  // for that (lighter should float to the top).
+  if (isset($a->weight) && isset($b->weight) && $a->weight != $b->weight) {
+    return ($a->weight < $b->weight) ? -1 : +1;
+  }
+
+  // Otherwise, just check the usual version and file_date fields, and the
+  // first one that differs determines the order.
+  $fields = array(
+    version_major,
+    version_minor,
+    version_patch,
+    file_date,
+  );
+  foreach ($fields as $field) {
+    if (!isset($a->$field) && !isset($b->$field)) {
+      continue;
+    }
+    if ($a->$field == $b->$field) {
+      continue;
+    }
+    return ($a->$field > $b->$field) ? -1 : +1;
   }
 }
