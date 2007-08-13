@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.1 2007/08/07 20:21:33 dww Exp $
+// $Id: project_usage.module,v 1.2 2007/08/13 22:32:20 dww Exp $
 // $Name:  $
 
 /**
@@ -117,11 +117,11 @@ function project_usage_cron() {
  * out too soon and the site checks in again they will be counted twice.
  */
 function project_usage_process_daily() {
-  watchdog('project_usage', t('Starting to process daily usage data.'));
-
   // Timestamp for begining of the previous day.
   $d = getdate(isset($timestamp) ? $timestamp : time());
   $timestamp = mktime(0, 0, 0, $d['mon'], $d['mday'] - 1, $d['year']);
+
+  watchdog('project_usage', t('Starting to process daily usage data for @date.', array('@date' => format_date($timestamp))));
 
   // Assign API version term IDs.
   $terms = array();
@@ -133,7 +133,8 @@ function project_usage_process_daily() {
     $tid = array_search($row->api_version, $terms);
     db_query("UPDATE {project_usage_raw} SET tid = %d WHERE api_version = '%s'", $tid, $row->api_version);
   }
-  
+  watchdog('project_usage', t('Assigned API version term IDs.'));
+
   // Asign project and release node IDs.
   $query = db_query("SELECT DISTINCT project_uri, project_version FROM {project_usage_raw}");
   while ($row = db_fetch_object($query)) {
@@ -143,15 +144,18 @@ function project_usage_process_daily() {
       db_query("UPDATE {project_usage_raw} SET pid = %d, nid = %d WHERE project_uri = '%s' AND project_version = '%s'", $pid, $nid, $row->project_uri, $row->project_version);
     }
   }
+  watchdog('project_usage', t('Assigned project and release node IDs.'));
 
   // Move usage records with project node IDs into the daily table and remove
   // the rest.
   db_query("INSERT INTO {project_usage_day} (timestamp, site_key, pid, nid, tid) SELECT timestamp, site_key, pid, nid, tid FROM {project_usage_raw} WHERE timestamp < %d AND pid <> 0", $timestamp);
   db_query("DELETE FROM {project_usage_raw} WHERE timestamp < %d", $timestamp);
+  watchdog('project_usage', t('Moved usage from raw to daily.'));
 
   // Remove old daily records.
   $seconds = variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
   db_query("DELETE FROM {project_usage_day} WHERE timestamp < %d", time() - $seconds);
+  watchdog('project_usage', t('Removed old daily rows.'));
 
   watchdog('project_usage', t('Completed daily usage data processing.'));
 }
@@ -173,21 +177,26 @@ function project_usage_process_weekly($timestamp) {
     $start = $weeks[$i];
     $end = $weeks[$i + 1];
 
-    // Remove any existing tallies...
+    // Remove any existing tallies then compute the tallies.
     db_query("DELETE FROM {project_usage_week_project} WHERE timestamp = %d", $start);
-    db_query("DELETE FROM {project_usage_week_release} WHERE timestamp = %d", $start);
-    // ...then compute the tallies.
     db_query("INSERT INTO {project_usage_week_project} (nid, timestamp, tid, count) SELECT pid, %d, tid, COUNT(DISTINCT site_key) FROM {project_usage_day} WHERE timestamp >= %d AND timestamp < %d AND pid <> 0 GROUP BY pid, tid", $start, $start, $end);
+    watchdog('project_usage', t('Computed weekly project tallies for @date.', array('@date' => format_date($start))));
+
+    db_query("DELETE FROM {project_usage_week_release} WHERE timestamp = %d", $start);
     db_query("INSERT INTO {project_usage_week_release} (nid, timestamp, count) SELECT nid, %d, COUNT(DISTINCT site_key) FROM {project_usage_day} WHERE timestamp >= %d AND timestamp < %d AND nid <> 0 GROUP BY nid", $start, $start, $end);
+    watchdog('project_usage', t('Computed weekly release tallies for @date.', array('@date' => format_date($start))));
   }
 
   // Remove any tallies that have aged out.
   $now = time();
   $project_life = variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR); 
-  $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK); 
   db_query("DELETE FROM {project_usage_week_project} WHERE timestamp < %d", $now - $project_life);
+  watchdog('project_usage', t('Removed old weekly project rows.'));
+
+  $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK); 
   db_query("DELETE FROM {project_usage_week_release} WHERE timestamp < %d", $now - $release_life);
-  
+  watchdog('project_usage', t('Removed old weekly release rows.'));
+
   watchdog('project_usage', t('Completed weekly usage data processing.'));
 }
 
