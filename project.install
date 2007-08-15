@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.13 2007/07/13 03:23:59 dww Exp $
+// $Id: project.install,v 1.14 2007/08/15 23:43:49 dww Exp $
 // $Name:  $
 
 function project_install() {
@@ -43,6 +43,29 @@ function project_install() {
   }
 
   db_query("UPDATE {system} SET weight = 2 WHERE name = 'project'");
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function project_uninstall() {
+  if (db_table_exists('project_projects')) {
+    db_query("DROP TABLE {project_projects}");
+  }
+
+  $variables = array(
+    'project_browse_nodes',
+    'project_sort_method',
+    'project_vocabulary',
+  );
+  foreach ($variables as $variable) {
+    variable_del($variable);
+  }
+
+  $variables = db_query("SELECT name FROM {variable} WHERE name LIKE 'project_sort_method_used_%%'");
+  while ($variable = db_fetch_object($variables)) {
+    variable_del($variable->name);
+  }
 }
 
 function project_update_1() {
