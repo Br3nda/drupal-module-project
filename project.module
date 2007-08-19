@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.290 2007/08/08 01:38:29 dww Exp $
+// $Id: project.module,v 1.291 2007/08/19 23:23:37 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -78,6 +78,123 @@ function project_perm() {
     'access own projects',
   );
   return $perms;
+}
+
+/**
+ * Implementation of hook_db_rewrite_sql().
+ *
+ * Both project (and, if enabled, project_issue) provide some permissions that
+ * restrict access to viewing projects (and issues). For these permissions to
+ * be globally honored by the system, db_rewrite_sql() has to check what
+ * permissions the current user has and restrict query results accordingly.
+ *
+ * If a user has 'access projects' and 'access project issues', they have full
+ * access, so there's nothing to re-write. If they have 'access own projects'
+ * and/or 'access own project issues', the resulting query should JOIN on
+ * {node} and ensure that the node type is not project_project or
+ * project_issue, or that the owner of the node is the current user. If they
+ * do not have any access to either, then we can just restrict the query based
+ * on the {node}.type column.
+ *
+ * @see project_perm()
+ * @see project_issue_perm()
+ * @see project_find_alias()
+ */
+function project_db_rewrite_sql($query, $primary_table, $primary_field) {
+  if ($primary_field == 'nid') {
+    $return = array();
+    $types = "'project_project'";
+    $access_projects = user_access('access projects');
+    $admin_projects = user_access('administer projects');
+    if (module_exists('project_issue')) {
+      $access_issues = user_access('access project issues');
+      $access_own_issues = user_access('access own project issues');
+      $types .= ", 'project_issue'";
+    }
+    else {
+      $access_issues = TRUE;
+      $access_own_issues = TRUE;
+    }
+    if ($admin_projects || ($access_projects && $access_issues)) {
+      // User has full access, nothing to re-write.
+      return;
+    }
+    else {
+      // We have to make sure {node} is in the query and know the alias.
+      if ($primary_table == 'n' || $primary_table == 'node') {
+        // Great, it's the primary table and we already know the alias.
+        $alias = $primary_table;
+      }
+      else {
+        // Look for {node} in the query.
+        if (!($alias = project_find_alias($query, 'node'))) {
+          // Not already in the query, JOIN it.
+          $return['join'] = "INNER JOIN {node} pn ON pn.nid = ". $primary_table .'.nid';
+          $alias = 'pn';
+        }
+      }
+    }
+    // At this point, we know we have to restrict something, and we know what
+    // the {node} table's alias is in the query.
+    $where = array();
+
+    // First, if the type is not one of the project* ones, we don't care.
+    $where[] = "($alias.type NOT IN ($types))";
+
+    // Now, see if the current user can access their own, and allow those.
+    global $user;
+    $uid = $user->uid;
+    if (!$access_projects && user_access('access own projects')) {
+      $where[] = "($alias.type = 'project_project' AND $alias.uid = $uid)";
+    }
+    if (!$access_issues && $access_own_issues) {
+      $where[] = "($alias.type = 'project_issue' AND $alias.uid = $uid)";
+    }
+
+    // Now that we have all our WHERE clauses, we just OR them all together.
+    $return['where'] = implode(' OR ', $where);
+    return $return;
+  }
+}
+
+/**
+ * Find the table alias for a table in a query.
+ *
+ * @param $query
+ *   The query to examine for the alias.
+ * @param
+ *   $table The table to examine for the alias.
+ * @return
+ *   The alias if it exists, or the name of the table if it's present but not
+ *   aliased, or FALSE if the table is not present.
+ *
+ * @see project_db_rewrite_sql()
+ */
+function project_find_alias($query, $table) {
+  // See if {$table} is already in the query.
+  $match = array();
+  // This regexp handles many cases:
+  // - {$table} can be either in FROM or in a JOIN clause
+  // - Query might end immediately after {$table}
+  // - Might not have a table alias for {$table}
+  $pattern = "@.*(FROM|JOIN)\s+\{$table\}\s*(\S+)?@";
+  if (preg_match($pattern, $query, $match)) {
+    $keywords = '@(ON|INNER|LEFT|RIGHT|WHERE|ORDER|GROUP|HAVING|LIMIT)@';
+    if (!isset($match[2]) || preg_match($keywords, $match[2])) {
+      // No alias found, just use $table.
+      $alias = $table;
+    }
+    else {
+      // Alias found.
+      $alias = $match[2];
+    }
+  }
+  else {
+    // Table not in query.
+    $alias = FALSE;
+  }
+
+  return $alias;
 }
 
 /**
@@ -205,7 +322,10 @@ function project_menu($may_cache) {
 
   if ($may_cache) {
     // User pages:
-    $access = user_access('access projects');
+    $access_all = user_access('access projects');
+    $access_own = user_access('access own projects');
+    $access_admin = user_access('administer projects');
+    $access = $access_all || $access_own || $access_admin;
 
     $items[] = array('path' => 'project',
       'title' => t('Projects'),
@@ -260,7 +380,7 @@ function project_menu($may_cache) {
       'title' => t('Project administration'),
       'description' => t('Administrative interface for project management and related modules.'),
       'callback' => 'system_admin_menu_block_page',
-      'access' => user_access('administer projects'),
+      'access' => $access_admin,
       'type' => MENU_NORMAL_ITEM,
     );
     $items[] = array(
@@ -269,7 +389,7 @@ function project_menu($may_cache) {
       'description' => t('Configure the behavior and appearance of the project browsing pages and other settings for the Project module.'),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('project_settings_form'),
-      'access' => user_access('administer projects'),
+      'access' => $access_admin,
       'type' => MENU_NORMAL_ITEM,
     );
   }
@@ -835,7 +955,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
   }
   if (project_use_taxonomy()) {
     $vid = _project_get_vid();
-    $result = db_query(db_rewrite_sql("SELECT p.nid, n.title, d.name, p.uri FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY p.nid, n.title, d.name, p.uri, d.weight ORDER BY d.weight, n.title", 'p'), $vid);
+    $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, d.name, p.uri FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN LEFT JOIN {term_node} t ON t.nid = n.nid INNER JOIN {term_data} d ON t.tid = d.tid INNER JOIN {term_hierarchy} h ON t.tid = h.tid WHERE n.status = 1 $ISSUE_WHERE AND d.vid = %d AND h.parent = 0 GROUP BY n.nid, n.title, d.name, p.uri, d.weight ORDER BY d.weight, n.title"), $vid);
     while ($project = db_fetch_object($result)) {
       if (isset($project->name)) {
         if (!isset($projects[$project->name])) {
@@ -852,7 +972,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
     }
   }
   else {
-   $result = db_query(db_rewrite_sql("SELECT p.nid, p.uri, n.title FROM {project_projects} p INNER JOIN {node} n ON  n.nid = p.nid $ISSUE_JOIN WHERE n.status = 1 $ISSUE_WHERE", 'p'));
+   $result = db_query(db_rewrite_sql("SELECT n.nid, p.uri, n.title FROM {project_projects} p INNER JOIN {node} n ON n.nid = p.nid $ISSUE_JOIN WHERE n.status = 1 $ISSUE_WHERE ORDER BY n.title"));
     while ($project = db_fetch_object($result)) {
       $projects[$key_prefix . $project->nid] = $project->title;
       if (is_array($project_urls)) {

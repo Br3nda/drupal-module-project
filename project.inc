@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.112 2007/08/02 07:04:52 dww Exp $
+// $Id: project.inc,v 1.113 2007/08/19 23:23:37 dww Exp $
 // $Name:  $
 
 /**
@@ -338,8 +338,8 @@ function project_project_view($node, $teaser = false, $page = false) {
 
     // Flags that indicate what kind of access to project issues to allow.
     $has_issues = module_exists('project_issue') && $node->issues;
-    $view_issues = $has_issues && user_access('access project issues');
-    $make_issues = $has_issues && user_access('create project issues');
+    $view_issues = $has_issues && (user_access('access project issues') || user_access('access own project issues') || user_access('administer projects'));
+    $make_issues = $has_issues && node_access('create', 'project_issue');
 
     // Support section.
     $links = array();
@@ -440,6 +440,9 @@ function project_project_access($op, $node) {
 
   switch ($op) {
     case 'view':
+      if (user_access('administer projects')) {
+         return TRUE;
+      }
       if (user_access('access own projects') && $node->uid == $user->uid) {
          return TRUE;
       }
@@ -492,10 +495,15 @@ function project_project_retrieve($key = 0) {
 
 function project_developers($nid = 0) {
   if ($project = node_load($nid)) {
-    $output = module_invoke('cvs', 'get_project_contributors', $nid);
-    drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
-    project_project_set_breadcrumb($project, TRUE);
-    return $output;
+    if (node_access('view', $project)) {
+      $output = module_invoke('cvs', 'get_project_contributors', $nid);
+      drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
+      project_project_set_breadcrumb($project, TRUE);
+      return $output;
+    }
+    else {
+      drupal_access_denied();
+    }
   }
   else {
     drupal_not_found();
@@ -504,11 +512,16 @@ function project_developers($nid = 0) {
 
 function project_cvs($nid = 0) {
   if ($project = node_load($nid)) {
-    $_REQUEST['nid'] = $nid;
-    $output = module_invoke('cvs', 'show_messages');
-    drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
-    project_project_set_breadcrumb($project, TRUE);   
-    return $output;
+    if (node_access('view', $project)) {
+      $_REQUEST['nid'] = $nid;
+      $output = module_invoke('cvs', 'show_messages');
+      drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
+      project_project_set_breadcrumb($project, TRUE);   
+      return $output;
+    }
+    else {
+      drupal_access_denied();
+    }
   }
   else {
     drupal_not_found();
