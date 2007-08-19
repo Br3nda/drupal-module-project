@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.73 2007/08/06 05:30:07 dww Exp $
+// $Id: project_release.module,v 1.1.2.74 2007/08/19 08:07:20 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -782,7 +782,7 @@ function project_release_list($project, $main = 0) {
     }
   }
   else {
-    $output = t('There are no published releases for this project. Recently added releases will not be published until the packaging scripts have run.');
+    $output = t('There are no published releases for this project.');
   }
   return $output;
 }
