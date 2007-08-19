@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.75.2.16.2.29 2007/07/23 23:30:38 dww Exp $
+// $Id: project.inc,v 1.75.2.16.2.30 2007/08/19 23:23:07 dww Exp $
 // $Name:  $
 
 /**
@@ -313,16 +313,23 @@ function project_project_view(&$node, $teaser = false, $page = false) {
       $output .= theme('item_list', $links, t('Resources'));
     }
 
-    // Support section
+    // Flags that indicate what kind of access to project issues to allow.
+    $has_issues = module_exist('project_issue') && $node->issues;
+    $view_issues = $has_issues && (user_access('access project issues') || user_access('access own project issues') || user_access('administer projects'));
+    $make_issues = $has_issues && node_access('create', 'project_issue');
+
+    // Support section.
     $links = array();
 
     if (module_exist('forum') && ($support_forum = variable_get('project_support_forum', ''))) {
       $links[] = l(t('Support forum'), 'forum/' . $support_forum);
     }
 
-    if ($node->issues) {
+    if ($view_issues) {
       $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
       $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+    }
+    if ($make_issues) {
       $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
       $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
     }
@@ -333,9 +340,7 @@ function project_project_view(&$node, $teaser = false, $page = false) {
 
     // Developer section
     $links = array();
-
-    if ($node->issues) {
-      #$output .= '<p>'. t('If you think you have found a bug please check the list of existing bugs reported, if you do not find it please submit a new bug report. Remember to provide as much information as possible to make it easier for the developers to fix the issue.') .'</p>';
+    if ($view_issues) {
       $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
       $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
       $links[] = l(t('View all issues'), 'project/issues/'. $node->uri);
@@ -406,6 +411,9 @@ function project_project_access($op, $node) {
 
   switch ($op) {
     case 'view':
+      if (user_access('administer projects')) {
+         return TRUE;
+      }
       if (user_access('access own projects') && $node->uid == $user->uid) {
          return TRUE;
       }
@@ -458,10 +466,15 @@ function project_project_retrieve($key = 0) {
 
 function project_developers($nid = 0) {
   if ($project = node_load($nid)) {
-    $output = module_invoke('cvs', 'get_project_contributors', $nid);
-    drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
-    project_project_set_breadcrumb($project, TRUE);
-    return $output;
+    if (node_access('view', $project)) {
+      $output = module_invoke('cvs', 'get_project_contributors', $nid);
+      drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
+      project_project_set_breadcrumb($project, TRUE);
+      return $output;
+    }
+    else {
+      drupal_access_denied();
+    }
   }
   else {
     drupal_not_found();
@@ -470,11 +483,16 @@ function project_developers($nid = 0) {
 
 function project_cvs($nid = 0) {
   if ($project = node_load($nid)) {
-    $_REQUEST['nid'] = $nid;
-    $output = module_invoke('cvs', 'show_messages');
-    drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
-    project_project_set_breadcrumb($project, TRUE);   
-    return $output;
+    if (node_access('view', $project)) {
+      $_REQUEST['nid'] = $nid;
+      $output = module_invoke('cvs', 'show_messages');
+      drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
+      project_project_set_breadcrumb($project, TRUE);   
+      return $output;
+    }
+    else {
+      drupal_access_denied();
+    }
   }
   else {
     drupal_not_found();
