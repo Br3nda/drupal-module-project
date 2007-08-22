@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.113 2007/08/19 23:23:37 dww Exp $
+// $Id: project.inc,v 1.114 2007/08/22 16:29:06 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -297,7 +297,7 @@ function project_project_set_breadcrumb($node = NULL, $extra = NULL) {
   elseif ($extra && !empty($node)) {
     $breadcrumb[] = l($node->title, 'node/'. $node->nid);
   }
- 
+
   drupal_set_breadcrumb($breadcrumb);
 }
 
@@ -516,7 +516,7 @@ function project_cvs($nid = 0) {
       $_REQUEST['nid'] = $nid;
       $output = module_invoke('cvs', 'show_messages');
       drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
-      project_project_set_breadcrumb($project, TRUE);   
+      project_project_set_breadcrumb($project, TRUE);
       return $output;
     }
     else {

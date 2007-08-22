@@ -1,4 +1,4 @@
-$Id: UPGRADE.txt,v 1.2 2007/08/09 18:34:14 dww Exp $
+$Id: UPGRADE.txt,v 1.3 2007/08/22 16:29:06 thehunmonkgroup Exp $
 
 ======================================================================
 This file contains specific instructions for upgrading your site's
@@ -51,7 +51,7 @@ nodes (see http://drupal.org/node/94000 for more information).
      "SELECT COUNT(*) FROM project_releases;"
 
      (This assumes your site is not using any table prefixing, alter
-     the table name with your site's table prefix if needed). 
+     the table name with your site's table prefix if needed).
 
   If your {project_releases} table is empty, your 4.7.x-1.* or earlier
 site does not use releases and upgrading to the 4.7.x-2.* series is
