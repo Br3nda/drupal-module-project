@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.2.2.8 2007/07/13 03:24:19 dww Exp $
+// $Id: project.install,v 1.2.2.9 2007/08/22 16:44:11 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_install() {
@@ -39,7 +39,7 @@ function project_install() {
           KEY project_releases_nid (nid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
-	
+
     case 'pgsql':
       db_query("CREATE TABLE {project_projects} (
           nid int NOT NULL default '0',
@@ -123,7 +123,7 @@ function project_update_3() {
       if (!empty($nids)) {
         $res = update_sql("DELETE FROM $table WHERE nid IN (" . implode(',', $nids) . ')');
         $ret[] = $res;
-      }	
+      }
     }
     if ($res['success']) {
        $num = db_affected_rows();

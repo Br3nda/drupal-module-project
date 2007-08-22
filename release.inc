@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.70.2.4 2006/11/12 13:49:07 dww Exp $
+// $Id: release.inc,v 1.70.2.5 2007/08/22 16:44:11 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_release_scan() {
@@ -215,7 +215,7 @@ function project_release_form(&$release, &$param) {
     '#type' => 'hidden',
     '#default_value' => $release->nid,
   );
-  
+
   if (!form_get_errors()) {
     $form['submit'] = array(
       '#type' => 'button',
