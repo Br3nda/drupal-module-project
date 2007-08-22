@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.1.2.29 2007/07/14 15:17:20 dww Exp $
+// $Id: package-release-nodes.php,v 1.1.2.30 2007/08/22 16:39:54 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -12,7 +12,7 @@
  *
  * TODO:
  * - translation stats
- * 
+ *
  */
 
 // ------------------------------------------------------------
@@ -25,7 +25,7 @@
 $drupal_root = '';
 
 // The name of your site. Required so that when we bootstrap Drupal in
-// this script, we find the right settings.php file in your sites folder. 
+// this script, we find the right settings.php file in your sites folder.
 // For example, on drupal.org:
 // $site_name = 'drupal.org';
 $site_name = '';
@@ -454,7 +454,7 @@ function verify_packages($task) {
       wd_check(t('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables), $view_link);
     }
 
-    if (!$do_repair) { 
+    if (!$do_repair) {
       $num_need_repair++;
     }
     else if (!db_query("UPDATE {project_release_nodes} SET file_hash = '%s', file_date = %d WHERE nid = %d", $real_hash, $real_date, $nid)) {
@@ -600,11 +600,11 @@ function fix_info_file_version($file, $uri, $version) {
   $info .= "project = \"$uri\"\n";
   $info .= "\n";
 
-  if (!$info_fd = fopen($file, 'ab')) { 
+  if (!$info_fd = fopen($file, 'ab')) {
     wd_err(t("ERROR: fopen(%file, 'ab') failed", array('%file' => theme('placeholder', $file))));
     return false;
   }
-  if (!fwrite($info_fd, $info)) { 
+  if (!fwrite($info_fd, $info)) {
     wd_err(t("ERROR: fwrite() failed", array('%file' => theme('placeholder', $file))) . '<pre>' . $info);
     return false;
   }

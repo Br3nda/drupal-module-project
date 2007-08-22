@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.14 2007/07/13 03:24:08 dww Exp $
+// $Id: project_release.install,v 1.1.2.15 2007/08/22 16:39:54 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -73,7 +73,7 @@ function project_release_install() {
             tid int NOT NULL default '0',
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
-          );"); 
+          );");
       }
       break;
   }
@@ -107,7 +107,7 @@ function project_release_update_1() {
             tid int NOT NULL default '0',
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
-          );"); 
+          );");
       }
       break;
   }

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.1.2.20 2007/07/14 15:17:20 dww Exp $
+// $Id: project_release_update.php,v 1.1.2.21 2007/08/22 16:39:54 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -23,7 +23,7 @@ function generate_core_tag($node) {
     $tag .= '-' . strtoupper(preg_replace('/(.+)(\d+)/', '\1-\2', $node->version_extra));
   }
   return $tag;
-} 
+}
 
 /**
  * Iterates through the {project_projects} table and adds the
@@ -32,7 +32,7 @@ function generate_core_tag($node) {
  *
  * BEWARE: This function contains drupal.org-specific code.  Please
  * modify the arrays and setting commented below to suit your own
- * site's needs. 
+ * site's needs.
  */
 function populate_project_release_projects() {
   list($usec, $sec) = explode(' ', microtime());
@@ -163,7 +163,7 @@ function convert_release($old_release) {
   // Now, depending on the project and version, fill in the rest.
   if ($old_release->nid == 3060) {
     if ($old_release->version == 'cvs') {
-      // TODO: maybe we should just leave this "release" alone, 
+      // TODO: maybe we should just leave this "release" alone,
       $node->version_major = 5;
       $node->version_patch = 'x';
       $node->version_extra = 'dev';
@@ -267,7 +267,7 @@ function convert_release($old_release) {
   // Keep track of it in our array in RAM for converting issue comments
   $nids_by_rid[$rid] = $nid;
 
-  // See how long it took. 
+  // See how long it took.
   list($usec, $sec) = explode(' ', microtime());
   $stop = (float)$usec + (float)$sec;
   $diff = round(($stop - $start) * 1000, 2);

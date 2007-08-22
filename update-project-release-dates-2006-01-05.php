@@ -15,7 +15,7 @@
  * To avoid errors, this update script should be run after
  * the update script update_project_versions.php.
  */
- 
+
 $update_output;
 include_once './includes/bootstrap.inc';
 drupal_maintenance_theme();

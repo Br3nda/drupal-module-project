@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.74 2007/08/19 08:07:20 dww Exp $
+// $Id: project_release.module,v 1.1.2.75 2007/08/22 16:39:54 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -139,7 +139,7 @@ function project_release_settings_validate($form_id, $form_values, $form) {
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
     form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms', array('%vocab' => check_plain($vocab->name))));
   }
-  
+
   // Make sure the default version format has no bad characters.
   _project_release_validate_format_string($form_values, 'project_release_default_version_format');
 
@@ -152,7 +152,7 @@ function project_release_settings_validate($form_id, $form_values, $form) {
 }
 
 /**
- * @defgroup project_release_node Drupal node-type related hooks 
+ * @defgroup project_release_node Drupal node-type related hooks
  */
 
 /**
@@ -521,9 +521,9 @@ function project_release_update($node) {
 }
 
 /**
- * Helper method to take data out of a $node object and store it into 
+ * Helper method to take data out of a $node object and store it into
  * the DB as necessary. Sadly, db_query() doesn't let us store NULL in
- * the DB, since those get cast to 0. Therefore, we have to do some 
+ * the DB, since those get cast to 0. Therefore, we have to do some
  * manual effort to dynamically create the appropriate SQL depending
  * on which version fields are set in the release node.
  * @see project_release_insert
@@ -535,7 +535,7 @@ function project_release_update($node) {
  * @param $is_new Is this a new release node, or are we updating?
  */
 function project_release_db_save($node, $is_new) {
-  // If the patch field is set to a non-numeric value, we just want to 
+  // If the patch field is set to a non-numeric value, we just want to
   // keep it as a NULL in the DB, instead of casting it to a 0.
   if (isset($node->version_patch) && !is_numeric($node->version_patch)) {
     unset($node->version_patch);
@@ -624,7 +624,7 @@ function project_release_get_version_format($project) {
 }
 
 /**
- * Validates a version format string. Only alphanumeric characters and 
+ * Validates a version format string. Only alphanumeric characters and
  * [-_.] are allowed. Calls form_set_error() on error, else returns.
  * @param $form_values Array of form values passed to validate hook.
  * @param $element The name of the form element for the format string.
@@ -665,7 +665,7 @@ function project_release_get_version($release, $project = NULL) {
   $variables["%api"] = '';
   $variables["#api"] = '';
   $vid = _project_release_get_api_vid();
-  if (project_release_get_api_taxonomy()) { 
+  if (project_release_get_api_taxonomy()) {
     if (isset($release->version_api_tid)) {
       $tid = $release->version_api_tid;
     }
@@ -1107,7 +1107,7 @@ function project_release_alter_release_form(&$form) {
       if (!user_access('administer projects')) {
         // The user doesn't have 'administer projects' permission, so
         // we restrict their options for the compatibility taxonomy.
-        if (isset($tid)) { 
+        if (isset($tid)) {
           // If we already have the term, we want to force it to stay.
           $options[$tid] = $form['taxonomy'][$vid]['#options'][$tid];
           $form['taxonomy'][$vid]['#default_value'] = $tid;
@@ -1242,8 +1242,8 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   if ($tids) {
     unset($tids[-1]); // get rid of that one.
     if (!empty($tids)) {
-      $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in (' 
-        . implode(',', array_keys($tids)) .') ' 
+      $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in ('
+        . implode(',', array_keys($tids)) .') '
         .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
       $selects[] = 'tn.tid';
       $orderby[] = 'td.weight';
@@ -1269,7 +1269,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
       break;
     case 'all':
         // If we're generating the default releases table, we want the
-        // dev snapshots to be first in the query results, so that we 
+        // dev snapshots to be first in the query results, so that we
         // skip over them and only show official releases (if any).
       $orderby[] = 'r.rebuild'. (($table_type == 'defaults') ? ' DESC' : '');
       break;
@@ -1287,7 +1287,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
   }
   $result = db_query(db_rewrite_sql(
     "SELECT n.nid, n.created, $select r.* FROM {node} n ".
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ". $join . 
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ". $join .
     "WHERE (r.pid = %d) AND (n.status = 1) ". $where .' '. $order_by),
     $project->nid);
 
@@ -1305,7 +1305,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
 
   while ($release = db_fetch_object($result)) {
     $links = array();
-    if (!empty($release->file_path)) { 
+    if (!empty($release->file_path)) {
       $links[] = project_release_download_link($release->file_path, t('Download'));
     }
     $links[] = l(t('Release notes'), "node/$release->nid");
@@ -1315,7 +1315,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
     if (!is_array($items[$release->tid])) {
       $items[$release->tid] = array();
     }
-    
+
     $row = array(
       // class of <tr>
       'class' => $release->rebuild ? 'release-dev' : 'release',
@@ -1392,7 +1392,7 @@ function project_release_taxonomy($op, $type, $object = NULL) {
 }
 
 /**
- * If taxonomy is enabled, returns the taxonomy tree for the 
+ * If taxonomy is enabled, returns the taxonomy tree for the
  * API compatibility vocabulary, otherwise, it returns false.
  */
 function project_release_get_api_taxonomy() {
