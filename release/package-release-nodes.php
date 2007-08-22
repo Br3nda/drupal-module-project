@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.21 2007/08/07 15:42:12 dww Exp $
+// $Id: package-release-nodes.php,v 1.22 2007/08/22 16:30:52 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -12,7 +12,7 @@
  *
  * TODO:
  * - translation stats
- * 
+ *
  */
 
 // ------------------------------------------------------------
@@ -25,7 +25,7 @@
 $drupal_root = '';
 
 // The name of your site. Required so that when we bootstrap Drupal in
-// this script, we find the right settings.php file in your sites folder. 
+// this script, we find the right settings.php file in your sites folder.
 // For example, on drupal.org:
 // $site_name = 'drupal.org';
 $site_name = '';
@@ -497,7 +497,7 @@ function verify_packages($task, $project_id) {
       wd_check(t('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables), $view_link);
     }
 
-    if (!$do_repair) { 
+    if (!$do_repair) {
       $num_need_repair++;
     }
     else if (!db_query("UPDATE {project_release_nodes} SET file_hash = '%s', file_date = %d WHERE nid = %d", $real_hash, $real_date, $nid)) {
@@ -666,11 +666,11 @@ function fix_info_file_version($file, $uri, $version) {
     wd_err(t("ERROR: chmod(@file, 0644) failed", array('@file' => $file)));
     return false;
   }
-  if (!$info_fd = fopen($file, 'ab')) { 
+  if (!$info_fd = fopen($file, 'ab')) {
     wd_err(t("ERROR: fopen(@file, 'ab') failed", array('@file' => $file)));
     return false;
   }
-  if (!fwrite($info_fd, $info)) { 
+  if (!fwrite($info_fd, $info)) {
     wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $file)) . '<pre>' . $info);
     return false;
   }

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_scan.inc,v 1.3 2006/12/18 09:02:39 dww Exp $
+// $Id: project_release_scan.inc,v 1.4 2007/08/22 16:30:52 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -9,7 +9,7 @@
  * drupal.org, we're not going to periodically scan a directory, we're
  * going to generate releases based on CVS tags. We'll have to
  * research if anyone's still using this behavior who wants it to
- * somehow be ported to the new system. 
+ * somehow be ported to the new system.
  */
 
 /**

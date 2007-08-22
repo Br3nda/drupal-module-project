@@ -1,24 +1,24 @@
 <?php
-// $Id: project_usage.module,v 1.4 2007/08/14 00:51:53 dww Exp $
+// $Id: project_usage.module,v 1.5 2007/08/22 16:30:52 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
  * @file
  *
- * This module provides logging of the requests sent by the 
- * update_status.module (contrib in 5.x) and update.module (core in 6.x) to the 
- * project_release.module on updates.drupal.org. The 
- * release/project-release-serve-history.php script inserts data into the 
+ * This module provides logging of the requests sent by the
+ * update_status.module (contrib in 5.x) and update.module (core in 6.x) to the
+ * project_release.module on updates.drupal.org. The
+ * release/project-release-serve-history.php script inserts data into the
  * {project_usage_raw} table created by this module.
- * 
+ *
  * On a daily basis the usage data is matched to project and release nodes
  * and moved into the {project_usage_day} table. On a weekly basis the daily
  * usage data is tallied and stored in the {project_usage_week} table.
- * 
- * This data is then used to compute live usage statistics about all projects 
+ *
+ * This data is then used to compute live usage statistics about all projects
  * hosted on drupal.org. In theory, another site could setup
- * update_status.module-style checking to their own project.module-based 
- * server, in which case, they might want to enable this module. Otherwise, 
+ * update_status.module-style checking to their own project.module-based
+ * server, in which case, they might want to enable this module. Otherwise,
  * sites should just leave this disabled.
  */
 
@@ -87,7 +87,7 @@ function project_usage_settings_form() {
 
 /**
  * Implementation of hook_cron().
- * 
+ *
  * Call the daily and weekly processing tasks as needed.
  */
 function project_usage_cron() {
@@ -105,13 +105,13 @@ function project_usage_cron() {
   $last_weekly = variable_get('project_usage_last_weekly', $default);
   if ($last_weekly <= ($now - PROJECT_USAGE_WEEK)) {
     project_usage_process_weekly($last_weekly);
-    variable_set('project_usage_last_weekly', $now); 
+    variable_set('project_usage_last_weekly', $now);
   }
 }
 
 /**
- * Process all the raw data up to the previous day. 
- * 
+ * Process all the raw data up to the previous day.
+ *
  * The primary key on the {project_usage_raw} table will prevent duplicate
  * records provided we process them once the day is complete. If we pull them
  * out too soon and the site checks in again they will be counted twice.
@@ -162,13 +162,13 @@ function project_usage_process_daily() {
 
 /**
  * Compute the weekly summaries for the week starting at the given timestamp.
- * 
+ *
  * @param $timestamp
- *   UNIX timestamp indicating the last time weekly stats were processed. 
+ *   UNIX timestamp indicating the last time weekly stats were processed.
  */
 function project_usage_process_weekly($timestamp) {
   watchdog('project_usage', t('Starting to process weekly usage data.'));
-  
+
   // Get all the weeks since we last ran.
   $weeks = project_usage_get_weeks_since($timestamp);
   // Skip the last entry since it's the current, incomplete week.
@@ -189,11 +189,11 @@ function project_usage_process_weekly($timestamp) {
 
   // Remove any tallies that have aged out.
   $now = time();
-  $project_life = variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR); 
+  $project_life = variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR);
   db_query("DELETE FROM {project_usage_week_project} WHERE timestamp < %d", $now - $project_life);
   watchdog('project_usage', t('Removed old weekly project rows.'));
 
-  $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK); 
+  $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK);
   db_query("DELETE FROM {project_usage_week_release} WHERE timestamp < %d", $now - $release_life);
   watchdog('project_usage', t('Removed old weekly release rows.'));
 

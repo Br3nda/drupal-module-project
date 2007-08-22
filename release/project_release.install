@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.11 2007/08/15 23:43:49 dww Exp $
+// $Id: project_release.install,v 1.12 2007/08/22 16:30:52 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -82,7 +82,7 @@ function project_release_install() {
             tid int NOT NULL default '0',
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
-          );"); 
+          );");
       }
       if (!db_table_exists('cache_project_release')) {
         db_query("CREATE TABLE {cache_project_release} (
@@ -158,7 +158,7 @@ function project_release_update_1() {
             tid int NOT NULL default '0',
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
-          );"); 
+          );");
       }
       break;
   }
@@ -232,7 +232,7 @@ function project_release_update_5000() {
 }
 
 /**
- * Remove variables from dead code for serving XML history files, which is 
+ * Remove variables from dead code for serving XML history files, which is
  * now handled by project-release-serve-history.php instead.
  */
 function project_release_update_5001() {

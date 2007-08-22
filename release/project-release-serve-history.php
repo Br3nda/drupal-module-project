@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.6 2007/08/07 21:43:12 dww Exp $
+// $Id: project-release-serve-history.php,v 1.7 2007/08/22 16:30:52 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -93,7 +93,7 @@ if (isset($_GET['site_key'])) {
   include_once './includes/bootstrap.inc';
   drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
 
-  // We can't call module_exists without bootstrapping to a higher level so 
+  // We can't call module_exists without bootstrapping to a higher level so
   // we'll settle for checking that the table exists.
   if (db_table_exists('project_usage_raw')) {
     $site_key = $_GET['site_key'];
@@ -103,7 +103,7 @@ if (isset($_GET['site_key'])) {
     $time_parts = getdate();
     $timestamp = mktime(0, 0, 0, $time_parts['mon'], $time_parts['mday'], $time_parts['year']);
 
-    if (db_result(db_query("SELECT COUNT(*) FROM {project_usage_raw} WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $project_name, $timestamp, $site_key))) { 
+    if (db_result(db_query("SELECT COUNT(*) FROM {project_usage_raw} WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $project_name, $timestamp, $site_key))) {
       db_query("UPDATE {project_usage_raw} SET api_version = '%s', project_version = '%s' WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $api_version, $project_version, $project_name, $timestamp, $site_key);
     }
     else {
