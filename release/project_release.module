@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.43 2007/08/22 16:30:52 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.44 2007/08/23 22:56:48 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -631,6 +631,11 @@ function project_release_delete($node) {
     file_delete(file_create_path($node->file_path));
   }
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
+
+  // Finally, clear the cache for the release table whenever a release node is
+  // deleted, since what we want to display might have changed, too.
+  $cid = 'table:'. $node->pid .':';
+  cache_clear_all($cid, 'cache_project_release', TRUE);
 }
 
 
