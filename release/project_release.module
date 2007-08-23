@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.75 2007/08/22 16:39:54 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.1.2.76 2007/08/23 23:09:18 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -488,8 +488,10 @@ function project_release_validate(&$edit, $form) {
  */
 function project_release_load($node) {
   $additions = db_fetch_object(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
-  $tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE tn.nid = %d", $node->nid));
-  $additions->version_api_tid = $tid;
+  // Add the API term associated with the release.
+  $api_vid = _project_release_get_api_vid();
+  $api_tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE td.vid = %d AND tn.nid = %d", $api_vid, $node->nid));
+  $additions->version_api_tid = $api_tid;
   return $additions;
 }
 
