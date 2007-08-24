@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.291 2007/08/19 23:23:37 dww Exp $
+// $Id: project.module,v 1.292 2007/08/24 04:31:30 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -597,6 +597,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'pieces' => array(
             'DISTINCT(n.nid)',
             'n.title',
+            'n.sticky',
             'nr.teaser',
             'nr.format',
           )
