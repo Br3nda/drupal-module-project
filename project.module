@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.28 2007/08/19 23:23:18 dww Exp $
+// $Id: project.module,v 1.239.2.29 2007/08/24 04:33:58 thehunmonkgroup Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -623,6 +623,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           'pieces' => array(
             'DISTINCT(n.nid)',
             'n.title',
+            'n.sticky',
             'nr.teaser',
             'nr.format',
           )
