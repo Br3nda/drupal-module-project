@@ -1,5 +1,5 @@
 <?php
-// $Id: release.inc,v 1.70.2.5 2007/08/22 16:44:11 thehunmonkgroup Exp $
+// $Id: release.inc,v 1.70.2.6 2007/08/25 17:16:40 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_release_scan() {
@@ -114,7 +114,7 @@ function project_release_cron() {
 }
 
 function project_release_submit() {
-  switch ($_POST['op'] ? $_POST['op'] : arg(3)) {
+  switch (!empty($_POST['op']) ? $_POST['op'] : arg(3)) {
     case 'add':
       $node = node_load(arg(1));
       $breadcrumb = array(l(t('Home'), NULL), l(t('Projects'), 'project'));
@@ -181,7 +181,7 @@ function project_release_form(&$release, &$param) {
   $form['version'] = array(
     '#type' => 'textfield',
     '#title' => t('Version'),
-    '#default_value' => $release->version,
+    '#default_value' => isset($release->version) ? $release->version : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#required' => TRUE,
@@ -189,7 +189,7 @@ function project_release_form(&$release, &$param) {
   $form['changes'] = array(
     '#type' => 'textarea',
     '#title' => t('Changes'),
-    '#default_value' => $release->changes,
+    '#default_value' => isset($release->changes) ? $release->changes : NULL,
     '#rows' => 10,
     '#cols' => 40,
     '#required' => TRUE,
@@ -199,13 +199,13 @@ function project_release_form(&$release, &$param) {
       '#type' => 'file',
       '#title' => t('File'),
       '#size' => 40,
-      '#description' => ($release->fid) ?
+      '#description' => !empty($release->fid) ?
         t('A file already exists, if you upload another file the current file will be replaced.') :
-        '' . $error['file'],
-      '#required' => $release->fid,
+        '', // . $error['file'],
+      '#required' => !empty($release->fid),
     );
   }
-  if ($release->rid) {
+  if (!empty($release->rid)) {
     $form['rid'] = array(
       '#type' => 'hidden',
       '#default_value' => $release->rid,
@@ -267,6 +267,7 @@ function project_release_validate(&$edit) {
 }
 
 function project_release_view($release, $project = 0) {
+  $output = '';
   if (!$project) {
     $project = node_load($release->nid);
   }
@@ -298,6 +299,7 @@ function project_release_view($release, $project = 0) {
 function project_release_list($project, $main = 0) {
   $result = db_query('SELECT * FROM {project_releases} WHERE nid = %d AND status = 1 ORDER BY created DESC', $project->nid);
   if (db_num_rows($result)) {
+    $output = '';
     $header = array(t('Version'), t('Released'), t('Changes'));
     if (node_access('update', $project) || node_access('delete', $project)) {
       $header[] = array('data' => t('Operations'), 'colspan' => 2);
@@ -310,7 +312,7 @@ function project_release_list($project, $main = 0) {
 }
 
 function project_release_load($rid, $status = 1) {
-  if ($rid->type == 'project_project') {
+  if ($rid->type == 'project_project' && !empty($rid->nid)) {
     $status = $status ? 'AND status = 1' : '';
     $result = db_query("SELECT rid,version FROM {project_releases} WHERE nid = %d $status ORDER BY version DESC", $rid->nid);
     $releases = array();
