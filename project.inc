@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.114 2007/08/22 16:29:06 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.115 2007/08/25 17:54:54 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -79,14 +79,14 @@ function project_project_form($node) {
   $form['project']['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Full project name'),
-    '#default_value' => $node->title,
+    '#default_value' => isset($node->title) ? $node->title : NULL,
     '#maxlength' => 128,
     '#required' => TRUE,
   );
   $form['project']['body'] = array(
     '#type' => 'textarea',
     '#title' => t('Full description'),
-    '#default_value' => $node->body,
+    '#default_value' => isset($node->body) ? $node->body : NULL,
     '#cols' => 40,
     '#rows' => 10,
     '#required' => TRUE,
@@ -95,7 +95,7 @@ function project_project_form($node) {
   $form['project']['uri'] = array(
     '#type' => 'textfield',
     '#title' => t('Short project name'),
-    '#default_value' => $node->uri,
+    '#default_value' => isset($node->uri) ? $node->uri : NULL,
     '#size' => 40,
     '#maxlength' => 50,
     '#description' => t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'),
@@ -104,7 +104,7 @@ function project_project_form($node) {
   $form['project']['mail'] = array(
     '#type' => 'textfield',
     '#title' => t('Project e-mail'),
-    '#default_value' => $node->mail ? $node->mail : $user->mail,
+    '#default_value' => isset($node->mail) ? $node->mail : $user->mail,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('E-mail address where the project owners can be contacted.'),
@@ -113,7 +113,7 @@ function project_project_form($node) {
   $form['project']['homepage'] = array(
     '#type' => 'textfield',
     '#title' => t('Homepage'),
-    '#default_value' => $node->homepage,
+    '#default_value' => isset($node->homepage) ? $node->homepage : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project homepage.'),
@@ -121,7 +121,7 @@ function project_project_form($node) {
   $form['project']['documentation'] = array(
     '#type' => 'textfield',
     '#title' => t('Documentation'),
-    '#default_value' => $node->documentation,
+    '#default_value' => isset($node->documentation) ? $node->documentation : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project documentation.'),
@@ -129,7 +129,7 @@ function project_project_form($node) {
   $form['project']['license'] = array(
     '#type' => 'textfield',
     '#title' => t('License'),
-    '#default_value' => $node->license,
+    '#default_value' => isset($node->license) ? $node->license : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project license.'),
@@ -137,7 +137,7 @@ function project_project_form($node) {
   $form['project']['screenshots'] = array(
     '#type' => 'textfield',
     '#title' => t('Screenshots'),
-    '#default_value' => $node->screenshots,
+    '#default_value' => isset($node->screenshots) ? $node->screenshots : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project screenshots.'),
@@ -145,7 +145,7 @@ function project_project_form($node) {
   $form['project']['changelog'] = array(
     '#type' => 'textfield',
     '#title' => t('Changelog'),
-    '#default_value' => $node->changelog,
+    '#default_value' => isset($node->changelog) ? $node->changelog : NULL,
      '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to changelog.'),
@@ -153,7 +153,7 @@ function project_project_form($node) {
   $form['project']['cvs'] = array(
     '#type' => 'textfield',
     '#title' => t('CVS tree'),
-    '#default_value' => $node->cvs,
+    '#default_value' => isset($node->cvs) ? $node->cvs : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to webcvs/viewcvs.'),
@@ -161,7 +161,7 @@ function project_project_form($node) {
   $form['project']['demo'] = array(
     '#type' => 'textfield',
     '#title' => t('Demo site'),
-    '#default_value' => $node->demo,
+    '#default_value' => isset($node->demo) ? $node->demo : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to a live demo.'),
@@ -233,11 +233,11 @@ function project_project_validate(&$node) {
     form_set_error('mail_copy', $data);
   }
 
-  if (is_array($node->mail_copy_filter)) {
+  if (isset($node->mail_copy_filter) && is_array($node->mail_copy_filter)) {
     $node->mail_copy_filter = array_filter($node->mail_copy_filter, 'project_project_cleanup');
   }
 
-  if (is_array($node->mail_copy_filter_state)) {
+  if (isset($node->mail_copy_filter_state) && is_array($node->mail_copy_filter_state)) {
     $node->mail_copy_filter_state = array_filter($node->mail_copy_filter_state, 'project_project_cleanup');
   }
 
@@ -337,7 +337,7 @@ function project_project_view($node, $teaser = false, $page = false) {
     }
 
     // Flags that indicate what kind of access to project issues to allow.
-    $has_issues = module_exists('project_issue') && $node->issues;
+    $has_issues = module_exists('project_issue') && !empty($node->issues);
     $view_issues = $has_issues && (user_access('access project issues') || user_access('access own project issues') || user_access('administer projects'));
     $make_issues = $has_issues && node_access('create', 'project_issue');
 
@@ -478,7 +478,7 @@ function project_project_access($op, $node) {
 function project_project_retrieve($key = 0) {
   if ($key) {
     if (is_numeric($key)) {
-      $node = node_load(array('nid' => $key, 'type' => 'project_project'));
+      return node_load(array('nid' => $key, 'type' => 'project_project'));
     }
     else {
       $nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $key), 0);
@@ -486,11 +486,11 @@ function project_project_retrieve($key = 0) {
         return new StdClass();
       }
       else {
-        $node = node_load(array('nid' => $nid, 'type' => 'project_project'));
+        return node_load(array('nid' => $nid, 'type' => 'project_project'));
       }
     }
   }
-  return $node;
+  return NULL;
 }
 
 function project_developers($nid = 0) {
