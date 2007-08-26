@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.293 2007/08/25 20:53:08 thehunmonkgroup Exp $
+// $Id: project.module,v 1.294 2007/08/26 03:23:16 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -704,7 +704,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         else {
           $placeholders = array();
           $active_tids = project_release_compatibility_list();
-          foreach ($active_tids as $tid => $term) {
+          foreach ($active_tids as $tid => $compatibility_term) {
             $placeholders[] = '%d';
             $release_settings['parameters'][] = $tid;
           }
