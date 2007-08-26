@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.29 2007/08/24 04:33:58 thehunmonkgroup Exp $
+// $Id: project.module,v 1.239.2.30 2007/08/26 03:25:57 thehunmonkgroup Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -568,6 +568,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     if ($termname) {
 
       $type = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE t.vid = %d AND t.name = '%s'", 't', 'tid'), $vid, $termname));
+      // Bad project category passed, return page not found.
+      if (!$type) {
+        return drupal_not_found();
+      }
       if (!$sort_method) {
         // For the default, we use the overall default if enabled for this term, and if not we use the first enabled method.
         $term_methods = array_filter(variable_get('project_sort_method_used_' . $type->tid, $sort_methods));
@@ -579,6 +583,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
 
       $module = $sort_methods[$sort_method];
+      // Bad sort method passed, return page not found.
+      if (!isset($module)) {
+        return drupal_not_found();
+      }
       if (module_invoke($module, 'project_sort_methods', 'set term', $sort_method)) {
 
         $tree = taxonomy_get_tree(_project_get_vid(), $type->tid);
@@ -610,9 +618,18 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           }
         }
 
+        // Look for a specific category term.
         $tid = (arg(3) && is_numeric(arg(3))) ? arg(3) : project_default_tid();
-        $term = taxonomy_get_term($tid);
+        // Bad term, return page not found.
+        if (!($term = taxonomy_get_term($tid))) {
+          return drupal_not_found();
+        }
 
+      }
+      // The sorting method is not supported by the module, so any term passed is invalid.
+      // Return page not found if one is found.
+      elseif (arg(3)) {
+        return drupal_not_found();
       }
 
       // Set the default elements that will be used to construct the SQL statement.
@@ -751,6 +768,10 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   }
   // If taxonomy is not enabled, fetch all projects
   else {
+    // Any terms passed without taxonomy module enabled are bogus -- return page not found.
+    if (isset($termname)) {
+      return drupal_not_found();
+    }
     // If the site has enabled issue tracking via the project_issue
     // module, we want to add 1 more field and JOIN to our query so
     // we can provide the link for "Bugs and feature requests"...
