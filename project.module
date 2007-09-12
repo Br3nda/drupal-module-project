@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.294 2007/08/26 03:23:16 thehunmonkgroup Exp $
+// $Id: project.module,v 1.295 2007/09/12 23:13:34 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -607,61 +607,28 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
 
       // Set the default elements that will be used to construct the SQL statement.
-      $sql_elements = array(
-        'fields' => array(
-          'prefix' => 'SELECT ',
-          'glue' => ', ',
-          'pieces' => array(
-            'DISTINCT(n.nid)',
-            'n.title',
-            'n.sticky',
-            'nr.teaser',
-            'nr.format',
-          )
-        ),
-        'from' => array(
-          'prefix' => ' FROM ',
-          'glue' => NULL,
-          'pieces' => array(
-            '{node} n '
-          )
-        ),
-        'joins' => array(
-          'prefix' => '',
-          'glue' => ' ',
-          'pieces' => array(
-            'INNER JOIN {node_revisions} nr ON n.vid = nr.vid',
-            'INNER JOIN {project_projects} p ON n.nid = p.nid',
-            'LEFT JOIN {term_node} r ON n.nid = r.nid'
-          )
-        ),
-        'wheres' => array(
-          'prefix' => ' WHERE ',
-          'glue' => ' AND ',
-          'pieces' => array(
-            'n.status = 1',
-            'r.tid = %d'
-          )
-        ),
-        'group_bys' => array(
-          'prefix' => ' GROUP BY ',
-          'glue' => ', ',
-          'pieces' => array(
-          )
-        ),
-        'order_bys' => array(
-          'prefix' => ' ORDER BY ',
-          'glue' => ', ',
-          'pieces' => array(
-          )
-        ),
-        'parameters' => array(
-          'prefix' => NULL,
-          'glue' => NULL,
-          'pieces' => array(
-            isset($term) ? $term->tid : $type->tid
-          )
-        )
+      $sql_elements = project_empty_query(); 
+      $sql_elements['fields']['pieces'] = array(
+        'DISTINCT(n.nid)',
+        'n.title',
+        'n.sticky',
+        'nr.teaser',
+        'nr.format',
+      );
+      $sql_elements['from']['pieces'] = array(
+        '{node} n '
+      );
+      $sql_elements['joins']['pieces'] = array(
+        'INNER JOIN {node_revisions} nr ON n.vid = nr.vid',
+        'INNER JOIN {project_projects} p ON n.nid = p.nid',
+        'LEFT JOIN {term_node} r ON n.nid = r.nid'
+      );
+      $sql_elements['wheres']['pieces'] = array(
+        'n.status = 1',
+        'r.tid = %d'
+      );
+      $sql_elements['parameters']['pieces'] = array(
+        isset($term) ? $term->tid : $type->tid
       );
 
       // If the site has enabled issue tracking via the project_issue
@@ -849,6 +816,18 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   return $output;
 }
 
+/**
+ * Build a SQL statment from a structure array.
+ *
+ * @param $sql_elements
+ *   An array with the following keys:
+ *     'fields', 'from', 'joins', 'wheres', 'group_bys', 'order_bys', 
+ *     'parameters'
+ *   Each value is an array with the following keys:
+ *     'prefix', 'glue', 'pieces'
+ * @return
+ *   SQL string.
+ */
 function project_build_query($sql_elements) {
   foreach ($sql_elements as $key => $sql_element) {
     if ($key != 'parameters' && count($sql_element['pieces'])) {
@@ -856,6 +835,51 @@ function project_build_query($sql_elements) {
     }
   }
   return db_rewrite_sql($sql);
+}
+
+/**
+ * Construct an empty query for project_build_query().
+ * 
+ * Set the default elements that will be used to construct the SQL statement.
+ */
+function project_empty_query() {
+  return array(
+    'fields' => array(
+      'prefix' => 'SELECT ',
+      'glue' => ', ',
+      'pieces' => array(),
+    ),
+    'from' => array(
+      'prefix' => ' FROM ',
+      'glue' => NULL,
+      'pieces' => array(''),
+    ),
+    'joins' => array(
+      'prefix' => '',
+      'glue' => ' ',
+      'pieces' => array(),
+    ),
+    'wheres' => array(
+      'prefix' => ' WHERE ',
+      'glue' => ' AND ',
+      'pieces' => array(),
+    ),
+    'group_bys' => array(
+      'prefix' => ' GROUP BY ',
+      'glue' => ', ',
+      'pieces' => array(),
+    ),
+    'order_bys' => array(
+      'prefix' => ' ORDER BY ',
+      'glue' => ', ',
+      'pieces' => array(),
+    ),
+    'parameters' => array(
+      'prefix' => NULL,
+      'glue' => NULL,
+      'pieces' => array(),
+    )
+  );
 }
 
 // TODO: this should probably be moved to cvs.module...
