@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.296 2007/09/13 14:03:07 thehunmonkgroup Exp $
+// $Id: project.module,v 1.297 2007/09/13 16:06:47 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -1160,6 +1160,13 @@ function project_use_cvs($project) {
 /**
  * Adds additional necessary fields to queries containing GROUP BY.
  *
+
+ * PostgreSQL is more strict about GROUP BY than MySQL. Many queries generated
+ * by the project query builder are not valid SQL, though they are allowed by
+ * MySQL. This function attempts to make all queries fully standard compliant
+ * by finding every non-aggregate column from SELECT and adding them to the
+ * GROUP BY clause.
+ *
  * @param $sql_elements
  *   An array of SQL elements.
  * @return
@@ -1173,6 +1180,5 @@ function project_build_group_bys($sql_elements) {
       }
     }
   }
-
   return $sql_elements;
 }
