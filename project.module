@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.295 2007/09/12 23:13:34 dww Exp $
+// $Id: project.module,v 1.296 2007/09/13 14:03:07 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -699,6 +699,8 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
       $parameters = $sql_elements['parameters']['pieces'];
 
+      $sql_elements = project_build_group_bys($sql_elements);
+
       $sql = project_build_query($sql_elements);
 
       $pager = module_invoke($module, 'project_sort_methods', 'pager', $sort_method);
@@ -1153,4 +1155,24 @@ function project_use_cvs($project) {
     $project = is_numeric($project) ? node_load($project) : $project;
     return isset($project->cvs_repository) && ($project->cvs_repository != 0);
   }
+}
+
+/**
+ * Adds additional necessary fields to queries containing GROUP BY.
+ *
+ * @param $sql_elements
+ *   An array of SQL elements.
+ * @return
+ *   The SQL element array with the addtional GROUP BY fields.
+ */
+function project_build_group_bys($sql_elements) {
+  if (!empty($sql_elements['group_bys']['pieces'])) {
+    foreach ($sql_elements['fields']['pieces'] as $piece) {
+      if (!preg_match('/[DISTINCT|MAX|MIN|COUNT|SUM]/', $piece)) {
+        $sql_elements['group_bys']['pieces'][] = $piece;
+      }
+    }
+  }
+
+  return $sql_elements;
 }
