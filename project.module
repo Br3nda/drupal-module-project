@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.50 2007/09/13 16:06:42 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.51 2007/09/14 17:45:55 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -737,8 +737,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
       $parameters = $sql_elements['parameters']['pieces'];
 
-      $sql_elements = project_build_group_bys($sql_elements);
-
       $sql = project_build_query($sql_elements);
 
       $pager = module_invoke($module, 'project_sort_methods', 'pager', $sort_method);
@@ -1125,30 +1123,4 @@ function project_use_cvs($project) {
     $project = is_numeric($project) ? node_load($project) : $project;
     return isset($project->cvs_repository) && ($project->cvs_repository != 0);
   }
-}
-
-/**
- * Adds additional necessary fields to queries containing GROUP BY.
- *
-
- * PostgreSQL is more strict about GROUP BY than MySQL. Many queries generated
- * by the project query builder are not valid SQL, though they are allowed by
- * MySQL. This function attempts to make all queries fully standard compliant
- * by finding every non-aggregate column from SELECT and adding them to the
- * GROUP BY clause.
- *
- * @param $sql_elements
- *   An array of SQL elements.
- * @return
- *   The SQL element array with the addtional GROUP BY fields.
- */
-function project_build_group_bys($sql_elements) {
-  if (!empty($sql_elements['group_bys']['pieces'])) {
-    foreach ($sql_elements['fields']['pieces'] as $piece) {
-      if (!preg_match('/[DISTINCT|MAX|MIN|COUNT|SUM]/', $piece)) {
-        $sql_elements['group_bys']['pieces'][] = $piece;
-      }
-    }
-  }
-  return $sql_elements;
 }
