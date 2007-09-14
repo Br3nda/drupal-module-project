@@ -1,0 +1,10 @@
+/* $Id: project_usage.css,v 1.1 2007/09/14 16:17:55 dww Exp $ */
+
+th.project-usage-week {
+  text-align: right;
+}
+
+td.project-usage-numbers {
+  text-align: right;
+}
+

@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.7 2007/08/22 16:30:52 thehunmonkgroup Exp $
+// $Id: project-release-serve-history.php,v 1.8 2007/09/14 16:17:55 dww Exp $
 
 /**
  * @file
@@ -99,9 +99,11 @@ if (isset($_GET['site_key'])) {
     $site_key = $_GET['site_key'];
     $project_version = isset($_GET['version']) ? $_GET['version'] : '';
 
-    // Compute a timestamp for the begining of the day.
-    $time_parts = getdate();
-    $timestamp = mktime(0, 0, 0, $time_parts['mon'], $time_parts['mday'], $time_parts['year']);
+    // Compute a GMT timestamp for begining of the day. getdate() is
+    // affected by the server's timezone so we need to cancel it out.
+    $now = time();
+    $time_parts = getdate($now - date('Z', $now));
+    $timestamp = gmmktime(0, 0, 0, $time_parts['mon'], $time_parts['mday'], $time_parts['year']);
 
     if (db_result(db_query("SELECT COUNT(*) FROM {project_usage_raw} WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $project_name, $timestamp, $site_key))) {
       db_query("UPDATE {project_usage_raw} SET api_version = '%s', project_version = '%s' WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $api_version, $project_version, $project_name, $timestamp, $site_key);
