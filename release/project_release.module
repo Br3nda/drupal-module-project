@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.46 2007/08/23 23:26:38 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.47 2007/09/19 18:25:04 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -738,9 +738,15 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
     project_project_set_breadcrumb($project, $breadcrumb);
   }
 
-  if ($node->rebuild) {
-    $output .= t('Nightly development snapshot from @tag', array('@tag' => $node->tag)) .'<br />';
+  if (project_use_cvs($project) && isset($node->tag)) {
+    if ($node->rebuild) {
+      $output .= t('Nightly development snapshot from CVS branch: @tag', array('@tag' => $node->tag)) .'<br />';
+    }
+    else {
+      $output .= t('Official release from CVS tag: @tag', array('@tag' => $node->tag)) .'<br />';      
+    }
   }
+
   if ($node->file_path) {
     $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $node->file_path))) .'</small><br />';
     $output .= '<small>'. t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->file_path))))) .'</small><br />';
