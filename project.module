@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.30 2007/08/26 03:25:57 thehunmonkgroup Exp $
+// $Id: project.module,v 1.239.2.31 2007/09/19 02:16:51 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -1037,7 +1037,7 @@ function theme_project_term_list($terms, $path) {
   $depth = 0;
   $output = "\n<ul class=\"project-terms\">\n";
   foreach ($terms as $term) {
-    $link = l($term->name .' ('. $term->count .')', "$path/$term->tid");
+    $link = l($term->name .' ('. $term->count .')', "$path/$term->tid", array('title' => strip_tags($term->description)));
     $output .= '<li class="leaf">' . $link . "</li>\n";
   }
   $output .= "\n</ul>\n";
