@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.76 2007/08/23 23:09:18 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.1.2.77 2007/09/20 00:12:22 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -75,14 +75,6 @@ function project_release_settings() {
     '#size' => 50,
     '#maxlength' => 255,
     '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP,
-  );
-
-  // TODO: isn't this a dead setting, too?
-  $form['project_release_unmoderate'] = array(
-    '#type' => 'radios',
-    '#title' => t('Unmoderate projects with releases'),
-    '#default_value' => variable_get('project_release_unmoderate', 0),
-    '#options' => array(0 => t('Disabled'), 1 => t('Enabled')),
   );
 
   if ($tree = project_release_get_api_taxonomy()) {

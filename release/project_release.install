@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.1.2.15 2007/08/22 16:39:54 thehunmonkgroup Exp $
+// $Id: project_release.install,v 1.1.2.16 2007/09/20 00:12:22 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -145,6 +145,15 @@ function project_release_update_2() {
   return $ret;
 }
 
+/**
+ * Remove a dead variable from before project_release.module existed.
+ */
+function project_release_update_3() {
+  $ret = array();
+  variable_del('project_release_unmoderate');
+  $ret[] = array('success' => TRUE, 'query' => "variable_del('project_release_unmoderate')");
+  return $ret;
+}
 
 function project_release_db_table_exists($table) {
   switch ($GLOBALS['db_type']) {
