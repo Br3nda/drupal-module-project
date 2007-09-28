@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.299 2007/09/19 02:17:09 dww Exp $
+// $Id: project.module,v 1.300 2007/09/28 14:59:57 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -517,8 +517,9 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   project_project_set_breadcrumb();
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
+  $output = '';
   if (module_exists('project_release') && variable_get('project_release_browse_versions', 0)) {
-    $version_form = drupal_get_form('project_release_version_filter_form', $version);
+    $version_form = drupal_get_form('project_release_version_filter_form');
     $output .= $version_form;
     // Read in requested version, if any.
     $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
@@ -758,6 +759,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     }
     $result = db_query(db_rewrite_sql("SELECT n.nid, n.title, nr.teaser, nr.format$ISSUES FROM {node} n INNER JOIN {node_revisions} nr ON n.vid = nr.vid $ISSUE_JOIN WHERE n.status = 1 AND n.type = 'project_project' ORDER BY n.title ASC"));
   }
+  $projects = '';
   $class = 'even';
   while ($project = db_fetch_object($result)) {
     $project->body = check_markup($project->teaser, $project->format, FALSE);
@@ -773,7 +775,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     }
 
     // Make sure we have the latest release
-    if ($project->release_count > 1 && $version != -1) {
+    if (isset($project->release_count) && $project->release_count > 1 && $version != -1) {
       $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major WHERE p.pid = %d AND t.tid = %d AND n.status = 1 ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC", $project->nid, $version, 0, 1));
       $project->file_path = $latest->file_path;
       $project->version = $latest->version;
@@ -810,7 +812,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
   $output .= '<div class="project" id="project-overview">' . $projects . '</div>';
 
-  if ($pager) {
+  if (!empty($pager)) {
     $output .= theme('pager', NULL, variable_get('project_browse_nodes', 30));
   }
   return $output;
@@ -829,6 +831,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
  *   SQL string.
  */
 function project_build_query($sql_elements) {
+  $sql = '';
   foreach ($sql_elements as $key => $sql_element) {
     if ($key != 'parameters' && count($sql_element['pieces'])) {
       $sql .= $sql_element['prefix'] . implode($sql_element['glue'], $sql_element['pieces']);
@@ -1078,15 +1081,15 @@ function theme_project_term_list($terms, $path) {
 function theme_project_summary($project) {
   $output = '<div class="' . $project->class . '">';
   $output .= '<h2>'. l($project->title, "node/$project->nid") .'</h2>';
-  if ($project->changed) {
+  if (!empty($project->changed)) {
     $output .= '<p><small>' . t('Last changed: !interval ago', array('!interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
   }
   $output .= $project->body;
   $output .= theme('links', $project->links);
-  if ($project->download_table) {
+  if (!empty($project->download_table)) {
     $output .= $project->download_table;
   }
-  if ($project->terms) {
+  if (!empty($project->terms)) {
     $output .= theme('links', $project->terms);
   }
   $output .= '</div>';
