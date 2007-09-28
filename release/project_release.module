@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.48 2007/09/20 00:12:32 dww Exp $
+// $Id: project_release.module,v 1.49 2007/09/28 15:44:03 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -317,7 +317,7 @@ function project_release_form($release) {
     '#required' => $admin ? FALSE : TRUE,
     '#description' => t('Enter a description of this release, such as a list of the major changes or updates.'),
   );
-  $form['body_filter']['format'] = filter_form($node->format);
+  $form['body_filter']['format'] = filter_form($release->format);
 
   _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $is_edit, $admin, true, 40, 255);
   $form['tag']['rebuild'] = array(
@@ -350,9 +350,10 @@ function project_release_form($release) {
  * @param $name Name of this version element
  * @param $title Translatable title of the form element
  * @param $description Translatable description of the form element.
+ * @param $size Size of the form element
  * @param $required Boolean for if the form element should be required
  */
-function _project_release_form_add_version_element(&$form, $release, $modify, $format, $name, $title, $description = '', $size = 10) {
+function _project_release_form_add_version_element(&$form, $release, $modify, $format, $name, $title, $description = '', $size = 10, $required = FALSE) {
   $var_name = 'version_'. $name;
   $regexp = "@.*[!#%]$name.*@";
   if (preg_match($regexp, $format)) {
@@ -730,6 +731,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
     project_project_set_breadcrumb($project, $breadcrumb);
   }
 
+  $output = '';
   if (project_use_cvs($project) && isset($node->tag)) {
     if ($node->rebuild) {
       $output .= t('Nightly development snapshot from CVS branch: @tag', array('@tag' => $node->tag)) .'<br />';
@@ -817,6 +819,7 @@ function project_release_get_releases($project, $nodes = true, $sort_by = 'versi
  */
 function project_release_list($project, $main = 0) {
   if ($releases = project_release_get_releases($project, 1, 'date', 'files')) {
+    $output = '';
     foreach ($releases as $release) {
       $output .= node_view($release);
     }
@@ -1392,7 +1395,7 @@ function project_release_table($project, $table_type = 'defaults', $release_type
         'href' => "node/$release->nid/edit",
       );
     }
-    if (!is_array($items[$release->tid])) {
+    if (!isset($items[$release->tid]) || !is_array($items[$release->tid])) {
       $items[$release->tid] = array();
     }
 
