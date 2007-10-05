@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.300 2007/09/28 14:59:57 thehunmonkgroup Exp $
+// $Id: project.module,v 1.301 2007/10/05 23:27:28 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -103,13 +103,11 @@ function project_perm() {
 function project_db_rewrite_sql($query, $primary_table, $primary_field) {
   if ($primary_field == 'nid') {
     $return = array();
-    $types = "'project_project'";
     $access_projects = user_access('access projects');
     $admin_projects = user_access('administer projects');
     if (module_exists('project_issue')) {
       $access_issues = user_access('access project issues');
       $access_own_issues = user_access('access own project issues');
-      $types .= ", 'project_issue'";
     }
     else {
       $access_issues = TRUE;
@@ -138,18 +136,30 @@ function project_db_rewrite_sql($query, $primary_table, $primary_field) {
     // the {node} table's alias is in the query.
     $where = array();
 
-    // First, if the type is not one of the project* ones, we don't care.
-    $where[] = "($alias.type NOT IN ($types))";
-
-    // Now, see if the current user can access their own, and allow those.
     global $user;
     $uid = $user->uid;
-    if (!$access_projects && user_access('access own projects')) {
-      $where[] = "($alias.type = 'project_project' AND $alias.uid = $uid)";
+
+    // Some node types will be restriced by our query, but we want to allow
+    // every other node type. We keep track of the types we're handling, and
+    // at the end we'll add a clause to ignore/allow all other types.
+    $restricted_types = array();
+
+    if (!$access_projects) {
+      $restricted_types[] = "'project_project'";
+      if (user_access('access own projects')) {
+        $where[] = "($alias.type = 'project_project' AND $alias.uid = $uid)";
+      }
     }
-    if (!$access_issues && $access_own_issues) {
-      $where[] = "($alias.type = 'project_issue' AND $alias.uid = $uid)";
+
+    if (module_exists('project_issue') && !$access_issues) {
+      $restricted_types[] = "'project_issue'";
+      if ($access_own_issues) {
+        $where[] = "($alias.type = 'project_issue' AND $alias.uid = $uid)";
+      }
     }
+
+    // If the type is not one of the restricted project* ones, allow access.
+    $where[] = "($alias.type NOT IN (". implode(', ', $restricted_types) ."))";
 
     // Now that we have all our WHERE clauses, we just OR them all together.
     $return['where'] = implode(' OR ', $where);
