@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.33 2007/10/06 17:12:07 dww Exp $
+// $Id: project.module,v 1.239.2.34 2007/10/06 19:06:55 thehunmonkgroup Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -402,6 +402,7 @@ function project_menu($may_cache) {
 
     // Project browsing pages
     if (project_use_taxonomy()) {
+      $default_sort = variable_get('project_sort_method', 'category');
       $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       $terms = taxonomy_get_tree(_project_get_vid());
       $releases = variable_get('project_browse_releases', 0);
@@ -420,8 +421,10 @@ function project_menu($may_cache) {
             $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
                  'title' => t('browse by %sort_method', array('%sort_method' => $sort_method)),
                  'access' => $access,
-                 'type' => (($sort_method == variable_get('project_sort_method', 'category') || (($j == 0) && !in_array(variable_get('project_sort_method', 'category'), $term_methods))) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
-                 'weight' => ($sort_method == variable_get('project_sort_method', 'category')) ? -10 : $j,
+                 // It's a default task if a) sort method matches default, or b) default sort isn't
+                 // in the list of sort methods, and it's the first tab.
+                 'type' => (($sort_method == $default_sort || (($j == 0) && !in_array($default_sort, $term_methods))) ? MENU_DEFAULT_LOCAL_TASK : MENU_LOCAL_TASK),
+                 'weight' => ($sort_method == $default_sort) ? -10 : $j,
                  'callback arguments' => array($term->name, $sort_method));
             $j++;
           }
