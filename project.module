@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.34 2007/10/06 19:06:55 thehunmonkgroup Exp $
+// $Id: project.module,v 1.239.2.35 2007/10/06 19:49:20 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -158,7 +158,7 @@ function project_db_rewrite_sql($query, $primary_table, $primary_field) {
       }
     }
 
-    if (module_exists('project_issue') && !$access_issues) {
+    if (module_exist('project_issue') && !$access_issues) {
       $restricted_types[] = "'project_issue'";
       if ($access_own_issues) {
         $where[] = "($alias.type = 'project_issue' AND $alias.uid = $uid)";
