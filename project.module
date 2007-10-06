@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.303 2007/10/06 19:05:39 thehunmonkgroup Exp $
+// $Id: project.module,v 1.304 2007/10/06 19:42:32 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -621,7 +621,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
 
       // Set the default elements that will be used to construct the SQL statement.
-      $sql_elements = project_empty_query(); 
+      $sql_elements = project_empty_query();
       $sql_elements['fields']['pieces'] = array(
         'DISTINCT(n.nid)',
         'n.title',
@@ -836,7 +836,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
  *
  * @param $sql_elements
  *   An array with the following keys:
- *     'fields', 'from', 'joins', 'wheres', 'group_bys', 'order_bys', 
+ *     'fields', 'from', 'joins', 'wheres', 'group_bys', 'order_bys',
  *     'parameters'
  *   Each value is an array with the following keys:
  *     'prefix', 'glue', 'pieces'
@@ -855,7 +855,7 @@ function project_build_query($sql_elements) {
 
 /**
  * Construct an empty query for project_build_query().
- * 
+ *
  * Set the default elements that will be used to construct the SQL statement.
  */
 function project_empty_query() {
