@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.32 2007/10/05 23:27:06 dww Exp $
+// $Id: project.module,v 1.239.2.33 2007/10/06 17:12:07 dww Exp $
 // $Name:  $
 
 // project nodes    -> project_projects
@@ -577,7 +577,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
     $vid = _project_get_vid();
     if ($termname) {
 
-      $type = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t WHERE t.vid = %d AND t.name = '%s'", 't', 'tid'), $vid, $termname));
+      $type = db_fetch_object(db_query(db_rewrite_sql("SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} th ON t.tid = th.tid WHERE t.vid = %d AND th.parent = 0 AND t.name = '%s'", 't', 'tid'), $vid, $termname));
       // Bad project category passed, return page not found.
       if (!$type) {
         return drupal_not_found();
