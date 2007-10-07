@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.13 2007/09/20 00:12:32 dww Exp $
+// $Id: project_release.install,v 1.14 2007/10/07 05:31:32 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -35,6 +35,11 @@ function project_release_install() {
           tid int unsigned NOT NULL default '0',
           major int unsigned NOT NULL default '0',
           PRIMARY KEY (nid, tid)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_package_errors} (
+          nid int unsigned NOT NULL default '0',
+          messages text,
+          PRIMARY KEY (nid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {cache_project_release} (
         cid varchar(255) BINARY NOT NULL default '',
@@ -83,6 +88,13 @@ function project_release_install() {
             major int NOT NULL default '0',
             PRIMARY KEY (nid, tid)
           );");
+      }
+      if (!db_table_exists('project_release_package_errors')) {
+        db_query("CREATE TABLE {project_release_package_errors} (
+          nid int NOT NULL default '0',
+          messages text,
+          PRIMARY KEY (nid)
+        )");
       }
       if (!db_table_exists('cache_project_release')) {
         db_query("CREATE TABLE {cache_project_release} (
@@ -255,5 +267,32 @@ function project_release_update_5002() {
   $ret = array();
   variable_del('project_release_unmoderate');
   $ret[] = array('success' => TRUE, 'query' => "variable_del('project_release_unmoderate')");
+  return $ret;
+}
+
+/**
+ * Add {project_release_package_errors} table to track packaging errors.
+ */
+function project_release_update_5003() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {project_release_package_errors} (
+          nid int unsigned NOT NULL default '0',
+          messages text NOT NULL,
+          PRIMARY KEY (nid)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+    case 'pgsql':
+      if (!db_table_exists('project_release_package_errors')) {
+        $ret[] = update_sql("CREATE TABLE {project_release_package_errors} (
+          nid int NOT NULL default '0',
+          messages text,
+          PRIMARY KEY (nid)
+        )");
+      }
+      break;
+  }
   return $ret;
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.22 2007/08/22 16:30:52 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.23 2007/10/07 05:31:32 dww Exp $
 // $Name:  $
 
 /**
@@ -167,6 +167,7 @@ elseif ($task == 'repair') {
 // ------------------------------------------------------------
 
 function package_releases($type, $project_id) {
+  global $wd_err_msg;
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
     $plural = t('tags');
@@ -198,6 +199,7 @@ function package_releases($type, $project_id) {
   $num_considered = 0;
   $project_nids = array();
   while ($release = db_fetch_object($query)) {
+    $wd_err_msg = array();
     $version = $release->version;
     $uri = $release->uri;
     $tag = $release->tag;
@@ -207,6 +209,7 @@ function package_releases($type, $project_id) {
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
     $rev = escapeshellcmd($rev);
+    db_query("DELETE FROM {project_release_package_errors} WHERE nid = %d", $nid);
     if ($release->rid == 1) {
       $built = package_release_core($nid, $uri, $version, $rev);
     }
@@ -219,6 +222,9 @@ function package_releases($type, $project_id) {
       $project_nids[$pid] = TRUE;
     }
     $num_considered++;
+    if (count($wd_err_msg)) {
+      db_query("INSERT INTO {project_release_package_errors} (nid, messages) values (%d, '%s')", $nid, serialize($wd_err_msg));
+    }
   }
   if ($num_built || $type == 'branch') {
     if (!empty($project_id)) {
@@ -589,8 +595,13 @@ function wd_msg($msg, $link = NULL) {
  * Wrapper function for watchdog() to log error messages.
  */
 function wd_err($msg, $link = NULL) {
+  global $wd_err_msg;
+  if (!isset($wd_err_msg)) {
+    $wd_err_msg = array();
+  }
   watchdog('package_error', $msg, WATCHDOG_ERROR, $link);
   echo $msg ."\n";
+  $wd_err_msg[] = $msg;
 }
 
 /**

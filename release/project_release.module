@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.50 2007/09/28 20:16:45 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.51 2007/10/07 05:31:32 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -770,8 +770,25 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
   $node->content['release_info'] = array(
     '#value' => '<div class="project-release">'. $output .'</div>',
-    '#weight' => -1,
+    '#weight' => -2,
   );
+
+  // Display packaging errors to admins.
+  if (project_check_admin_access($node->pid)) {
+    $rows = array();
+    $result = db_query('SELECT * FROM {project_release_package_errors} WHERE nid = %d', $node->nid);
+    $error = db_fetch_object($result);
+    $rows = unserialize($error->messages);
+    if (!empty($rows)) {
+      $node->content['release_errors'] = array(
+        '#value' => theme('item_list', $rows, t('Packaging error messages')),
+        '#weight' => -1,
+        '#prefix' => '<div class="messages error">',
+        '#suffix' => '</div>',
+      );
+    }
+  }
+
   return $node;
 }
 
