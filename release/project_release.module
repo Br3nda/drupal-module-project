@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.51 2007/10/07 05:31:32 dww Exp $
+// $Id: project_release.module,v 1.52 2007/10/08 19:44:20 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -584,7 +584,7 @@ function project_release_db_save($node, $is_new) {
     'rebuild' => "%d",
   );
   $values = array( 'pid' => $node->pid, 'version' => $node->version,
-    'tag' => $node->tag, 'file_path' => $file_data->filepath,
+    'tag' => $node->tag, 'file_path' => $node->file_path ? $node->file_path : $file_data->filepath,
     'file_date' => $node->file_date, 'file_hash' => $node->file_hash,
     'rebuild' => $node->rebuild,
   );
