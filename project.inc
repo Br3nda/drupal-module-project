@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.115 2007/08/25 17:54:54 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.116 2007/10/13 00:16:41 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -440,11 +440,13 @@ function project_project_access($op, $node) {
 
   switch ($op) {
     case 'view':
-      if (user_access('administer projects')) {
-         return TRUE;
+      // Since this function is shared for project_release nodes, we have to
+      // be careful what node we pass to project_check_admin_access().
+      if ($node->type == 'project_release') {
+        $node = node_load($node->pid);
       }
-      if (user_access('access own projects') && $node->uid == $user->uid) {
-         return TRUE;
+      if (project_check_admin_access($node)) {
+        return TRUE;
       }
       if (!user_access('access projects')) {
          return FALSE;
