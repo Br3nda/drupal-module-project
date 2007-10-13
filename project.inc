@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.116 2007/10/13 00:16:41 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.117 2007/10/13 04:17:09 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -101,13 +101,19 @@ function project_project_form($node) {
     '#description' => t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'),
     '#required' => TRUE,
   );
+
+  $description = t('E-mail address where the project owner can be contacted.');
+  if (module_exists('project_issue')) {
+    $description .= t(' This will be used as the From: address for issue subscription e-mails.');
+  }
+
   $form['project']['mail'] = array(
     '#type' => 'textfield',
     '#title' => t('Project e-mail'),
     '#default_value' => isset($node->mail) ? $node->mail : $user->mail,
     '#size' => 40,
     '#maxlength' => 255,
-    '#description' => t('E-mail address where the project owners can be contacted.'),
+    '#description' => $description,
     '#required' => TRUE,
   );
   $form['project']['homepage'] = array(
