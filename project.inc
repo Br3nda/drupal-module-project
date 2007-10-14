@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.117 2007/10/13 04:17:09 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.118 2007/10/14 18:34:50 dww Exp $
 // $Name:  $
 
 /**
@@ -104,7 +104,7 @@ function project_project_form($node) {
 
   $description = t('E-mail address where the project owner can be contacted.');
   if (module_exists('project_issue')) {
-    $description .= t(' This will be used as the From: address for issue subscription e-mails.');
+    $description .= ' '. t('This will be used as the From: address for issue subscription e-mails.');
   }
 
   $form['project']['mail'] = array(
