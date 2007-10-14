@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.77 2007/09/20 00:12:22 dww Exp $
+// $Id: project_release.module,v 1.1.2.78 2007/10/14 20:01:26 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -569,16 +569,43 @@ function project_release_db_save($node, $is_new) {
   $values['nid'] = $node->nid;
   db_query($sql, $values);
 
-  // If this is the first release for a given compatibility term, add
-  // a record into the {project_release_default_versions} table.
-  if ($is_new && module_exist('taxonomy')) {
+  // Since release nodes can be unpublished, we need to make sure that the
+  // default branch information is still up to date.
+  if (module_exist('taxonomy')) {
     $vid = _project_release_get_api_vid();
     if (isset($node->taxonomy[$vid])) {
       $tid = $node->taxonomy[$vid];
-      $has_default = db_result(db_query("SELECT COUNT(*) FROM {project_release_default_versions} WHERE nid = %d AND tid = %d", $node->pid, $tid));
-      if (!$has_default) {
-        db_query("INSERT INTO {project_release_default_versions} (nid, tid, major) VALUES (%d, %d, %d)", $node->pid, $tid, $node->version_major);
-      }
+      project_release_check_default_version($node->pid, $tid);
+    }
+  }
+}
+
+/**
+ * Verifies the data for default release versions, and updates if necessary.
+ *
+ * @param $pid The project ID.
+ * @param $tid The API compatibility term ID.
+ */
+function project_release_check_default_version($pid, $tid) {
+  // Grab the current default branch for this API version from the default
+  // release table.
+  $default_branch = db_result(db_query("SELECT major FROM {project_release_default_versions} WHERE nid = %d AND tid = %d", $pid, $tid));
+
+  // A default entry exists, so check to see if the current default branch
+  // contains active release nodes.
+  if ($default_branch !== FALSE) {
+    $active_branch_releases = db_result(db_query("SELECT COUNT(DISTINCT(r.nid)) FROM {project_release_nodes} r INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND tn.tid = %d AND n.status = 1 AND r.file_path <> '' AND r.version_major = %d", $pid, $tid, $default_branch));
+  }
+
+  if ($default_branch === FALSE || !$active_branch_releases) {
+    // Missing default, so first clear out any bad data.
+    db_query("DELETE FROM {project_release_default_versions} WHERE nid = %d AND tid = %d", $pid, $tid);
+
+    // For a sensible default, pull the lowest major number that has a
+    // published release.
+    $lowest_major = db_result(db_query("SELECT MIN(r.version_major) FROM {project_release_nodes} r INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND tn.tid = %d AND n.status = 1 AND r.file_path <> ''", $pid, $tid));
+    if ($lowest_major !== FALSE) {
+      db_query("INSERT INTO {project_release_default_versions} (nid, tid, major) VALUES (%d, %d, %d)", $pid, $tid, $lowest_major);
     }
   }
 }
@@ -592,6 +619,9 @@ function project_release_delete($node) {
     file_delete(file_create_path($node->file_path));
   }
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
+
+  // Make sure that the default release version information is up to date.
+  project_release_check_default_version($node->pid, $node->version_api_tid);
 }
 
 
@@ -936,7 +966,7 @@ function project_release_project_edit_releases() {
           $releases[$tid]['majors'][$major] = $major;
         }
         $releases[$tid]['name'] = $rel->name;
-        if (!isset($releases[$tid]['current']) && (empty($node->default_versions[$tid]) || $node->default_versions[$tid] == $major)) {
+        if (!isset($releases[$tid]['current']) && (!isset($node->default_versions[$tid]) || $node->default_versions[$tid] == $major)) {
           $releases[$tid]['current'] = $rel->version;
         }
       }
