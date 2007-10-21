@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.53 2007/10/14 19:53:07 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.54 2007/10/21 17:40:03 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1667,7 +1667,7 @@ function project_release_file_download($filename) {
       return array(
         'Content-Type: application/octet-stream',
         'Content-Length: '. filesize($filepath),
-        'Content-Disposition: attachment; filename='. mime_header_encode($filename),
+        'Content-Disposition: attachment; filename="'. mime_header_encode($filename) .'"',
       );
     }
     return -1;
