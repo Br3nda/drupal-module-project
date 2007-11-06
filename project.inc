@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.118 2007/10/14 18:34:50 dww Exp $
+// $Id: project.inc,v 1.119 2007/11/06 18:56:36 dww Exp $
 // $Name:  $
 
 /**
@@ -177,10 +177,6 @@ function project_project_form($node) {
   return $form;
 }
 
-function project_project_cleanup($input) {
-  return $input;
-}
-
 function project_project_validate(&$node) {
   // Bail if user hasn't done a preview yet.
   if (!isset($node->title)) {
@@ -223,28 +219,12 @@ function project_project_validate(&$node) {
     form_set_error('body', t('You must add a project description.'));
   }
 
-  // Validate emails
+  // Validate email.
   if (empty($node->mail)) {
     form_set_error('mail', t('You must specify a project e-mail.'));
   }
   elseif ($data = user_validate_mail($node->mail)) {
     form_set_error('mail', $data);
-  }
-
-  if (!empty($node->mail_digest) && ($data = user_validate_mail($node->mail_digest))) {
-    form_set_error('mail_digest', $data);
-  }
-
-  if (!empty($node->mail_copy) && ($data = user_validate_mail($node->mail_copy))) {
-    form_set_error('mail_copy', $data);
-  }
-
-  if (isset($node->mail_copy_filter) && is_array($node->mail_copy_filter)) {
-    $node->mail_copy_filter = array_filter($node->mail_copy_filter, 'project_project_cleanup');
-  }
-
-  if (isset($node->mail_copy_filter_state) && is_array($node->mail_copy_filter_state)) {
-    $node->mail_copy_filter_state = array_filter($node->mail_copy_filter_state, 'project_project_cleanup');
   }
 
   // Make sure all URL fields actually contain URLs.
