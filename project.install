@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.15 2007/08/22 16:29:06 thehunmonkgroup Exp $
+// $Id: project.install,v 1.16 2007/11/13 01:27:54 dww Exp $
 // $Name:  $
 
 function project_install() {
@@ -15,7 +15,6 @@ function project_install() {
           demo varchar(255) NOT NULL default '',
           release_directory varchar(255) NOT NULL default '',
           version int(10) unsigned NOT NULL default '0',
-          mail varchar(255) NOT NULL default '',
           documentation varchar(255) not null default '',
           screenshots varchar(255) not null default '',
           license varchar(255) not null default '',
@@ -33,7 +32,6 @@ function project_install() {
           demo varchar(255) NOT NULL default '',
           release_directory varchar(255) NOT NULL default '',
           version int NOT NULL default '0',
-          mail varchar(255) not null default '',
           screenshots varchar(255) default '' not null,
           documentation varchar(255) default '' not null,
           license varchar(255) default '' not null,
@@ -229,4 +227,16 @@ function project_update_4() {
 function project_update_5000() {
   variable_del('project_support_forum');
   return array();
+}
+
+/**
+ * Get rid of the per-project mail address (used only for the issue
+ * email From: header) which has numerous problems.
+ * See http://drupal.org/node/36619 and http://drupal.org/node/189210
+ */
+function project_update_5001() {
+  $ret = array();
+  // PgSQL and MySQL have the same syntax for this.
+  $ret[] = update_sql('ALTER TABLE {project_projects} DROP COLUMN mail');
+  return $ret;
 }
