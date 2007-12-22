@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.14 2007/10/07 05:31:32 dww Exp $
+// $Id: project_release.install,v 1.15 2007/12/22 09:11:44 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -160,7 +160,7 @@ function project_release_update_1() {
           tid int unsigned NOT NULL default '0',
           major int unsigned NOT NULL default '0',
           PRIMARY KEY (nid, tid)
-        ) TYPE=MyISAM /*!40100 DEFAULT CHARACTER SET utf8 */;");
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       break;
     case 'pgsql':
       if (!db_table_exists('project_release_default_versions')) {
