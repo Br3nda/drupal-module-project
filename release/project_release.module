@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.1.2.79 2007/10/21 17:39:50 dww Exp $
+// $Id: project_release.module,v 1.1.2.80 2007/12/23 01:18:32 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -268,10 +268,11 @@ function project_release_form(&$release, &$param) {
     '#collapsible' => TRUE,
   );
   if (empty($release->file_path)) {
+    $file = file_check_upload('file');
     $form['file']['file'] = array(
       '#title' => t('File'),
       '#type' => 'file',
-      '#description' => t('Choose the file that will be associated with this release.'),
+      '#description' => ($file ? t('A file named %filename has already been uploaded. If you upload another file %filename will be replaced.', array('%filename' => $file->filename)) : t('Choose the file that will be associated with this release.')),
     );
   }
 
@@ -399,6 +400,8 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
  * @ingroup project_release_node
  */
 function project_release_validate(&$edit, $form) {
+  global $form_values;
+
   if ($_POST['edit']['validate_version']) {
     if (!isset($edit->version_major) && !isset($edit->version_minor) &&
         !isset($edit->version_patch) &&
@@ -419,8 +422,12 @@ function project_release_validate(&$edit, $form) {
   }
 
   if ($file = file_check_upload('file')) {
-    $file = file_save_upload('file', file_directory_path());
-    if ($file) {
+    if ($file = file_save_upload($file)) {
+      // Using $form_values here is an ugly hack, but the caching mechanism
+      // in file_check_upload() causes problems if we can't pass this object
+      // to the file_save_upload() call in the submit function which actually
+      // saves the file.
+      $form_values['release_file'] = $file;
       $filepath = file_create_path($file->filepath);
       form_set_value($form['file']['file_path'], $file->filepath);
       form_set_value($form['file']['file_date'], filemtime($filepath));
@@ -529,17 +536,32 @@ function project_release_update($node) {
  * @param $is_new Is this a new release node, or are we updating?
  */
 function project_release_db_save($node, $is_new) {
+  global $form_values;
+
   // If the patch field is set to a non-numeric value, we just want to
   // keep it as a NULL in the DB, instead of casting it to a 0.
   if (isset($node->version_patch) && !is_numeric($node->version_patch)) {
     unset($node->version_patch);
   }
+
+  // Handle file upload data.
+  $file_data = new stdClass();
+  if (isset($form_values['release_file'])) {
+    $file_data = file_save_upload($form_values['release_file'], file_directory_path());
+    // If a file was uploaded, this is what we need to use.
+    $file_path = $file_data->filepath;
+  }
+  else {
+    // If there's no upload, save whatever value is already in $node.
+    $file_path = $node->file_path;
+  }
+
   $types = array( 'pid' => "%d", 'version' => "'%s'", 'tag' => "'%s'",
     'file_path' => "'%s'", 'file_date' => "%d", 'file_hash' => "'%s'",
     'rebuild' => "%d",
   );
   $values = array( 'pid' => $node->pid, 'version' => $node->version,
-    'tag' => $node->tag, 'file_path' => $node->file_path,
+    'tag' => $node->tag, 'file_path' => $file_path,
     'file_date' => $node->file_date, 'file_hash' => $node->file_hash,
     'rebuild' => $node->rebuild,
   );
