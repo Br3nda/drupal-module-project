@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.55 2007/10/21 19:45:45 dww Exp $
+// $Id: project_release.module,v 1.56 2008/01/06 18:29:22 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1330,6 +1330,7 @@ function theme_project_release_project_download_table($node) {
   $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
   if (project_check_admin_access($node->nid)) {
     $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
+    $links[] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
   }
   $output .= theme('item_list', $links);
   return $output;
