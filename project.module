@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.305 2008/01/06 20:22:19 thehunmonkgroup Exp $
+// $Id: project.module,v 1.306 2008/01/06 21:05:26 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -235,7 +235,7 @@ function project_settings_form() {
       $form['sort_methods']['project_sort_method_used_' . $term->tid] = array(
         '#type' => 'checkboxes',
         '#title' => $term->name,
-        '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
+        '#default_value' => array_filter(variable_get('project_sort_method_used_'. $term->tid, array_keys($sort_methods))),
         '#options' => $sort_methods,
       );
     }
@@ -355,7 +355,7 @@ function project_menu($may_cache) {
                            'weight' => $term->weight,
                            'callback arguments' => array($term->name));
           $j = 0;
-          $term_methods = array_filter(variable_get('project_sort_method_used_' . $term->tid, $sort_methods));
+          $term_methods = array_keys(array_filter(variable_get('project_sort_method_used_'. $term->tid, $sort_methods)));
           foreach ($term_methods as $sort_method) {
             $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
                  'title' => t('Browse by !sort_method', array('!sort_method' => $sort_method)),
