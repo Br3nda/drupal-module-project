@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.239.2.13.2.56 2007/10/06 19:49:43 dww Exp $
+// $Id: project.module,v 1.239.2.13.2.57 2008/01/06 21:31:57 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -237,7 +237,7 @@ function project_settings() {
       $form['sort_methods']['project_sort_method_used_' . $term->tid] = array(
         '#type' => 'checkboxes',
         '#title' => $term->name,
-        '#default_value' => variable_get('project_sort_method_used_' . $term->tid, array_keys($sort_methods)),
+        '#default_value' => array_filter(variable_get('project_sort_method_used_'. $term->tid, array_keys($sort_methods))),
         '#options' => $sort_methods,
         '#description' => t('Sorting options to enable for %term', array('%term' => $term->name))
       );
@@ -370,7 +370,7 @@ function project_menu($may_cache) {
                            'weight' => $term->weight,
                            'callback arguments' => array($term->name));
           $j = 0;
-          $term_methods = array_filter(variable_get('project_sort_method_used_' . $term->tid, $sort_methods));
+          $term_methods = array_keys(array_filter(variable_get('project_sort_method_used_'. $term->tid, $sort_methods)));
           foreach ($term_methods as $sort_method) {
             $items[] = array('path' => 'project/' . $term->name . '/'. $sort_method,
                  'title' => t('browse by %sort_method', array('%sort_method' => $sort_method)),
@@ -555,7 +555,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
       if (!$sort_method) {
         // For the default, we use the overall default if enabled for this term, and if not we use the first enabled method.
-        $term_methods = array_filter(variable_get('project_sort_method_used_' . $type->tid, $sort_methods));
+        $term_methods = array_filter(variable_get('project_sort_method_used_' . $type->tid, array_keys($sort_methods)));
         $sort_method = in_array(variable_get('project_sort_method', 'category'), $term_methods) ? variable_get('project_sort_method', 'category') : array_shift($term_methods);
       }
 
