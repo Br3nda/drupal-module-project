@@ -1,0 +1,563 @@
+# $Id: project_release.pot,v 1.1.2.2 2008/01/06 22:22:44 dww Exp $
+#
+# LANGUAGE translation of Drupal (general)
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+# Generated from file: project_release_update.php,v 1.1.2.21 2007/08/22 16:39:54 thehunmonkgroup
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2008-01-06 14:19-0800\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: package-release-nodes.php:160
+msgid "tags"
+msgstr ""
+
+#: package-release-nodes.php:165
+msgid "branches"
+msgstr ""
+
+#: package-release-nodes.php:166
+msgid "Starting to package all snapshot releases."
+msgstr ""
+
+#: package-release-nodes.php:169
+msgid "ERROR: package_releases() called with unknown type: %type"
+msgstr ""
+
+#: package-release-nodes.php:183
+msgid "core"
+msgstr ""
+
+#: package-release-nodes.php:183
+msgid "contrib"
+msgstr ""
+
+#: package-release-nodes.php:183;214;274;412
+msgid "view"
+msgstr ""
+
+#: package-release-nodes.php:200
+msgid "Done packaging releases from %plural: %num_built built, %num_considered considered."
+msgstr ""
+
+#: package-release-nodes.php:233;310
+msgid "%id is unchanged, not re-packaging"
+msgstr ""
+
+#: package-release-nodes.php:240;317
+msgid "ERROR: Failed to update version in %file, aborting packaging"
+msgstr ""
+
+#: package-release-nodes.php:293
+msgid "ERROR: %dif does not exist after cvs export %rev"
+msgstr ""
+
+#: package-release-nodes.php:359
+msgid "ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging"
+msgstr ""
+
+#: package-release-nodes.php:420
+msgid "WARNING: %file does not exist."
+msgstr ""
+
+#: package-release-nodes.php:448
+msgid "All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash"
+msgstr ""
+
+#: package-release-nodes.php:451
+msgid "File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)"
+msgstr ""
+
+#: package-release-nodes.php:454
+msgid "File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash"
+msgstr ""
+
+#: package-release-nodes.php:461
+msgid "ERROR: db_query() failed trying to update metadata for %file"
+msgstr ""
+
+#: package-release-nodes.php:477
+msgid "ERROR: unable to repair !num_failed releases due to db_query() failures."
+msgstr ""
+
+#: package-release-nodes.php:480
+msgid "ERROR: !num_not_exist files are in the database but do not exist on disk."
+msgstr ""
+
+#: package-release-nodes.php:483
+msgid "Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
+msgstr ""
+
+#: package-release-nodes.php:486
+msgid "Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered."
+msgstr ""
+
+#: package-release-nodes.php:505
+msgid "ERROR: %cmd failed with status %rval"
+msgstr ""
+
+#: package-release-nodes.php:518
+msgid "ERROR: Can't chdir(%dir)"
+msgstr ""
+
+#: package-release-nodes.php:564
+msgid "ERROR: tmp_dir: %dir is not a directory"
+msgstr ""
+
+#: package-release-nodes.php:573
+msgid "ERROR: mkdir(%dir) failed"
+msgstr ""
+
+#: package-release-nodes.php:604
+msgid "ERROR: fopen(%file, 'ab') failed"
+msgstr ""
+
+#: package-release-nodes.php:608
+msgid "ERROR: fwrite() failed"
+msgstr ""
+
+#: package-release-nodes.php:526
+msgid "package_debug"
+msgstr ""
+
+#: package-release-nodes.php:542
+msgid "package_error"
+msgstr ""
+
+#: package-release-nodes.php:550
+msgid "package_check"
+msgstr ""
+
+#: project_release_update.php:44
+msgid "The {project_release_projects} table is already full"
+msgstr ""
+
+#: project_release_update.php:85
+msgid "Added %num records to the {project_release_projects} table in %ms ms"
+msgstr ""
+
+#: project_release_update.php:122
+msgid "Considered %num_considered releases, converted %num_converted into nodes in %interval"
+msgstr ""
+
+#: project_release_update.php:194
+msgid "<b>ERROR:</b> release %old_release_rid of %old_release_project_title has malformed version (%old_release_version)"
+msgstr ""
+
+#: project_release_update.php:208
+msgid "<b>WARNING:</b> release %old_release_rid of %old_release_project_title has unexpected patch-level version (%matches)"
+msgstr ""
+
+#: project_release_update.php:235
+msgid "HEAD"
+msgstr ""
+
+#: project_release_update.php:241
+msgid "%project %version"
+msgstr ""
+
+#: project_release_update.php:327
+msgid "Converted %num issue followups in %interval"
+msgstr ""
+
+#: project_release_update.php:329
+msgid "ERROR: problem during conversion of %num issue followups"
+msgstr ""
+
+#: project_release_update.php:442
+msgid "ERROR: project_release_update.php requires that you first install the project_release.module"
+msgstr ""
+
+#: project_release.module:6
+msgid "The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."
+msgstr ""
+
+#: project_release.module:7
+msgid "Available variables are:"
+msgstr ""
+
+#: project_release.module:7
+msgid "The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string."
+msgstr ""
+
+#: project_release.module:20
+msgid "Provides a project release node type."
+msgstr ""
+
+#: project_release.module:22
+msgid "A release of a project with a specific version number."
+msgstr ""
+
+#: project_release.module:38;43
+msgid "releases"
+msgstr ""
+
+#: project_release.module:40
+msgid "overview"
+msgstr ""
+
+#: project_release.module:64
+msgid "Release directory"
+msgstr ""
+
+#: project_release.module:68
+msgid "This setting has been temporarily deprecated. If your site depends on scanning for releases generated by an external tool, you should wait to upgrade until a future version of the project_release.module is available that restores this functionality. Set the value blank to acknowlege that you do not need this behavior, and this error will disappear."
+msgstr ""
+
+#: project_release.module:73
+msgid "Default version format string"
+msgstr ""
+
+#: project_release.module:77
+msgid "Customize the default format of the version strings for releases of projects on this site. Users with \"administer projects\" permissions can override this setting for each project."
+msgstr ""
+
+#: project_release.module:88
+msgid "Active %vocab terms"
+msgstr ""
+
+#: project_release.module:91
+msgid "Terms from the %vocab vocabulary that should be visibile to end users and project maintainers."
+msgstr ""
+
+#: project_release.module:95;844
+msgid "all"
+msgstr ""
+
+#: project_release.module:98
+msgid "Browse projects by release versions"
+msgstr ""
+
+#: project_release.module:100
+msgid "Checking this box will cause the project browsing page to have a version select."
+msgstr ""
+
+#: project_release.module:104
+msgid "Default release overview"
+msgstr ""
+
+#: project_release.module:108
+msgid "Default release version to list on the overview page."
+msgstr ""
+
+#: project_release.module:112;141
+msgid "Download link base URL"
+msgstr ""
+
+#: project_release.module:116
+msgid "By default, all download links to releases will use the standard download path for the site. However, if you wish to host the downloads at a different location, you can specify the base of the URL that should be used for download links. For example, if you stored releases in %files_path and you want to have download links pointing to %ftp_url, you would set this to %ftp_setting. Note that if you define this, the value should end with a slash ('/')."
+msgstr ""
+
+#: project_release.module:126
+msgid "Release directory setting has been deprecated."
+msgstr ""
+
+#: project_release.module:132
+msgid "Project release overview must be one of the active %vocab terms"
+msgstr ""
+
+#: project_release.module:141
+msgid "The %download_base_setting should end with a slash."
+msgstr ""
+
+#: project_release.module:183
+msgid "project release"
+msgstr ""
+
+#: project_release.module:194
+msgid "You can only add releases from a project page."
+msgstr ""
+
+#: project_release.module:203
+msgid "Node %nid is not a valid project."
+msgstr ""
+
+#: project_release.module:221;742;1246
+msgid "Releases"
+msgstr ""
+
+#: project_release.module:233
+msgid "Release identification"
+msgstr ""
+
+#: project_release.module:240
+msgid "Title"
+msgstr ""
+
+#: project_release.module:241
+msgid "Version string"
+msgstr ""
+
+#: project_release.module:249
+msgid "Version number elements"
+msgstr ""
+
+#: project_release.module:257
+msgid "Major"
+msgstr ""
+
+#: project_release.module:259
+msgid "Minor"
+msgstr ""
+
+#: project_release.module:261
+msgid "Patch-level"
+msgstr ""
+
+#: project_release.module:263
+msgid "Extra identifier"
+msgstr ""
+
+#: project_release.module:263
+msgid "Optionally specify other identifying information for this version, for example \"beta-1\", \"rc-1\" or \"dev\". In most cases, this should be left blank."
+msgstr ""
+
+#: project_release.module:267
+msgid "File information"
+msgstr ""
+
+#: project_release.module:273
+msgid "File"
+msgstr ""
+
+#: project_release.module:275
+msgid "A file named %filename has already been uploaded. If you upload another file %filename will be replaced."
+msgstr ""
+
+#: project_release.module:275
+msgid "Choose the file that will be associated with this release."
+msgstr ""
+
+#: project_release.module:281
+msgid "Description"
+msgstr ""
+
+#: project_release.module:285
+msgid "Body"
+msgstr ""
+
+#: project_release.module:291
+msgid "Enter a description of this release, such as a list of the major changes or updates."
+msgstr ""
+
+#: project_release.module:295
+msgid "Tag"
+msgstr ""
+
+#: project_release.module:300
+msgid "File path"
+msgstr ""
+
+#: project_release.module:301
+msgid "File md5 hash"
+msgstr ""
+
+#: project_release.module:302
+msgid "File date"
+msgstr ""
+
+#: project_release.module:409
+msgid "You must fill in some version information."
+msgstr ""
+
+#: project_release.module:415
+msgid "%name must be a number."
+msgstr ""
+
+#: project_release.module:420
+msgid "Patch-level version number must be numeric or the letter 'x'."
+msgstr ""
+
+#: project_release.module:437
+msgid "There was a problem uploading the specified file."
+msgstr ""
+
+#: project_release.module:457
+msgid "This version already exists for this project."
+msgstr ""
+
+#: project_release.module:748
+msgid "Nightly development snapshot from %tag"
+msgstr ""
+
+#: project_release.module:751
+msgid "Download: %file"
+msgstr ""
+
+#: project_release.module:752
+msgid "Size: %size"
+msgstr ""
+
+#: project_release.module:753
+msgid "md5_file hash: %file_hash"
+msgstr ""
+
+#: project_release.module:756
+msgid "First released: %created"
+msgstr ""
+
+#: project_release.module:759
+msgid "Last updated: %changed"
+msgstr ""
+
+#: project_release.module:779
+msgid "Releases for %project"
+msgstr ""
+
+#: project_release.module:831
+msgid "There are no published releases for this project."
+msgstr ""
+
+#: project_release.module:873
+msgid "Filter"
+msgstr ""
+
+#: project_release.module:887
+msgid "register"
+msgstr ""
+
+#: project_release.module:889
+msgid "Login"
+msgstr ""
+
+#: project_release.module:889
+msgid "to modify the filter."
+msgstr ""
+
+#: project_release.module:906
+msgid "You must login or register to modify the @vocab filter."
+msgstr ""
+
+#: project_release.module:916;1040
+msgid "version"
+msgstr ""
+
+#: project_release.module:918
+msgid "Filter by %label:"
+msgstr ""
+
+#: project_release.module:946
+msgid "This string is also used to generate the name of releases associated with this project."
+msgstr ""
+
+#: project_release.module:959
+msgid "Advanced options"
+msgstr ""
+
+#: project_release.module:967
+msgid "Enable releases"
+msgstr ""
+
+#: project_release.module:971
+msgid "Allow releases of this project with specific versions."
+msgstr ""
+
+#: project_release.module:1002;1070
+msgid "Major version"
+msgstr ""
+
+#: project_release.module:1032
+msgid "Version format string"
+msgstr ""
+
+#: project_release.module:1036
+msgid "Customize the format of the version strings for releases of this project."
+msgstr ""
+
+#: project_release.module:1036
+msgid "If blank, this project will use the site-wide default (currently set to: %default)"
+msgstr ""
+
+#: project_release.module:1043
+msgid "Display snapshot releases on project page"
+msgstr ""
+
+#: project_release.module:1046
+msgid "Note: Even if the current default release for a given %vocabulary_name is a development snapshot, it will only be shown if this checkbox is enabled."
+msgstr ""
+
+#: project_release.module:1053
+msgid "Submit"
+msgstr ""
+
+#: project_release.module:1071
+msgid "Current default release"
+msgstr ""
+
+#: project_release.module:1083
+msgid "Default versions"
+msgstr ""
+
+#: project_release.module:1085
+msgid "This table allows you to specify the default version to download for any given %vocabulary_name. If there are releases from more than one major version number, you can select which major version should be used. For each %vocabulary_name, the current default release based on the saved major version is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release is used."
+msgstr ""
+
+#: project_release.module:1126
+msgid "Release settings have been saved."
+msgstr ""
+
+#: project_release.module:1247
+msgid "Official releases"
+msgstr ""
+
+#: project_release.module:1249
+msgid "Development snapshots"
+msgstr ""
+
+#: project_release.module:1251
+msgid "View all releases"
+msgstr ""
+
+#: project_release.module:1253
+msgid "Add new release"
+msgstr ""
+
+#: project_release.module:1284
+msgid "Version"
+msgstr ""
+
+#: project_release.module:1355
+msgid "Download"
+msgstr ""
+
+#: project_release.module:1357
+msgid "Release notes"
+msgstr ""
+
+#: project_release.module:1359
+msgid "Edit"
+msgstr ""
+
+#: project_release.module:1382
+msgid "n/a"
+msgstr ""
+
+#: project_release.module:1397
+msgid "Date"
+msgstr ""
+
+#: project_release.module:1403
+msgid "Size"
+msgstr ""
+
+#: project_release.module:1408
+msgid "Links"
+msgstr ""
+
+#: project_release.module:1460
+msgid "Project release API compatibility"
+msgstr ""
+
+#: project_release.module:0
+msgid "project_release"
+msgstr ""
+
