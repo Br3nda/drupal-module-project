@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.23 2007/10/07 05:31:32 dww Exp $
+// $Id: package-release-nodes.php,v 1.24 2008/01/14 04:44:39 dww Exp $
 // $Name:  $
 
 /**
@@ -137,6 +137,10 @@ if (!chdir($drupal_root)) {
   print "ERROR: Can't chdir($drupal_root): aborting.\n";
   exit(1);
 }
+
+// Force the right umask while this script runs, so that everything is created
+// with sane file permissions.
+umask(0022);
 
 require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
