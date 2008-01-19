@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.15 2007/12/22 09:11:44 dww Exp $
+// $Id: project_release.install,v 1.16 2008/01/19 07:10:59 dww Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -25,16 +25,18 @@ function project_release_install() {
       db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
           nid int unsigned NOT NULL default '0',
           releases tinyint NOT NULL default '1',
-          snapshot_table tinyint unsigned NOT NULL default '1',
           version_format varchar(255) NOT NULL default '',
           PRIMARY KEY (nid),
           KEY project_release_projects_releases (releases)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_release_default_versions} (
+      db_query("CREATE TABLE IF NOT EXISTS {project_release_supported_versions} (
           nid int unsigned NOT NULL default '0',
           tid int unsigned NOT NULL default '0',
           major int unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, tid)
+          supported tinyint unsigned NOT NULL default '1',
+          recommended tinyint unsigned NOT NULL default '0',
+          snapshot tinyint unsigned NOT NULL default '0',
+          PRIMARY KEY (nid, tid, major)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_release_package_errors} (
           nid int unsigned NOT NULL default '0',
@@ -75,18 +77,20 @@ function project_release_install() {
         db_query("CREATE TABLE {project_release_projects} (
             nid int NOT NULL default '0',
             releases smallint NOT NULL default '1',
-            snapshot_table smallint NOT NULL default '1',
             version_format varchar(255) NOT NULL default '',
             PRIMARY KEY (nid)
           );");
         db_query("CREATE INDEX {project_release_projects}_releases_idx ON {project_release_projects} (releases)");
       }
-      if (!db_table_exists('project_release_default_versions')) {
-        db_query("CREATE TABLE {project_release_default_versions} (
+      if (!db_table_exists('project_release_supported_versions')) {
+        db_query("CREATE TABLE {project_release_supported_versions} (
             nid int NOT NULL default '0',
             tid int NOT NULL default '0',
             major int NOT NULL default '0',
-            PRIMARY KEY (nid, tid)
+            supported smallint NOT NULL default '1',
+            recommended smallint NOT NULL default '0',
+            snapshot smallint NOT NULL default '0',
+            PRIMARY KEY (nid, tid, major)
           );");
       }
       if (!db_table_exists('project_release_package_errors')) {
@@ -294,5 +298,58 @@ function project_release_update_5003() {
       }
       break;
   }
+  return $ret;
+}
+
+/**
+ * Add the new {project_release_supported_versions} table, transfer data
+ * from {project_release_default_versions} and {project_release_projects},
+ * and drop the stale table and columns.
+ */
+function project_release_update_5200() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {project_release_supported_versions} (
+          nid int unsigned NOT NULL default '0',
+          tid int unsigned NOT NULL default '0',
+          major int unsigned NOT NULL default '0',
+          supported tinyint unsigned NOT NULL default '1',
+          recommended tinyint unsigned NOT NULL default '0',
+          snapshot tinyint unsigned NOT NULL default '0',
+          PRIMARY KEY (nid, tid, major)
+        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      break;
+    case 'pgsql':
+      if (!db_table_exists('project_release_supported_versions')) {
+        $ret[] = update_sql("CREATE TABLE {project_release_supported_versions} (
+            nid int NOT NULL default '0',
+            tid int NOT NULL default '0',
+            major int NOT NULL default '0',
+            supported smallint NOT NULL default '1',
+            recommended smallint NOT NULL default '0',
+            snapshot smallint NOT NULL default '0',
+            PRIMARY KEY (nid, tid, major)
+          );");
+      }
+      break;
+  }
+  // Now, populate the table with the existing data. First, populate all the
+  // recommended majors versions from {project_release_default_versions}.
+  $ret[] = update_sql("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) SELECT prdv.nid, prdv.tid, prdv.major, 1, 1, prp.snapshot_table FROM {project_release_default_versions} prdv INNER JOIN {project_release_projects} prp ON prdv.nid = prp.nid");
+
+  // Now, fill in all the non-recommended versions. For the migration path, we
+  // assume that if it's not recommended, it's also not supported. Project
+  // maintainers will have to manually visit the new UI if they want to
+  // specify multiple supported versions.
+  $vid = _project_release_get_api_vid();
+  $ret[] = update_sql("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) SELECT DISTINCT prn.pid, tn.tid, prn.version_major, 0, 0, 0 FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {node} n ON prn.nid = n.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = prn.pid AND prdv.tid = tn.tid AND prdv.major = prn.version_major WHERE n.status = 1 AND td.vid = $vid AND prn.version_major IS NOT NULL AND prdv.major IS NULL");
+
+  // Finally, drop the stale table and column.
+  // While testing the upgrade path, these are both commented out for now:
+  //$ret[] = update_sql('DROP TABLE {project_release_default_versions}');
+  //$ret[] = update_sql("ALTER TABLE {project_release_projects} DROP snapshot_table");
+
   return $ret;
 }
