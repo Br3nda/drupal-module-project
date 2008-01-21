@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.57 2008/01/19 07:10:59 dww Exp $
+// $Id: project_release.module,v 1.58 2008/01/21 23:32:12 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1428,14 +1428,14 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
   switch ($op) {
     case 'load':
       $project = db_fetch_object(db_query('SELECT * FROM {project_release_projects} WHERE nid = %d', $node->nid));
-      $fields = array('releases', 'version_format', 'snapshot_table');
+      $fields = array('releases', 'version_format');
       foreach ($fields as $field) {
         $node->$field = $project->$field;
       }
       break;
 
     case 'insert':
-      db_query("INSERT INTO {project_release_projects} (nid, releases, snapshot_table, version_format) VALUES (%d, %d, %d, '%s')", $node->nid, 1, 1, '');
+      db_query("INSERT INTO {project_release_projects} (nid, releases, version_format) VALUES (%d, %d, '%s')", $node->nid, 1, '');
       break;
 
     case 'delete':
