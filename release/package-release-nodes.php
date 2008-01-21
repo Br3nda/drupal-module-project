@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.24 2008/01/14 04:44:39 dww Exp $
+// $Id: package-release-nodes.php,v 1.25 2008/01/21 19:35:39 dww Exp $
 // $Name:  $
 
 /**
@@ -303,7 +303,6 @@ function package_release_core($nid, $uri, $version, $rev) {
 function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
-  global $msgcat, $msgattrib, $msgfmt;
   global $license, $trans_install;
 
   $rid = 2;
@@ -345,9 +344,6 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
 
-  if ($contrib_type == 'translations') {
-    $exclude[] = 'README.txt';
-  }
   $info_files = array();
   $youngest = file_find_youngest($uri, 0, $exclude, $info_files);
   if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
@@ -369,44 +365,20 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
-    if ($handle = opendir($uri)) {
-      $po_files = array();
-      while ($file = readdir($handle)) {
-        if ($file == 'general.po') {
-          $found_general_po = true;
-        }
-        elseif ($file == 'installer.po') {
-          $found_installer_po = true;
-        }
-        elseif (preg_match('/.*\.po/', $file)) {
-          $po_files[] = "$uri/$file";
-        }
-      }
-      if ($found_general_po) {
-        @unlink("$uri/$uri.po");
-        $po_targets = "$uri/general.po ";
-        $po_targets .= implode(' ', $po_files);
-        if (!drupal_exec("$msgcat --use-first $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
-          return false;
-        }
+    // Translation projects are packaged differently based on core version.
+    if (intval($version) == 6) {
+      if (!($to_tar = package_release_contrib_d6_translation($uri, $version, $view_link))) {
+        // Return on error.
+        return FALSE;
       }
     }
-    if (is_file("$uri/$uri.po")) {
-      if (!drupal_exec("$msgfmt --statistics $uri/$uri.po 2>> $uri/README.txt")) {
-        return false;
-      }
-      $to_tar = "$uri/*.txt $uri/$uri.po";
-      if ($found_installer_po) {
-        $to_tar .= " $uri/installer.po";
-      }
-    }
-    else {
-      wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)), $view_link);
-      return false;
+    elseif (!($to_tar = package_release_contrib_pre_d6_translation($uri, $version, $view_link))) {
+      // Return on error.
+      return FALSE;
     }
   }
   else {
-    // NOT a translation: no special packaging, grab the whole directory.
+    // Not a translation: just grab the whole directory.
     $to_tar = $uri;
   }
 
@@ -423,6 +395,115 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$basedir/$uri");
   return true;
+}
+
+function package_release_contrib_pre_d6_translation($uri, $version, $view_link) {
+  global $msgcat, $msgattrib, $msgfmt;
+
+  if ($handle = opendir($uri)) {
+    $po_files = array();
+    while ($file = readdir($handle)) {
+      if ($file == 'general.po') {
+        $found_general_po = TRUE;
+      }
+      elseif ($file == 'installer.po') {
+        $found_installer_po = TRUE;
+      }
+      elseif (preg_match('/.*\.po/', $file)) {
+        $po_files[] = "$uri/$file";
+      }
+    }
+    if ($found_general_po) {
+      @unlink("$uri/$uri.po");
+      $po_targets = "$uri/general.po ";
+      $po_targets .= implode(' ', $po_files);
+      if (!drupal_exec("$msgcat --use-first $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
+        return FALSE;
+      }
+    }
+  }
+  if (is_file("$uri/$uri.po")) {
+    if (!drupal_exec("$msgfmt --statistics $uri/$uri.po 2>> $uri/STATUS.txt")) {
+      return FALSE;
+    }
+    $to_tar = "$uri/*.txt $uri/$uri.po";
+    if ($found_installer_po) {
+      $to_tar .= " $uri/installer.po";
+    }
+  }
+  else {
+    wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)), $view_link);
+    return FALSE;
+  }
+
+  // Return with list of files to package.
+  return $to_tar;
+}
+
+function package_release_contrib_d6_translation($uri, $version, $view_link) {
+  global $msgattrib, $msgfmt;
+
+  if ($handle = opendir($uri)) {
+    $po_files = array();
+    while ($file = readdir($handle)) {
+      if (preg_match('!(.*)\.txt$!', $file, $name) && ($file != "STATUS.$uri.txt")) {
+        // Rename text files to $name[1].$uri.txt so there will be no conflict
+        // with core text files when the package is deployed.
+        if (!rename("$uri/$file", "$uri/$name[1].$uri.txt")) {
+          wd_err(t("ERROR: Unable to rename text files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          return FALSE;
+        }
+      }
+      elseif (preg_match('!.*\.po$!', $file)) {
+
+        // Generate stats information about the .po file handled.
+        if (!drupal_exec("$msgfmt --statistics $uri/$file 2>> $uri/STATUS.$uri.txt")) {
+          wd_err(t("ERROR: Unable to generate statistics for %file in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version, '%file' => $file)), $view_link);
+          return FALSE;
+        }
+
+        // File names are formatted in directory-subdirectory.po or 
+        // directory.po format and aggregate files from the named directory.
+        // The installer.po file is special in that it aggregates all strings
+        // possibly used in the installer. We move that to the default install
+        // profile. We move all other root directory files (misc.po,
+        // includes.po, etc) to the system module and all remaining files to
+        // the corresponding subdirectory in the named directory.
+        if (!strpos($file, '-')) {
+          if ($file == 'installer.po') {
+            // Special file, goes to install profile.
+            $target = 'profiles/default/translations/'. $uri .'.po';
+          }
+          else {
+            // 'Root' files go to system module.
+            $target = 'modules/system/translations/'. str_replace('.po', '.'. $uri .'.po', $file);
+          }
+        }
+        else {
+          // Other files go to their module or theme folder.
+          $target = str_replace(array('-', '.po'), array('/', ''), $file) .'/translations/'. str_replace('.po', '.'. $uri .'.po', $file);
+        }
+        $target = "$uri/$target";
+  
+        // Create target folder and copy file there, while removing fuzzies.
+        $target_dir = dirname($target);
+        if (!is_dir($target_dir) && !mkdir($target_dir, 0777, TRUE)) {
+          wd_err(t("ERROR: Unable to generate directory structure in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          return FALSE;
+        }
+        if (!drupal_exec("$msgattrib --no-fuzzy $uri/$file -o $target")) {
+          wd_err(t("ERROR: Unable to filter fuzzy strings and copying the translation files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          return FALSE;
+        }
+      
+        // Add file to package.
+        $to_tar .= ' '. $target;
+      }
+    }
+  }
+
+  // Return with list of files to package.
+  return "$uri/*.txt". $to_tar;
 }
 
 // ------------------------------------------------------------
