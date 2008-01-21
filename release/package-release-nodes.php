@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.26 2008/01/21 21:24:35 dww Exp $
+// $Id: package-release-nodes.php,v 1.27 2008/01/21 22:32:48 dww Exp $
 // $Name:  $
 
 /**
@@ -371,6 +371,8 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (!drupal_exec("$ln -sf $license $uri/LICENSE.txt")) {
     return false;
   }
+  // Do we want a subdirectory in the tarball or not?
+  $tarball_needs_subdir = TRUE;
   if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
     // Translation projects are packaged differently based on core version.
     if (intval($version) == 6) {
@@ -378,6 +380,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
         // Return on error.
         return FALSE;
       }
+      $tarball_needs_subdir = FALSE;
     }
     elseif (!($to_tar = package_release_contrib_pre_d6_translation($uri, $version, $view_link))) {
       // Return on error.
@@ -387,6 +390,12 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   else {
     // Not a translation: just grab the whole directory.
     $to_tar = $uri;
+  }
+
+  if (!$tarball_needs_subdir) {
+    if (!drupal_chdir($uri)) {
+      return false;
+    }
   }
 
   // 'h' is for dereference, we want to include the files, not the links
@@ -490,15 +499,15 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
           // Other files go to their module or theme folder.
           $target = str_replace(array('-', '.po'), array('/', ''), $file) .'/translations/'. str_replace('.po', '.'. $uri .'.po', $file);
         }
-        $target = "$uri/$target";
-  
+        $uri_target = "$uri/$target";
+
         // Create target folder and copy file there, while removing fuzzies.
-        $target_dir = dirname($target);
+        $target_dir = dirname($uri_target);
         if (!is_dir($target_dir) && !mkdir($target_dir, 0777, TRUE)) {
           wd_err(t("ERROR: Unable to generate directory structure in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
           return FALSE;
         }
-        if (!drupal_exec("$msgattrib --no-fuzzy $uri/$file -o $target")) {
+        if (!drupal_exec("$msgattrib --no-fuzzy $uri/$file -o $uri_target")) {
           wd_err(t("ERROR: Unable to filter fuzzy strings and copying the translation files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
           return FALSE;
         }
@@ -510,7 +519,7 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
   }
 
   // Return with list of files to package.
-  return "$uri/*.txt". $to_tar;
+  return "*.txt". $to_tar;
 }
 
 // ------------------------------------------------------------
