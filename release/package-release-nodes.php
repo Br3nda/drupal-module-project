@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.25 2008/01/21 19:35:39 dww Exp $
+// $Id: package-release-nodes.php,v 1.26 2008/01/21 21:24:35 dww Exp $
 // $Name:  $
 
 /**
@@ -202,7 +202,14 @@ function package_releases($type, $project_id) {
   $num_built = 0;
   $num_considered = 0;
   $project_nids = array();
+
+  // Read everything out of the query immediately so that we don't leave the
+  // query object/connection open while doing other queries.
+  $releases = array();
   while ($release = db_fetch_object($query)) {
+    $releases[] = $release;
+  }
+  foreach ($releases as $release) {
     $wd_err_msg = array();
     $version = $release->version;
     $uri = $release->uri;
