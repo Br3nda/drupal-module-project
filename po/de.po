@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: German translation for project module\n"
 "POT-Creation-Date: 2006-05-11 20:50+0300\n"
-"PO-Revision-Date: 2007-10-21 15:36+0100\n"
+"PO-Revision-Date: 2008-02-01 00:49+0100\n"
 "Last-Translator: Alexander Hass\n"
 "Language-Team: Alexander Hass\n"
 "MIME-Version: 1.0\n"
@@ -818,7 +818,7 @@ msgstr "Datei"
 
 #: release/project_release.module:303
 msgid "A file named %filename has already been uploaded. If you upload another file %filename will be replaced."
-msgstr "Eine Datei mit dem Namen %filename wurde bereits hochgeladen. Das Hochladen einer weiteren %filename Datei wird die vorhandene ersetzten."
+msgstr "Eine Datei mit dem Namen %filename wurde bereits hochgeladen. Das Hochladen einer weiteren %filename Datei wird die vorhandene ersetzen."
 
 #: release/project_release.module:303
 msgid "Choose the file that will be associated with this release."
