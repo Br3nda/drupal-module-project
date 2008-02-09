@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.120 2007/11/13 01:27:54 dww Exp $
+// $Id: project.inc,v 1.121 2008/02/09 00:26:36 thehunmonkgroup Exp $
 // $Name:  $
 
 /**
@@ -283,21 +283,20 @@ function project_project_view($node, $teaser = false, $page = false) {
       );
     }
 
-    // Misc section
-    $links = array();
+    // Build a nested array of sections of links to display on project_project node pages.
+    $all_links = array();
 
+    // Resources section
+    $all_links['resources'] = array(
+      'name' => t('Resources'),
+      'weight' => 4,
+    );
     foreach (array('homepage' => t('Home page'), 'documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
       if (!empty($node->$uri)) {
-        $links[] = l($name, $node->$uri);
+        $all_links['resources']['links'][$uri] = l($name, $node->$uri);
       }
     }
 
-    if ($links) {
-      $node->content['resources'] = array(
-        '#value' => theme('item_list', $links, t('Resources')),
-        '#weight' => 2,
-      );
-    }
 
     // Flags that indicate what kind of access to project issues to allow.
     $has_issues = module_exists('project_issue') && !empty($node->issues);
@@ -305,51 +304,62 @@ function project_project_view($node, $teaser = false, $page = false) {
     $make_issues = $has_issues && node_access('create', 'project_issue');
 
     // Support section.
+    $all_links['support'] = array(
+      'name' => t('Support'),
+      'weight' => 6,
+    );
     $links = array();
     if ($view_issues) {
-      $links[] = l(t('View all support requests'), 'project/issues/'. $node->uri, null, 'categories=support&states=all', null);
-      $links[] = l(t('View pending support requests'), 'project/issues/'. $node->uri, null, 'categories=support', null);
-      $links[] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
-      $links[] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, null, 'categories=support&states=all', null);
+      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, null, 'categories=support', null);
+      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
+      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
     }
     if ($make_issues) {
-      $links[] = l(t('Request support'), 'node/add/project_issue/'. $node->uri .'/support');
-      $links[] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
-      $links[] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
+      $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->uri .'/support');
+      $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
+      $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
     }
     else {
-      $links[] = theme('project_issue_create_forbidden', $node->uri);
+      $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->uri);
     }
+    $all_links['support']['links'] = $links;
 
-    if ($links) {
-      $node->content['support'] = array(
-        '#value' => theme('item_list', $links, t('Support')),
-        '#weight' => 3,
-      );
-    }
 
     // Developer section
+    $all_links['development'] = array(
+      'name' => t('Development'),
+      'weight' => 8,
+    );
     $links = array();
     if ($view_issues) {
-      $links[] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
-      $links[] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
-      $links[] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
+      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
+      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
+      $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
     }
 
     if ($node->cvs) {
-      $links[] = l(t('Browse the CVS repository'), $node->cvs);
+      $links['browse_repository'] = l(t('Browse the CVS repository'), $node->cvs);
     }
 
     if (project_use_cvs($node)) {
-      $links[] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
-      $links[] = l(t('Developers'), 'project/developers/'. $node->nid);
+      $links['view_cvs_messages'] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
+      $links['developers'] = l(t('Developers'), 'project/developers/'. $node->nid);
     }
+    $all_links['development']['links'] = $links;
 
-    if ($links) {
-      $node->content['development'] = array(
-        '#value' => theme('item_list', $links, t('Development')),
-        '#weight' => 4,
-      );
+    // Allow other modules to add sections of links and/or links to the sections defined above.
+    project_page_link_alter($node, $all_links);
+
+    // Format links in $all_links for display in the project_project node.
+    foreach($all_links as $section => $values) {
+      // Only add the section if there are links for the section.
+      if (!empty($values['links'])) {
+        $node->content[$section] = array(
+          '#value' => theme('item_list', $values['links'], $values['name']),
+          '#weight' => !empty($values['weight']) ? $values['weight'] : 0,
+        );
+      }
     }
   }
   return $node;
@@ -521,4 +531,27 @@ function _project_save_taxonomy(&$node) {
 
 function _project_db_save_taxonomy($nid, $tid) {
   db_query('INSERT INTO {term_node} (nid, tid) VALUES (%d, %d)', $nid, $tid);
+}
+
+/**
+ * Allow modules to alter the project page links.
+ *
+ * @param $node
+ *   The project_project node object.  This can be useful for modules that
+ *   implement this hook to determine whether a user viewing
+ *   the node should have access to certain links.  See the
+ *   implementation of this hook in project_release.module for an
+ *   example.
+ *   NOTE:  $node is passed by value and not by reference, so modules
+ *   implementing this hook cannot actually modify the node object.
+ * @param $links
+ *   An array of links.
+ * @param $section
+ *   The link section of the project page.
+ */
+function project_page_link_alter($node, &$all_links) {
+  foreach (module_implements('project_page_link_alter') as $module) {
+    $function = $module .'_project_page_link_alter';
+    $function($node, $all_links);
+  }
 }

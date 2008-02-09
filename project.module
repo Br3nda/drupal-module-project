@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.307 2008/01/19 07:10:58 dww Exp $
+// $Id: project.module,v 1.308 2008/02/09 00:26:36 thehunmonkgroup Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -1160,3 +1160,4 @@ function project_use_cvs($project) {
     return isset($project->cvs_repository) && ($project->cvs_repository != 0);
   }
 }
+

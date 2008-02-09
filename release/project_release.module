@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.58 2008/01/21 23:32:12 dww Exp $
+// $Id: project_release.module,v 1.59 2008/02/09 00:26:36 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1556,14 +1556,27 @@ function theme_project_release_project_download_table($node) {
   if ($node->snapshot_table) {
     $output .= project_release_table($node, 'recommended', 'snapshot', t('Development snapshots'));
   }
-  $links = array();
-  $links[] = l(t('View all releases'), 'node/'. $node->nid .'/release');
-  if (project_check_admin_access($node->nid)) {
-    $links[] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
-    $links[] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
-  }
-  $output .= theme('item_list', $links);
   return $output;
+}
+
+/**
+ * Implemenation of hook_project_page_link_alter().
+ */
+function project_release_project_page_link_alter($node, &$all_links) {
+  $all_links['project_release'] = array(
+    // NOTE:  The 'name' element of this array is not defined here because
+    // it's actually printed as part of the output of the
+    // theme_project_release_project_download_table() function above.
+    'weight' => 2,
+    'links' => array(
+      'view_all_releases' => l(t('View all releases'), 'node/'. $node->nid .'/release')
+    ),
+  );
+  
+  if (project_check_admin_access($node->nid)) {
+    $all_links['project_release']['links']['add_new_release'] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
+    $all_links['project_release']['links']['administer_releases'] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
+  }
 }
 
 /**
