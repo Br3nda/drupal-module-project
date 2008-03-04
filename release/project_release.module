@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.59 2008/02/09 00:26:36 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.60 2008/03/04 15:19:48 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1078,7 +1078,7 @@ function project_release_project_edit_form($node) {
     '#default_value' => isset($node->releases) ? $node->releases : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
-  
+
   if (user_access('administer projects')) {
     $form['advanced']['version_format'] = array(
       '#type' => 'textfield',
@@ -1131,12 +1131,12 @@ function _project_release_get_version_major_data($node) {
 }
 
 function _project_release_edit_version_major_form($data) {
-  drupal_add_js(drupal_get_path('module', 'project_release') .'/project_release.js'); 
+  drupal_add_js(drupal_get_path('module', 'project_release') .'/project_release.js');
   $form = array();
-  
+
   $node = $data['node'];
   unset($data['node']);
-  
+
   $form['api'] = array(
     '#tree' => TRUE,
   );
@@ -1180,7 +1180,7 @@ function _project_release_edit_version_major_form($data) {
       '#options' => $recommended_options,
       '#default_value' => $recommended_version,
       '#attributes' => array('class'=>'recommended'),
-    ); 
+    );
     $recommended_major = db_result(db_query("SELECT major FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d AND recommended = 1", $node->nid, $api_tid));
     if ($recommended_major !== FALSE) {
       $current_recommended = $form['api'][$api_tid]['major'][$recommended_major]['version_name']['#value'];
@@ -1191,7 +1191,7 @@ function _project_release_edit_version_major_form($data) {
     $form['api'][$api_tid]['currently_recommended'] = array(
       '#type' => 'markup',
       '#value' => '<label>'. t('Currently recommended') .':</label> <span>'. $current_recommended .'</span>',
-    ); 
+    );
   }
   return $form;
 }
@@ -1204,7 +1204,7 @@ function theme_project_release_project_edit_form($form) {
   $output = '';
   $output .= '<h3>'. drupal_render($form['header']) ."</h3>\n";
   $output .= '<p>'. drupal_render($form['help']) ."</p>\n";
-  
+
   $header = array(
     t('Major version'),
     t('Supported'),
@@ -1243,7 +1243,7 @@ function theme_project_release_project_edit_form($form) {
     $output .= theme('table', $header, $rows);
   }
   unset($form['api']);
-  
+
   $output .= drupal_render($form['advanced']);
   $output .= drupal_render($form);
   return $output;
@@ -1572,7 +1572,7 @@ function project_release_project_page_link_alter($node, &$all_links) {
       'view_all_releases' => l(t('View all releases'), 'node/'. $node->nid .'/release')
     ),
   );
-  
+
   if (project_check_admin_access($node->nid)) {
     $all_links['project_release']['links']['add_new_release'] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
     $all_links['project_release']['links']['administer_releases'] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
