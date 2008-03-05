@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.60 2008/03/04 15:19:48 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.61 2008/03/05 18:59:15 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -17,6 +17,8 @@ define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %
 function project_release_menu($may_cache) {
   $items = array();
   global $user;
+
+  $access_create = node_access('create', 'project_release');
 
   if (!$may_cache) {
     if (arg(0) == 'node' && is_numeric(arg(1))) {
@@ -46,6 +48,16 @@ function project_release_menu($may_cache) {
         }
       }
     }
+    if (arg(0) == 'node' && arg(1) == 'add' && arg(2) == 'project-release' && is_numeric(arg(3))) {
+      $items[] = array(
+        'path' => 'node/add/project-release/'. arg(3),
+        'callback' => 'node_add',
+        'callback arguments' => array('project-release'),
+        'access' => $access_create,
+        'type' => MENU_CALLBACK,
+      );
+    }
+
     drupal_add_css(drupal_get_path('module', 'project_release') .'/project_release.css');
     project_release_get_api_taxonomy();
   }
@@ -58,6 +70,19 @@ function project_release_menu($may_cache) {
       'callback arguments' => 'project_release_settings_form',
       'access' => user_access('administer projects'),
       'weight' => 1,
+      'type' => MENU_NORMAL_ITEM,
+    );
+    // Special menu item for the "first page" of submitting a new release.
+    // Instead of the treachery of a true multipage form, we just have
+    // a simple form at node/add/project-release that provides a project
+    // selector which redirects to node/add/project-release/[project-nid].
+    $types = node_get_types();
+    $items[] = array(
+      'path' => 'node/add/project-release',
+      'title' => t('Submit !name', array('!name' => $types['project_release']->name)),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => array('project_release_pick_project_form'),
+      'access' => $access_create,
       'type' => MENU_NORMAL_ITEM,
     );
   }
@@ -200,7 +225,7 @@ function project_release_node_info() {
     'project_release' => array(
       'name' => t('Project release'),
       'module' => 'project_release',
-      'description' => t('A release of a project with a specific version number. You can only create these for projects you maintain, using the links on the project home pages or the !my_projects page', array('!my_projects' => l(t('My projects'), 'project/user'))),
+      'description' => t('A release of a project with a specific version number.'),
      ),
   );
 }
@@ -211,12 +236,6 @@ function project_release_node_info() {
  */
 function project_release_form($release) {
   if (arg(1) == 'add') {
-    if (!is_numeric(arg(3))) {
-      drupal_set_message(t('You can only add releases from a project page.'));
-      drupal_not_found();
-      module_invoke_all('exit');
-      exit;
-    }
     $release->pid = arg(3);
     $project = node_load($release->pid);
     project_project_set_breadcrumb($project, TRUE);
@@ -1930,4 +1949,45 @@ function project_release_file_download($filename) {
  */
 function project_release_devel_caches() {
   return array('cache_project_release');
+}
+
+/**
+ * Form builder for a simple form to select a project when creating a new
+ * release (as the first "page", but this is not really a multi-page form).
+ */
+function project_release_pick_project_form() {
+  $form = array();
+
+  // Fetch a list of all projects.
+  $uris = NULL;
+  $projects = array(t('<none>')) + project_projects_select_options($uris);
+  if (count($projects) == 1) {
+    drupal_set_message(t('You do not have access to any projects.'), 'error');
+  }
+
+  $form['pid'] = array(
+    '#type' => 'select',
+    '#title' => t('Project'),
+    '#options' => $projects,
+    '#required' => TRUE,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Next'),
+  );
+  return $form;
+}
+
+function project_release_pick_project_form_validate($form_id, $form_values) {
+  if (empty($form_values['pid'])) {
+    form_set_error('pid', t('You must select a project.'));
+  }
+  $node = node_load($form_values['pid']);
+  if (empty($node) || $node->type != 'project_project') {
+    form_set_error('pid', t('Invalid project selected.'));
+  }
+}
+
+function project_release_pick_project_form_submit($form_id, $form_values) {
+  return 'node/add/project-release/'. $form_values['pid'];
 }
