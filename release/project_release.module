@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.61 2008/03/05 18:59:15 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.62 2008/03/05 19:23:24 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -79,7 +79,7 @@ function project_release_menu($may_cache) {
     $types = node_get_types();
     $items[] = array(
       'path' => 'node/add/project-release',
-      'title' => t('Submit !name', array('!name' => $types['project_release']->name)),
+      'title' => t('Submit @name', array('@name' => $types['project_release']->name)),
       'callback' => 'drupal_get_form',
       'callback arguments' => array('project_release_pick_project_form'),
       'access' => $access_create,
