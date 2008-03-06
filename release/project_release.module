@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.63 2008/03/06 06:41:44 dww Exp $
+// $Id: project_release.module,v 1.64 2008/03/06 20:29:14 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1452,7 +1452,7 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
         $node->$field = $project->$field;
       }
       $wants_snapshots = db_result(db_query('SELECT tid FROM {project_release_supported_versions} WHERE nid = %d AND snapshot = 1 LIMIT 1', $node->nid));
-      if (!empty($wants_snapshots)) {
+      if (isset($wants_snapshots)) {
         $node->project_release_show_snapshots = TRUE;
       }
       break;
