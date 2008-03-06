@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.308 2008/02/09 00:26:36 thehunmonkgroup Exp $
+// $Id: project.module,v 1.309 2008/03/06 06:41:43 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -682,7 +682,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           $where = 'tr.tid IN ('. implode(',', $placeholders) .')';
           $release_settings['wheres'][] = $where;
 
-          $release_settings['fields'][] = 'prp.snapshot_table';
           // We need to grab the uid and type for the project node, so
           // that node_access() will work properly without a full
           // node_load() when we're generating the download table in
@@ -791,8 +790,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
       }
     }
     else {
-      $release_type = $project->snapshot_table ? 'all' : 'official';
-      $project->download_table = theme('project_release_table_overview', $project, 'recommended', $release_type, t('Version'), FALSE);
+      $project->download_table = theme('project_release_table_overview', $project, 'recommended', 'all', t('Version'), FALSE);
     }
 
     $project->links['project_more_info'] = array(

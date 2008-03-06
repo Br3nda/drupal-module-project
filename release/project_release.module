@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.62 2008/03/05 19:23:24 dww Exp $
+// $Id: project_release.module,v 1.63 2008/03/06 06:41:44 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1451,6 +1451,10 @@ function project_release_project_nodeapi(&$node, $op, $arg) {
       foreach ($fields as $field) {
         $node->$field = $project->$field;
       }
+      $wants_snapshots = db_result(db_query('SELECT tid FROM {project_release_supported_versions} WHERE nid = %d AND snapshot = 1 LIMIT 1', $node->nid));
+      if (!empty($wants_snapshots)) {
+        $node->project_release_show_snapshots = TRUE;
+      }
       break;
 
     case 'insert':
@@ -1571,9 +1575,9 @@ function theme_project_release_project_download_table($node) {
     return;
   }
   $output = '<h3>'. t('Releases') .'</h3>';
-  $output .= project_release_table($node, 'recommended', 'official', t('Official releases'));
-  if ($node->snapshot_table) {
-    $output .= project_release_table($node, 'recommended', 'snapshot', t('Development snapshots'));
+  $output .= project_release_table($node, 'supported', 'official', t('Official releases'));
+  if ($node->project_release_show_snapshots) {
+    $output .= project_release_table($node, 'supported', 'snapshot', t('Development snapshots'));
   }
   return $output;
 }
@@ -1623,6 +1627,7 @@ function theme_project_release_table_overview($project, $table_type, $release_ty
  * @param $table_type
  *   Indicates what kind of table should be generated. Possible options:
  *    'recommended': Only show the current recommended versions.
+ *    'supported': Only show the latest release from each supported branch.
  *    'all': Include all releases.
  *
  * @param $release_type
@@ -1641,11 +1646,15 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   if (empty($title)) {
     $title = t('Version');
   }
+  // Can the current user edit releases for this project?
+  $can_edit = node_access('update', $project);
+
   // Generate the cache ID.
-  $cid = 'table:'. $project->nid .':'. $table_type .':'. $release_type .':'. $title .':'. (int)$print_size;
+  $cid = 'table:'. $project->nid .':'. $table_type .':'. $release_type .':'. $title .':'. (int)$print_size .':'. (int)$can_edit;
   if ($cached = cache_get($cid, 'cache_project_release')) {
     return $cached->data;
   }
+
   $select = $join = $where = $order_by = '';
   $tids = project_release_compatibility_list();
   if ($tids) {
@@ -1655,18 +1664,26 @@ function project_release_table($project, $table_type = 'recommended', $release_t
         . implode(',', array_keys($tids)) .') '
         .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
       $selects[] = 'tn.tid';
+      $selects[] = 'td.name as api_term_name';
       $orderby[] = 'td.weight';
       $orderby[] = 'td.name';
     }
   }
 
-  if ($table_type == 'recommended') {
-    if ($tids) {
-      $join .= ' INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = r.pid AND prsv.tid = tn.tid AND prsv.major = r.version_major AND prsv.recommended = 1 ';
+  if ($tids) {
+    $selects[] = 'prsv.supported';
+    $selects[] = 'prsv.recommended';
+    $selects[] = 'prsv.snapshot';
+    $join .= ' INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = r.pid AND prsv.tid = tn.tid AND prsv.major = r.version_major ';
+    if ($table_type == 'recommended') {
+      $join .= 'AND prsv.recommended = 1 ';
     }
-    else {
-      // TODO
+    elseif ($table_type == 'supported') {
+      $join .= 'AND prsv.supported = 1 ';
     }
+  }
+  else {
+    // TODO: someday (never?) when project_release doesn't require taxonomy.
   }
 
   switch ($release_type) {
@@ -1674,20 +1691,24 @@ function project_release_table($project, $table_type = 'recommended', $release_t
       $where = 'AND r.rebuild <> 1';
       break;
     case 'snapshot':
-      $where = 'AND r.rebuild = 1';
+      // For snapshot tables, restrict to snapshot nodes from branches where
+      // the maintainer wants the snapshot visible.
+      $where = 'AND r.rebuild = 1 AND prsv.snapshot = 1';
       break;
     case 'all':
-        // If we're generating the default releases table, we want the
-        // dev snapshots to be first in the query results, so that we
-        // skip over them and only show official releases (if any).
-      $orderby[] = 'r.rebuild'. (($table_type == 'recommended') ? ' DESC' : '');
+      // If we're generating the default releases table, we want the
+      // dev snapshots to be last in the query results, so that we
+      // only show them if there's nothing else.
+      if ($table_type == 'recommended') {
+        $orderby[] = 'r.rebuild ASC';
+      }
       break;
   }
 
-  $orderby[] = 'r.version_major';
-  $orderby[] = 'r.version_minor';
-  $orderby[] = 'r.version_patch';
-  $orderby[] = 'r.file_date';
+  $orderby[] = 'r.version_major DESC';
+  $orderby[] = 'r.version_minor DESC';
+  $orderby[] = 'r.version_patch DESC';
+  $orderby[] = 'r.file_date DESC';
 
   if ($orderby) {
     $order_by = ' ORDER BY '. implode(', ', $orderby);
@@ -1695,73 +1716,58 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   if ($selects) {
     $select = implode(', ', $selects) .',';
   }
+
   $result = db_query(db_rewrite_sql(
     "SELECT n.nid, n.created, $select r.* FROM {node} n ".
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ". $join .
-    "WHERE (r.pid = %d) AND (n.status = 1) ". $where .' '. $order_by),
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid $join ".
+    "WHERE (r.pid = %d) AND (n.status = 1) $where $order_by"),
     $project->nid);
 
-  if (!db_num_rows($result) && $release_type != 'official' && $tids) {
-    // Work-around for releases without a compatibility term
-    // (e.g. unclassified HEAD releases on drupal.org).
-    $result = db_query(db_rewrite_sql(
-      "SELECT n.nid, n.created, r.* FROM {node} n ".
-      "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
-      "WHERE (r.pid = %d) AND (n.status = 1) ". $where), $project->nid);
-  }
-
-  $items = array();
-  $can_edit = node_access('update', $project);
-
+  $rows = array();  // Rows for the download table.
+  $seen = array();  // Keeps track of which versions we already saw.
   while ($release = db_fetch_object($result)) {
-    $links = array();
-    if (!empty($release->file_path)) {
-      $links['project_release_download'] = theme('project_release_download_link', $release->file_path, t('Download'), TRUE);
+    $tid = $release->tid;
+    $major = $release->version_major;
+    $recommended = false;
+    if ($table_type == 'supported') {
+      // Supported version can be multiple majors per tid.
+      if (empty($seen[$tid])) {
+        $seen[$tid] = array();
+      }
+      if (empty($seen[$tid][$major])) {
+        $seen[$tid][$major] = 1;
+        if ($release->recommended) {
+          $recommended = true;
+        }
+      }
+      else {
+        // We already know the supported release for this tid/major, go on.
+        continue;
+      }
     }
-    $links['project_release_notes'] = array(
-      'title' => t('Release notes'),
-      'href' => "node/$release->nid",
-    );
-    if ($can_edit) {
-      $links['project_release_edit'] = array(
-        'title' => t('Edit'),
-        'href' => "node/$release->nid/edit",
-      );
+    else {
+      if (empty($seen[$tid])) {
+        // Only one major per tid, so the row lives here.
+        $seen[$tid] = 1;
+        if ($release->recommended) {
+          $recommended = true;
+        }
+      }
+      elseif ($table_type == 'recommended') {
+        // We already know the recommended release for this tid and that's all
+        // we want in the table, so skip this release.
+        continue;
+      }
     }
-    if (!isset($items[$release->tid]) || !is_array($items[$release->tid])) {
-      $items[$release->tid] = array();
-    }
-
-    $row = array(
-      // class of <tr>
-      'class' => $release->rebuild ? 'release-dev' : 'release',
-      'data' => array(
-        array(
-          'class' => 'release-title',
-          'data' => l($release->version, "node/$release->nid"),
-        ),
-        array(
-          'class' => 'release-date',
-          'data' => !empty($release->file_path) ? format_date($release->file_date, 'custom', 'Y-M-d') : format_date($release->created, 'custom', 'Y-M-d'),
-        ),
-      ),
-    );
-    if ($print_size) {
-      $row['data'][] = array(
-        'class' => 'release-size',
-        'data' => !empty($release->file_path) ? format_size(filesize(file_create_path($release->file_path))) : t('n/a'),
-      );
-    }
-    $row['data'][] = array(
-      'class' => 'release-links',
-      'data' => theme('links', $links),
-    );
-    $items[$release->tid][] = $row;
+    // If we're still here, we need to add the row to the table.
+    $rows[] = theme('project_release_download_table_row', $release, $recommended, $can_edit, $print_size);
   }
+
   $header = array(
     array(
       'class' => 'release-title',
-      'data' => $title),
+      'data' => $title,
+    ),
     array(
       'class' => 'release-date',
       'data' => t('Date'),
@@ -1777,17 +1783,12 @@ function project_release_table($project, $table_type = 'recommended', $release_t
     'class' => 'release-links',
     'data' => t('Links'),
   );
+  $header[] = array(
+    'class' => 'release-status',
+    'data' => t('Status'),
+    'colspan' => 2,
+  );
 
-  $rows = array();
-  foreach ($items as $tid => $item) {
-    if ($table_type == 'recommended') {
-      // We only want the last entry in the array.
-      $rows[] = array_pop($item);
-    }
-    else {
-      $rows = array_merge($rows, $item);
-    }
-  }
   $output = '';
   if (!empty($rows)) {
     $output = theme('table', $header, $rows, array('class' => 'releases'));
@@ -1795,6 +1796,97 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   // Default cache time is 12 hours - will be cleared by the packaging script
   cache_set($cid, 'cache_project_release', $output, time() + 43200);
   return $output;
+}
+
+/**
+ * Helper function to return an individual row for the download table.
+ *
+ * @param $release
+ *   The release object queried from the database.
+ * @param $recommended
+ *   Boolean indicating if this release is the currently recommended one.
+ * @param $can_edit
+ *   Boolean indicating if the current user can edit the release.
+ * @param $print_size
+ *   Boolean indicating if the size of the download should be printed.
+ */
+function theme_project_release_download_table_row($release, $recommended = false, $can_edit = false, $print_size = true) {
+  static $icons = array();
+  if (empty($icons)) {
+    $icons = array(
+      'ok' => theme('image', 'misc/watchdog-ok.png', t('ok'), t('ok')),
+      'warning' => theme('image', 'misc/watchdog-warning.png', t('warning'), t('warning')),
+      'error' => theme('image', 'misc/watchdog-error.png', t('error'), t('error')),
+    );
+  }
+  $links = array();
+  if (!empty($release->file_path)) {
+    $links['project_release_download'] = theme('project_release_download_link', $release->file_path, t('Download'), TRUE);
+  }
+  $links['project_release_notes'] = array(
+    'title' => t('Release notes'),
+    'href' => "node/$release->nid",
+  );
+  if ($can_edit) {
+    $links['project_release_edit'] = array(
+      'title' => t('Edit'),
+      'href' => "node/$release->nid/edit",
+    );
+  }
+  // Figure out the class for the table row
+  $row_class = $release->rebuild ? 'release-dev' : 'release';
+  // Now, set the row color and help text, based on the release attributes.
+  if (!$release->supported) {
+    $reason = t('Unsupported');
+    $classification = 'error';
+  }
+  elseif ($release->rebuild) {
+    $reason = t('Development snapshot');
+    $classification = 'error';
+  }
+  elseif ($recommended) {
+    $reason = t('Recommended for %api_term_name', array('%api_term_name' => $release->api_term_name));
+    $classification = 'ok';
+  }
+  else {
+    // Supported, but not recommened, official release.
+    $reason = t('Supported for %api_term_name', array('%api_term_name' => $release->api_term_name));
+    $classification = 'warning';
+  }
+
+  $row = array(
+    // class of <tr>
+    'class' => $row_class .' '. $classification,
+    'data' => array(
+      array(
+        'class' => 'release-title',
+        'data' => l($release->version, "node/$release->nid"),
+      ),
+      array(
+        'class' => 'release-date',
+        'data' => !empty($release->file_path) ? format_date($release->file_date, 'custom', 'Y-M-d') : format_date($release->created, 'custom', 'Y-M-d'),
+      ),
+    ),
+  );
+  if ($print_size) {
+    $row['data'][] = array(
+      'class' => 'release-size',
+      'data' => !empty($release->file_path) ? format_size(filesize(file_create_path($release->file_path))) : t('n/a'),
+      );
+  }
+  $row['data'][] = array(
+    'class' => 'release-links',
+    'data' => theme('links', $links),
+  );
+  $row['data'][] = array(
+    'class' => 'release-reason',
+    'data' => $reason . $icon,
+  );
+  $row['data'][] = array(
+    'class' => 'release-icon',
+    'data' => $icons[$classification],
+  );
+  return $row;
 }
 
 /**

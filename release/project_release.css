@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.5 2007/01/14 03:06:19 dww Exp $ */
+/* $Id: project_release.css,v 1.6 2008/03/06 06:41:44 dww Exp $ */
 /* $Name:  $ */
 
 .project-release .node-form .version-elements fieldset .form-item {
@@ -23,7 +23,7 @@ table.releases {
 }
 
 table.releases .release-title {
-  width: 30%;
+  width: 15%;
 }
 
 table.releases .release-date {
@@ -31,9 +31,33 @@ table.releases .release-date {
 }
 
 table.releases .release-size {
-  width: 15%;
+  width: 10%;
 }
 
 table.releases .release-links {
-  width: 40%;
+  width: 33%;
+}
+
+table.releases .release-status {
+  width: 25%;
+}
+
+table.releases .release-icon {
+  width: 2%;
+}
+
+table.releases tr.ok {
+  background-color: #dfd;
+  border-color: #beb;
+}
+
+table.releases tr.warning {
+  background-color: #ffd;
+  border-color: #eeb;
+}
+
+table.releases tr.error {
+  background-color: #fcc;
+  border-color: #ebb;
+  color: #200;
 }
