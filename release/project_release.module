@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.64 2008/03/06 20:29:14 dww Exp $
+// $Id: project_release.module,v 1.65 2008/03/07 18:17:48 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1814,9 +1814,9 @@ function theme_project_release_download_table_row($release, $recommended = false
   static $icons = array();
   if (empty($icons)) {
     $icons = array(
-      'ok' => theme('image', 'misc/watchdog-ok.png', t('ok'), t('ok')),
-      'warning' => theme('image', 'misc/watchdog-warning.png', t('warning'), t('warning')),
-      'error' => theme('image', 'misc/watchdog-error.png', t('error'), t('error')),
+      'ok' => 'misc/watchdog-ok.png',
+      'warning' => 'misc/watchdog-warning.png',
+      'error' => 'misc/watchdog-error.png',
     );
   }
   $links = array();
@@ -1837,20 +1837,24 @@ function theme_project_release_download_table_row($release, $recommended = false
   $row_class = $release->rebuild ? 'release-dev' : 'release';
   // Now, set the row color and help text, based on the release attributes.
   if (!$release->supported) {
-    $reason = t('Unsupported');
+    $text = theme('project_release_download_text_unsupported', $release, 'summary');
+    $message = theme('project_release_download_text_unsupported', $release, 'message');
     $classification = 'error';
   }
   elseif ($release->rebuild) {
-    $reason = t('Development snapshot');
+    $reason = theme('project_release_download_text_snapshot', $release, 'summary');
+    $message = theme('project_release_download_text_snapshot', $release, 'message');
     $classification = 'error';
   }
   elseif ($recommended) {
-    $reason = t('Recommended for %api_term_name', array('%api_term_name' => $release->api_term_name));
+    $reason = theme('project_release_download_text_recommended', $release, 'summary');
+    $message = theme('project_release_download_text_recommended', $release, 'message');
     $classification = 'ok';
   }
   else {
     // Supported, but not recommened, official release.
-    $reason = t('Supported for %api_term_name', array('%api_term_name' => $release->api_term_name));
+    $reason = theme('project_release_download_text_supported', $release, 'summary');
+    $message = theme('project_release_download_text_supported', $release, 'message');
     $classification = 'warning';
   }
 
@@ -1880,13 +1884,66 @@ function theme_project_release_download_table_row($release, $recommended = false
   );
   $row['data'][] = array(
     'class' => 'release-reason',
-    'data' => $reason . $icon,
+    'data' => $reason,
   );
   $row['data'][] = array(
     'class' => 'release-icon',
-    'data' => $icons[$classification],
+    'data' => theme('image', $icons[$classification], $message, $message),
   );
   return $row;
+}
+
+/**
+ * Return the message text for recommended releases in the download table.
+ *
+ * @param $release
+ *   Object with data about the release.
+ * @param $text_type
+ *   What kind of text to render.  Can be either 'summary' for the summary
+ *   text to include directly on the project node, or 'message' for the text
+ *   to put in the title and alt attributes of the icon. 
+ */
+function theme_project_release_download_text_recommended($release, $text_type) {
+  if ($text_type == 'summary') {
+    return t('Recommended for %api_term_name', array('%api_term_name' => $release->api_term_name));
+  }
+  return t('This is currently the recommended release for @api_term_name.', array('@api_term_name' => $release->api_term_name));
+}
+
+/**
+ * Return the message text for supported releases in the download table.
+ *
+ * @see theme_project_release_download_text_recommended
+ */
+function theme_project_release_download_text_supported($release, $text_type) {
+  if ($text_type == 'summary') {
+    return t('Supported for %api_term_name', array('%api_term_name' => $release->api_term_name));
+  }
+  return t('This release is supported but is not currently the recommended release for @api_term_name.', array('@api_term_name' => $release->api_term_name));
+}
+
+/**
+ * Return the message text for snapshot releases in the download table.
+ *
+ * @see theme_project_release_download_text_recommended
+ */
+function theme_project_release_download_text_snapshot($release, $text_type) {
+  if ($text_type == 'summary') {
+    return t('Development snapshot');
+  }
+  return t('Development snapshots are automatically regenerated and their contents can frequently change, so they are not recommended for production use.');
+}
+
+/**
+ * Return the message text for snapshot releases in the download table.
+ *
+ * @see theme_project_release_download_text_recommended
+ */
+function theme_project_release_download_text_unsupported($release, $text_type) {
+  if ($text_type == 'summary') {
+    return t('Unsupported');
+  }
+  return t('This release is not supported and may no longer work.');
 }
 
 /**
