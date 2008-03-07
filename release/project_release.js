@@ -1,4 +1,4 @@
-/* $Id: project_release.js,v 1.1 2008/01/19 07:10:59 dww Exp $ */
+/* $Id: project_release.js,v 1.2 2008/03/07 19:35:08 dww Exp $ */
 
 Drupal.projectReleaseAutoAttach = function () {
   // Set handler for clicking a radio to change the recommended version.
@@ -14,9 +14,9 @@ Drupal.projectReleaseAutoAttach = function () {
       // If there are no recommended versions, make this newly supported version recommended.
       if (!Drupal.projectReleaseIsRecommendedSet($(this).parents('table:eq(0)'))) {
         Drupal.projectReleaseSetRecommended($(this).parents('tr:eq(0)').find('.recommended'));
-      }        
+      }
     }
-    else { 
+    else {
       // Marking this version as unsupported, so disable row.
       $(this).parents('tr:eq(0)').find('.recommended, .snapshot')
         .attr('disabled','true')
@@ -26,11 +26,11 @@ Drupal.projectReleaseAutoAttach = function () {
       if (!Drupal.projectReleaseIsRecommendedSet($(this).parents('table:eq(0)'))) {
         // See if there is at least one supported versions.
         var recommendable = null;
-        $(this).parents('table:eq(0)').find(".recommended").each( function(i) { 
+        $(this).parents('table:eq(0)').find(".recommended").each( function(i) {
           if (!this.disabled) {
-            recommendable = this; 
+            recommendable = this;
           }
-        });        
+        });
         if (recommendable) {
           // There is a supported version, so recommend it.
           Drupal.projectReleaseSetRecommended( recommendable );
@@ -50,9 +50,9 @@ Drupal.projectReleaseAutoAttach = function () {
 
 Drupal.projectReleaseIsRecommendedSet = function (table) {
   var recommended = false;
-  $(table).find(".recommended").each( function(i) { 
-    if (this.checked) { 
-      recommended = true; 
+  $(table).find(".recommended").each( function(i) {
+    if (this.checked) {
+      recommended = true;
     }
   });
   return recommended;
@@ -69,7 +69,7 @@ Drupal.projectReleaseSetRecommended = function (radio) {
 Drupal.projectReleaseUnsetRecommended = function (table) {
     $(table).find('tr:last span')
       .html('n/a')
-      .css('background-color', '#FFFFAA');  
+      .css('background-color', '#FFFFAA');
 };
 
 // Global killswitch.

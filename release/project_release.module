@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.65 2008/03/07 18:17:48 dww Exp $
+// $Id: project_release.module,v 1.66 2008/03/07 19:35:08 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1901,7 +1901,7 @@ function theme_project_release_download_table_row($release, $recommended = false
  * @param $text_type
  *   What kind of text to render.  Can be either 'summary' for the summary
  *   text to include directly on the project node, or 'message' for the text
- *   to put in the title and alt attributes of the icon. 
+ *   to put in the title and alt attributes of the icon.
  */
 function theme_project_release_download_text_recommended($release, $text_type) {
   if ($text_type == 'summary') {

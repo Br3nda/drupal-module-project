@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.27 2008/01/21 22:32:48 dww Exp $
+// $Id: package-release-nodes.php,v 1.28 2008/03/07 19:35:08 dww Exp $
 // $Name:  $
 
 /**
@@ -478,7 +478,7 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
           return FALSE;
         }
 
-        // File names are formatted in directory-subdirectory.po or 
+        // File names are formatted in directory-subdirectory.po or
         // directory.po format and aggregate files from the named directory.
         // The installer.po file is special in that it aggregates all strings
         // possibly used in the installer. We move that to the default install
