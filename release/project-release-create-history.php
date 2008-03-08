@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.10 2007/09/19 17:46:10 dww Exp $
+// $Id: project-release-create-history.php,v 1.11 2008/03/08 09:25:47 dww Exp $
 // $Name:  $
 
 /**
@@ -144,41 +144,59 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $api_version = $api_terms[$api_tid];
 
     // Get project-wide data:
-    $sql = "SELECT n.title, n.nid, p.uri, prdv.major FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = n.nid AND prdv.tid = %d WHERE p.nid = %d";
+    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid WHERE prsv.tid = %d AND p.nid = %d";
     $query = db_query($sql, $api_tid, $project_nid);
-    if (!db_num_rows($query)) {
-      wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
-      return FALSE;
-    }
-    $project = db_fetch_object($query);
-    if (!isset($project->major)) {
-      wd_err(t('No release found for project %project_name compatible with %api_version.', array('%project_name' => $project->uri, '%api_version' => $api_version)));
-      return FALSE;
-    }
   }
   else {
     // Consider all API compatibility terms.
     $api_version = 'all';
-    $sql = "SELECT n.title, n.nid, p.uri, prdv.major FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = n.nid WHERE p.nid = %d";
+    $sql = "SELECT n.title, n.nid, n.status, p.uri FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE p.nid = %d";
     $query = db_query($sql, $project_nid);
-    if (!db_num_rows($query)) {
-      wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
-      return FALSE;
+  }
+  if (!db_num_rows($query)) {
+    wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
+    return FALSE;
+  }
+  $project = db_fetch_object($query);
+
+  $xml = '<title>'. check_plain($project->title) ."</title>\n";
+  $xml .= '<short_name>'. check_plain($project->uri) ."</short_name>\n";
+  $xml .= '<api_version>'. check_plain($api_version) ."</api_version>\n";
+  if (!$project->status) {
+    // If it's not published, we can skip the rest of this and bail.
+    $xml .= "<project_status>unpublished</project_status>\n";
+    project_release_history_write_xml($project, $api_version, $xml);
+    return;
+  }
+
+  $project_status = 'published';
+  if (isset($api_tid)) {
+    // Include the info about supported and recommended major versions.
+    $query = db_query("SELECT major, supported, recommended FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d", $project_nid, $api_tid);
+    $supported_majors = array();
+    while ($version_info = db_fetch_object($query)) {
+      if ($version_info->supported) {
+        $supported_majors[] = $version_info->major;
+      }
+      if ($version_info->recommended) {
+        $recommended_major = $version_info->major;
+      }
     }
-    $project = db_fetch_object($query);
-    if (!isset($project->major)) {
-      wd_err(t('No release found for project %project_name.', array('%project_name' => $project->uri)));
-      return FALSE;
+    if (isset($recommended_major)) {
+      $xml .= '<recommended_major>'. $recommended_major ."</recommended_major>\n";
+    }
+    if (empty($supported_majors)) {
+      $project_status = 'unsupported';
+    }
+    else {
+      $xml .= '<supported_majors>'. implode(',', $supported_majors) ."</supported_majors>\n";
+      // To avoid confusing existing clients, include <default_major>, too.
+      $xml .= '<default_major>'. min($supported_majors) ."</default_major>\n";
     }
   }
 
-  $xml = "<project>\n";
-  $xml .= '<title>'. check_plain($project->title) ."</title>\n";
-  $xml .= '<short_name>'. check_plain($project->uri) ."</short_name>\n";
+  $xml .= '<project_status>'. $project_status ."</project_status>\n";
   $xml .= '<link>'. url("node/$project->nid", NULL, NULL, TRUE) ."</link>\n";
-  $xml .= '<api_version>'. check_plain($api_version) ."</api_version>\n";
-  $xml .= "<default_major>$project->major</default_major>\n";
-  $xml .= "<releases>\n";
 
   // Now, build the query for all the releases for this project and term.
   $joins = array();
@@ -228,9 +246,17 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   while ($release = db_fetch_object($result)) {
     $releases[] = $release;
   }
+
+  if (empty($releases)) {
+    // Nothing more to include for this project, wrap up and return.
+    project_release_history_write_xml($project, $api_version, $xml);
+    return;
+  }
+
   // Sort the releases based on our custom sorting function.
   usort($releases, "_release_sort");
 
+  $xml .= "<releases>\n";
   foreach ($releases as $release) {
     $xml .= " <release>\n";
     $xml .= '  <name>'. check_plain($release->title) ."</name>\n";
@@ -274,7 +300,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     }
     $xml .= " </release>\n";
   }
-  $xml .= "</releases>\n</project>\n";
+  $xml .= "</releases>\n";
   project_release_history_write_xml($project, $api_version, $xml);
 }
 
@@ -319,8 +345,10 @@ function project_release_history_write_xml($project, $api_version, $xml) {
     wd_err(t("ERROR: fopen(@file, 'xb') failed", array('@file' => $file)));
     return FALSE;
   }
-  if (!fwrite($hist_fd, $xml)) {
-    wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $tmp_filename)) . '<pre>' . check_plain($xml));
+  // We always wrap our project history files in <project>...</project> tags.
+  $full_xml = "<project>\n". $xml ."</project>\n";
+  if (!fwrite($hist_fd, $full_xml)) {
+    wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $tmp_filename)) . '<pre>' . check_plain($full_xml));
     return FALSE;
   }
   // We have to close this handle before we can rename().
