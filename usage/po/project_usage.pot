@@ -1,4 +1,4 @@
-# $Id: project_usage.pot,v 1.1 2008/01/31 23:02:10 hass Exp $
+# $Id: project_usage.pot,v 1.1.2.1 2008/03/08 12:10:01 hass Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -10,7 +10,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2008-01-06 14:15-0800\n"
+"POT-Creation-Date: 2008-03-08 11:43+0100\n"
 "PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"

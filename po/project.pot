@@ -1,17 +1,17 @@
-# $Id: project.pot,v 1.6 2008/01/06 22:17:16 dww Exp $
+# $Id: project.pot,v 1.6.2.1 2008/03/08 12:09:12 hass Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
-#  project.inc,v 1.120 2007/11/13 01:27:54 dww
-#  project.module,v 1.306 2008/01/06 21:05:26 thehunmonkgroup
+#  project.inc,v 1.122 2008/03/07 21:57:43 thehunmonkgroup
+#  project.module,v 1.309 2008/03/06 06:41:43 dww
 #  project.info,v 1.2 2007/06/13 19:33:16 dww
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2008-01-06 14:16-0800\n"
+"POT-Creation-Date: 2008-03-08 11:45+0100\n"
 "PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
@@ -140,100 +140,108 @@ msgstr ""
 msgid "Browse projects"
 msgstr ""
 
-#: project.inc:289
-msgid "Home page"
-msgstr ""
-
-#: project.inc:289
-msgid "Read documentation"
-msgstr ""
-
-#: project.inc:289
-msgid "Read license"
-msgstr ""
-
-#: project.inc:289
-msgid "Read complete log of changes"
-msgstr ""
-
-#: project.inc:289
-msgid "Try out a demonstration"
-msgstr ""
-
-#: project.inc:289
-msgid "Look at screenshots"
-msgstr ""
-
-#: project.inc:297
+#: project.inc:291
 msgid "Resources"
 msgstr ""
 
-#: project.inc:310
-msgid "View all support requests"
+#: project.inc:294
+msgid "Home page"
 msgstr ""
 
-#: project.inc:311
-msgid "View pending support requests"
+#: project.inc:294
+msgid "Read documentation"
 msgstr ""
 
-#: project.inc:312
-msgid "View pending bug reports"
+#: project.inc:294
+msgid "Read license"
 msgstr ""
 
-#: project.inc:313
-msgid "View pending feature requests"
+#: project.inc:294
+msgid "Read complete log of changes"
 msgstr ""
 
-#: project.inc:316
-msgid "Request support"
+#: project.inc:294
+msgid "Try out a demonstration"
 msgstr ""
 
-#: project.inc:317
-msgid "Report new bug"
+#: project.inc:294
+msgid "Look at screenshots"
 msgstr ""
 
-#: project.inc:318
-msgid "Request new feature"
-msgstr ""
-
-#: project.inc:326
+#: project.inc:308
 msgid "Support"
 msgstr ""
 
-#: project.inc:334
-msgid "View pending patches"
+#: project.inc:313
+msgid "View all support requests"
 msgstr ""
 
-#: project.inc:335
-msgid "View available tasks"
+#: project.inc:314
+msgid "View pending support requests"
 msgstr ""
 
-#: project.inc:336
-msgid "View all pending issues"
+#: project.inc:315
+msgid "View pending bug reports"
 msgstr ""
 
-#: project.inc:340
-msgid "Browse the CVS repository"
+#: project.inc:316
+msgid "View pending feature requests"
 msgstr ""
 
-#: project.inc:344
-msgid "View CVS messages"
+#: project.inc:319
+msgid "Request support"
 msgstr ""
 
-#: project.inc:345 project.module:375
-msgid "Developers"
+#: project.inc:320
+msgid "Report new bug"
 msgstr ""
 
-#: project.inc:350
+#: project.inc:321
+msgid "Request new feature"
+msgstr ""
+
+#: project.inc:331
 msgid "Development"
 msgstr ""
 
-#: project.inc:465
+#: project.inc:336
+msgid "View pending patches"
+msgstr ""
+
+#: project.inc:337
+msgid "View available tasks"
+msgstr ""
+
+#: project.inc:338
+msgid "View all pending issues"
+msgstr ""
+
+#: project.inc:342
+msgid "Browse the CVS repository"
+msgstr ""
+
+#: project.inc:346
+msgid "View CVS messages"
+msgstr ""
+
+#: project.inc:347 project.module:375
+msgid "Developers"
+msgstr ""
+
+#: project.inc:475
 msgid "Developers for %name"
 msgstr ""
 
-#: project.inc:483
+#: project.inc:493
 msgid "CVS messages for %name"
+msgstr ""
+
+#: project.info:0;0 project.module:66;407
+msgid "Project"
+msgstr ""
+
+#: project.info:0
+msgid "Provides a project node type and browsing of projects."
 msgstr ""
 
 #: project.module:39
@@ -254,10 +262,6 @@ msgstr ""
 
 #: project.module:53;57
 msgid "Project navigation"
-msgstr ""
-
-#: project.module:66;407 project.info:0;0
-msgid "Project"
 msgstr ""
 
 #: project.module:68
@@ -288,11 +292,11 @@ msgstr ""
 msgid "The default maximum number of projects to list when browsing lists, e.g., by category."
 msgstr ""
 
-#: project.module:263;746
+#: project.module:263;745
 msgid "Project types"
 msgstr ""
 
-#: project.module:331;895
+#: project.module:331;893
 msgid "Projects"
 msgstr ""
 
@@ -328,39 +332,39 @@ msgstr ""
 msgid "Automatically generated path alias: %url"
 msgstr ""
 
-#: project.module:729
+#: project.module:728
 msgid "Categories"
 msgstr ""
 
-#: project.module:733
+#: project.module:732
 msgid "@project_type: %category"
 msgstr ""
 
-#: project.module:790
+#: project.module:789
 msgid "Download"
 msgstr ""
 
-#: project.module:795
+#: project.module:793
 msgid "Version"
 msgstr ""
 
-#: project.module:799
+#: project.module:797
 msgid "Find out more"
 msgstr ""
 
-#: project.module:804
+#: project.module:802
 msgid "Bugs and feature requests"
 msgstr ""
 
-#: project.module:1040
+#: project.module:1038
 msgid "<select a project>"
 msgstr ""
 
-#: project.module:1049
+#: project.module:1047
 msgid "Go"
 msgstr ""
 
-#: project.module:1088
+#: project.module:1086
 msgid "Last changed: !interval ago"
 msgstr ""
 
@@ -382,9 +386,5 @@ msgstr ""
 
 #: project.module:0
 msgid "project"
-msgstr ""
-
-#: project.info:0
-msgid "Provides a project node type and browsing of projects."
 msgstr ""
 
