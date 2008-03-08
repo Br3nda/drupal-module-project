@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: German translation for project module\n"
 "POT-Creation-Date: 2008-03-08 11:43+0100\n"
-"PO-Revision-Date: 2008-03-08 13:06+0100\n"
+"PO-Revision-Date: 2008-03-08 13:40+0100\n"
 "Last-Translator: Alexander Hass\n"
 "Language-Team: Alexander Hass\n"
 "MIME-Version: 1.0\n"
@@ -615,7 +615,7 @@ msgstr "Unterstützt"
 #: project_release.module:1185;1232
 #, fuzzy
 msgid "Show snapshot release"
-msgstr "Zusammenpacken aller Veröffentlichungen von Momentaufnahmen gestartet."
+msgstr "Veröffentlichung von Momentaufnahme anzeigen"
 
 #: project_release.module:1198;1230
 msgid "Recommended"
@@ -623,7 +623,7 @@ msgstr "Empfohlen"
 
 #: project_release.module:1212
 msgid "Currently recommended"
-msgstr "Aktuell empfohlen"
+msgstr "Derzeit empfohlen"
 
 #: project_release.module:1228
 msgid "Major version"
@@ -703,7 +703,7 @@ msgstr "Empfohlen für %api_term_name"
 
 #: project_release.module:1910
 msgid "This is currently the recommended release for @api_term_name."
-msgstr "Dies ist die aktuell empfohlene Veröffentlichung für @api_term_name."
+msgstr "Dies ist die derzeit empfohlene Veröffentlichung für @api_term_name."
 
 #: project_release.module:1920
 msgid "Supported for %api_term_name"
