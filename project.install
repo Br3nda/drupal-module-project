@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.19 2008/03/08 09:14:05 dww Exp $
+// $Id: project.install,v 1.20 2008/03/08 16:48:12 dww Exp $
 // $Name:  $
 
 function project_install() {
@@ -13,7 +13,6 @@ function project_install() {
           changelog varchar(255) NOT NULL default '',
           cvs varchar(255) NOT NULL default '',
           demo varchar(255) NOT NULL default '',
-          release_directory varchar(255) NOT NULL default '',
           documentation varchar(255) not null default '',
           screenshots varchar(255) not null default '',
           license varchar(255) not null default '',
@@ -29,7 +28,6 @@ function project_install() {
           changelog varchar(255) NOT NULL default '',
           cvs varchar(255) NOT NULL default '',
           demo varchar(255) NOT NULL default '',
-          release_directory varchar(255) NOT NULL default '',
           screenshots varchar(255) default '' not null,
           documentation varchar(255) default '' not null,
           license varchar(255) default '' not null,
@@ -247,5 +245,16 @@ function project_update_5002() {
   $ret = array();
   // PgSQL and MySQL have the same syntax for this.
   $ret[] = update_sql('ALTER TABLE {project_projects} DROP COLUMN version');
+  return $ret;
+}
+
+/**
+ * Get rid of the 'release_directory' column in the {project_projects} table.
+ * See http://drupal.org/node/231558
+ */
+function project_update_5003() {
+  $ret = array();
+  // PgSQL and MySQL have the same syntax for this.
+  $ret[] = update_sql('ALTER TABLE {project_projects} DROP COLUMN release_directory');
   return $ret;
 }
