@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.122.2.1 2008/03/08 16:48:16 dww Exp $
+// $Id: project.inc,v 1.122.2.2 2008/03/15 20:08:56 dww Exp $
 // $Name:  $
 
 /**
@@ -320,7 +320,7 @@ function project_project_view($node, $teaser = false, $page = false) {
       $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
       $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
     }
-    else {
+    elseif ($has_issues) {
       $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->uri);
     }
     $all_links['support']['links'] = $links;
