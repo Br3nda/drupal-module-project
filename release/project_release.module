@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66 2008/03/07 19:35:08 dww Exp $
+// $Id: project_release.module,v 1.66.2.1 2008/03/29 08:33:40 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -710,6 +710,11 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
       }
     }
   }
+
+  // Either way, clear the cache for the release table, since what we want to
+  // display might have changed, too.
+  $cid = 'table:'. $pid .':';
+  cache_clear_all($cid, 'cache_project_release', TRUE);
 }
 
 /**
@@ -1500,11 +1505,6 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
           project_release_check_supported_versions($node->pid, $tid, $node->version_major, ($op == 'delete' ? TRUE : FALSE));
         }
       }
-
-      // Finally, clear the cache for the release table on any of these node
-      // operations, since what we want to display might have changed, too.
-      $cid = 'table:'. $node->pid .':';
-      cache_clear_all($cid, 'cache_project_release', TRUE);
       break;
   }
 }
