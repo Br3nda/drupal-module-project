@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.10.2.1 2008/03/08 09:29:42 dww Exp $
+// $Id: project-release-create-history.php,v 1.10.2.2 2008/03/29 08:23:42 dww Exp $
 // $Name:  $
 
 /**
@@ -207,6 +207,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     'prn.file_path',
     'prn.file_date',
     'prn.file_hash',
+    'prn.rebuild',
     'prn.version',
     'prn.version_major',
     'prn.version_minor',
@@ -398,28 +399,47 @@ function _rename($oldfile, $newfile) {
   }
 }
 
+/**
+ * Sorting function to ensure releases are in the right order in the XML file.
+ *
+ * Loop over the fields in the release node we care about, and the first field
+ * that differs between the two releases determines the order.
+ *
+ * We first check the 'weight' (of the API version term) for when we're
+ * building a single list of all versions, not a per-API version listing. In
+ * this case, lower numbers should float to the top.
+ *
+ * We also need to special-case the 'rebuild' field, which is how we know if
+ * it's a dev snapshot or official release. Rebuild == 1 should always come
+ * last within a given major version, since that's how update_status expects
+ * the ordering to ensure that we never recommend a -dev release if there's an
+ * official release available. So, like weight, the lower number for 'rebuild'
+ * should float to the top.
+ *
+ * For every other field, we want the bigger numbers come first.
+ *
+ * @see project_release_history_generate_project_xml()
+ * @see usort()
+ */
 function _release_sort($a, $b) {
-  // First, check the weight (API version term), since the order is reversed
-  // for that (lighter should float to the top).
-  if (isset($a->weight) && isset($b->weight) && $a->weight != $b->weight) {
-    return ($a->weight < $b->weight) ? -1 : +1;
-  }
-
-  // Otherwise, just check the usual version and file_date fields, and the
-  // first one that differs determines the order.
+  // This array maps fields in the release node to the sort order, where -1
+  // means to sort like Drupal weights, and +1 means the bigger numbers are
+  // higher in the listing.
   $fields = array(
-    version_major,
-    version_minor,
-    version_patch,
-    file_date,
+    'weight' => -1,
+    'version_major' => 1,
+    'rebuild' => -1,
+    'version_minor' => 1,
+    'version_patch' => 1,
+    'file_date' => 1,
   );
-  foreach ($fields as $field) {
+  foreach ($fields as $field => $sign) {
     if (!isset($a->$field) && !isset($b->$field)) {
       continue;
     }
     if ($a->$field == $b->$field) {
       continue;
     }
-    return ($a->$field > $b->$field) ? -1 : +1;
+    return ($a->$field < $b->$field) ? $sign : (-1 * $sign);
   }
 }
