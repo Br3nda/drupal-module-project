@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.28 2008/03/07 19:35:08 dww Exp $
+// $Id: package-release-nodes.php,v 1.29 2008/03/29 08:33:35 dww Exp $
 // $Name:  $
 
 /**
@@ -196,8 +196,9 @@ function package_releases($type, $project_id) {
     $where .= ' AND prn.pid = %d';
     $args[] = $project_id;
   }
+  $vid = (int)_project_release_get_api_vid();
 
-  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1" . $where . ' ORDER BY pp.uri', $args);
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1 AND td.vid = $vid " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
@@ -216,6 +217,8 @@ function package_releases($type, $project_id) {
     $tag = $release->tag;
     $nid = $release->nid;
     $pid = $release->pid;
+    $tid = $release->tid;
+    $major = $release->version_major;
     $rev = ($tag == 'TRUNK') ? '-r HEAD' : "-r $tag";
     $uri = escapeshellcmd($uri);
     $version = escapeshellcmd($version);
@@ -230,7 +233,7 @@ function package_releases($type, $project_id) {
     }
     if ($built) {
       $num_built++;
-      $project_nids[$pid] = TRUE;
+      $project_nids[$pid][$tid][$major] = TRUE;
     }
     $num_considered++;
     if (count($wd_err_msg)) {
@@ -246,10 +249,15 @@ function package_releases($type, $project_id) {
     }
   }
 
-  // Finally, clear the project_release_table() cache for any projects that we
-  // generated new tarballs for, since those tables are now stale.
-  foreach ($project_nids as $pid => $value) {
-    cache_clear_all('table:'. $pid .':', 'cache_project_release', TRUE);
+  // Finally, for each project/tid/major triple we packaged, check to see if
+  // the supported/recommended settings are sane now that new tarballs have
+  // been generated and release nodes published.
+  foreach ($project_nids as $pid => $tids) {
+    foreach ($tids as $tid => $majors) {
+      foreach ($majors as $major => $value) {
+        project_release_check_supported_versions($pid, $tid, $major, FALSE);
+      }
+    }
   }
 }
 
