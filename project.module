@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.309 2008/03/06 06:41:43 dww Exp $
+// $Id: project.module,v 1.309.2.1 2008/04/14 06:03:35 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -616,6 +616,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         'DISTINCT(n.nid)',
         'n.title',
         'n.sticky',
+        'n.type',
         'nr.teaser',
         'nr.format',
       );
@@ -682,12 +683,11 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           $where = 'tr.tid IN ('. implode(',', $placeholders) .')';
           $release_settings['wheres'][] = $where;
 
-          // We need to grab the uid and type for the project node, so
+          // We need to grab the uid for the project node, so
           // that node_access() will work properly without a full
           // node_load() when we're generating the download table in
           // project_release_table().
           $release_settings['fields'][] = 'n.uid';
-          $release_settings['fields'][] = 'n.type';
         }
         $sql_settings = array_merge_recursive($sql_settings, $release_settings);
       }
