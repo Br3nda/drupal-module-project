@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.1 2008/03/29 08:33:40 dww Exp $
+// $Id: project_release.module,v 1.66.2.2 2008/04/14 00:24:35 thehunmonkgroup Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -891,8 +891,30 @@ function project_release_project_releases() {
 /**
  * Get an array of release nodes
  * @ingroup project_release_api
+ *
+ * @param $project
+ *   The project node object.
+ * @param $nodes
+ *   If set, an array of release nodes will be returned.
+ *   Otherwise only the version field will be returned in the array value.
+ * @param $sort_by
+ *   This can be 'date' or 'version' and determines how the releases
+ *   returned are to be sorted.
+ * @param $filter_by
+ *   This can be 'all' to include all releases or 'files' to return
+ *   only releases which have a file attached.
+ * @param $rids
+ *   This is a special parameter that can be used to allow one or more
+ *   releases to be returned even if the node itself is unpublished.
+ *   This is useful when this function is called by the project_issue
+ *   module to allow a user to keep the version of an issue unchanged
+ *   even if the release represented by the version is now unpublished.
+  * @return
+ *   An array of releases.  The keys are the release node nids.  The values
+ *   will either be release objects or release version strings, depending
+ *   on the value of the $nodes parameter.
  */
-function project_release_get_releases($project, $nodes = true, $sort_by = 'version', $filter_by = 'all') {
+function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'version', $filter_by = 'all', $rids = array()) {
   if ($sort_by == 'date') {
     $order_by = 'n.created';
   }
@@ -900,14 +922,23 @@ function project_release_get_releases($project, $nodes = true, $sort_by = 'versi
     $order_by = 'r.version';
   }
   $where = '';
+  $args = array($project->nid);
   if (!project_check_admin_access($project)) {
-    $where = 'AND (n.status = 1)';
+    if (!empty($rids)) {
+      $where = "AND (n.status = 1 OR n.nid IN (". implode(',', array_fill(0, count($rids), '%d')) ."))";
+      foreach ($rids as $rid) {
+        $args[] = $rid;
+      }
+    }
+    else {
+      $where = 'AND (n.status = 1)';
+    }
     if ($filter_by == 'files') {
       $where .= " AND (r.file_path <> '')";
     }
   }
 
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $project->nid);
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $args);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {
