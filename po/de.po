@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: German translation for project module\n"
 "POT-Creation-Date: 2008-03-08 11:45+0100\n"
-"PO-Revision-Date: 2008-03-08 11:51+0100\n"
+"PO-Revision-Date: 2008-05-25 19:25+0100\n"
 "Last-Translator: Alexander Hass\n"
 "Language-Team: Alexander Hass\n"
 "MIME-Version: 1.0\n"
@@ -97,7 +97,7 @@ msgstr "Verweis zu Änderungsliste."
 
 #: project.inc:146;211
 msgid "CVS tree"
-msgstr "CVS Baum"
+msgstr "CVS-Baum"
 
 #: project.inc:150
 msgid "Link to webcvs/viewcvs."
@@ -105,7 +105,7 @@ msgstr "Verweis zu webcvs/viewcvs."
 
 #: project.inc:154;212
 msgid "Demo site"
-msgstr "Demo Website"
+msgstr "Demo-Website"
 
 #: project.inc:158
 msgid "Link to a live demo."
@@ -221,11 +221,11 @@ msgstr "Alle anstehenden Probleme ansehen"
 
 #: project.inc:342
 msgid "Browse the CVS repository"
-msgstr "CVS Repository durchsuchen"
+msgstr "CVS-Repository durchsuchen"
 
 #: project.inc:346
 msgid "View CVS messages"
-msgstr "CVS Nachrichten ansehen"
+msgstr "CVS-Nachrichten ansehen"
 
 #: project.inc:347
 #: project.module:375
@@ -238,7 +238,7 @@ msgstr "Entwickler für %name"
 
 #: project.inc:493
 msgid "CVS messages for %name"
-msgstr "CVS Nachrichten für %name"
+msgstr "CVS-Nachrichten für %name"
 
 #: project.info:0;0
 #: project.module:66;407
@@ -255,11 +255,11 @@ msgstr "Das Projektmodul verwendet das Taxonomie (Kategorie) System auf besonder
 
 #: project.module:40
 msgid "To take full advantage of project categorization, add at least two levels of terms to this vocabulary. The first level will be the basic project types, e.g., \"Modules\", \"Themes\", \"Translations\"."
-msgstr "Um alle Vorteile der Projektkategorierung zu erreichen, müssen mindestens zwei Ebenen mit Begriffen zu diesem Vokabular hinzugefügt werden. Die erste Ebene werden die Basisprojekttypen, z.b.: \"Module\", \"Themes\" und \"Übersetzungen\"."
+msgstr "Um alle Vorteile der Projektkategorierung zu erreichen, müssen mindestens zwei Ebenen mit Begriffen zu diesem Vokabular hinzugefügt werden. Die erste Ebene werden die Basisprojekttypen, z.b.: „Module“, „Themes“ und „Übersetzungen“."
 
 #: project.module:41
 msgid "Subterms of each of these types will be the categories that users can select to classify the projects. For example, \"Modules\" might have sub-terms including \"Mail\" and \"XML\"."
-msgstr "Unterbegriffe von jedem dieser Typen werden die Kategorien die Benutzer auswählen können, um das Projekt zu klassifizieren. Beispielsweise: \"Module\" können zu den Unterbegriffen \"Mail\" und \"XML\" gehören."
+msgstr "Die Benutzer können die Unterbegriffe dieser Typen als Kategorien zur Klassifizierung der Projekte auswählen. Beispielsweise: „Module“ können zu den Unterbegriffen „Mail“ und „XML“ gehören."
 
 #: project.module:43
 msgid "Use the <a href=\"@taxonomy-admin\">vocabulary admininistration page</a> to view and add terms."
@@ -290,6 +290,7 @@ msgid "Each type of project on your site will have its own project browsing page
 msgstr "Jede Projektart wird auf der Website unter %link eine eigene Projektsuchseite bekommen. Für jede Suchseite können unterschiedliche Suchoptionen konfiguriert werden (nach Name, nach Datum, usw.). Die nachstehenden Einstellungen legen die verfügbaren Suchmethoden für jeden Projekttyp fest."
 
 #: project.module:244
+#, fuzzy
 msgid "Number of projects to list in paged browsing"
 msgstr "Anzahl der aufzulistenden Projekte in der Seitensuche"
 
