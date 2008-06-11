@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6 2007/09/14 16:17:55 dww Exp $
+// $Id: project_usage.module,v 1.6.2.1 2008/06/11 02:50:37 dww Exp $
 // $Name:  $
 
 /**
@@ -147,7 +147,7 @@ function project_usage_process_daily() {
 
   // Move usage records with project node IDs into the daily table and remove
   // the rest.
-  db_query("INSERT INTO {project_usage_day} (timestamp, site_key, pid, nid, tid) SELECT timestamp, site_key, pid, nid, tid FROM {project_usage_raw} WHERE timestamp < %d AND pid <> 0", $timestamp);
+  db_query("INSERT INTO {project_usage_day} (timestamp, site_key, pid, nid, tid, ip_addr) SELECT timestamp, site_key, pid, nid, tid, ip_addr FROM {project_usage_raw} WHERE timestamp < %d AND pid <> 0", $timestamp);
   db_query("DELETE FROM {project_usage_raw} WHERE timestamp < %d", $timestamp);
   watchdog('project_usage', t('Moved usage from raw to daily.'));
 

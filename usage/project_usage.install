@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.install,v 1.3 2007/09/14 16:17:55 dww Exp $
+// $Id: project_usage.install,v 1.3.2.1 2008/06/11 02:50:37 dww Exp $
 // $Name:  $
 
 function project_usage_install() {
@@ -15,6 +15,7 @@ function project_usage_install() {
           pid int unsigned NOT NULL default '0',
           nid int unsigned NOT NULL default '0',
           tid int unsigned NOT NULL default '0',
+          ip_addr varchar(128) NOT NULL default '',
           PRIMARY KEY (timestamp, project_uri, site_key)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_usage_day} (
@@ -23,6 +24,7 @@ function project_usage_install() {
           pid int unsigned NOT NULL default '0',
           nid int unsigned NOT NULL default '0',
           tid int unsigned NOT NULL default '0',
+          ip_addr varchar(128) NOT NULL default '',
           PRIMARY KEY (timestamp, site_key, pid)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
       db_query("CREATE TABLE IF NOT EXISTS {project_usage_week_project} (
@@ -97,5 +99,20 @@ function project_usage_update_5000() {
     }
   }
 
+  return $ret;
+}
+
+/**
+ * Add a ip_addr field to {project_usage_raw} and {project_usage_day}.
+ */
+function project_usage_update_5001() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql("ALTER TABLE {project_usage_raw} ADD COLUMN ip_addr varchar(128) NOT NULL default '' AFTER tid");
+      $ret[] = update_sql("ALTER TABLE {project_usage_day} ADD COLUMN ip_addr varchar(128) NOT NULL default '' AFTER tid");
+      break;
+  }
   return $ret;
 }
