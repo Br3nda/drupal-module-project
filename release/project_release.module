@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.68 2008/04/14 00:31:02 thehunmonkgroup Exp $
+// $Id: project_release.module,v 1.69 2008/06/11 18:14:55 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -79,9 +79,9 @@ function project_release_menu($may_cache) {
     $types = node_get_types();
     $items[] = array(
       'path' => 'node/add/project-release',
-      'title' => t('Submit @name', array('@name' => $types['project_release']->name)),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('project_release_pick_project_form'),
+      'title' => check_plain($types['project_release']->name),
+      'callback' => 'project_release_pick_project_page',
+      'callback arguments' => array($types['project_release']->name),
       'access' => $access_create,
       'type' => MENU_NORMAL_ITEM,
     );
@@ -2129,6 +2129,14 @@ function project_release_file_download($filename) {
  */
 function project_release_devel_caches() {
   return array('cache_project_release');
+}
+
+/**
+ * Menu callback to select a project when creating a new release.
+ */
+function project_release_pick_project_page($type_name) {
+  drupal_set_title(t('Submit @name', array('@name' => $type_name)));
+  return drupal_get_form('project_release_pick_project_form');
 }
 
 /**
