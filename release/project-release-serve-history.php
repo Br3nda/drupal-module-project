@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.8 2007/09/14 16:17:55 dww Exp $
+// $Id: project-release-serve-history.php,v 1.9 2008/06/11 02:50:24 dww Exp $
 
 /**
  * @file
@@ -99,6 +99,19 @@ if (isset($_GET['site_key'])) {
     $site_key = $_GET['site_key'];
     $project_version = isset($_GET['version']) ? $_GET['version'] : '';
 
+    // In D6, we added support for Drupal to run behind a proxy, including a
+    // new proxy-aware function to get the IP address of the incoming
+    // request. Although this code is not in D5, drupal.org itself is running
+    // a patched version of core and is behind a proxy. So, even though this
+    // is the D5 version of the script, we check for this function and use it
+    // if it exists, to get proper results on drupal.org itself.
+    if (function_exists('ip_address')) {
+      $ip_addr = ip_address();
+    }
+    else {
+      $ip_addr = $_SERVER['REMOTE_ADDR'];
+    }
+
     // Compute a GMT timestamp for begining of the day. getdate() is
     // affected by the server's timezone so we need to cancel it out.
     $now = time();
@@ -106,10 +119,10 @@ if (isset($_GET['site_key'])) {
     $timestamp = gmmktime(0, 0, 0, $time_parts['mon'], $time_parts['mday'], $time_parts['year']);
 
     if (db_result(db_query("SELECT COUNT(*) FROM {project_usage_raw} WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $project_name, $timestamp, $site_key))) {
-      db_query("UPDATE {project_usage_raw} SET api_version = '%s', project_version = '%s' WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $api_version, $project_version, $project_name, $timestamp, $site_key);
+      db_query("UPDATE {project_usage_raw} SET api_version = '%s', project_version = '%s', ip_addr = '%s' WHERE project_uri = '%s' AND timestamp = %d AND site_key = '%s'", $api_version, $project_version, $ip_addr, $project_name, $timestamp, $site_key);
     }
     else {
-      db_query("INSERT INTO {project_usage_raw} (project_uri, timestamp, site_key, api_version, project_version) VALUES ('%s', %d, '%s', '%s', '%s')", $project_name, $timestamp, $site_key, $api_version, $project_version);
+      db_query("INSERT INTO {project_usage_raw} (project_uri, timestamp, site_key, api_version, project_version, ip_addr) VALUES ('%s', %d, '%s', '%s', '%s', '%s')", $project_name, $timestamp, $site_key, $api_version, $project_version, $ip_addr);
     }
   }
 }
