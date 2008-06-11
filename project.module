@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.309.2.2 2008/06/11 02:22:24 dww Exp $
+// $Id: project.module,v 1.309.2.3 2008/06/11 04:44:06 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -307,11 +307,11 @@ function project_term_path($term) {
 /**
  * Implementation of hook_taxonomy().
  */
-function project_taxonomy($op, $type, $object = NULL) {
-  if ($op == 'delete' && $type == 'vocabulary' && $object->vid == _project_get_vid())  {
+function project_taxonomy($op, $type, $array = NULL) {
+  if ($op == 'delete' && $type == 'vocabulary' && $array['vid'] == _project_get_vid())  {
     variable_del('project_vocabulary');
   }
-  elseif ($type == 'term' && $object->vid == _project_get_vid()) {
+  elseif ($type == 'term' && $array['vid'] == _project_get_vid()) {
     menu_rebuild();
   }
 }
