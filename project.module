@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.312 2008/06/11 04:44:02 dww Exp $
+// $Id: project.module,v 1.313 2008/06/11 18:19:41 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -670,7 +670,9 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         );
         $release_settings['wheres'][] = 'rn.status = 1';
         if ($version != -1) {
+          $release_settings['joins'][] = 'INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = p.nid AND prsv.tid = tr.tid';
           $release_settings['wheres'][] = 'tr.tid = %d';
+          $release_settings['wheres'][] = 'prsv.supported = 1';
           $release_settings['parameters'][] = $version;
         }
         else {
@@ -778,7 +780,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
 
     // Make sure we have the latest release
     if (isset($project->release_count) && $project->release_count > 1 && $version != -1) {
-      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_default_versions} prdv ON p.pid = prdv.nid AND prdv.tid = t.tid AND prdv.major = p.version_major WHERE p.pid = %d AND t.tid = %d AND n.status = 1 ORDER BY prdv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC", $project->nid, $version, 0, 1));
+      $latest = db_fetch_object(db_query_range("SELECT file_path, version, file_date FROM {project_release_nodes} p INNER JOIN {node} n ON p.nid = n.nid INNER JOIN {term_node} t ON p.nid = t.nid LEFT JOIN {project_release_supported_versions} prsv ON p.pid = prsv.nid AND prsv.tid = t.tid AND prsv.major = p.version_major WHERE p.pid = %d AND t.tid = %d AND prsv.supported = 1 AND n.status = 1 ORDER BY prsv.nid DESC, p.rebuild ASC, p.version_major ASC, p.version_minor DESC, p.version_patch DESC, p.file_date DESC", $project->nid, $version, 0, 1));
       $project->file_path = $latest->file_path;
       $project->version = $latest->version;
     }
