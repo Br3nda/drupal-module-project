@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.12 2008/03/29 08:23:38 dww Exp $
+// $Id: project-release-create-history.php,v 1.13 2008/06/11 03:13:12 dww Exp $
 // $Name:  $
 
 /**
@@ -80,7 +80,7 @@ if (!is_dir(BASE_DIRECTORY)) {
 
 /// @todo Add command-line args to only generate a given project/version.
 project_release_history_generate_all();
-
+project_list_generate();
 
 // ------------------------------------------------------------
 // Functions: main work
@@ -144,13 +144,13 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $api_version = $api_terms[$api_tid];
 
     // Get project-wide data:
-    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid WHERE prsv.tid = %d AND p.nid = %d";
+    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE prsv.tid = %d AND p.nid = %d";
     $query = db_query($sql, $api_tid, $project_nid);
   }
   else {
     // Consider all API compatibility terms.
     $api_version = 'all';
-    $sql = "SELECT n.title, n.nid, n.status, p.uri FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE p.nid = %d";
+    $sql = "SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid WHERE p.nid = %d";
     $query = db_query($sql, $project_nid);
   }
   if (!db_num_rows($query)) {
@@ -161,11 +161,21 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
 
   $xml = '<title>'. check_plain($project->title) ."</title>\n";
   $xml .= '<short_name>'. check_plain($project->uri) ."</short_name>\n";
+  $xml .= '<dc:creator>'. check_plain($project->username) ."</dc:creator>\n";
+  $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
+  $xml_terms = '';
+  while ($term = db_fetch_object($term_query)) {
+    $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
+    $xml_terms .= '<value>'. check_plain($term->term_name) ."</value></term>\n";
+  }
+  if (!empty($xml_terms)) {
+    $xml .= "  <terms>\n". $xml_terms ."  </terms>\n";
+  }
   $xml .= '<api_version>'. check_plain($api_version) ."</api_version>\n";
   if (!$project->status) {
     // If it's not published, we can skip the rest of this and bail.
     $xml .= "<project_status>unpublished</project_status>\n";
-    project_release_history_write_xml($project, $api_version, $xml);
+    project_release_history_write_xml($xml, $project, $api_version);
     return;
   }
 
@@ -250,7 +260,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
 
   if (empty($releases)) {
     // Nothing more to include for this project, wrap up and return.
-    project_release_history_write_xml($project, $api_version, $xml);
+    project_release_history_write_xml($xml, $project, $api_version);
     return;
   }
 
@@ -302,52 +312,72 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $xml .= " </release>\n";
   }
   $xml .= "</releases>\n";
-  project_release_history_write_xml($project, $api_version, $xml);
+  project_release_history_write_xml($xml, $project, $api_version);
 }
 
 
 /**
  * Write out the XML history for a given project and version to a file.
  *
- * @param $project
- *  An object containing (at least) the title and uri of project.
- * @param $api_version
- *  The API compatibility version the history is for.
  * @param $xml
- *  String containing the XML representation of the history.
+ *   String containing the XML representation of the history.
+ * @param $project
+ *   An object containing (at least) the title and uri of project.
+ * @param $api_version
+ *   The API compatibility version the history is for.
  */
-function project_release_history_write_xml($project, $api_version, $xml) {
+function project_release_history_write_xml($xml, $project = NULL, $api_version = NULL) {
 
-  // Setup the filenames we'll be using.  Normally, we'd have to be
-  // extra careful with $project->uri to avoid malice here, however,
-  // that's validated on the project edit form to prevent any funny
-  // characters, so that much is safe.  The rest of these paths are
-  // just from the global variables at the top of this script, so we
-  // can trust those.  The only one we should be careful of is the
-  // taxonomy term for the API compatibility.
-  $safe_api_vers = strtr($api_version, '/', '_');
-  $project_dir = BASE_DIRECTORY .'/'. $project->uri;
-  $project_id = $project->uri .'-'. $safe_api_vers .'.xml';
-  $filename = $project_dir .'/'. $project_id;
-  $tmp_filename = $filename .'.new';
+  // Dublin core namespace according to http://dublincore.org/documents/dcmi-namespace/
+  $dc_namespace = 'xmlns:dc="http://purl.org/dc/elements/1.1/"';
+  if (!isset($project)) {
+    // We are outputting a global project list.
+    $project_dir = BASE_DIRECTORY .'/project-list';
+    $filename = $project_dir .'/project-list-all.xml';
+    $tmp_filename = $filename .'.new';
+    $errors = array(
+      'mkdir'  => t("ERROR: mkdir(@dir) failed, can't write project list.", array('@dir' => $project_dir)),
+      'unlink' => t("ERROR: unlink(@file) failed, can't write project list.", array('@file' => $tmp_filename)),
+      'rename' => t("ERROR: rename(@old, @new) failed, can't write project list.", array('@old' => $tmp_filename, '@new' => $filename))
+    );
+    $full_xml = '<projects '. $dc_namespace .">\n". $xml ."</projects>\n";
+  }
+  else {
+    // Setup the filenames we'll be using.  Normally, we'd have to be
+    // extra careful with $project->uri to avoid malice here, however,
+    // that's validated on the project edit form to prevent any funny
+    // characters, so that much is safe.  The rest of these paths are
+    // just from the global variables at the top of this script, so we
+    // can trust those.  The only one we should be careful of is the
+    // taxonomy term for the API compatibility.
+    $safe_api_vers = strtr($api_version, '/', '_');
+    $project_dir = BASE_DIRECTORY .'/'. $project->uri;
+    $project_id = $project->uri .'-'. $safe_api_vers .'.xml';
+    $filename = $project_dir .'/'. $project_id;
+    $tmp_filename = $filename .'.new';
+    $errors = array(
+      'mkdir'  => t("ERROR: mkdir(@dir) failed, can't write history for %project.", array('@dir' => $project_dir, '%project' => $project->title)),
+      'unlink' => t("ERROR: unlink(@file) failed, can't write history for %project.", array('@file' => $tmp_filename, '%project' => $project->title)),
+      'rename' => t("ERROR: rename(@old, @new) failed, can't write history for %project.", array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title))
+    );
+    $full_xml = '<project '. $dc_namespace .">\n". $xml ."</project>\n";
+  }
 
   // Make sure we've got the right project-specific subdirectory.
   if (!is_dir($project_dir) && !mkdir($project_dir)) {
-    wd_err(t("ERROR: mkdir(@dir) failed, can't write history for %project.", array('@dir' => $project_dir, '%project' => $project->title)));
+    wd_err($errors['mkdir']);
     return FALSE;
   }
   // Make sure the "[project]-[version].xml.new" file doesn't exist.
   if (is_file($tmp_filename) && !unlink($tmp_filename)) {
-    wd_err(t("ERROR: unlink(@file) failed, can't write history for %project.", array('@file' => $tmp_filename, '%project' => $project->title)));
+    wd_err($errors['unlink']);
     return FALSE;
   }
   // Write the XML history to "[project]-[version].xml.new".
   if (!$hist_fd = fopen($tmp_filename, 'xb')) {
-    wd_err(t("ERROR: fopen(@file, 'xb') failed", array('@file' => $file)));
+    wd_err(t("ERROR: fopen(@file, 'xb') failed", array('@file' => $tmp_filename)));
     return FALSE;
   }
-  // We always wrap our project history files in <project>...</project> tags.
-  $full_xml = "<project>\n". $xml ."</project>\n";
   if (!fwrite($hist_fd, $full_xml)) {
     wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $tmp_filename)) . '<pre>' . check_plain($full_xml));
     return FALSE;
@@ -357,12 +387,60 @@ function project_release_history_write_xml($project, $api_version, $xml) {
 
   // Now we can atomically rename the .new into place in the "live" spot.
   if (!_rename($tmp_filename, $filename)) {
-    wd_err(t("ERROR: rename(@old, @new) failed, can't write history for %project.", array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title)));
+    wd_err($errors['rename']);
     return FALSE;
   }
   return TRUE;
 }
 
+/**
+ * Generate a list of all projects available on this server.
+ */
+function project_list_generate() {
+  $api_vid = _project_release_get_api_vid();
+  
+  $query = db_query("SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid");
+  if (!db_num_rows($query)) {
+    wd_err(t('No projects found on this server.'));
+    return FALSE;
+  }
+  $xml = '';
+  while ($project = db_fetch_object($query)) {
+    $xml .= " <project>\n";
+    $xml .= '  <title>'. check_plain($project->title) ."</title>\n";
+    $xml .= '  <short_name>'. check_plain($project->uri) ."</short_name>\n";
+    $xml .= '  <link>'. url("node/$project->nid", NULL, NULL, TRUE) ."</link>\n";
+    $xml .= '  <dc:creator>'. check_plain($project->username). "</dc:creator>\n";
+    $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
+    $xml_terms = '';
+    while ($term = db_fetch_object($term_query)) {
+      $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
+      $xml_terms .= '<value>'. check_plain($term->term_name) ."</value></term>\n";
+    }
+    if (!empty($xml_terms)) {
+      $xml .= "  <terms>\n". $xml_terms ."  </terms>\n";
+    }
+    if (!$project->status) {
+      // If it's not published, we can skip the rest for this project.
+      $xml .= "  <project_status>unpublished</project_status>\n";
+    }
+    else {
+      $xml .= "  <project_status>published</project_status>\n";
+      // Include a list of API terms if available.
+      $term_query = db_query("SELECT DISTINCT(td.tid), td.name AS term_name FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d ORDER BY td.weight ASC", $project->nid, $api_vid);
+      $xml_api_terms = '';
+      while ($api_term = db_fetch_object($term_query)) {
+        $xml_api_terms .= '   <api_version>'. check_plain($api_term->term_name) ."</api_version>\n";
+      }      
+      if (!empty($xml_api_terms)) {
+        $xml .= "  <api_versions>\n". $xml_api_terms ."  </api_versions>\n";
+      }
+    }
+    
+    $xml .= " </project>\n";
+  }
+  project_release_history_write_xml($xml);
+}
 
 // ------------------------------------------------------------
 // Functions: utility methods
