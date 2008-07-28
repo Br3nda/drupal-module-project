@@ -1,10 +1,8 @@
 <?php
-// $Id: project_release.module,v 1.69 2008/06/11 18:14:55 dww Exp $
+// $Id: project_release.module,v 1.70 2008/07/28 18:42:55 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
-define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
-define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
 
 /**
  * @defgroup project_release_core Core Drupal hooks
@@ -21,6 +19,12 @@ function project_release_menu($may_cache) {
   $access_create = node_access('create', 'project_release');
 
   if (!$may_cache) {
+    // These constants are defined here since they use t() and the
+    // global $locale variable needs to be initialized before calling
+    // t() or you suffer a big performance hit.
+    define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
+    define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
+
     if (arg(0) == 'node' && is_numeric(arg(1))) {
       $node = node_load(arg(1));
       if ($node->type == 'project_project') {
