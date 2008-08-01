@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.309.2.5 2008/08/01 19:21:47 dww Exp $
+// $Id: project.module,v 1.309.2.6 2008/08/01 19:25:20 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -51,7 +51,7 @@ function _project_taxonomy_help($vid = 0, $vocab_link = TRUE) {
 function project_block($op = 'list', $delta = 0) {
   if ($op == 'list') {
     $blocks[0]['info'] = t('Project navigation');
-    if (module_exists('search') {
+    if (module_exists('search')) {
       $blocks[1]['info'] = t('Project search');
     }
     return $blocks;
