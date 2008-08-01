@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.313 2008/06/11 18:19:41 dww Exp $
+// $Id: project.module,v 1.314 2008/08/01 18:59:08 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -51,13 +51,42 @@ function _project_taxonomy_help($vid = 0, $vocab_link = TRUE) {
 function project_block($op = 'list', $delta = 0) {
   if ($op == 'list') {
     $blocks[0]['info'] = t('Project navigation');
+    $blocks[1]['info'] = t('Project search');
     return $blocks;
   }
   else if ($op == 'view') {
-    $block['subject'] = t('Project navigation');
-    $block['content'] = drupal_get_form('project_quick_navigate_form');
+    switch ($delta) {
+      case 0:
+        $block = array(
+          'subject' => t('Project navigation'),
+          'content' => drupal_get_form('project_quick_navigate_form'),
+        );
+        break;
+      case 1:
+        if (user_access('search content')) {
+          $block = array(
+            'subject' => t('Search projects'), 
+            'content' => drupal_get_form('project_search_block_form', 'project_project'),
+          );
+        }
+        break;
+    }
     return $block;
   }
+}
+
+function project_search_block_form($node_type) {
+  $form = search_box('project_search_block_form_'. $node_type);
+  $form['node_type'] = array(
+    '#type' => 'value',
+    '#value' => $node_type,
+  );
+  $form['#base'] = 'project_search_block_form';
+  return $form;
+}
+
+function project_search_block_form_submit($form_id, $form_values) {
+  return 'search/node/type:'. $form_values['node_type'] .' '. trim($form_values[$form_id .'_'. $form_values['node_type'] .'_keys']);
 }
 
 function project_node_info() {
