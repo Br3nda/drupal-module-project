@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.316 2008/08/01 19:25:17 dww Exp $
+// $Id: project.module,v 1.317 2008/08/01 22:36:51 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -48,7 +48,7 @@ function _project_taxonomy_help($vid = 0, $vocab_link = TRUE) {
 /**
  * Implementation of hook_block().
  */
-function project_block($op = 'list', $delta = 0) {
+function project_block($op = 'list', $delta = 0, $edit = array()) {
   if ($op == 'list') {
     $blocks[0]['info'] = t('Project navigation');
     if (module_exists('search')) {
@@ -75,6 +75,19 @@ function project_block($op = 'list', $delta = 0) {
     }
     return $block;
   }
+  elseif ($op == 'configure' && $delta == 1) {
+    $form = array();
+    $form['help_text'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Help text'),
+      '#description' => t('Enter optional help text to display in the block.'),
+      '#default_value' => variable_get('project_search_block_help_text', ''),
+    );
+    return $form;
+  }
+  elseif ($op == 'save' && $delta == 1) {
+    variable_set('project_search_block_help_text', $edit['help_text']);
+  }
 }
 
 function project_search_block_form($node_type) {
@@ -84,6 +97,11 @@ function project_search_block_form($node_type) {
     '#value' => $node_type,
   );
   $form['#base'] = 'project_search_block_form';
+  $help_text = variable_get('project_search_block_help_text', '');
+  if (!empty($help_text)) {
+     $element = 'project_search_block_form_'. $node_type .'_keys';
+     $form[$element]['#description'] = check_plain($help_text);
+  }
   return $form;
 }
 
