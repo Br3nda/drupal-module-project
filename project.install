@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.20 2008/03/08 16:48:12 dww Exp $
+// $Id: project.install,v 1.21 2008/08/10 06:28:50 dww Exp $
 // $Name:  $
 
 function project_install() {
@@ -51,6 +51,7 @@ function project_uninstall() {
     'project_browse_nodes',
     'project_sort_method',
     'project_vocabulary',
+    'project_search_block_help_text',
   );
   foreach ($variables as $variable) {
     variable_del($variable);
