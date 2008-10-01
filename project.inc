@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.122.2.2 2008/03/15 20:08:56 dww Exp $
+// $Id: project.inc,v 1.122.2.3 2008/10/01 23:24:08 dww Exp $
 // $Name:  $
 
 /**
@@ -314,6 +314,7 @@ function project_project_view($node, $teaser = false, $page = false) {
       $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, null, 'categories=support', null);
       $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
       $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+      $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->uri);
     }
     if ($make_issues) {
       $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->uri .'/support');
