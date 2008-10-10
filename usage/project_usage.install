@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.install,v 1.4 2008/06/11 02:50:24 dww Exp $
+// $Id: project_usage.install,v 1.5 2008/10/10 19:16:35 dww Exp $
 // $Name:  $
 
 function project_usage_install() {
@@ -53,7 +53,7 @@ function project_usage_uninstall() {
   );
   foreach ($tables as $table) {
     if (db_table_exists($table)) {
-      db_query("DROP TABLE {$table}");
+      db_query("DROP TABLE {{$table}}");
     }
   }
 
