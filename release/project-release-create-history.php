@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.13 2008/06/11 03:13:12 dww Exp $
+// $Id: project-release-create-history.php,v 1.14 2008/10/24 20:40:24 dww Exp $
 // $Name:  $
 
 /**
@@ -162,15 +162,6 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $xml = '<title>'. check_plain($project->title) ."</title>\n";
   $xml .= '<short_name>'. check_plain($project->uri) ."</short_name>\n";
   $xml .= '<dc:creator>'. check_plain($project->username) ."</dc:creator>\n";
-  $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
-  $xml_terms = '';
-  while ($term = db_fetch_object($term_query)) {
-    $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
-    $xml_terms .= '<value>'. check_plain($term->term_name) ."</value></term>\n";
-  }
-  if (!empty($xml_terms)) {
-    $xml .= "  <terms>\n". $xml_terms ."  </terms>\n";
-  }
   $xml .= '<api_version>'. check_plain($api_version) ."</api_version>\n";
   if (!$project->status) {
     // If it's not published, we can skip the rest of this and bail.
@@ -207,6 +198,18 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
 
   $xml .= '<project_status>'. $project_status ."</project_status>\n";
   $xml .= '<link>'. url("node/$project->nid", NULL, NULL, TRUE) ."</link>\n";
+
+  // To prevent the update(_status) module from having problems parsing the XML,
+  // the terms need to be at the end of the information for the project.
+  $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
+  $xml_terms = '';
+  while ($term = db_fetch_object($term_query)) {
+    $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
+    $xml_terms .= '<value>'. check_plain($term->term_name) ."</value></term>\n";
+  }
+  if (!empty($xml_terms)) {
+    $xml .= "  <terms>\n". $xml_terms ."  </terms>\n";
+  }
 
   // Now, build the query for all the releases for this project and term.
   $joins = array();
