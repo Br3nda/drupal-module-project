@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.16 2008/01/19 07:10:59 dww Exp $
+// $Id: project_release.install,v 1.17 2008/10/24 03:33:20 thehunmonkgroup Exp $
 // $Name:  $
 
 function project_release_install() {
@@ -346,10 +346,31 @@ function project_release_update_5200() {
   $vid = _project_release_get_api_vid();
   $ret[] = update_sql("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) SELECT DISTINCT prn.pid, tn.tid, prn.version_major, 0, 0, 0 FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {node} n ON prn.nid = n.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = prn.pid AND prdv.tid = tn.tid AND prdv.major = prn.version_major WHERE n.status = 1 AND td.vid = $vid AND prn.version_major IS NOT NULL AND prdv.major IS NULL");
 
-  // Finally, drop the stale table and column.
-  // While testing the upgrade path, these are both commented out for now:
-  //$ret[] = update_sql('DROP TABLE {project_release_default_versions}');
-  //$ret[] = update_sql("ALTER TABLE {project_release_projects} DROP snapshot_table");
+  return $ret;
+}
 
+/**
+ * Drop the dead {project_release_default_versions} table and
+ * snapshot_table column in {project_release_projects}.
+ */
+function project_release_update_5201() {
+  $ret = array();
+  switch ($GLOBALS['db_type']) {
+    case 'mysql':
+    case 'mysqli':
+      $ret[] = update_sql('DROP TABLE IF EXISTS {project_release_default_versions}');
+      if (db_fetch_object(db_query("SHOW COLUMNS FROM {project_release_projects} LIKE 'snapshot_table'"))) {
+        $ret[] = update_sql('ALTER TABLE {project_release_projects} DROP COLUMN snapshot_table');
+      }
+      break;
+    case 'pgsql':
+      if (db_table_exists('{project_release_default_versions}')) {
+        $ret[] = update_sql('DROP TABLE {project_release_default_versions}');
+      }
+      if (db_result(db_query("SELECT COUNT(pg_attribute.attname) FROM pg_class, pg_attribute WHERE pg_attribute.attrelid = pg_class.oid AND pg_class.relname = '{project_release_projects}' AND attname = 'snapshot_table'"))) {
+        $ret[] = update_sql('ALTER TABLE {project_release_projects} DROP COLUMN snapshot_table');
+      }
+      break;
+  }
   return $ret;
 }
