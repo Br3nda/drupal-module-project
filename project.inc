@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.125 2008/10/01 23:24:05 dww Exp $
+// $Id: project.inc,v 1.126 2008/10/24 02:56:05 dww Exp $
 // $Name:  $
 
 /**
@@ -185,7 +185,7 @@ function project_project_validate(&$node) {
 
     // Make sure uri isn't already in use, or reserved.  Includes all X from
     // project/issues/X paths used in project_issues module
-    $reserved_names = array('user', 'issues', 'releases', 'rss', 'subscribe-mail', 'search', 'add', 'update_project', 'statistics', 'comments', 'autocomplete', 'cvs', 'developers');
+    $reserved_names = array('user', 'issues', 'releases', 'rss', 'subscribe-mail', 'search', 'add', 'update_project', 'statistics', 'comments', 'autocomplete', 'cvs', 'developers', 'usage');
     if (project_use_taxonomy()) {
       $terms = taxonomy_get_tree(_project_get_vid());
       foreach ($terms as $i => $term) {
