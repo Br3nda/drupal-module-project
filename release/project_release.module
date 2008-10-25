@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.70 2008/07/28 18:42:55 dww Exp $
+// $Id: project_release.module,v 1.71 2008/10/25 15:54:30 dww Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -850,6 +850,9 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
   if ($node->file_date  && ($node->file_date != $node->created)) {
     $output .= '<small>'. t('Last updated: !changed', array('!changed' => format_date($node->file_date))) .'</small><br />';
+  }
+  if (module_exists('project_usage') && user_access('view project usage')) {
+    $output .= '<small>'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</small><br />';
   }
   $node->content['release_info'] = array(
     '#value' => '<div class="project-release">'. $output .'</div>',
