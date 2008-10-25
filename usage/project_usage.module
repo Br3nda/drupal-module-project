@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.2 2008/10/24 02:56:10 dww Exp $
+// $Id: project_usage.module,v 1.6.2.3 2008/10/25 15:54:35 dww Exp $
 // $Name:  $
 
 /**
@@ -223,7 +223,7 @@ function project_usage_project_page($node) {
     l(t('Usage'), 'project/usage'),
   );
   project_project_set_breadcrumb(NULL, $breadcrumb);
-  drupal_set_title(l($node->title, 'project/'. $node->uri));
+  drupal_set_title(t('Usage statistics for %project', array('%project' => $node->title)));
 
   // In order to keep the database load down we need to cache these pages.
   // Because the release usage table is sortable, the cache id needs to take
@@ -239,7 +239,7 @@ function project_usage_project_page($node) {
   // If there are no releases for this project, we can skip the rest
   // of this function.
   if (empty($releases)) {
-    return theme('project_usage_project_page_no_releases');
+    return theme('project_usage_project_page', $node);
   }
 
   // Build a table showing this week's usage for each release. In order to get
@@ -345,7 +345,7 @@ function project_usage_project_page($node) {
     $project_rows[$row->timestamp][$row->tid]['data'] = number_format($row->count);
   }
 
-  $output = theme('project_usage_project_page', $release_header, $release_rows, $project_header, $project_rows);
+  $output = theme('project_usage_project_page', $node, $release_header, $release_rows, $project_header, $project_rows);
 
   // Cache the completed page.
   if (project_can_cache()) {
@@ -366,7 +366,7 @@ function project_usage_release_page($node) {
     l($project->title, 'project/usage/'. $project->nid),
   );
   project_project_set_breadcrumb(NULL, $breadcrumb);
-  drupal_set_title(l($node->title, 'node/'. $node->nid));
+  drupal_set_title(t('Usage statistics for %release', array('%release' => $node->title)));
 
   // Check for a cached page.
   $cid = "release:{$node->nid}";
@@ -387,7 +387,7 @@ function project_usage_release_page($node) {
       array('data' => number_format($row->count), 'class' => 'project-usage-numbers'),
     );
   }
-  $output = theme('project_usage_release_page', $header, $rows);
+  $output = theme('project_usage_release_page', $project, $node, $header, $rows);
 
   // Cache the completed page.
   if (project_can_cache()) {
@@ -683,18 +683,29 @@ function project_usage_cache_time() {
 }
 
 /**
- * Theme the output of the project/usage/<project> page when there are no
- * published releases for a project that the user has access to view.
- */
-function theme_project_usage_project_page_no_releases() {
-  return t('There are no releases for this project.');
-}
-
-/**
  * Theme the output of project/usage/<project> page.
+ *
+ * @param $project
+ *   A fully loaded $node object for a project.
+ * @param $release_header
+ *   A table header for the release usage table.
+ * @param $release_rows
+ *   Table rows for the release usage table.
+ * @param $project_header
+ *   A table header for the weekly project usage table.
+ * @param $project_rows
+ *   Table rows for the weekly project usage table.
  */
-function theme_project_usage_project_page($release_header, $release_rows, $project_header, $project_rows) {
-  $output = '';
+function theme_project_usage_project_page($project, $release_header = NULL, $release_rows = NULL, $project_header = NULL, $project_rows = NULL) {
+  $output = theme('project_usage_header_links', $project);
+
+  if (empty($release_rows)) {
+    // There are no published releases for a project that the user has access
+    // to view.
+    $output .= '<p>'. t('There are no releases for this project.') .'</p>';
+    return $output;
+  }
+
   $output .= '<h3>'. t('Recent release usage') .'</h3>';
   $output .= theme('table', $release_header, $release_rows);
   $output .= '<h3>'. t('Weekly project usage') .'</h3>';
@@ -704,14 +715,58 @@ function theme_project_usage_project_page($release_header, $release_rows, $proje
 
 /**
  * Theme the output of the project/usage/<release nid> page.
+ *
+ * @param $project
+ *   A fully loaded $node object for a project.
+ * @param $release
+ *   A fully loaded $node object for a release.
+ * @param $header
+ *   A table header for the release usage table.
+ * @param $rows
+ *   Table rows for the release usage table.
  */
-function theme_project_usage_release_page($header, $rows) {
+function theme_project_usage_release_page($project, $release, $header, $rows) {
+  $output = theme('project_usage_header_links', $project, $release);
+
   // If there is no usage information for a release, don't just
   // display an empty usage table.
   if (empty($rows)) {
-    return t('There is no usage information for this release.');
+    $output .= '<p>' . t('There is no usage information for this release.') . '</p>';
+    return $output;
   }
-  else {
-    return theme('table', $header, $rows);
+
+  $output .= theme('table', $header, $rows);
+  return $output;
+}
+
+/**
+ * Create list of links at the top of a usage statistics page.
+ *
+ * @param $project
+ *   A fully loaded $node object for a project.
+ * @param $release
+ *   If the current statistics page is for a release, the fully loaded $node
+ *   object for that release.
+ *
+ * @return
+ *   Themed HTML of a list of links for the top of a statistics page.
+ */
+function theme_project_usage_header_links($project, $release = NULL) {
+  $links = array();
+  $links[] = l(t('View %project_name project page', array('%project_name' => $project->title)), 'project/'. $project->uri, array(), NULL, NULL, FALSE, TRUE);
+  if (!empty($release)) {
+    $links[] = l(t('View all %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->uri, array(), NULL, NULL, FALSE, TRUE);
+  }
+  $links[] = l(t('View usage statistics for all projects'), 'project/usage');
+  return theme('item_list', $links);
+}
+
+/**
+ * Implementation of hook_project_page_link_alter().
+ */
+function project_usage_project_page_link_alter($node, &$links) {
+  if (user_access('view project usage')) {
+    $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/' . $node->uri);
   }
 }
+
