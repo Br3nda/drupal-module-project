@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.10 2008/10/25 17:46:22 dww Exp $
+// $Id: project_usage.module,v 1.11 2008/10/25 19:16:42 dww Exp $
 // $Name:  $
 
 /**
@@ -756,6 +756,7 @@ function theme_project_usage_header_links($project, $release = NULL) {
   $links = array();
   $links[] = l(t('View %project_name project page', array('%project_name' => $project->title)), 'project/'. $project->uri, array(), NULL, NULL, FALSE, TRUE);
   if (!empty($release)) {
+    $links[] = l(t('View %release_name release', array('%release_name' => $release->title)), 'node/' . $release->nid, array(), NULL, NULL, FALSE, TRUE);
     $links[] = l(t('View all %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->uri, array(), NULL, NULL, FALSE, TRUE);
   }
   $links[] = l(t('View usage statistics for all projects'), 'project/usage');
