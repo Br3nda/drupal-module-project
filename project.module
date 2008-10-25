@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.309.2.8 2008/10/24 02:56:10 dww Exp $
+// $Id: project.module,v 1.309.2.9 2008/10/25 20:27:33 aclight Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -570,11 +570,13 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
   $sort_methods = module_invoke_all('project_sort_methods', 'methods');
 
   $output = '';
+  $active_tids = array();
   if (module_exists('project_release') && variable_get('project_release_browse_versions', 0)) {
     $version_form = drupal_get_form('project_release_version_filter_form');
     $output .= $version_form;
     // Read in requested version, if any.
     $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
+    $active_tids = project_release_compatibility_list();
   }
 
   // If browsing by taxonomy, only fetch projects for this term.
@@ -607,7 +609,12 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         $terms = array();
         if ($tree) {
           $tids = array();
-          if (variable_get('project_release_browse_versions', 0)) {
+          // Make sure the API compatability term contains one or more terms
+          // (not including the term with key of -1, which is always
+          // automatically added to the array of terms. If not then browsing
+          // by version is not possible.  project_release_compatibility_list()
+          // only returns active tids if browsing by version is enabled.
+          if (count($active_tids) > 1) {
             $version_params = array();
             if ($version != -1) {
               $version_where = 'tr.tid = %d';
@@ -615,7 +622,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
             }
             else {
               $placeholders = array();
-              $active_tids = project_release_compatibility_list();
               foreach ($active_tids as $tid => $api_term) {
                 $placeholders[] = '%d';
                 $version_params[] = $tid;
@@ -699,15 +705,22 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         $sql_settings = array();
       }
 
+      $active_tids = array();
       if (module_exists('project_release')) {
         $project_release_sql = array(
           'joins' => array('INNER JOIN {project_release_projects} prp ON n.nid = prp.nid'),
           'wheres' => array('prp.releases = 1'),
         );
         $sql_settings = array_merge_recursive($sql_settings, $project_release_sql);
+        $active_tids = project_release_compatibility_list();
       }
 
-      if (variable_get('project_release_browse_versions', 0)) {
+      // Make sure the API compatability term contains one or more terms
+      // (not including the term with key of -1, which is always
+      // automatically added to the array of terms. If not then browsing
+      // by version is not possible.  project_release_compatibility_list()
+      // only returns active tids if browsing by version is enabled.
+      if (count($active_tids) > 1) {
         $release_settings = array(
           'fields' => array('prn.file_path', 'prn.version', 'MAX(prn.file_date) AS changed', 'COUNT(*) AS release_count'),
           'group_bys' => array('n.nid'),
@@ -726,7 +739,6 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
         }
         else {
           $placeholders = array();
-          $active_tids = project_release_compatibility_list();
           foreach ($active_tids as $tid => $compatibility_term) {
             $placeholders[] = '%d';
             $release_settings['parameters'][] = $tid;

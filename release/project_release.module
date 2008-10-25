@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.5 2008/10/25 15:54:35 dww Exp $
+// $Id: project_release.module,v 1.66.2.6 2008/10/25 20:27:33 aclight Exp $
 // $Name:  $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
@@ -1105,23 +1105,29 @@ function project_release_project_edit_releases() {
 }
 
 function project_release_project_edit_form($node) {
-  // Get all the data about major versions for this project.
-  $data = _project_release_get_version_major_data($node);
+  $active_tids = project_release_compatibility_list();
+  // Make sure there is more than 1 active tid because
+  // project_release_compatibility_list() will always
+  // add $terms[-1] = 'all'.
+  if (count($active_tids) > 1) {
+    // Get all the data about major versions for this project.
+    $data = _project_release_get_version_major_data($node);
 
-  // Build all the form elements for supported and recommended major versions.
-  $form = _project_release_edit_version_major_form($data);
+    // Build all the form elements for supported and recommended major versions.
+    $form = _project_release_edit_version_major_form($data);
 
-  // Now, add a header and some help text for those elements.
-  $form['header'] = array(
-    '#type' => 'markup',
-    '#value' => t('Supported versions'),
-  );
+    // Now, add a header and some help text for those elements.
+    $form['header'] = array(
+      '#type' => 'markup',
+      '#value' => t('Supported versions'),
+    );
 
-  $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
-  $form['help'] = array(
-    '#type' => 'markup',
-    '#value' => t('For each term in the %api_vocabulary_name vocabulary, the following tables allow you to define which major versions are supported. If there are releases from more than one major version number, you can select which major version should be recommended for new users to download. You can also control if the development snapshot releases should be displayed on the front page of the project. Finally, for each term in the %api_vocabulary_name vocabulary, the current recommended release is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release will be listed.', array('%api_vocabulary_name' => $vocab->name)),
-  );
+    $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
+    $form['help'] = array(
+      '#type' => 'markup',
+      '#value' => t('For each term in the %api_vocabulary_name vocabulary, the following tables allow you to define which major versions are supported. If there are releases from more than one major version number, you can select which major version should be recommended for new users to download. You can also control if the development snapshot releases should be displayed on the front page of the project. Finally, for each term in the %api_vocabulary_name vocabulary, the current recommended release is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release will be listed.', array('%api_vocabulary_name' => $vocab->name)),
+    );
+  }
 
   // Finally, add everything else (currently, the "Advanced options").
   $form['advanced'] = array(
@@ -1169,11 +1175,18 @@ function _project_release_get_version_major_data($node) {
   $params[] = $node->nid;
   $placeholders = array();
   $active_tids = project_release_compatibility_list();
+  // Get rid of -1 => 'all' element inserted by project_release_compatibility_list().
+  if (isset($active_tids[-1])) {
+    unset($active_tids[-1]);
+  }
   foreach ($active_tids as $tid => $api_term) {
     $placeholders[] = '%d';
     $params[] = $tid;
   }
-  $tid_where = 'prsv.tid IN ('. implode(',', $placeholders) .')';
+  $tid_where = '';
+  if (!empty($active_tids)) {
+    $tid_where = 'prsv.tid IN ('. implode(',', $placeholders) .')';
+  }
   $result = db_query("SELECT prsv.*, td.name AS term_name FROM {project_release_supported_versions} prsv INNER JOIN {term_data} td ON prsv.tid = td.tid WHERE prsv.nid = %d AND $tid_where ORDER BY td.weight, td.name", $params);
   while ($obj = db_fetch_object($result)) {
     $tid = $obj->tid;
@@ -1731,7 +1744,10 @@ function project_release_table($project, $table_type = 'recommended', $release_t
     case 'snapshot':
       // For snapshot tables, restrict to snapshot nodes from branches where
       // the maintainer wants the snapshot visible.
-      $where = 'AND r.rebuild = 1 AND prsv.snapshot = 1';
+      $where = 'AND r.rebuild = 1';
+      if ($tids) {
+        $where .= ' AND prsv.snapshot = 1';
+      }
       break;
     case 'all':
       // If we're generating the default releases table, we want the
@@ -2185,4 +2201,52 @@ function project_release_pick_project_form_validate($form_id, $form_values) {
 
 function project_release_pick_project_form_submit($form_id, $form_values) {
   return 'node/add/project-release/'. $form_values['pid'];
+}
+
+/**
+ * Determines taxonomy-specific functionality for releases.
+ */
+function project_release_use_taxonomy() {
+  return module_exists('taxonomy') && _project_release_get_api_vid();
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function project_release_help($section) {
+  switch ($section) {
+    case 'admin/project/project-release-settings':
+      if (project_release_use_taxonomy()) {
+        return _project_release_taxonomy_help();
+      }
+      break;
+  }
+  if (arg(0) == 'admin' && arg(1) == 'content' && arg(2) == 'taxonomy') {
+    $vid = _project_release_get_api_vid();
+    if (arg(3) == $vid) {
+      return _project_release_taxonomy_help($vid, FALSE);
+    }
+  }
+}
+
+/**
+ * Prints help message for release compatibility vocabulary configuration.
+ *
+ * @param $vid
+ *   Vocabulary ID of the project taxonomy.
+ * @param $vocab_link
+ *   Boolean that controls if a link to the vocabulary admin page is added.
+ */
+function _project_release_taxonomy_help($vid = 0, $vocab_link = TRUE) {
+  if (!$vid) {
+    $vid = _project_release_get_api_vid();
+  }
+  $vocabulary = taxonomy_get_vocabulary($vid);
+  $text = '<p>'. t('The Project release module makes special use of the taxonomy (category) system. A special vocabulary, %vocabulary_name, has been created automatically.', array('%vocabulary_name' => $vocabulary->name)) .'</p>';
+  $text .= '<p>'. t('To categorize project releases by their compatibility with a version of some outside software (eg. a library or API of some sort), add at least one term to this vocabulary. For example, you might add the following terms: "5.x", "6.x", "7.x".') .'</p>';
+  $text .='<p>'. t('For more information, please see !url.', array('!url' => l('http://drupal.org/node/116544', 'http://drupal.org/node/116544'))) .'</p>';
+  if ($vocab_link) {
+    $text .= '<p>'. t('Use the <a href="@taxonomy-admin">vocabulary admininistration page</a> to view and add terms.', array('@taxonomy-admin' => url('admin/content/taxonomy/'. $vid))) .'</p>';
+  }
+  return $text;
 }
