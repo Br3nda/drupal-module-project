@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.9 2008/10/25 15:54:30 dww Exp $
+// $Id: project_usage.module,v 1.10 2008/10/25 17:46:22 dww Exp $
 // $Name:  $
 
 /**
@@ -157,8 +157,9 @@ function project_usage_overview() {
   unset($sql_elements['order_bys']);
 
   $where_args = array();
-  $sql_elements['fields']['pieces'] = array('n.nid', 'n.title');
+  $sql_elements['fields']['pieces'] = array('n.nid', 'n.title', 'pp.uri');
   $sql_elements['from']['pieces'][] = '{node} n ';
+  $sql_elements['joins']['pieces'][] = "INNER JOIN {project_projects} pp ON n.nid = pp.nid";
   $sql_elements['wheres']['pieces'] = array('n.nid IN (SELECT nid FROM {project_usage_week_project}) AND n.status = %d');
   $where_args[] = 1;  // n.status = 1
   $sql_elements['group_bys']['pieces'] = array('n.nid', 'n.title');
@@ -198,7 +199,7 @@ function project_usage_overview() {
   $result = db_query(project_build_query($sql_elements) . tablesort_sql($headers), $args);
 
   while ($line = db_fetch_array($result)) {
-    $row = array(array('data' => l($line['title'], 'project/usage/'. $line['nid'])));
+    $row = array(array('data' => l($line['title'], 'project/usage/'. $line['uri'])));
     for ($i = 0; $i < $week_count; $i++) {
       $row[] = array('data' => number_format($line["week{$i}"]), 'class' => 'project-usage-numbers');
     }
