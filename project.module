@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.319 2008/10/25 20:29:38 aclight Exp $
+// $Id: project.module,v 1.320 2008/10/26 02:41:24 dww Exp $
 // $Name:  $
 
 $path = drupal_get_path('module', 'project');
@@ -393,7 +393,6 @@ function project_menu($may_cache) {
       $default_sort = variable_get('project_sort_method', 'category');
       $sort_methods = module_invoke_all('project_sort_methods', 'methods');
       $terms = taxonomy_get_tree(_project_get_vid());
-      $releases = variable_get('project_release_browse_versions', 0);
       foreach ($terms as $i => $term) {
         // Only use the first-level terms.
         if ($term->depth == 0) {
@@ -636,7 +635,7 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
             }
           }
           foreach ($tree as $cterm) {
-            if (!variable_get('project_release_browse_versions', 0) || ($version == -1) || array_key_exists($cterm->tid, $tids)) {
+            if (!module_exists('project_release') || (!variable_get('project_release_browse_versions', 0) || ($version == -1) || array_key_exists($cterm->tid, $tids))) {
               if ($tids[$cterm->tid]) {
                 $cterm->count = $tids[$cterm->tid];
               }
@@ -752,6 +751,12 @@ function project_page_overview($termname = NULL, $sort_method = NULL) {
           // project_release_table().
           $release_settings['fields'][] = 'n.uid';
         }
+        $sql_settings = array_merge_recursive($sql_settings, $release_settings);
+      }
+      else {
+        $release_settings = array(
+          'fields' => array('n.changed AS changed'),
+        );
         $sql_settings = array_merge_recursive($sql_settings, $release_settings);
       }
 
@@ -981,14 +986,15 @@ function project_project_sort_methods($op, $method = NULL) {
             'order_bys' => array('n.sticky DESC', 'n.title ASC')
           );
         case 'date':
-          // TODO: this should all be conditional on project_release.module
           $date_sql = array(
             'order_bys' => array('changed DESC', 'n.sticky DESC', 'n.title ASC'),
             'group_bys' => array('n.nid'),
           );
-          if (!variable_get('project_release_browse_versions', 0)) {
-            $date_sql['fields'] = array('MAX(prn.file_date) AS changed');
-            $date_sql['joins'] = array('INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid');
+          if (module_exists('project_release')) {
+            if (!variable_get('project_release_browse_versions', 0)) {
+              $date_sql['fields'] = array('MAX(prn.file_date) AS changed');
+              $date_sql['joins'] = array('INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid');
+            }
           }
           return $date_sql;
         case 'name':
