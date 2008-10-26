@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.5 2008/10/25 19:16:46 dww Exp $
+// $Id: project_usage.module,v 1.6.2.6 2008/10/26 01:32:47 dww Exp $
 // $Name:  $
 
 /**
@@ -754,12 +754,12 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
  */
 function theme_project_usage_header_links($project, $release = NULL) {
   $links = array();
-  $links[] = l(t('View %project_name project page', array('%project_name' => $project->title)), 'project/'. $project->uri, array(), NULL, NULL, FALSE, TRUE);
+  $links[] = l(t('%project_name project page', array('%project_name' => $project->title)), 'project/'. $project->uri, array(), NULL, NULL, FALSE, TRUE);
   if (!empty($release)) {
-    $links[] = l(t('View %release_name release', array('%release_name' => $release->title)), 'node/' . $release->nid, array(), NULL, NULL, FALSE, TRUE);
-    $links[] = l(t('View all %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->uri, array(), NULL, NULL, FALSE, TRUE);
+    $links[] = l(t('%release_name release page', array('%release_name' => $release->title)), 'node/' . $release->nid, array(), NULL, NULL, FALSE, TRUE);
+    $links[] = l(t('All %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->uri, array(), NULL, NULL, FALSE, TRUE);
   }
-  $links[] = l(t('View usage statistics for all projects'), 'project/usage');
+  $links[] = l(t('Usage statistics for all projects'), 'project/usage');
   return theme('item_list', $links);
 }
 
