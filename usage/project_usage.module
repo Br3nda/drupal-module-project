@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.12 2008/10/26 01:32:45 dww Exp $
+// $Id: project_usage.module,v 1.13 2008/10/28 23:47:58 dww Exp $
 // $Name:  $
 
 /**
@@ -767,8 +767,7 @@ function theme_project_usage_header_links($project, $release = NULL) {
  * Implementation of hook_project_page_link_alter().
  */
 function project_usage_project_page_link_alter($node, &$links) {
-  if (user_access('view project usage')) {
+  if (user_access('view project usage') && $node->releases) {
     $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/' . $node->uri);
   }
 }
-
