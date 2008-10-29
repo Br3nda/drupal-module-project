@@ -1,8 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.10.2.4 2008/10/24 20:40:27 dww Exp $
-// $Name:  $
+// $Id: project-release-create-history.php,v 1.10.2.5 2008/10/29 00:19:52 dww Exp $
 
 /**
  * @file

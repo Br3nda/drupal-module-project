@@ -1,6 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.7 2008/10/28 23:48:01 dww Exp $
-// $Name:  $
+// $Id: project_usage.module,v 1.6.2.8 2008/10/29 00:19:52 dww Exp $
 
 /**
  * @file

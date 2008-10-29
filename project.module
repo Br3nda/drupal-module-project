@@ -1,6 +1,5 @@
 <?php
-// $Id: project.module,v 1.309.2.10 2008/10/26 02:41:25 dww Exp $
-// $Name:  $
+// $Id: project.module,v 1.309.2.11 2008/10/29 00:19:51 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
