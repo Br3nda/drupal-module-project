@@ -1,6 +1,5 @@
 <?php
-// $Id: project.module,v 1.320 2008/10/26 02:41:24 dww Exp $
-// $Name:  $
+// $Id: project.module,v 1.321 2008/10/29 00:19:39 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -1248,4 +1247,9 @@ function project_can_cache() {
   }
 
   return TRUE;
+}
+
+function project_project_issue_assignees(&$assigned, $issue) {
+  $project = node_load($issue->pid);
+  $assigned[$project->uid] = $project->name;
 }

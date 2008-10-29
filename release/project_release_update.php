@@ -1,6 +1,5 @@
 <?php
-// $Id: project_release_update.php,v 1.7 2007/08/22 16:30:52 thehunmonkgroup Exp $
-// $Name:  $
+// $Id: project_release_update.php,v 1.8 2008/10/29 00:19:39 dww Exp $
 
 /**
  * @file
