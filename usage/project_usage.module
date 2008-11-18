@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.9 2008/11/18 01:50:09 dww Exp $
+// $Id: project_usage.module,v 1.6.2.10 2008/11/18 02:44:40 dww Exp $
 
 /**
  * @file
@@ -71,9 +71,7 @@ function project_usage_help($section) {
   switch ($section) {
     case 'project/usage':
       return '<p>'.
-        t('This page summarizes the usage of all projects on this site. For each week beginning on the given date the figures show the number of sites that reported they are using (any version of) the project.')
-        .'</p><p>'.
-        t('Detailed usage information for each release of a project is available by clicking the project name. Only sites that have opted to allow usage information to be tracked are included in these figures.')
+        t('This page summarizes the usage of all projects on @site_name. For each week beginning on the given date the figures show the number of sites that reported they are using (any version of) the project. Detailed usage information for each release of a project is available by clicking the project name.', array('@site_name' => variable_get('site_name', t('this site'))))
         .'</p>';
   }
 }
