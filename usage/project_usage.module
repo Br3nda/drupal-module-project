@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.10 2008/11/18 02:44:40 dww Exp $
+// $Id: project_usage.module,v 1.6.2.11 2008/12/04 05:48:28 dww Exp $
 
 /**
  * @file
@@ -136,7 +136,8 @@ function project_usage_overview() {
   drupal_add_css(drupal_get_path('module', 'project_usage') .'/project_usage.css');
   drupal_set_title(t('Project usage overview'));
 
-  $week_count = PROJECT_USAGE_SHOW_WEEKS;
+  // Grab an array of active week timestamps.
+  $weeks = project_usage_get_active_weeks();
 
   // In order to get the project usage data into a sortable table, we've gotta
   // write a pretty evil query:
@@ -167,7 +168,7 @@ function project_usage_overview() {
   $headers = array(array('field' => 'n.title', 'data' => t('Project')));
 
   $joins_args = array();
-  foreach (project_usage_get_last_weeks($week_count) as $i => $week) {
+  foreach ($weeks as $i => $week) {
     // Note that "{$i}" in these query snippets are used to add a week integer
     // to the table and field aliases so we can uniquely identify each column
     // for sorting purposes.  These are not literals in the query, we need
@@ -201,7 +202,7 @@ function project_usage_overview() {
 
   while ($line = db_fetch_array($result)) {
     $row = array(array('data' => l($line['title'], 'project/usage/'. $line['uri'])));
-    for ($i = 0; $i < $week_count; $i++) {
+    foreach ($weeks as $i => $week) {
       $row[] = array('data' => number_format($line["week{$i}"]), 'class' => 'project-usage-numbers');
     }
     $rows[] = $row;
@@ -235,7 +236,9 @@ function project_usage_project_page($node) {
   // page's second table early on. We might as well finish the job, then build
   // the other table and output them in the correct order.
 
-  $week_count = PROJECT_USAGE_SHOW_WEEKS;
+  // Grab an array of active week timestamps.
+  $weeks = project_usage_get_active_weeks();
+
   $releases = project_release_get_releases($node, FALSE);
 
   // If there are no releases for this project, we can skip the rest
@@ -270,7 +273,7 @@ function project_usage_project_page($node) {
   $release_header = array(array('field' => 'n.title', 'data' => t('Release'), 'sort' => 'desc'));
 
   $joins_args = array();
-  foreach (project_usage_get_last_weeks($week_count) as $i => $week) {
+  foreach ($weeks as $i => $week) {
     // Note that "{$i}" in these query snippets are used to add a week integer
     // to the table and field aliases so we can uniquely identify each column
     // for sorting purposes.  These are not literals in the query, we need
@@ -301,7 +304,7 @@ function project_usage_project_page($node) {
   $release_rows = array();
   while ($line = db_fetch_array($result)) {
     $row = array(array('data' => l($releases[$line['nid']], 'project/usage/'. $line['nid'])));
-    for ($i = 0; $i < $week_count; $i++) {
+    foreach ($weeks as $i => $week) {
       $row[] = array('data' => number_format($line["week{$i}"]), 'class' => 'project-usage-numbers');
     }
     $release_rows[] = $row;
@@ -438,123 +441,6 @@ function project_usage_settings_form() {
 }
 
 /**
- * Implementation of hook_cron().
- *
- * Call the daily and weekly processing tasks as needed.
- */
-function project_usage_cron() {
-  $now = time();
-
-  // Figure out if it's been 24 hours since our last daily processing.
-  if (variable_get('project_usage_last_daily', 0) <= ($now - PROJECT_USAGE_DAY)) {
-    project_usage_process_daily();
-    variable_set('project_usage_last_daily', $now);
-  }
-
-  // Figure out if it's been a week since we did weekly stats. If the weekly
-  // data has never been processed go back only as far as there is daily data.
-  $default = $now - variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
-  $last_weekly = variable_get('project_usage_last_weekly', $default);
-  if ($last_weekly <= ($now - PROJECT_USAGE_WEEK)) {
-    project_usage_process_weekly($last_weekly);
-    variable_set('project_usage_last_weekly', $now);
-  }
-
-  // Wipe the cache of all expired usage pages.
-  cache_clear_all(NULL, 'cache_project_usage');
-}
-
-/**
- * Process all the raw data up to the previous day.
- *
- * The primary key on the {project_usage_raw} table will prevent duplicate
- * records provided we process them once the day is complete. If we pull them
- * out too soon and the site checks in again they will be counted twice.
- */
-function project_usage_process_daily() {
-  // Timestamp for begining of the previous day.
-  $timestamp = project_usage_daily_timestamp(NULL, 1);
-
-  watchdog('project_usage', t('Starting to process daily usage data for @date.', array('@date' => format_date($timestamp))));
-
-  // Assign API version term IDs.
-  $terms = array();
-  foreach (project_release_get_api_taxonomy() as $term) {
-    $terms[$term->tid] = $term->name;
-  }
-  $query = db_query("SELECT DISTINCT api_version FROM {project_usage_raw} WHERE tid = 0");
-  while ($row = db_fetch_object($query)) {
-    $tid = array_search($row->api_version, $terms);
-    db_query("UPDATE {project_usage_raw} SET tid = %d WHERE api_version = '%s'", $tid, $row->api_version);
-  }
-  watchdog('project_usage', t('Assigned API version term IDs.'));
-
-  // Asign project and release node IDs.
-  $query = db_query("SELECT DISTINCT project_uri, project_version FROM {project_usage_raw} WHERE pid = 0 OR nid = 0");
-  while ($row = db_fetch_object($query)) {
-    $pid = db_result(db_query("SELECT pp.nid AS pid FROM {project_projects} pp WHERE pp.uri = '%s'", $row->project_uri));
-    if ($pid) {
-      $nid = db_result(db_query("SELECT prn.nid FROM {project_release_nodes} prn WHERE prn.pid = %d AND prn.version = '%s'", $pid, $row->project_version));
-      db_query("UPDATE {project_usage_raw} SET pid = %d, nid = %d WHERE project_uri = '%s' AND project_version = '%s'", $pid, $nid, $row->project_uri, $row->project_version);
-    }
-  }
-  watchdog('project_usage', t('Assigned project and release node IDs.'));
-
-  // Move usage records with project node IDs into the daily table and remove
-  // the rest.
-  db_query("INSERT INTO {project_usage_day} (timestamp, site_key, pid, nid, tid, ip_addr) SELECT timestamp, site_key, pid, nid, tid, ip_addr FROM {project_usage_raw} WHERE timestamp < %d AND pid <> 0", $timestamp);
-  db_query("DELETE FROM {project_usage_raw} WHERE timestamp < %d", $timestamp);
-  watchdog('project_usage', t('Moved usage from raw to daily.'));
-
-  // Remove old daily records.
-  $seconds = variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
-  db_query("DELETE FROM {project_usage_day} WHERE timestamp < %d", time() - $seconds);
-  watchdog('project_usage', t('Removed old daily rows.'));
-
-  watchdog('project_usage', t('Completed daily usage data processing.'));
-}
-
-/**
- * Compute the weekly summaries for the week starting at the given timestamp.
- *
- * @param $timestamp
- *   UNIX timestamp indicating the last time weekly stats were processed.
- */
-function project_usage_process_weekly($timestamp) {
-  watchdog('project_usage', t('Starting to process weekly usage data.'));
-
-  // Get all the weeks since we last ran.
-  $weeks = project_usage_get_weeks_since($timestamp);
-  // Skip the last entry since it's the current, incomplete week.
-  $count = count($weeks) - 1;
-  for ($i = 0; $i < $count; $i++) {
-    $start = $weeks[$i];
-    $end = $weeks[$i + 1];
-
-    // Remove any existing tallies then compute the tallies.
-    db_query("DELETE FROM {project_usage_week_project} WHERE timestamp = %d", $start);
-    db_query("INSERT INTO {project_usage_week_project} (nid, timestamp, tid, count) SELECT pid, %d, tid, COUNT(DISTINCT site_key) FROM {project_usage_day} WHERE timestamp >= %d AND timestamp < %d AND pid <> 0 GROUP BY pid, tid", $start, $start, $end);
-    watchdog('project_usage', t('Computed weekly project tallies for @date.', array('@date' => format_date($start))));
-
-    db_query("DELETE FROM {project_usage_week_release} WHERE timestamp = %d", $start);
-    db_query("INSERT INTO {project_usage_week_release} (nid, timestamp, count) SELECT nid, %d, COUNT(DISTINCT site_key) FROM {project_usage_day} WHERE timestamp >= %d AND timestamp < %d AND nid <> 0 GROUP BY nid", $start, $start, $end);
-    watchdog('project_usage', t('Computed weekly release tallies for @date.', array('@date' => format_date($start))));
-  }
-
-  // Remove any tallies that have aged out.
-  $now = time();
-  $project_life = variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR);
-  db_query("DELETE FROM {project_usage_week_project} WHERE timestamp < %d", $now - $project_life);
-  watchdog('project_usage', t('Removed old weekly project rows.'));
-
-  $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK);
-  db_query("DELETE FROM {project_usage_week_release} WHERE timestamp < %d", $now - $release_life);
-  watchdog('project_usage', t('Removed old weekly release rows.'));
-
-  watchdog('project_usage', t('Completed weekly usage data processing.'));
-}
-
-/**
  * getdate() with timezone adjustment.
  *
  * PHP's getdate() is affected by the server's timezone. We need to cancel it
@@ -637,22 +523,24 @@ function project_usage_get_weeks_since($timestamp) {
 }
 
 /**
- * Return an array of the N previous weeks for which we'll have data.
- *
- * @param $count
- *   Number of weeks to return.
+ * Return an array of the most recent weeks for which we have data.
  *
  * @return
  *   An array of UNIX timestamps sorted newest to oldest. Will not include
  *   the current week.
  */
-function project_usage_get_last_weeks($count = PROJECT_USAGE_SHOW_WEEKS) {
-  $weeks = project_usage_get_weeks_since(time() - ($count * PROJECT_USAGE_WEEK));
-  // Use array_pop() to remove the current week as we won't have usage data
-  // for it.
-  array_pop($weeks);
-  // Reverse the order so it's newest to oldest.
-  return array_reverse($weeks);
+function project_usage_get_active_weeks($reset = FALSE) {
+  $weeks = variable_get('project_usage_active_weeks', array());
+  if ($reset || empty($weeks)) {
+    $count = variable_get('project_usage_show_weeks', PROJECT_USAGE_SHOW_WEEKS);
+    $query = db_query_range("SELECT DISTINCT(timestamp) FROM {project_usage_week_project} ORDER BY timestamp DESC", array(), 0, $count);
+    $weeks = array();
+    while ($week = db_fetch_object($query)) {
+      $weeks[] = $week->timestamp;
+    }
+    variable_set('project_usage_active_weeks', $weeks);
+  }
+  return $weeks;
 }
 
 /**
