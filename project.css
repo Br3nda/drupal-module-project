@@ -1,4 +1,4 @@
-/* $Id: project.css,v 1.36 2008/12/05 04:14:32 dww Exp $ */
+/* $Id: project.css,v 1.37 2008/12/05 19:17:48 dww Exp $ */
 /* $Name:  $ */
 
 .project table {
@@ -33,7 +33,8 @@
 
 .project-links-section div {
   float: left;
-  padding-right: 2em;
+  padding-right: 1.2em;
+  width: 30%;
 }
 
 #edit-project-goto {
