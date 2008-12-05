@@ -1,4 +1,4 @@
-/* $Id: project.css,v 1.35 2007/01/05 00:21:08 dww Exp $ */
+/* $Id: project.css,v 1.36 2008/12/05 04:14:32 dww Exp $ */
 /* $Name:  $ */
 
 .project table {
@@ -29,6 +29,11 @@
 .project .downloads li {
   list-style-type: none;
   margin: 0px;
+}
+
+.project-links-section div {
+  float: left;
+  padding-right: 2em;
 }
 
 #edit-project-goto {
