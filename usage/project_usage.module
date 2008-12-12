@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.11 2008/12/04 05:48:28 dww Exp $
+// $Id: project_usage.module,v 1.6.2.12 2008/12/12 00:06:17 dww Exp $
 
 /**
  * @file
@@ -599,6 +599,7 @@ function theme_project_usage_project_page($project, $release_header = NULL, $rel
   $output .= '<h3>'. t('Recent release usage') .'</h3>';
   $output .= theme('table', $release_header, $release_rows);
   $output .= '<h3>'. t('Weekly project usage') .'</h3>';
+  $output .= theme('project_usage_chart_by_release', t('Weekly @project usage by API version', array('@project' => $project->title)), $project_header, $project_rows);
   $output .= theme('table', $project_header, $project_rows);
   return $output;
 }
@@ -625,6 +626,7 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
     return $output;
   }
 
+  $output .= theme('project_usage_chart_by_release', t('Weekly @release usage', array('@release' => $release->title), $header, $rows);
   $output .= theme('table', $header, $rows);
   return $output;
 }
@@ -660,3 +662,155 @@ function project_usage_project_page_link_alter($node, &$links) {
     $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/' . $node->uri);
   }
 }
+
+/**
+ * Convert the usage table data into a Google Chart image.
+ *
+ * First column should be the weeks, each subsequent column should be a data
+ * series.
+ *
+ * @param $header
+ *   A table header for the weekly usage table.
+ * @param $rows
+ *   Table rows for the weekly usage table.
+ * @return
+ *   An HTML IMG element.
+ */
+function theme_project_usage_chart_by_release($title, $header, $rows) {
+  // Reverse the order of the rows so it's oldest to newest.
+  $rows = array_reverse($rows);
+
+  // Pull the API versions from the table header for use as a legend. Since the
+  // table is keyed strangely, make note of which tid is in which order so we
+  // can efficiently iterate over the columns.
+  $legend = array();
+  $mapping = array();
+  foreach ($header as $tid => $cell) {
+    $legend[] = $cell['data'];
+    $mapping[] = $tid;
+  }
+  // Drop the date column from the legend and mapping since it's the other axis.
+  unset($legend[0]);
+  unset($mapping[0]);
+
+  // Rotate the table so each series is in a row in the array and grab the
+  // dates for use as axis labels.
+  $series = array();
+  $date_axis = array();
+  foreach (array_values($rows) as $i => $row) {
+    $date_axis[$i] = $row[0]['data'];
+    foreach ($mapping as $j => $tid) {
+      // FIXME: The table values have commas in them from number_format(). We
+      // need to remove them because we'll use commas to separate the values
+      // in the URL string. It might be better to pass in clean number values
+      // and format them here rather than have to uncook them.
+      $series[$j][$i] = (int) str_replace(',', '', $row[$tid]['data']);
+    }
+  }
+
+  // Now convert the series into strings with the data. Along the way figure
+  // out the range of data.
+  $min = $max = 0;
+  $data = array();
+  foreach ($series as $s) {
+    $data[] = implode(',', $s);
+    $max = max($max, max($s));
+  }
+
+  // Round the max up to the next decimal place (3->10, 19->20, 8703->9000) so
+  // that the labels have round numbers and the entire range is visible. We're
+  // forced to build the number as a string because PHP's round() function
+  // can round down (3->0, not 3->10) and it returns floats that loose
+  // precision (causing 90,000 to display as 89,999.99). We pull off the first
+  // digit, add 1 to that, and then pad the rest with zeros.
+  $zeros = strlen($max) - 1;
+  $max = ($zeros > 0) ? (substr($max, 0, 1) + 1 . str_repeat('0', $zeros)) : 10;
+  $value_axis = range($min, $max, '1'. str_repeat('0', $zeros));
+
+  // Might need more colors than this.
+  $colors = array('EDAA00', '0062A0', 'A17300', 'ED8200', '38B4BA', '215D6E');
+
+  // The key values in this array are dictated by the Google Charts API:
+  // http://code.google.com/apis/chart/
+  $args = array(
+    // Chart title.
+    'chtt' => check_plain($title),
+    // Dimensions as width x height in pixels.
+    'chs' => '600x200',
+    // Chart type
+    'cht' => 'lc',
+    // Pick some colors.
+    'chco' => implode(',', array_slice($colors, 0, count($series))),
+    'chd' =>  't:'. implode('|', $data),
+    // Set the range of the chart
+    'chds' => implode(',', array_fill(0, count($series), $min .','. $max)),
+     // Legend is the header titles after excluding the date.
+    'chdl' => implode('|', $legend),
+  );
+  project_usage_chart_axis_labels($args, array(
+    'x' => project_usage_chart_label_subset($date_axis, 5),
+    'y' => array_map('number_format', project_usage_chart_label_subset($value_axis, 5)),
+  ));
+
+  return theme('project_usage_chart', $args);
+}
+
+/**
+ * Extract a subset of labels at regular intervals from a set.
+ *
+ * @param $labels
+ *   Array of values to choose from.
+ * @param $n
+ *   Number of segments in the set. This number should divide $labels with no
+ *   remander.
+ */
+function project_usage_chart_label_subset($labels, $n) {
+  $subset = array();
+  $count = count($labels) - 1;
+  // We can't give them back more labels that we're given.
+  $n = min($count, $n - 1);
+  for ($i = 0; $i <= $n; $i++) {
+    $subset[] = $labels[(int) ($count * ($i / $n))];
+  }
+  return $subset;
+}
+
+/**
+ * Add axis labels to the chart arguments.
+ *
+ * @param $args
+ *   The array where the chart is being built.
+ * @param $labels
+ *   Array keyed by axis (x, t, y, r) the value is an array of labels for that
+ *   axis.
+ * @see http://code.google.com/apis/chart/labels.html#multiple_axes_labels
+ */
+function project_usage_chart_axis_labels(&$args, $labels) {
+  $keys = array_keys($labels);
+  $args['chxt'] = implode(',', $keys);
+
+  $l = array();
+  foreach ($keys as $i => $key) {
+    $l[$i] = $i .':|' . implode('|', $labels[$key]);
+  }
+  $args['chxl'] = implode('|', $l);
+}
+
+/**
+ * Convert the array of Google Chart paramters into an image URL.
+ *
+ * @param $args
+ *   Array of key, value pairs to turn into a Google Charts image.
+ * @return
+ *   HTML image element.
+ */
+function theme_project_usage_chart($args) {
+  $params = array();
+  foreach ($args as $key => $value) {
+    $params[] = $key .'='. $value;
+  }
+  // If the chart has a title use that for the image's alt and title values.
+  $title = empty($args['chtt']) ? '' : $args['chtt'];
+  return theme('image', 'http://chart.apis.google.com/chart?'. implode('&', $params), $title, $title, NULL, FALSE);
+}
+
