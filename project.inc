@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.122.2.6 2008/12/05 04:14:40 dww Exp $
+// $Id: project.inc,v 1.122.2.7 2008/12/12 01:44:18 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -352,19 +352,35 @@ function project_project_view($node, $teaser = false, $page = false) {
     project_page_link_alter($node, $all_links);
 
     // Format links in $all_links for display in the project_project node.
+    // Keep track of the section with the heaviest weight (which will be last)
+    // so we can add a final clear after it to make sure the floating link
+    // sections do not interfere with other formatting in the node's content.
+    $max_weight = -10000;
+    $last_section = '';
     foreach($all_links as $section => $values) {
       // Only add the section if there are links for the section.
       if (!empty($values['links'])) {
+        $weight = !empty($values['weight']) ? $values['weight'] : 0;
         $node->content[$section] = array(
           '#value' => theme('item_list', $values['links'], $values['name']),
-          '#weight' => !empty($values['weight']) ? $values['weight'] : 0,
+          '#weight' => $weight,
           '#prefix' => '<div class="project-links-section" id="project-links-section-'. $section .'">',
           '#suffix' => '</div>',
         );
         if (!empty($values['clear'])) {
           $node->content[$section]['#suffix'] .= '<br style="clear:both;" />';
         }
+        if ($weight >= $max_weight) {
+          $last_section = $section;
+          $max_weight = $weight;
+        }
       }
+    }
+    // We only want to add a clearing <br> after the final section if that
+    // section didn't already add a clear for itself (e.g. the heaviest
+    // section might already clear from hook_project_page_link_alter()).
+    if (empty($all_links[$last_section]['clear'])) {
+      $node->content[$last_section]['#suffix'] .= '<br style="clear:both;" />';
     }
   }
   return $node;
