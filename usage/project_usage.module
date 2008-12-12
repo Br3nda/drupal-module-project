@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.12 2008/12/12 00:06:17 dww Exp $
+// $Id: project_usage.module,v 1.6.2.13 2008/12/12 00:11:43 dww Exp $
 
 /**
  * @file
@@ -626,7 +626,7 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
     return $output;
   }
 
-  $output .= theme('project_usage_chart_by_release', t('Weekly @release usage', array('@release' => $release->title), $header, $rows);
+  $output .= theme('project_usage_chart_by_release', t('Weekly @release usage', array('@release' => $release->title)), $header, $rows);
   $output .= theme('table', $header, $rows);
   return $output;
 }
