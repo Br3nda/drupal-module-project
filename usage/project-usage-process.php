@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-// $Id: project-usage-process.php,v 1.2 2008/12/05 23:37:05 dww Exp $
+// $Id: project-usage-process.php,v 1.3 2008/12/12 01:07:02 dww Exp $
 
 
 /**
@@ -101,7 +101,6 @@ if ($last_weekly <= ($now - PROJECT_USAGE_WEEK)) {
 cache_clear_all(NULL, 'cache_project_usage');
 
 
-
 /**
  * Process all the raw data up to the previous day.
  *
@@ -170,10 +169,9 @@ function project_usage_process_daily() {
   // Remove old daily records.
   $seconds = variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
   db_query("DELETE FROM {project_usage_day} WHERE timestamp < %d", time() - $seconds);
-  $num_deleted_day_rows = db_affected_rows();
   $time_4 = time();
   $substitutions = array(
-    '!rows' => format_plural($num_deleted_day_rows, '1 old daily row', '@count old daily rows'),
+    '!rows' => format_plural(db_affected_rows(), '1 old daily row', '@count old daily rows'),
     '!delta' => format_interval($time_4 - $time_3),
   );
   watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
@@ -209,22 +207,17 @@ function project_usage_process_weekly($timestamp) {
     $query_args = array($start, $start, $end);
     $result = db_query($sql, $query_args);
     $time_2 = time();
+    _db_query_callback($query_args, TRUE);
+    $substitutions = array(
+      '!date' => $date,
+      '%query' => preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $sql),
+      '!projects' => format_plural(db_affected_rows(), '1 project', '@count projects'),
+      '!delta' => format_interval($time_2 - $time_1),
+    );
     if (!$result) {
-      _db_query_callback($query_args, TRUE);
-      $substitutions = array(
-        '!date' => $date,
-        '%query' => preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $sql),
-        '!delta' => format_interval($time_2 - $time_1),
-      );
       watchdog('project_usage', t('Query failed inserting weekly project tallies for !date, query: %query (!delta).', $substitutions), WATCHDOG_ERROR);
     }
     else {
-      $num_rows = db_affected_rows();
-      $substitutions = array(
-        '!date' => $date,
-        '!projects' => format_plural($num_rows, '1 project', '@count projects'),
-        '!delta' => format_interval($time_2 - $time_1),
-      );
       watchdog('project_usage', t('Computed weekly project tallies for !date for !projects (!delta).', $substitutions));
     }
 
@@ -232,48 +225,41 @@ function project_usage_process_weekly($timestamp) {
     $query_args = array($start, $start, $end);
     $result = db_query($sql, $query_args);
     $time_3 = time();
+    _db_query_callback($query_args, TRUE);
+    $substitutions = array(
+      '!date' => $date,
+      '!releases' => format_plural(db_affected_rows(), '1 release', '@count releases'),
+      '%query' => preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $sql),
+      '!delta' => format_interval($time_3 - $time_2),
+    );
     if (!$result) {
-      _db_query_callback($query_args, TRUE);
-      $substitutions = array(
-        '!date' => $date,
-        '%query' => preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $sql),
-        '!delta' => format_interval($time_3 - $time_2),
-      );
       watchdog('project_usage', t('Query failed inserting weekly release tallies for !date, query: %query (!delta).', $substitutions), WATCHDOG_ERROR);
     }
     else {
-      $num_rows = db_affected_rows();
-      $substitutions = array(
-        '!date' => $date,
-        '!releases' => format_plural($num_rows, '1 release', '@count releases'),
-        '!delta' => format_interval($time_3 - $time_2),
-      );
-
       watchdog('project_usage', t('Computed weekly release tallies for !date for !releases (!delta).', $substitutions));
     }
   }
 
   // Remove any tallies that have aged out.
-  $now = time();
+  $time_4 = time();
   $project_life = variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR);
   db_query("DELETE FROM {project_usage_week_project} WHERE timestamp < %d", $now - $project_life);
-  $num_rows = db_affected_rows();
-  $time_1 = time();
+  $time_5 = time();
   $substitutions = array(
-    '!rows' => format_plural($num_rows, '1 old weekly project row', '@count old weekly project rows'),
-    '!delta' => format_interval($time_1 - $now),
+    '!rows' => format_plural(db_affected_rows(), '1 old weekly project row', '@count old weekly project rows'),
+    '!delta' => format_interval($time_5 - $time_4),
   );
   watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
 
   $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK);
   db_query("DELETE FROM {project_usage_week_release} WHERE timestamp < %d", $now - $release_life);
-  $time_2 = time();
+  $time_6 = time();
   $substitutions = array(
-    '!rows' => format_plural($num_rows, '1 old weekly release row', '@count old weekly release rows'),
-    '!delta' => format_interval($time_2 - $time_1),
+    '!rows' => format_plural(db_affected_rows(), '1 old weekly release row', '@count old weekly release rows'),
+    '!delta' => format_interval($time_6 - $time_5),
   );
   watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
 
-  watchdog('project_usage', t('Completed weekly usage data processing (total time: !delta).', array('!delta' => format_interval($time_2 - $time_0))));
+  watchdog('project_usage', t('Completed weekly usage data processing (total time: !delta).', array('!delta' => format_interval($time_6 - $time_0))));
 }
 
