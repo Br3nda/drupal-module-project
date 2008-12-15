@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-// $Id: project-usage-process.php,v 1.1.2.2 2008/12/12 01:07:03 dww Exp $
+// $Id: project-usage-process.php,v 1.1.2.3 2008/12/15 09:03:30 dww Exp $
 
 
 /**
@@ -85,14 +85,17 @@ if (variable_get('project_usage_last_daily', 0) <= ($now - PROJECT_USAGE_DAY)) {
   variable_set('project_usage_last_daily', $now);
 }
 
-// Figure out if it's been a week since we did weekly stats. If the weekly
-// data has never been processed go back only as far as there is daily data.
+// We can't process the weekly data until the week has completed. To see if
+// there's data available: determine the last time we completed the weekly
+// processing and compare that to the start of this week. If the last
+// weekly processing occurred before the current week began then there should
+// be one (or more) week's worth of data ready to process.
 $default = $now - variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
 $last_weekly = variable_get('project_usage_last_weekly', $default);
-if ($last_weekly <= ($now - PROJECT_USAGE_WEEK)) {
+$current_week_start = project_usage_weekly_timestamp(NULL, 0);
+if ($last_weekly <= $current_week_start) {
   project_usage_process_weekly($last_weekly);
   variable_set('project_usage_last_weekly', $now);
-
   // Reset the list of active weeks.
   project_usage_get_active_weeks(TRUE);
 }

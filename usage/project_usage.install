@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.install,v 1.3.2.4 2008/10/29 00:19:52 dww Exp $
+// $Id: project_usage.install,v 1.3.2.5 2008/12/15 09:03:30 dww Exp $
 
 function project_usage_install() {
   switch ($GLOBALS['db_type']) {
@@ -69,6 +69,7 @@ function project_usage_uninstall() {
   $variables = array(
     'project_usage_last_daily',
     'project_usage_last_weekly',
+    'project_usage_active_weeks',
     'project_usage_life_daily',
     'project_usage_life_weekly_project',
     'project_usage_life_weekly_release',
