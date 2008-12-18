@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.19 2008/12/12 00:11:38 dww Exp $
+// $Id: project_usage.module,v 1.20 2008/12/18 07:42:22 dww Exp $
 
 /**
  * @file
@@ -207,7 +207,7 @@ function project_usage_overview() {
     }
     $rows[] = $row;
   }
-  $output = theme('table', $headers, $rows);
+  $output = theme('table', $headers, $rows, array('id' => 'project-usage-all-projects'));
 
   // Cache the completed page.
   if (project_can_cache()) {
@@ -597,10 +597,10 @@ function theme_project_usage_project_page($project, $release_header = NULL, $rel
   }
 
   $output .= '<h3>'. t('Recent release usage') .'</h3>';
-  $output .= theme('table', $release_header, $release_rows);
+  $output .= theme('table', $release_header, $release_rows, array('id' => 'project-usage-project-releases'));
   $output .= '<h3>'. t('Weekly project usage') .'</h3>';
   $output .= theme('project_usage_chart_by_release', t('Weekly @project usage by API version', array('@project' => $project->title)), $project_header, $project_rows);
-  $output .= theme('table', $project_header, $project_rows);
+  $output .= theme('table', $project_header, $project_rows, array('id' => 'project-usage-project-api'));
   return $output;
 }
 
@@ -627,7 +627,7 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
   }
 
   $output .= theme('project_usage_chart_by_release', t('Weekly @release usage', array('@release' => $release->title)), $header, $rows);
-  $output .= theme('table', $header, $rows);
+  $output .= theme('table', $header, $rows, array('id' => 'project-usage-release'));
   return $output;
 }
 
