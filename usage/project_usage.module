@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.21 2008/12/18 07:55:22 dww Exp $
+// $Id: project_usage.module,v 1.22 2008/12/19 20:30:56 dww Exp $
 
 /**
  * @file
@@ -303,11 +303,16 @@ function project_usage_project_page($node) {
 
   $release_rows = array();
   while ($line = db_fetch_array($result)) {
+    $sum = 0;
     $row = array(array('data' => l($releases[$line['nid']], 'project/usage/'. $line['nid'])));
     foreach ($weeks as $i => $week) {
+      $sum += $line["week{$i}"];
       $row[] = array('data' => number_format($line["week{$i}"]), 'class' => 'project-usage-numbers');
     }
-    $release_rows[] = $row;
+    // Skip any release with no usage.
+    if ($sum) {
+      $release_rows[] = $row;
+    }
   }
 
   // Build a table of the weekly usage data with a column for each API version.
