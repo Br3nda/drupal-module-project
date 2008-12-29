@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.322 2008/12/22 23:24:00 dww Exp $
+// $Id: project.module,v 1.323 2008/12/29 17:54:15 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -1108,7 +1108,8 @@ function project_quick_navigate_form() {
   $form['project_goto'] = array(
     '#type' => 'select',
     '#default_value' => '0',
-    '#options' => $projects
+    '#options' => $projects,
+    '#attributes' => array('title' => t('Select a project to view')),
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -1117,10 +1118,14 @@ function project_quick_navigate_form() {
   return $form;
 }
 
-function project_quick_navigate_form_submit($form_id, $form_values) {
-  if (!empty($form_values['project_goto']) && (string)$form_values['project_goto'] != '0') {
-    drupal_goto($form_values['project_goto']);
+function project_quick_navigate_form_validate($form_id, $form_values) {
+  if (empty($form_values['project_goto'])) {
+    form_set_error('project_goto', t('You must select a project to navigate to.'));
   }
+}
+
+function project_quick_navigate_form_submit($form_id, $form_values) {
+  drupal_goto($form_values['project_goto']);
 }
 
 // Themables
