@@ -1,7 +1,8 @@
 <?php
-// $Id: project_release.module,v 1.75 2008/12/05 04:14:32 dww Exp $
+// $Id: project_release.module,v 1.76 2009/01/07 20:48:11 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
+define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
 
 /**
  * @defgroup project_release_core Core Drupal hooks
@@ -114,6 +115,15 @@ function project_release_settings_form() {
     '#size' => 50,
     '#maxlength' => 255,
     '#description' => t('Customize the default format of the version strings for releases of projects on this site. Users with "administer projects" permissions can override this setting for each project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP,
+  );
+
+  $form['project_release_file_extensions'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Permitted file extensions'),
+    '#default_value' => variable_get('project_release_file_extensions', PROJECT_RELEASE_FILE_EXTENSIONS),
+    '#size' => 50,
+    '#maxlength' => 255,
+    '#description' => t('Files uploaded to release nodes will only be allowed if they have an extension that is included in this list.'),
   );
 
   if ($tree = project_release_get_api_taxonomy()) {
@@ -473,19 +483,34 @@ function project_release_validate(&$edit, $form) {
   }
 
   if ($file = file_check_upload('file')) {
-    if ($file = file_save_upload($file)) {
-      // Using $form_values here is an ugly hack, but the caching mechanism
-      // in file_check_upload() causes problems if we can't pass this object
-      // to the file_save_upload() call in the submit function which actually
-      // saves the file.
-      $form_values['release_file'] = $file;
-      $filepath = file_create_path($file->filepath);
-      form_set_value($form['file']['file_path'], $file->filepath);
-      form_set_value($form['file']['file_date'], filemtime($filepath));
-      form_set_value($form['file']['file_hash'], md5_file($filepath));
+    // Make sure that the extension on the file is one of the allowed extensions for release files.
+    // Most of this validation code was modified from the code in file_check_upload().
+    $extensions = variable_get('project_release_file_extensions', PROJECT_RELEASE_FILE_EXTENSIONS);
+    $regex = '/\.('. ereg_replace(' +', '|', preg_quote($extensions)) .')$/i';
+    if (!preg_match($regex, $file->filename)) {
+      form_set_error('file', t('The selected file %name can not be attached to this post, because it is only possible to attach files with the following extensions: %files-allowed.', array('%name' => $file->filename, '%files-allowed' => $extensions)));
+      file_delete($file->filepath);
     }
     else {
-      form_set_error('file', t('There was a problem uploading the specified file.'));
+      if ($user->uid != 1) {
+        // Here something.php.pps becomes something.php_.pps
+        $file->filename = upload_munge_filename($file->filename, $extensions, 0);
+        $file->description = $file->filename;
+      }
+      if ($file = file_save_upload($file)) {
+        // Using $form_values here is an ugly hack, but the caching mechanism
+        // in file_check_upload() causes problems if we can't pass this object
+        // to the file_save_upload() call in the submit function which actually
+        // saves the file.
+        $form_values['release_file'] = $file;
+        $filepath = file_create_path($file->filepath);
+        form_set_value($form['file']['file_path'], $file->filepath);
+        form_set_value($form['file']['file_date'], filemtime($filepath));
+        form_set_value($form['file']['file_hash'], md5_file($filepath));
+      }
+      else {
+        form_set_error('file', t('There was a problem uploading the specified file.'));
+      }
     }
   }
   if (project_release_get_api_taxonomy()) {
