@@ -1,16 +1,17 @@
-# $Id: project_usage.pot,v 1.1.2.1 2008/03/08 12:10:01 hass Exp $
+# $Id: project_usage.pot,v 1.1.2.2 2009/01/07 23:28:56 hass Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
-#  project_usage.module,v 1.6 2007/09/14 16:17:55 dww
+#  project-usage-process.php,v 1.1.2.3 2008/12/15 09:03:30 dww
+#  project_usage.module,v 1.6.2.17 2008/12/19 20:42:01 dww
 #  project_usage.info,v 1.1 2007/08/07 20:21:33 dww
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2008-03-08 11:43+0100\n"
+"POT-Creation-Date: 2009-01-08 00:26+0100\n"
 "PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
@@ -19,95 +20,223 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
-#: project_usage.module:40
-msgid "Project usage settings"
+#: project-usage-process.php:71
+msgid "ERROR: Project usage module does not exist, aborting.\n"
 msgstr ""
 
-#: project_usage.module:43
-msgid "Configure how long usage data is retained."
+#: project-usage-process.php:119
+msgid "Starting to process daily usage data for !date."
 msgstr ""
 
-#: project_usage.module:66
-msgid "Daily usage data lifespan"
+#: project-usage-process.php:138
+msgid "Assigned API version term IDs for !rows (!delta)."
 msgstr ""
 
-#: project_usage.module:69
-msgid "Discard the daily usage data after this amount of time has passed."
+#: project-usage-process.php:156
+msgid "Assigned project and release node IDs to !rows (!delta)."
 msgstr ""
 
-#: project_usage.module:73
-msgid "Weekly project data lifespan"
+#: project-usage-process.php:170
+msgid "Moved usage from raw to daily: !day_rows added to {project_usage_day}, !raw_rows deleted from {project_usage_raw} (!delta)."
 msgstr ""
 
-#: project_usage.module:76;83
-msgid "Discard the weekly usage for project nodes after this amount of time has passed. "
+#: project-usage-process.php:180;255;264
+msgid "Removed !rows (!delta)."
 msgstr ""
 
-#: project_usage.module:80
-msgid "Weekly release data lifespan"
+#: project-usage-process.php:182
+msgid "Completed daily usage data processing (total time: !delta)."
 msgstr ""
 
-#: project_usage.module:123
-msgid "Starting to process daily usage data for @date."
-msgstr ""
-
-#: project_usage.module:135
-msgid "Assigned API version term IDs."
-msgstr ""
-
-#: project_usage.module:146
-msgid "Assigned project and release node IDs."
-msgstr ""
-
-#: project_usage.module:152
-msgid "Moved usage from raw to daily."
-msgstr ""
-
-#: project_usage.module:157
-msgid "Removed old daily rows."
-msgstr ""
-
-#: project_usage.module:159
-msgid "Completed daily usage data processing."
-msgstr ""
-
-#: project_usage.module:169
+#: project-usage-process.php:192
 msgid "Starting to process weekly usage data."
 msgstr ""
 
-#: project_usage.module:182
-msgid "Computed weekly project tallies for @date."
+#: project-usage-process.php:221
+msgid "Query failed inserting weekly project tallies for !date, query: %query (!delta)."
 msgstr ""
 
-#: project_usage.module:186
-msgid "Computed weekly release tallies for @date."
+#: project-usage-process.php:224
+msgid "Computed weekly project tallies for !date for !projects (!delta)."
 msgstr ""
 
-#: project_usage.module:193
-msgid "Removed old weekly project rows."
+#: project-usage-process.php:239
+msgid "Query failed inserting weekly release tallies for !date, query: %query (!delta)."
 msgstr ""
 
-#: project_usage.module:197
-msgid "Removed old weekly release rows."
+#: project-usage-process.php:242
+msgid "Computed weekly release tallies for !date for !releases (!delta)."
 msgstr ""
 
-#: project_usage.module:199
-msgid "Completed weekly usage data processing."
+#: project-usage-process.php:266
+msgid "Completed weekly usage data processing (total time: !delta)."
 msgstr ""
 
-#: project_usage.module:123;135;146;152;157;159;169;182;186;193;197;199;0
+#: project-usage-process.php:119;138;156;170;180;182;192;221;224;239;242;255;264;266 project_usage.module:0
 msgid "project_usage"
 msgstr ""
 
-#: project_usage.info:0
+#: project-usage-process.php:135;153;166;167
+msgid "1 row"
+msgid_plural "@count rows"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project-usage-process.php:177
+msgid "1 old daily row"
+msgid_plural "@count old daily rows"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project-usage-process.php:217
+msgid "1 project"
+msgid_plural "@count projects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project-usage-process.php:234
+msgid "1 release"
+msgid_plural "@count releases"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project-usage-process.php:252
+msgid "1 old weekly project row"
+msgid_plural "@count old weekly project rows"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project-usage-process.php:261
+msgid "1 old weekly release row"
+msgid_plural "@count old weekly release rows"
+msgstr[0] ""
+msgstr[1] ""
+
+#: project_usage.module:51
+msgid "Project usage settings"
+msgstr ""
+
+#: project_usage.module:54
+msgid "Configure how long usage data is retained."
+msgstr ""
+
+#: project_usage.module:59 project_usage.info:0
 msgid "Project usage"
+msgstr ""
+
+#: project_usage.module:74
+msgid "This page summarizes the usage of all projects on @site_name. For each week beginning on the given date the figures show the number of sites that reported they are using (any version of) the project. Detailed usage information for each release of a project is available by clicking the project name."
+msgstr ""
+
+#: project_usage.module:74
+msgid "this site"
+msgstr ""
+
+#: project_usage.module:137
+msgid "Project usage overview"
+msgstr ""
+
+#: project_usage.module:168 project_usage.info:0
+msgid "Project"
+msgstr ""
+
+#: project_usage.module:226;375
+msgid "Usage"
+msgstr ""
+
+#: project_usage.module:229
+msgid "Usage statistics for %project"
+msgstr ""
+
+#: project_usage.module:273
+msgid "Release"
+msgstr ""
+
+#: project_usage.module:336
+msgid "Week"
+msgstr ""
+
+#: project_usage.module:379
+msgid "Usage statistics for %release"
+msgstr ""
+
+#: project_usage.module:389
+msgid "Week starting"
+msgstr ""
+
+#: project_usage.module:390
+msgid "Count"
+msgstr ""
+
+#: project_usage.module:426
+msgid "Daily usage data lifespan"
+msgstr ""
+
+#: project_usage.module:429
+msgid "Discard the daily usage data after this amount of time has passed."
+msgstr ""
+
+#: project_usage.module:433
+msgid "Weekly project data lifespan"
+msgstr ""
+
+#: project_usage.module:436;443
+msgid "Discard the weekly usage for project nodes after this amount of time has passed. "
+msgstr ""
+
+#: project_usage.module:440
+msgid "Weekly release data lifespan"
+msgstr ""
+
+#: project_usage.module:600
+msgid "There is no usage information for any release of this project."
+msgstr ""
+
+#: project_usage.module:604
+msgid "Recent release usage"
+msgstr ""
+
+#: project_usage.module:606
+msgid "Weekly project usage"
+msgstr ""
+
+#: project_usage.module:607
+msgid "Weekly @project usage by API version"
+msgstr ""
+
+#: project_usage.module:630
+msgid "There is no usage information for this release."
+msgstr ""
+
+#: project_usage.module:634
+msgid "Weekly @release usage"
+msgstr ""
+
+#: project_usage.module:653
+msgid "%project_name project page"
+msgstr ""
+
+#: project_usage.module:655
+msgid "%release_name release page"
+msgstr ""
+
+#: project_usage.module:656
+msgid "All %project_name usage statistics"
+msgstr ""
+
+#: project_usage.module:658
+msgid "Usage statistics for all projects"
+msgstr ""
+
+#: project_usage.module:667
+msgid "View usage statistics"
+msgstr ""
+
+#: project_usage.module:84
+msgid "view project usage"
 msgstr ""
 
 #: project_usage.info:0
 msgid "Provides data about installed usage of projects (requires update_status.module clients connecting to this site -- most sites should NOT enable this module)."
-msgstr ""
-
-#: project_usage.info:0
-msgid "Project"
 msgstr ""
 
