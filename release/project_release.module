@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.76 2009/01/07 20:48:11 dww Exp $
+// $Id: project_release.module,v 1.77 2009/01/08 01:37:36 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -80,17 +80,31 @@ function project_release_menu($may_cache) {
     // Instead of the treachery of a true multipage form, we just have
     // a simple form at node/add/project-release that provides a project
     // selector which redirects to node/add/project-release/[project-nid].
-    $types = node_get_types();
     $items[] = array(
       'path' => 'node/add/project-release',
-      'title' => check_plain($types['project_release']->name),
+      'title' => node_get_types('name', 'project_release'),
       'callback' => 'project_release_pick_project_page',
       'callback arguments' => array($types['project_release']->name),
       'access' => $access_create,
       'type' => MENU_NORMAL_ITEM,
     );
+    // Redirect node/add/project_release/* to node/add/project-release.
+    $items[] = array(
+      'path' => 'node/add/project_release',
+      'callback' => 'project_release_add_redirect_page',
+      'access' => $access_create,
+      'type' => MENU_CALLBACK,
+    );
   }
   return $items;
+}
+
+/**
+ * Redirect node/add/project_release/* to node/add/project-release/*.
+ */
+function project_release_add_redirect_page() {
+  $arg = arg(3);
+  drupal_goto('node/add/project-release/' . (empty($arg) ? '' : $arg));
 }
 
 /**
@@ -249,14 +263,12 @@ function project_release_node_info() {
  */
 function project_release_form($release) {
   if (arg(1) == 'add') {
-    $release->pid = arg(3);
+    $release->pid = (integer) arg(3);
     $project = node_load($release->pid);
     project_project_set_breadcrumb($project, TRUE);
     if (!isset($project) || $project->type != 'project_project') {
-      drupal_set_message(t('Node !nid is not a valid project.', array('!nid' => $release->pid)));
-      drupal_not_found();
-      module_invoke_all('exit');
-      exit;
+      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->pid)), 'error');
+      drupal_goto('node/add/project-release');
     }
     // Make sure this user should have permissions to add releases for
     // the requested project
@@ -2187,6 +2199,15 @@ function project_release_devel_caches() {
  */
 function project_release_pick_project_page($type_name) {
   drupal_set_title(t('Submit @name', array('@name' => $type_name)));
+  $project = arg(3);
+  if (!empty($project)) {
+    // If there's any argument at all and we hit this form, it's from a
+    // non-numeric project id, which by definition is invalid.  No one's ever
+    // going to hit this code from clicking around in the normal UI, only if
+    // they type in a URL manually.
+    drupal_set_message(t('Specified argument (%project) is not a valid project ID number.', array('%project' => $project)), 'error');
+    return drupal_goto('/node/add/project-release');
+  }
   return drupal_get_form('project_release_pick_project_form');
 }
 
@@ -2196,6 +2217,8 @@ function project_release_pick_project_page($type_name) {
  */
 function project_release_pick_project_form() {
   $form = array();
+
+  drupal_set_title(t('Submit @name', array('@name' => node_get_types('name', 'project_release'))));
 
   // Fetch a list of all projects.
   $uris = NULL;
