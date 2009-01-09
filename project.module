@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.323 2008/12/29 17:54:15 dww Exp $
+// $Id: project.module,v 1.324 2009/01/09 15:15:09 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -1252,5 +1252,14 @@ function project_can_cache() {
   }
 
   return TRUE;
+}
+
+/**
+ * Display an RSS feed icon for use on project nodes.
+ */
+function theme_project_feed_icon($url, $title) {
+  if ($icon = theme('image', 'misc/feed.png', $title, $title)) {
+    return '<a href="'. check_url($url) .'" class="project-feed-icon">'. $icon .'</a>';
+  }
 }
 
