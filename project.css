@@ -1,5 +1,4 @@
-/* $Id: project.css,v 1.35.2.2 2008/12/05 19:17:52 dww Exp $ */
-/* $Name:  $ */
+/* $Id: project.css,v 1.35.2.3 2009/01/09 15:15:15 dww Exp $ */
 
 .project table {
   width: auto;
@@ -51,3 +50,8 @@
 ul.project-terms {
   padding-left: 1.5em;
 }
+
+.project-feed-icon {
+  padding-left: 1em;
+}
+

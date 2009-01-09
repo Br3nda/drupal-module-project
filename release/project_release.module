@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.10 2009/01/07 20:48:21 dww Exp $
+// $Id: project_release.module,v 1.66.2.11 2009/01/09 15:15:15 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -918,17 +918,24 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
  * Display a list of releases for a given project
  * @ingroup project_release_api
  */
-function project_release_project_releases() {
-  $node = node_load(arg(1));
+function project_release_project_releases($op = 'page') {
+  $nid = arg(1);
+  $node = node_load($nid);
 
-  // Breadcrumb navigation
-  $breadcrumb[] = l($node->title, 'node/'. $node->nid);
-  project_project_set_breadcrumb($node, $breadcrumb);
+  switch ($op) {
+    case 'feed':
+      return project_release_feed($node);
 
-  $output = project_release_list($node);
-
-  drupal_set_title(t('Releases for %project', array('%project' => $node->title)));
-  return $output;
+    case 'page':
+    default:
+      // Breadcrumb navigation
+      $breadcrumb[] = l($node->title, 'node/'. $node->nid);
+      project_project_set_breadcrumb($node, $breadcrumb);
+      drupal_set_title(t('Releases for %project', array('%project' => $node->title)));
+      drupal_add_feed(url('node/'. $nid .'/release/feed'), t('RSS - releases for @project_title', array('@project_title' => $node->title)));
+      $output = project_release_list($node);
+      return $output;
+  }
 }
 
 /**
@@ -1003,7 +1010,7 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
  * Returns a listing of project release nodes
  * @ingroup project_release_callback
  */
-function project_release_list($project, $main = 0) {
+function project_release_list($project) {
   if ($releases = project_release_get_releases($project, 1, 'date', 'files')) {
     $output = '';
     foreach ($releases as $release) {
@@ -1014,6 +1021,22 @@ function project_release_list($project, $main = 0) {
     $output = t('There are no published releases for this project.');
   }
   return $output;
+}
+
+/**
+ * Prints an RSS feed of project release nodes
+ *
+ * @ingroup project_release_callback
+ */
+function project_release_feed($project) {
+  $project = node_invoke($project, 'view', FALSE, FALSE);
+  $channel['link'] = url('node/'. $project->nid .'/release', NULL, NULL, TRUE);
+  $channel['title'] = t('Releases for @project_title', array('@project_title' => $project->title));
+  $channel['description'] = $project->body;
+  $order_by = 'n.created';
+  $where = "AND (n.status = 1) AND (r.file_path <> '')";
+  $result = db_query_range(db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $project->nid, 0, variable_get('feed_default_items', 10));
+  node_feed($result, $channel);
 }
 
 /**
@@ -1593,6 +1616,26 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
         }
       }
       break;
+
+    case 'rss item':
+      // Prepend the table of release info whenever a release is in a feed.
+      $node->body = $node->content['release_info']['#value'] . $node->body;
+      $node->teaser = $node->content['release_info']['#value'] . $node->teaser;
+      // If the release node has a file, include an enclosure attribute for it.
+      if (!empty($node->file_path)) {
+        $file_link = theme('project_release_download_link', $node->file_path, NULL, TRUE);
+        return array(
+          array(
+            'key' => 'enclosure',
+            'attributes' => array(
+              'url' => $file_link['href'],
+              'length' => filesize(file_create_path($node->file_path)),
+              'type' => 'application/octet-stream',
+            )
+          )
+        );
+      }
+      break;
   }
 }
 
@@ -1683,7 +1726,7 @@ function project_release_project_page_link_alter($node, &$all_links) {
     'weight' => 2,
     'clear' => TRUE,
     'links' => array(
-      'view_all_releases' => l(t('View all releases'), 'node/'. $node->nid .'/release')
+      'view_all_releases' => l(t('View all releases'), 'node/'. $node->nid .'/release') . theme('project_feed_icon', url('node/'. $node->nid .'/release/feed'), t('RSS feed of all releases'))
     ),
   );
 
