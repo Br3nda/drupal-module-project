@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.11 2009/01/09 15:15:15 dww Exp $
+// $Id: project_release.module,v 1.66.2.12 2009/01/11 21:59:22 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -325,14 +325,10 @@ function project_release_form($release) {
   );
   $modify = $admin || !$is_edit;
   $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
-  _project_release_form_add_version_element($form, $release, $modify, $format,
-    'major', t('Major'));
-  _project_release_form_add_version_element($form, $release, $modify, $format,
-    'minor', t('Minor'));
-  _project_release_form_add_version_element($form, $release, $modify, $format,
-    'patch', t('Patch-level'));
-  _project_release_form_add_version_element($form, $release, $modify, $format,
-    'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
+  _project_release_form_add_version_element($form, $release, $modify, $format, 'major', t('Major'));
+  _project_release_form_add_version_element($form, $release, $modify, $format, 'minor', t('Minor'));
+  _project_release_form_add_version_element($form, $release, $modify, $format, 'patch', t('Patch-level'));
+  _project_release_form_add_version_element($form, $release, $modify, $format, 'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
 
   $form['file'] = array(
     '#type' => 'fieldset',
