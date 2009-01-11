@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.129 2008/12/12 01:44:07 dww Exp $
+// $Id: project.inc,v 1.130 2009/01/11 21:09:23 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -136,7 +136,7 @@ function project_project_form($node) {
     '#type' => 'textfield',
     '#title' => t('Changelog'),
     '#default_value' => isset($node->changelog) ? $node->changelog : NULL,
-     '#size' => 40,
+    '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to changelog.'),
   );
