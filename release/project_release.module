@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.15 2009/01/12 22:29:38 dww Exp $
+// $Id: project_release.module,v 1.66.2.16 2009/01/12 23:54:38 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1854,13 +1854,9 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   $orderby[] = 'r.version_minor DESC';
   $orderby[] = 'r.version_patch DESC';
   $orderby[] = 'r.file_date DESC';
-
-  if ($orderby) {
-    $order_by = ' ORDER BY '. implode(', ', $orderby);
-  }
-  if ($selects) {
-    $select = implode(', ', $selects) .',';
-  }
+  
+  $order_by = !empty($orderby) ? (' ORDER BY '. implode(', ', $orderby)) : '';
+  $select = !empty($selects) ? (implode(', ', $selects) .',') : '';
 
   $result = db_query(db_rewrite_sql(
     "SELECT n.nid, n.created, $select r.* FROM {node} n ".
