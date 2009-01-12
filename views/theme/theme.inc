@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.1 2009/01/12 20:34:07 dww Exp $
+// $Id: theme.inc,v 1.2 2009/01/12 20:43:34 dww Exp $
 
 
 /**
@@ -74,7 +74,7 @@ function template_preprocess_project_views_view_row_project_node(&$vars) {
   // one from $vars['id'] to get the corresponding index into $vars['view']->result.
   $result_id = $id - 1;
 
-  $vars['project']->title = l($node->title, "project/$node->uri");
+  $vars['project']->title = l($node->title, "node/$node->nid");
   $vars['project']->new_date = isset($vars['view']->project->project_new_date[$result_id]) ? $node->changed : FALSE;
   $vars['project']->changed = t('Last changed: !interval ago', array('!interval' => format_interval(time() - $node->changed, 2)));
   $vars['project']->body = check_markup($options['project_teaser'] ? $node->teaser : $node->body, $node->format, FALSE);
