@@ -1,70 +1,14 @@
 <?php
-// $Id: project_usage.install,v 1.8 2008/12/15 09:03:27 dww Exp $
+// $Id: project_usage.install,v 1.9 2009/01/12 20:07:19 dww Exp $
 
 function project_usage_install() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("CREATE TABLE IF NOT EXISTS {project_usage_raw} (
-          project_uri varchar(50) NOT NULL default '',
-          timestamp int unsigned NOT NULL default '0',
-          site_key varchar(32) NOT NULL default '',
-          api_version varchar(32) NOT NULL default '',
-          project_version varchar(255) NOT NULL default '',
-          pid int unsigned NOT NULL default '0',
-          nid int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          ip_addr varchar(128) NOT NULL default '',
-          PRIMARY KEY (timestamp, project_uri, site_key)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_usage_day} (
-          timestamp int unsigned NOT NULL default '0',
-          site_key varchar(32) NOT NULL default '',
-          pid int unsigned NOT NULL default '0',
-          nid int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          ip_addr varchar(128) NOT NULL default '',
-          PRIMARY KEY (timestamp, site_key, pid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_usage_week_project} (
-          nid int unsigned NOT NULL default '0',
-          timestamp int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          count int unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, timestamp, tid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_usage_week_release} (
-          nid int unsigned NOT NULL default '0',
-          timestamp int unsigned NOT NULL default '0',
-          count int unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, timestamp)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {cache_project_usage} (
-          cid varchar(255) NOT NULL default '',
-          data longblob,
-          expire int NOT NULL default '0',
-          created int NOT NULL default '0',
-          headers text,
-          PRIMARY KEY (cid),
-          INDEX expire (expire)
-      ) /*!40100 DEFAULT CHARACTER SET UTF8 */;");
-      break;
-  }
+  // Create the database tables.
+  drupal_install_schema('project_usage');
 }
 
 function project_usage_uninstall() {
-  $tables = array(
-    'project_usage_raw',
-    'project_usage_day',
-    'project_usage_week_project',
-    'project_usage_week_release',
-    'cache_project_usage',
-  );
-  foreach ($tables as $table) {
-    if (db_table_exists($table)) {
-      db_query("DROP TABLE {{$table}}");
-    }
-  }
+  // Drop database tables.
+  drupal_uninstall_schema('project_usage');
 
   $variables = array(
     'project_usage_last_daily',
@@ -82,71 +26,245 @@ function project_usage_uninstall() {
 }
 
 /**
- * Make sure that all the timestamps in the tables are GMT.
+ * Implementation of hook_schema().
  */
-function project_usage_update_5000() {
-  $ret = array();
-
-  // Since this might take a long time, if we're not in 'safe mode', increase
-  // the maximum execution time.
-  if (!ini_get('safe_mode')) {
-    set_time_limit(240);
-  }
-
-  // Key is table name, value is function used to round the timestamp.
-  $tables = array(
-    'project_usage_week_project' => 'project_usage_weekly_timestamp',
-    'project_usage_week_release' => 'project_usage_weekly_timestamp',
-    'project_usage_raw' => 'project_usage_daily_timestamp',
-    'project_usage_day' => 'project_usage_daily_timestamp',
+function project_usage_schema() {
+  $schema['project_usage_raw'] = array(
+    'description' => t('Table used to store raw usage information.'),
+    'fields' => array(
+      'project_uri' => array(
+        'description' => t('Primary Key: The {project_projects}.uri short name of the project.'),
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => t('Primary Key: The Unix timestamp of when the request was made.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'site_key' => array(
+        'description' => t('Primary Key: An MD5 hash that identifies the site from which the request was made.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'api_version' => array(
+        'description' => t('The {term_data}.name of the API version requested.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'project_version' => array(
+        'description' => t('The {project_release_nodes}.version of the requested project.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'pid' => array(
+        'description' => t('The {node}.nid of the requested project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'nid' => array(
+        'description' => t('The {node}.nid of the requested release.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'tid' => array(
+        'description' => t('The {term_data}.tid of the API compatability version of the requested release.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'ip_addr' => array(
+        'description' => t('The IP address of the incoming request (to detect possible abuse).'),
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('timestamp', 'project_uri', 'site_key'),
   );
-  foreach ($tables as $table => $rounding_function) {
-    $query = db_query("SELECT DISTINCT timestamp FROM {$table} ORDER BY timestamp ASC");
-    while ($row = db_fetch_object($query)) {
-      $old = (int) $row->timestamp;
-      $new = (int) $rounding_function($old);
-      if ($old != $new) {
-        $ret[] = update_sql("UPDATE {$table} SET timestamp = $new WHERE timestamp = $old");
-      }
-    }
-  }
 
-  return $ret;
+  $schema['project_usage_day'] = array(
+    'description' => t('Table used to store daily usage information.'),
+    'fields' => array(
+      'timestamp' => array(
+        'description' => t('Primary Key: The Unix timestamp of when the request was made.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'site_key' => array(
+        'description' => t('Primary Key: An MD5 hash that identifies the site from which the request was made.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'pid' => array(
+        'description' => t('Primary Key: The {node}.nid of the requested project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'nid' => array(
+        'description' => t('The {node}.nid of the requested release.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'tid' => array(
+        'description' => t('The {term_data}.tid of the API compatability version of the requested release.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'ip_addr' => array(
+        'description' => t('The IP address of the incoming request (to detect possible abuse).'),
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('timestamp', 'site_key', 'pid'),
+  );
+
+  $schema['project_usage_week_project'] = array(
+    'description' => t('Table used to store weekly usage information by project and {term_data}.tid.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {node}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => t('Primary Key: A Unix timestamp.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'tid' => array(
+        'description' => t('Primary Key: The {term_data}.tid of the API compatability version of the release.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'count' => array(
+        'description' => t('The number of requests.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'timestamp', 'tid'),
+  );
+
+  $schema['project_usage_week_release'] = array(
+    'description' => t('Table used to store weekly usage information by project and {term_data}.tid.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {node}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => t('Primary Key: A Unix timestamp.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'count' => array(
+        'description' => t('The number of requests.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'timestamp'),
+  );
+
+  $schema['cache_project_usage'] = array(
+    'description' => t('Cache table for the (very expensive to generate) project usage display pages.'),
+    'fields' => array(
+      'cid' => array(
+        'description' => t('Primary Key: Unique cache ID.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'data' => array(
+        'description' => t('The rendered HTML for a page of project usage data.'),
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ),
+      'expire' => array(
+        'description' => t('A Unix timestamp indicating when the cache entry should expire, or 0 for never.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'headers' => array(
+        'description' => t('Any custom HTTP headers to be added to cached data.'),
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'serialized' => array(
+        'description' => t('A flag to indicate whether content is serialized (1) or not (0).'),
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array('expire' => array('expire')),
+    'primary key' => array('cid'),
+  );
+
+  return $schema;
 }
 
 /**
- * Add a ip_addr field to {project_usage_raw} and {project_usage_day}.
+ * Add the 'serialized' field to {cache_project_usage}.
  */
-function project_usage_update_5001() {
+function project_usage_update_6000() {
   $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {project_usage_raw} ADD COLUMN ip_addr varchar(128) NOT NULL default '' AFTER tid");
-      $ret[] = update_sql("ALTER TABLE {project_usage_day} ADD COLUMN ip_addr varchar(128) NOT NULL default '' AFTER tid");
-      break;
-  }
+  $spec = array(
+    'type' => 'int',
+    'size' => 'small',
+    'default' => 0,
+    'not null' => TRUE,
+  );
+  db_add_field($ret, 'cache_project_usage', 'serialized', $spec);
   return $ret;
 }
 
-/**
- * Add a cache table {cache_project_usage}.
- */
-function project_usage_update_5002() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {cache_project_usage} (
-        cid varchar(255) NOT NULL default '',
-        data longblob,
-        expire int NOT NULL default '0',
-        created int NOT NULL default '0',
-        headers text,
-        PRIMARY KEY (cid),
-        INDEX expire (expire)
-      ) /*!40100 DEFAULT CHARACTER SET UTF8 */;");
-      break;
-  }
-  return $ret;
-}

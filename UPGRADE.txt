@@ -1,4 +1,4 @@
-$Id: UPGRADE.txt,v 1.4 2007/11/13 01:27:54 dww Exp $
+$Id: UPGRADE.txt,v 1.5 2009/01/12 20:07:19 dww Exp $
 
 ======================================================================
 This file contains specific instructions for upgrading your site's
@@ -7,6 +7,22 @@ this file when you download a new version to see if there are any
 specific things you need to know about a certain upgrade.
 ======================================================================
 
+--------------------------------------------------
+Upgrading to 6.x-1.* (from 5.x)
+--------------------------------------------------
+  Before upgrading to the Drupal 6 version of the project and/or project
+release modules, you *must* first upgrade to the most recent official release
+of the project module.
+
+  The Drupal 6 version of the project module now uses the Views module for
+project browsing.  To use Views, many aspects of how the project browsing
+works had to be changed.
+
+  * Access to the project browsing views is based on a new permission
+    called 'browse project listing'.  You will likely want to give this
+    permission to all roles that currently have one or more of the following
+    permissions:
+      'access projects', 'access own projects', 'administer projects'.
 
 --------------------------------------------------
 Upgrading to 5.x-1.1 (from 5.x-1.0)

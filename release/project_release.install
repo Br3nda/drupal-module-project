@@ -1,137 +1,21 @@
 <?php
-// $Id: project_release.install,v 1.19 2009/01/07 20:48:11 dww Exp $
+// $Id: project_release.install,v 1.20 2009/01/12 20:07:19 dww Exp $
 
 function project_release_install() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      db_query("CREATE TABLE IF NOT EXISTS {project_release_nodes} (
-          nid int unsigned NOT NULL default '0',
-          pid int unsigned NOT NULL default '0',
-          version varchar(255) NOT NULL default '',
-          tag varchar(255) NOT NULL default '',
-          file_path varchar(255) NOT NULL default '',
-          file_date int unsigned NOT NULL default '0',
-          file_hash varchar(32) NOT NULL default '',
-          rebuild tinyint default '0',
-          version_major int default NULL,
-          version_minor int default NULL,
-          version_patch int default NULL,
-          version_extra varchar(255) default NULL,
-          PRIMARY KEY (nid),
-          KEY project_releases_pid (pid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_release_projects} (
-          nid int unsigned NOT NULL default '0',
-          releases tinyint NOT NULL default '1',
-          version_format varchar(255) NOT NULL default '',
-          PRIMARY KEY (nid),
-          KEY project_release_projects_releases (releases)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_release_supported_versions} (
-          nid int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          major int unsigned NOT NULL default '0',
-          supported tinyint unsigned NOT NULL default '1',
-          recommended tinyint unsigned NOT NULL default '0',
-          snapshot tinyint unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, tid, major)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {project_release_package_errors} (
-          nid int unsigned NOT NULL default '0',
-          messages text,
-          PRIMARY KEY (nid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      db_query("CREATE TABLE IF NOT EXISTS {cache_project_release} (
-        cid varchar(255) BINARY NOT NULL default '',
-        data longblob,
-        expire int NOT NULL default '0',
-        created int NOT NULL default '0',
-        headers text,
-        PRIMARY KEY (cid),
-        INDEX expire (expire)
-      ) /*!40100 DEFAULT CHARACTER SET UTF8 */ ");
-      break;
+  // Create the database tables.
+  drupal_install_schema('project_release');
 
-    case 'pgsql':
-      if (!db_table_exists('project_release_nodes')) {
-        db_query("CREATE TABLE {project_release_nodes} (
-            nid int NOT NULL default '0',
-            pid int NOT NULL default '0',
-            version varchar(255) NOT NULL default '',
-            tag varchar(255) NOT NULL default '',
-            file_path varchar(255) NOT NULL default '',
-            file_date int NOT NULL default '0',
-            file_hash varchar(32) NOT NULL default '',
-            rebuild smallint default '0',
-            version_major int default NULL,
-            version_minor int default NULL,
-            version_patch int default NULL,
-            version_extra varchar(255) default NULL,
-            PRIMARY KEY (nid)
-          );");
-        db_query("CREATE INDEX {project_release_nodes}_pid_idx ON {project_release_nodes} (pid)");
-      }
-      if (!db_table_exists('project_release_projects')) {
-        db_query("CREATE TABLE {project_release_projects} (
-            nid int NOT NULL default '0',
-            releases smallint NOT NULL default '1',
-            version_format varchar(255) NOT NULL default '',
-            PRIMARY KEY (nid)
-          );");
-        db_query("CREATE INDEX {project_release_projects}_releases_idx ON {project_release_projects} (releases)");
-      }
-      if (!db_table_exists('project_release_supported_versions')) {
-        db_query("CREATE TABLE {project_release_supported_versions} (
-            nid int NOT NULL default '0',
-            tid int NOT NULL default '0',
-            major int NOT NULL default '0',
-            supported smallint NOT NULL default '1',
-            recommended smallint NOT NULL default '0',
-            snapshot smallint NOT NULL default '0',
-            PRIMARY KEY (nid, tid, major)
-          );");
-      }
-      if (!db_table_exists('project_release_package_errors')) {
-        db_query("CREATE TABLE {project_release_package_errors} (
-          nid int NOT NULL default '0',
-          messages text,
-          PRIMARY KEY (nid)
-        )");
-      }
-      if (!db_table_exists('cache_project_release')) {
-        db_query("CREATE TABLE {cache_project_release} (
-          cid varchar(255) NOT NULL default '',
-          data bytea,
-          expire int NOT NULL default '0',
-          created int NOT NULL default '0',
-          headers text,
-          PRIMARY KEY (cid)
-        )");
-        db_query("CREATE INDEX {cache_project_release}_expire_idx ON {cache_project_release} (expire)");
-      }
-      break;
-  }
-  db_query("UPDATE {system} SET weight = 2 WHERE name = 'project_release'");
-  db_query("DELETE FROM {variable} WHERE name = 'project_browse_releases'");
+  // Make this module heavier than the default module weight.
+  db_query("UPDATE {system} SET weight = %d WHERE name = 'project_release'", 2);
 }
 
 /**
  * Implementation of hook_uninstall().
  */
 function project_release_uninstall() {
-  $tables = array(
-    'project_release_nodes',
-    'project_release_projects',
-    'project_release_default_versions',
-    'cache_project_release',
-  );
-  foreach ($tables as $table) {
-    if (db_table_exists($table)) {
-      db_query("DROP TABLE {$table}");
-    }
-  }
-
+  // Drop database tables.
+  drupal_uninstall_schema('project_release');
+  
   $variables = array(
     'project_release_active_compatibility_tids',
     'project_release_api_vocabulary',
@@ -149,228 +33,268 @@ function project_release_uninstall() {
 }
 
 /**
- * Adds the {project_release_default_versions} table for branch-aware
- * default versions and populates it the best it can.
+ * Implementation of hook_schema().
  */
-function project_release_update_1() {
-  $ret = array();
-
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql(
-        "CREATE TABLE IF NOT EXISTS {project_release_default_versions} (
-          nid int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          major int unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, tid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-    case 'pgsql':
-      if (!db_table_exists('project_release_default_versions')) {
-        $ret[] = update_sql(
-          "CREATE TABLE {project_release_default_versions} (
-            nid int NOT NULL default '0',
-            tid int NOT NULL default '0',
-            major int NOT NULL default '0',
-            PRIMARY KEY (nid, tid)
-          );");
-      }
-      break;
-  }
-
-  // Initially populate based on the existing default release, if that
-  // release is a real release with a valid compatibility taxonomy.
-  $ret[] = update_sql("INSERT INTO {project_release_default_versions} (nid, tid, major) SELECT pp.nid, tn.tid, prn.version_major FROM {project_projects} pp INNER JOIN {project_release_nodes} prn ON pp.version = prn.nid INNER JOIN {term_node} tn ON tn.nid = prn.nid");
-
-  // Now, add in values for any other distinct branches we know about
-  // for each project, for all active compatibility terms.
-  $tids = variable_get('project_release_active_compatibility_tids', '');
-  if (!empty($tids)) {
-    $where_tid = 'AND tn.tid IN (' . implode(',', array_filter($tids)) . ') ';
-  }
-  $ret[] = update_sql("INSERT INTO {project_release_default_versions} (nid, tid, major) SELECT prn.pid, tn.tid, MIN(prn.version_major) FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = prn.pid AND prdv.tid = tn.tid WHERE prn.version_major IS NOT NULL AND prdv.nid IS NULL AND prdv.tid IS NULL $where_tid GROUP BY prn.pid, tn.tid");
-
-  return $ret;
-}
-
-/**
- * Add a new column to {project_release_projects} that determines if
- * the development snapshot table should be shown on project nodes.
- */
-function project_release_update_2() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("ALTER TABLE {project_release_projects} ADD snapshot_table tinyint unsigned default '1' NOT NULL");
-      break;
-    case 'pgsql':
-      db_add_column($ret, 'project_release_projects', 'snapshot_table', 'smallint', array('default' => 1, 'not null' => TRUE));
-      break;
-  }
-  return $ret;
-}
-
-/**
- * Add a cache table {cache_project_release}.
- */
-function project_release_update_5000() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {cache_project_release} (
-        cid varchar(255) BINARY NOT NULL default '',
-        data longblob,
-        expire int NOT NULL default '0',
-        created int NOT NULL default '0',
-        headers text,
-        PRIMARY KEY (cid),
-        INDEX expire (expire)
-      ) /*!40100 DEFAULT CHARACTER SET UTF8 */ ");
-      break;
-    case 'pgsql':
-      if (!db_table_exists('cache_project_release')) {
-        $ret[] = update_sql("CREATE TABLE {cache_project_release} (
-          cid varchar(255) NOT NULL default '',
-          data bytea,
-          expire int NOT NULL default '0',
-          created int NOT NULL default '0',
-          headers text,
-          PRIMARY KEY (cid)
-        )");
-        $ret[] = update_sql("CREATE INDEX {cache_project_release}_expire_idx ON {cache_project_release} (expire)");
-      }
-      break;
-  }
-  return $ret;
-}
-
-/**
- * Remove variables from dead code for serving XML history files, which is
- * now handled by project-release-serve-history.php instead.
- */
-function project_release_update_5001() {
-  $ret = array();
-  $variables = array(
-    'project_release_history_xml',
-    'project_release_history_directory',
+function project_release_schema() {
+  $schema['project_release_nodes'] = array(
+    'description' => t('The base table for project_project nodes.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {node}.nid of the project_release node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pid' => array(
+        'description' => t('The {project_projects}.nid of the project_project node with which the project_release node is associated.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'version' => array(
+        'description' => t('A string containing the full version of a release. The format of this string for a given project is dictated by {project_release_projects}.version_format.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'tag' => array(
+        'description' => t('The name of a CVS branch or tag on which a release is based.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'file_path' => array(
+        'description' => t('The path to the downloadable file for the release.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'file_date' => array(
+        'description' => t('A Unix timestamp indicating when the file was created.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'file_hash' => array(
+        'description' => t('An MD5 hash of the file.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'rebuild' => array(
+        'description' => t('A flag indicating whether or not the file associated with a release should be rebuilt periodically. For official releases this should be 0, for development snapshots it should be 1.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => FALSE,
+        'not null' => FALSE,
+        'default' => 0,
+      ),
+      'version_major' => array(
+        'description' => t('The major version number of a release.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+      'version_minor' => array(
+        'description' => t('The minor version number of a release.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+      'version_patch' => array(
+        'description' => t('The patch level version number of a release.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+      'version_extra' => array(
+        'description' => t('A text string that can be used to provide additional information about a release.  Ex: BETA'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+    ),
+    'primary key' => array('nid'),
+    'indexes' => array(
+      'project_releases_pid' => array('pid')
+    ),
   );
-  foreach ($variables as $variable) {
-    variable_del($variable);
-    $ret[] = array('success' => TRUE, 'query' => "variable_del($variable)");
-  }
-  return $ret;
+
+  $schema['project_release_projects'] = array(
+    'description' => t('Table used to store release specific information about projects.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {project_projects}.nid of the project_project node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'releases' => array(
+        'description' => t('A flag indicating whether or not releases are enabled for a project.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'version_format' => array(
+        'description' => t('A string used to designate the format of the {project_release_nodes}.version field for releases of a project.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('nid'),
+    'indexes' => array(
+      'project_release_projects_releases' => array('releases')
+    ),
+  );
+
+  $schema['project_release_supported_versions'] = array(
+    'description' => t('Table used to store information about which major versions of a project are supported and/or recommended.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {project_projects}.nid of the project_project node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'tid' => array(
+        'description' => t('Primary Key: The {term_data}.tid of the API compatability version associated with a major version of a project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'major' => array(
+        'description' => t('Primary Key: The {project_release_nodes}.version_major of a release node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'supported' => array(
+        'description' => t('A flag to indicate whether or not a given major version of a project is supported.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'recommended' => array(
+        'description' => t('A flag to indicate whether or not a given major version of a project is recommended.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'snapshot' => array(
+        'description' => t('A flag to indicate whether or not snapshot releases of a major version of a project should be shown in the release download table.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'tid', 'major'),
+  );
+
+  $schema['project_release_package_errors'] = array(
+    'description' => t('Table used to store error messages generated by the scripts that package project_release nodes into tarballs.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Primary Key: The {node}.nid of the project_release node.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'messages' => array(
+        'description' => t('The text of any error messages created by the packaging scripts.'),
+        'type' => 'text',
+        'not null' => FALSE,
+      )
+    ),
+    'primary key' => array('nid'),
+  );
+
+  $schema['cache_project_release'] = array(
+    'description' => t('Cache table used to store the project release download tables.'),
+    'fields' => array(
+      'cid' => array(
+        'description' => t('Primary Key: Unique cache ID.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'data' => array(
+        'description' => t('A collection of data to cache.'),
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ),
+      'expire' => array(
+        'description' => t('A Unix timestamp indicating when the cache entry should expire, or 0 for never.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => t('A Unix timestamp indicating when the cache entry was created.'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'headers' => array(
+        'description' => t('Any custom HTTP headers to be added to cached data.'),
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'serialized' => array(
+        'description' => t('A flag to indicate whether content is serialized (1) or not (0).'),
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0
+      ),
+    ),
+    'primary key' => array('cid'),
+    'indexes' => array(
+      'expire' => array('expire')
+    ),
+  );
+  return $schema;
 }
 
 /**
- * Remove a dead variable from before project_release.module existed.
+ * Add the 'serialized' field to the {cache_project_release} table.
  */
-function project_release_update_5002() {
+function project_release_update_6000() {
   $ret = array();
-  variable_del('project_release_unmoderate');
-  $ret[] = array('success' => TRUE, 'query' => "variable_del('project_release_unmoderate')");
+  $spec = array(
+    'type' => 'int',
+    'size' => 'small',
+    'default' => 0,
+    'not null' => TRUE,
+  );
+  db_add_field($ret, 'cache_project_release', 'serialized', $spec);
   return $ret;
 }
 
-/**
- * Add {project_release_package_errors} table to track packaging errors.
- */
-function project_release_update_5003() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {project_release_package_errors} (
-          nid int unsigned NOT NULL default '0',
-          messages text NOT NULL,
-          PRIMARY KEY (nid)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-    case 'pgsql':
-      if (!db_table_exists('project_release_package_errors')) {
-        $ret[] = update_sql("CREATE TABLE {project_release_package_errors} (
-          nid int NOT NULL default '0',
-          messages text,
-          PRIMARY KEY (nid)
-        )");
-      }
-      break;
-  }
-  return $ret;
-}
-
-/**
- * Add the new {project_release_supported_versions} table, transfer data
- * from {project_release_default_versions} and {project_release_projects},
- * and drop the stale table and columns.
- */
-function project_release_update_5200() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql("CREATE TABLE IF NOT EXISTS {project_release_supported_versions} (
-          nid int unsigned NOT NULL default '0',
-          tid int unsigned NOT NULL default '0',
-          major int unsigned NOT NULL default '0',
-          supported tinyint unsigned NOT NULL default '1',
-          recommended tinyint unsigned NOT NULL default '0',
-          snapshot tinyint unsigned NOT NULL default '0',
-          PRIMARY KEY (nid, tid, major)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-    case 'pgsql':
-      if (!db_table_exists('project_release_supported_versions')) {
-        $ret[] = update_sql("CREATE TABLE {project_release_supported_versions} (
-            nid int NOT NULL default '0',
-            tid int NOT NULL default '0',
-            major int NOT NULL default '0',
-            supported smallint NOT NULL default '1',
-            recommended smallint NOT NULL default '0',
-            snapshot smallint NOT NULL default '0',
-            PRIMARY KEY (nid, tid, major)
-          );");
-      }
-      break;
-  }
-  // Now, populate the table with the existing data. First, populate all the
-  // recommended majors versions from {project_release_default_versions}.
-  $ret[] = update_sql("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) SELECT prdv.nid, prdv.tid, prdv.major, 1, 1, prp.snapshot_table FROM {project_release_default_versions} prdv INNER JOIN {project_release_projects} prp ON prdv.nid = prp.nid");
-
-  // Now, fill in all the non-recommended versions. For the migration path, we
-  // assume that if it's not recommended, it's also not supported. Project
-  // maintainers will have to manually visit the new UI if they want to
-  // specify multiple supported versions.
-  $vid = _project_release_get_api_vid();
-  $ret[] = update_sql("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) SELECT DISTINCT prn.pid, tn.tid, prn.version_major, 0, 0, 0 FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {node} n ON prn.nid = n.nid LEFT JOIN {project_release_default_versions} prdv ON prdv.nid = prn.pid AND prdv.tid = tn.tid AND prdv.major = prn.version_major WHERE n.status = 1 AND td.vid = $vid AND prn.version_major IS NOT NULL AND prdv.major IS NULL");
-
-  return $ret;
-}
-
-/**
- * Drop the dead {project_release_default_versions} table and
- * snapshot_table column in {project_release_projects}.
- */
-function project_release_update_5201() {
-  $ret = array();
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      $ret[] = update_sql('DROP TABLE IF EXISTS {project_release_default_versions}');
-      if (db_fetch_object(db_query("SHOW COLUMNS FROM {project_release_projects} LIKE 'snapshot_table'"))) {
-        $ret[] = update_sql('ALTER TABLE {project_release_projects} DROP COLUMN snapshot_table');
-      }
-      break;
-    case 'pgsql':
-      if (db_table_exists('{project_release_default_versions}')) {
-        $ret[] = update_sql('DROP TABLE {project_release_default_versions}');
-      }
-      if (db_result(db_query("SELECT COUNT(pg_attribute.attname) FROM pg_class, pg_attribute WHERE pg_attribute.attrelid = pg_class.oid AND pg_class.relname = '{project_release_projects}' AND attname = 'snapshot_table'"))) {
-        $ret[] = update_sql('ALTER TABLE {project_release_projects} DROP COLUMN snapshot_table');
-      }
-      break;
-  }
-  return $ret;
-}

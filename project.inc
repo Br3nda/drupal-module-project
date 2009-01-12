@@ -1,19 +1,19 @@
 <?php
-// $Id: project.inc,v 1.130 2009/01/11 21:09:23 dww Exp $
+// $Id: project.inc,v 1.131 2009/01/12 20:07:19 dww Exp $
 
 /**
  * Implementation of hook_form().
  */
-function project_project_form($node) {
+function project_project_form($node, $form_state) {
   global $user;
   project_project_set_breadcrumb($node);
 
-  $form['#prefix'] = '<div class="project">';
-
   /* Project taxonomy */
   if (project_use_taxonomy()) {
-    drupal_add_js(drupal_get_path('module', 'project') .'/project.js');
-    $tree = taxonomy_get_tree(_project_get_vid());
+    // Since this form is used relatively infrequently, don't allow the js to be aggregated.
+    drupal_add_js(drupal_get_path('module', 'project') .'/project.js', 'module', 'header', FALSE, TRUE, FALSE);
+    $project_type_vid = _project_get_vid();
+    $tree = taxonomy_get_tree($project_type_vid);
     $top_level = array();
     $options = array();
     foreach ($tree as $i => $term) {
@@ -29,27 +29,51 @@ function project_project_form($node) {
     // saved in this node (i.e. we're editing an existing project) and
     // if so, extract the right default values for our custom form
     // elements...
-    if ($node->taxonomy) {
-      foreach ($node->taxonomy as $tid => $obj) {
-        if ($top_level[$tid]) {
-          $current_top = $tid;
+    $current_top = NULL;
+    $current_options = array();
+
+    if (!empty($node->taxonomy)) {
+      // Depending on whether we're previewing the node or not,
+      // $node->taxonomy will be provided in one of two ways.
+      if (isset($form_state['node_preview'])) {
+        // In node previews, $node->taxonomy is an array of vocabularies,
+        // each of which is an array of selected tids.
+        if (isset($node->taxonomy[$project_type_vid])) {
+          foreach ($node->taxonomy[$project_type_vid] as $key => $value) {
+            if (isset($top_level[$key])) {
+              $current_top = $key;
+            }
+            else {
+              $current_options[$key] = $key;
+            }
+          }
         }
-        else {
-          $current_options[$tid] = $tid;
+      }
+      else {
+        // $node->taxonomy is an array of term objects
+        // when we're not previewing the node.
+        foreach ($node->taxonomy as $tid => $obj) {
+          if (isset($top_level[$tid])) {
+            $current_top = $tid;
+          }
+          else {
+            $current_options[$tid] = $tid;
+          }
         }
       }
     }
+
     $form['project_taxonomy'] = array(
       '#type' => 'fieldset',
       '#weight' => '-30',
       '#title' => t('Project categories'),
       '#collapsible' => TRUE,
+      '#theme' => 'project_project_node_form_taxonomy',
     );
+
     $form['project_taxonomy']['project_type'] = array(
       '#title' => t('Project type'),
       '#type' => 'radios',
-      '#prefix' => '<div class="project-taxonomy-element">',
-      '#suffix' => '</div>',
       '#options' => $top_level,
       '#default_value' => $current_top,
       '#required' => TRUE,
@@ -63,8 +87,6 @@ function project_project_form($node) {
         '#options' => $values,
         '#default_value' => $current_options,
         '#attributes' => array('size' => min($select_size, count($values))),
-        '#prefix' => '<div class="project-taxonomy-element">',
-        '#suffix' => '</div>',
       );
     }
   }
@@ -82,15 +104,7 @@ function project_project_form($node) {
     '#maxlength' => 128,
     '#required' => TRUE,
   );
-  $form['project']['body'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Full description'),
-    '#default_value' => isset($node->body) ? $node->body : NULL,
-    '#cols' => 40,
-    '#rows' => 10,
-    '#required' => TRUE,
-  );
-  $form['project']['format'] = filter_form($node->format);
+  $form['project']['body_field'] = node_body_field($node, t('Full description'), 1);
   $form['project']['uri'] = array(
     '#type' => 'textfield',
     '#title' => t('Short project name'),
@@ -157,7 +171,6 @@ function project_project_form($node) {
     '#description' => t('Link to a live demo.'),
   );
 
-  $form['#suffix'] = '</div>';
   return $form;
 }
 
@@ -168,7 +181,7 @@ function project_project_validate(&$node) {
   }
 
   // Make sure title isn't already in use
-  if (db_num_rows(db_query("SELECT nid FROM {node} WHERE type = '%s' AND status = 1 AND title = '%s' AND nid <> %d", $node->type, $node->title, $node->nid))) {
+  if (db_result(db_query("SELECT COUNT(*) FROM {node} WHERE type = '%s' AND status = %d AND title = '%s' AND nid <> %d", $node->type, 1, $node->title, $node->nid))) {
     form_set_error('title', t('This project name is already in use.'));
   }
 
@@ -193,14 +206,9 @@ function project_project_validate(&$node) {
         }
       }
     }
-    if (in_array(strtolower($node->uri), $reserved_names) || db_num_rows(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
+    if (in_array(strtolower($node->uri), $reserved_names) || db_result(db_query("SELECT COUNT(*) FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
       form_set_error('uri', t('This project name is already in use.'));
     }
-  }
-
-  // We need a description.
-  if (empty($node->body)) {
-    form_set_error('body', t('You must add a project description.'));
   }
 
   // Make sure all URL fields actually contain URLs.
@@ -217,7 +225,7 @@ function project_project_validate(&$node) {
   }
 
   // Validate the project-specific sub-categories, if any...
-  if (project_use_taxonomy() && $node->project_type) {
+  if (project_use_taxonomy() && isset($node->project_type)) {
     $tree = taxonomy_get_tree(_project_get_vid());
     $top_level = array();
     foreach ($tree as $i => $term) {
@@ -237,18 +245,30 @@ function project_project_validate(&$node) {
 }
 
 function project_project_set_breadcrumb($node = NULL, $extra = NULL) {
-  global $_menu;
-
   $breadcrumb = array();
   $breadcrumb[] = l(t('Home'), NULL);
 
-  // Find out if the site has created a menu name for /project and use that
-  $pid = $_menu['path index']['project'];
-  $name = $_menu['items'][$pid]['title'];
-  $breadcrumb[] = l($name, 'project', array('title' => t('Browse projects')));
+  /*
+    @TODO: This is not an optimal way to do this, because it makes the
+    assumption that there is only one menu item that links to /project (or
+    whatever it happens to be called).  Also, it makes the assumption that the
+    URL alias is intact for the project node (in other words, it's path is
+    aliased to 'project/<project short name>' However, since in D6 we no
+    longer have $_menu I'm not sure of a better way to do this.
+  */
+  if (!empty($node->path)) {
+    // Get the path of the project node and remove the name of the project.
+    $path = array();
+    $path = explode('/', $node->path);
+    $path = array_slice($path, 0, count($path) - 1);
+    $path = implode('/', $path);
+    $menu_link = db_fetch_object(db_query("SELECT * FROM {menu_links} ml INNER JOIN {menu_router} m ON m.path = ml.router_path WHERE ml.hidden = %d AND ml.link_path = '%s' ORDER BY ml.weight", 0, $path));
 
-  if (!empty($node) && project_use_taxonomy()) {
-    $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = 0 AND t.vid = %d AND r.nid = %d', 't', 'tid'), _project_get_vid(), $node->nid);
+    $breadcrumb[] = l($menu_link->link_title, 'project', array('title' => t('Browse projects')));
+  }
+
+  if (!empty($node->nid) && project_use_taxonomy()) {
+    $result = db_query(db_rewrite_sql('SELECT t.tid, t.* FROM {term_data} t INNER JOIN {term_hierarchy} h ON t.tid = h.tid INNER JOIN {term_node} r ON t.tid = r.tid WHERE h.parent = %d AND t.vid = %d AND r.vid = %d', 't', 'tid'), 0, _project_get_vid(), $node->vid);
     $term = db_fetch_object($result);
     $breadcrumb[] = l($term->name, 'project/'. $term->name);
   }
@@ -309,10 +329,10 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, null, 'categories=support&states=all', null);
-      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, null, 'categories=support', null);
-      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, null, 'categories=bug', null);
-      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, null, 'categories=feature', null);
+      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=support&states=all', 'fragment' => null));
+      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=support', 'fragment' => null));
+      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=bug', 'fragment' => null));
+      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=feature', 'fragment' => null));
       $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->uri);
     }
     if ($make_issues) {
@@ -333,8 +353,8 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, null, 'states=8,13,14', null);
-      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, null, 'categories=task', null);
+      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
+      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=task', 'fragment' => null));
       $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
     }
 
@@ -362,8 +382,8 @@ function project_project_view($node, $teaser = false, $page = false) {
       if (!empty($values['links'])) {
         $weight = !empty($values['weight']) ? $values['weight'] : 0;
         $node->content[$section] = array(
-          '#value' => theme('item_list', $values['links'], $values['name']),
-          '#weight' => $weight,
+          '#value' => theme('item_list', $values['links'], isset($values['name']) ? $values['name'] : NULL),
+          '#weight' => !empty($values['weight']) ? $values['weight'] : 0,
           '#prefix' => '<div class="project-links-section" id="project-links-section-'. $section .'">',
           '#suffix' => '</div>',
         );
@@ -397,11 +417,12 @@ function project_project_load($node) {
  * @see project_nodeapi().
  */
 function project_project_nodeapi(&$node, $op, $arg) {
+  $language = isset($node->language) ? $node->language : '';
   switch ($op) {
     case 'insert':
       _project_save_taxonomy($node);
       if (module_exists('path')) {
-        path_set_alias("node/$node->nid", "project/$node->uri");
+        path_set_alias("node/$node->nid", "project/$node->uri", NULL, $language);
       }
       break;
 
@@ -409,7 +430,7 @@ function project_project_nodeapi(&$node, $op, $arg) {
       _project_save_taxonomy($node);
       if (module_exists('path')) {
         path_set_alias("node/$node->nid");  // Clear existing alias.
-        path_set_alias("node/$node->nid", "project/$node->uri");
+        path_set_alias("node/$node->nid", "project/$node->uri", NULL, $language);
       }
       break;
   }
@@ -429,9 +450,7 @@ function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
 }
 
-function project_project_access($op, $node) {
-  global $user;
-
+function project_project_access($op, $node, $account) {
   switch ($op) {
     case 'view':
       // Since this function is shared for project_release nodes, we have to
@@ -447,11 +466,11 @@ function project_project_access($op, $node) {
       }
       break;
     case 'create':
-      if ($user->uid && user_access('maintain projects')) {
+      if ($account->uid && user_access('maintain projects')) {
         // Since this CVS access checking is non-standard, we need to
         // special-case uid 1 to always allow everything.
-        if ($user->uid != 1 && module_exists('cvs') && variable_get('cvs_restrict_project_creation', 1)) {
-          return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d AND status = %d", $user->uid, CVS_APPROVED)) ? TRUE : FALSE;
+        if ($account->uid != 1 && module_exists('cvs') && variable_get('cvs_restrict_project_creation', 1)) {
+          return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d AND status = %d", $account->uid, CVS_APPROVED)) ? TRUE : FALSE;
         }
         else {
           return TRUE;
@@ -477,7 +496,7 @@ function project_project_retrieve($key = 0) {
       return node_load(array('nid' => $key, 'type' => 'project_project'));
     }
     else {
-      $nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $key), 0);
+      $nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' LIMIT %d", $key, 1));
       if (!$nid) {
         return new StdClass();
       }
@@ -531,27 +550,29 @@ function _project_save_taxonomy(&$node) {
     // This way, we're sure to clear out things that have been changed.
     $vid = _project_get_vid();
     $result = db_query('SELECT tid FROM {term_data} WHERE vid = %d', $vid);
-    $items = array();
+    $args = array($node->nid, $node->vid);
+    $terms = array();
     while ($item = db_fetch_object($result)) {
-      $items[] = "tid = $item->tid";
+      $terms[] = $item->tid;
     }
-    if ($items) {
-      $sql = 'DELETE FROM {term_node} WHERE nid = %d AND ('. implode(' OR ', $items) . ')';
-      db_query($sql, $node->nid);
+    if (count($terms) > 1) {
+      $sql = 'DELETE FROM {term_node} WHERE nid = %d AND vid = %d AND tid IN ('. db_placeholders($terms) .')';
+      $args = array_merge($args, $terms);
+      db_query($sql, $args);
     }
     $tid = $node->project_type;
-    _project_db_save_taxonomy($node->nid, $tid);
+    _project_db_save_taxonomy($node->nid, $tid, $node->vid);
     $tid_field = 'tid_' . $tid;
     if (isset($node->$tid_field)) {
       foreach ($node->$tid_field as $tid) {
-        _project_db_save_taxonomy($node->nid, $tid);
+        _project_db_save_taxonomy($node->nid, $tid, $node->vid);
       }
     }
   }
 }
 
-function _project_db_save_taxonomy($nid, $tid) {
-  db_query('INSERT INTO {term_node} (nid, tid) VALUES (%d, %d)', $nid, $tid);
+function _project_db_save_taxonomy($nid, $tid, $vid) {
+  db_query('INSERT INTO {term_node} (nid, tid, vid) VALUES (%d, %d, %d)', $nid, $tid, $vid);
 }
 
 /**
@@ -576,3 +597,18 @@ function project_page_link_alter($node, &$all_links) {
     $function($node, $all_links);
   }
 }
+
+/**
+ * Adds the 'project-taxonomy-element' div to the project_type
+ * and term select box on the project_project node form.
+ */
+function theme_project_project_node_form_taxonomy($form) {
+  $output = '';
+  foreach (element_children($form) as $child) {
+    $output .= '<div class="project-taxonomy-element">';
+    $output .= drupal_render($form[$child]);
+    $output .= '</div>';
+  }
+  return $output;
+}
+

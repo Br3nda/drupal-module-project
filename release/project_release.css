@@ -1,17 +1,9 @@
-/* $Id: project_release.css,v 1.7 2009/01/10 00:35:40 dww Exp $ */
+/* $Id: project_release.css,v 1.8 2009/01/12 20:07:19 dww Exp $ */
 
-.project-release .node-form .version-elements fieldset .form-item {
+.node-form fieldset .version-elements .form-item {
   float: left;
   padding-right: 0.8em;
   margin: 0.05em 0.1em;
-}
-
-.project-release .node-form fieldset:after {
-  content: ".";
-  display: block;
-  height: 0;
-  clear: both;
-  visibility: hidden;
 }
 
 /***************************

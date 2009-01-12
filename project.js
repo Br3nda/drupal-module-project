@@ -1,10 +1,9 @@
-/* $Id: project.js,v 1.2 2007/07/13 21:11:08 dww Exp $ */
+/* $Id: project.js,v 1.3 2009/01/12 20:07:19 dww Exp $ */
 
-Drupal.projectAutoAttach = function () {
+Drupal.behaviors.projectAuto = function (context) {
   // The initially selected term, if any.
   var tid;
-  $('div.project-taxonomy-element input')
-    .each(function () {
+  $('div.project-taxonomy-element input:not(.projectAuto-processed)', context).addClass('projectAuto-processed').each(function () {
       if (this.checked) {
         tid = this.value;
       }
@@ -32,9 +31,4 @@ Drupal.projectSetTaxonomy = function (tid) {
       $(this).parents('div.form-item').hide();
     }
   });
-}
-
-// Global killswitch.
-if (Drupal.jsEnabled) {
-  $(document).ready(Drupal.projectAutoAttach);
 }

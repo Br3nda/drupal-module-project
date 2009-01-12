@@ -1,4 +1,4 @@
-/* $Id: project.css,v 1.39 2009/01/10 00:35:40 dww Exp $ */
+/* $Id: project.css,v 1.40 2009/01/12 20:07:19 dww Exp $ */
 
 .project table {
   width: auto;
@@ -40,13 +40,11 @@
   width: 150px;
 }
 
-.project .node-form fieldset {
-  display: block;
-}
-.project .node-form .project-taxonomy-element {
+.node-form .project-taxonomy-element {
   float: left;
   padding-right: 2em;
 }
+
 ul.project-terms {
   padding-left: 1.5em;
 }
