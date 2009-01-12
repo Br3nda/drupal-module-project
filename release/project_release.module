@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.81 2009/01/12 20:07:19 dww Exp $
+// $Id: project_release.module,v 1.82 2009/01/12 20:09:41 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1863,7 +1863,8 @@ function project_release_table($project, $table_type = 'recommended', $release_t
     return $cached->data;
   }
 
-  $selects = $join = $where = $order_by = '';
+  $selects = array();
+  $join = $where = $order_by = '';
   $args = array();
   $tids = project_release_compatibility_list();
   if ($tids) {
