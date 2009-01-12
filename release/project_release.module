@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.82 2009/01/12 20:09:41 dww Exp $
+// $Id: project_release.module,v 1.83 2009/01/12 22:29:35 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -468,6 +468,7 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
 }
 
 function project_release_node_form_validate(&$form, $form_state) {
+  global $user;
   if (!empty($form_state['values']['validate_version'])) {
     if (!isset($form_state['values']['version_major']) && !isset($form_state['values']['version_minor']) &&
         !isset($form_state['values']['version_patch']) &&
