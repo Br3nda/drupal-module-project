@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.13 2009/01/11 22:10:23 dww Exp $
+// $Id: project_release.module,v 1.66.2.14 2009/01/12 20:09:47 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1795,7 +1795,8 @@ function project_release_table($project, $table_type = 'recommended', $release_t
     return $cached->data;
   }
 
-  $select = $join = $where = $order_by = '';
+  $selects = array();
+  $join = $where = $order_by = '';
   $tids = project_release_compatibility_list();
   if ($tids) {
     unset($tids[-1]); // get rid of that one.
