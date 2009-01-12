@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.84 2009/01/12 22:51:11 dww Exp $
+// $Id: project_release.module,v 1.85 2009/01/12 23:40:52 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -23,28 +23,13 @@ function project_release_init() {
 }
 
 /**
- * Menu loader callback.  Load a project_project node if the given
- * nid is a project_project node.
- */
-function project_release_project_load($nid) {
-  if (!is_numeric($nid)) {
-    return FALSE;
-  }
-  $node = node_load($nid);
-  if (!isset($node->type) || $node->type != 'project_project') {
-    return FALSE;
-  }
-  return $node;
-}
-
-/**
  * Implementation of hook_menu()
  * @ingroup project_release_core
  */
 function project_release_menu() {
   $items = array();
 
-  $items['node/%project_release_project/edit/releases'] = array(
+  $items['node/%project_node/edit/releases'] = array(
     'title' => 'Releases',
     'page callback' => 'project_release_project_edit_releases',
     'page arguments' => array(1),

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.327 2009/01/12 23:19:44 dww Exp $
+// $Id: project.module,v 1.328 2009/01/12 23:40:52 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -417,12 +417,9 @@ function project_menu() {
 }
 
 /**
- * Menu loader callback.  Load a project_project node if the given
- * nid is a project_project node and if the user has permission to edit
- * the project and if either the project_issue or project_release module
- * exists.
+ * Menu loader callback to load a project node.
  */
-function project_edit_project_load($nid) {
+function project_node_load($nid) {
   if (!is_numeric($nid)) {
     return FALSE;
   }
@@ -430,10 +427,21 @@ function project_edit_project_load($nid) {
   if (!isset($node->type) || $node->type != 'project_project') {
     return FALSE;
   }
+  return $node;
+}
+
+/**
+ * Menu loader callback to load a project node if the edit tab needs subtabs.
+ *
+ * Load a project_project node if the given nid is a project_project node and
+ * if the user has permission to edit the project and if either the
+ * project_issue or project_release module exists.
+ */
+function project_edit_project_load($nid) {
   if (!module_exists('project_issue') && !module_exists('project_release')) {
     return FALSE;
   }
-  return $node;
+  return project_node_load($nid);
 }
 
 function project_check_admin_access($project, $cvs_access = NULL) {
