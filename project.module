@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.325 2009/01/12 20:07:19 dww Exp $
+// $Id: project.module,v 1.326 2009/01/12 20:34:06 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -736,6 +736,16 @@ function project_quick_navigate_form_submit($form, &$form_state) {
   drupal_goto($form_state['values']['project_goto']);
 }
 
+/**
+ * Implementation of hook_views_api().
+ */
+function project_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'project') .'/views',
+  );
+}
+
 // Themables
 
 /**
@@ -762,6 +772,13 @@ function project_theme() {
     ),
     'project_project_node_form_taxonomy' => array(
       'file' => 'project.inc',
+      'arguments' => array(
+        'form' => NULL,
+      ),
+    ),
+    'project_views_project_sort_method_options_form' => array(
+      'file' => 'theme.inc',
+      'path' => drupal_get_path('module', 'project') .'/views/theme',
       'arguments' => array(
         'form' => NULL,
       ),
