@@ -1,8 +1,9 @@
-; $Id: project_release.info,v 1.4 2009/01/12 20:07:19 dww Exp $
+; $Id: project_release.info,v 1.5 2009/01/12 22:24:03 dww Exp $
 name = Project releases
 description = Provides a release node type to represent releases of projects.
 package = Project
 dependencies[] = project
 dependencies[] = taxonomy
+dependencies[] = upload
 dependencies[] = views
 core = 6.x
