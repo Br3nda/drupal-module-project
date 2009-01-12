@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.131 2009/01/12 20:07:19 dww Exp $
+// $Id: project.inc,v 1.132 2009/01/12 20:14:53 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -329,10 +329,10 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=support&states=all', 'fragment' => null));
-      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=support', 'fragment' => null));
-      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=bug', 'fragment' => null));
-      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=feature', 'fragment' => null));
+      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, array('query' => 'categories=support&states=all'));
+      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, array('query' => 'categories=support'));
+      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, array('query' => 'categories=bug'));
+      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, array('query' => 'categories=feature'));
       $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->uri);
     }
     if ($make_issues) {
@@ -353,8 +353,8 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
-      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, array('attributes' => null, 'query' => 'categories=task', 'fragment' => null));
+      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, array('query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
+      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, array('query' => 'categories=task'));
       $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
     }
 
