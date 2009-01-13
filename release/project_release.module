@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.88 2009/01/13 17:47:09 dww Exp $
+// $Id: project_release.module,v 1.89 2009/01/13 19:59:29 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -2494,7 +2494,7 @@ function _project_release_taxonomy_help($vid = 0, $vocab_link = TRUE) {
   if (!$vid) {
     $vid = _project_release_get_api_vid();
   }
-  $vocabulary = taxonomy_get_vocabulary($vid);
+  $vocabulary = taxonomy_vocabulary_load($vid);
   $text = '<p>'. t('The Project release module makes special use of the taxonomy (category) system. A special vocabulary, %vocabulary_name, has been created automatically.', array('%vocabulary_name' => $vocabulary->name)) .'</p>';
   $text .= '<p>'. t('To categorize project releases by their compatibility with a version of some outside software (eg. a library or API of some sort), add at least one term to this vocabulary. For example, you might add the following terms: "5.x", "6.x", "7.x".') .'</p>';
   $text .='<p>'. t('For more information, please see !url.', array('!url' => l('http://drupal.org/node/116544', 'http://drupal.org/node/116544'))) .'</p>';
