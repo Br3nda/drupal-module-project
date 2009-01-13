@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.16 2009/01/12 23:54:38 dww Exp $
+// $Id: project_release.module,v 1.66.2.17 2009/01/13 00:03:13 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1343,47 +1343,49 @@ function theme_project_release_form_value($element) {
 
 function theme_project_release_project_edit_form($form) {
   $output = '';
-  $output .= '<h3>'. drupal_render($form['header']) ."</h3>\n";
-  $output .= '<p>'. drupal_render($form['help']) ."</p>\n";
+  if (!empty($form['api'])) {
+    $output .= '<h3>'. drupal_render($form['header']) ."</h3>\n";
+    $output .= '<p>'. drupal_render($form['help']) ."</p>\n";
 
-  $header = array(
-    t('Major version'),
-    t('Supported'),
-    t('Recommended'),
-    array(
-      'data' => t('Show snapshot release'),
-      'colspan' => 2,
-    ),
-  );
-
-  foreach (element_children($form['api']) as $tid) {
-    $output .= '<h3>'. $form['api'][$tid]['#api_term_name'] .'</h3>';
-    $rows = array();
-    krsort($form['api'][$tid]['major']);
-    foreach (element_children($form['api'][$tid]['major']) as $major) {
-      $row = array();
-      $row[] = $major;
-      // We want to unset the titles for each element, since we already have
-      // table headers to label each column.
-      unset($form['api'][$tid]['major'][$major]['supported']['#title']);
-      $row[] = drupal_render($form['api'][$tid]['major'][$major]['supported']);
-      unset($form['api'][$tid]['recommended'][$major]['#title']);
-      $row[] = drupal_render($form['api'][$tid]['recommended'][$major]);
-      unset($form['api'][$tid]['major'][$major]['snapshot']['#title']);
-      $row[] = drupal_render($form['api'][$tid]['major'][$major]['snapshot']).
-        drupal_render($form['api'][$tid]['major'][$major]['version_name']);
-      $rows[] = $row;
-    }
-    // Finally, add a row for the currently recommended version.
-    $row = array();
-    $row[] = array(
-      'data' => drupal_render($form['api'][$tid]['currently_recommended']),
-      'colspan' => 5,
+    $header = array(
+      t('Major version'),
+      t('Supported'),
+      t('Recommended'),
+      array(
+        'data' => t('Show snapshot release'),
+        'colspan' => 2,
+      ),
     );
-    $rows[] = $row;
-    $output .= theme('table', $header, $rows);
+
+    foreach (element_children($form['api']) as $tid) {
+      $output .= '<h3>'. $form['api'][$tid]['#api_term_name'] .'</h3>';
+      $rows = array();
+      krsort($form['api'][$tid]['major']);
+      foreach (element_children($form['api'][$tid]['major']) as $major) {
+        $row = array();
+        $row[] = $major;
+        // We want to unset the titles for each element, since we already have
+        // table headers to label each column.
+        unset($form['api'][$tid]['major'][$major]['supported']['#title']);
+        $row[] = drupal_render($form['api'][$tid]['major'][$major]['supported']);
+        unset($form['api'][$tid]['recommended'][$major]['#title']);
+        $row[] = drupal_render($form['api'][$tid]['recommended'][$major]);
+        unset($form['api'][$tid]['major'][$major]['snapshot']['#title']);
+        $row[] = drupal_render($form['api'][$tid]['major'][$major]['snapshot']).
+          drupal_render($form['api'][$tid]['major'][$major]['version_name']);
+        $rows[] = $row;
+      }
+      // Finally, add a row for the currently recommended version.
+      $row = array();
+      $row[] = array(
+        'data' => drupal_render($form['api'][$tid]['currently_recommended']),
+        'colspan' => 5,
+      );
+      $rows[] = $row;
+      $output .= theme('table', $header, $rows);
+    }
+    unset($form['api']);
   }
-  unset($form['api']);
 
   $output .= drupal_render($form['advanced']);
   $output .= drupal_render($form);
