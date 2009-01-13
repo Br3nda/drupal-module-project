@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.87 2009/01/13 00:03:09 dww Exp $
+// $Id: project_release.module,v 1.88 2009/01/13 17:47:09 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -2503,3 +2503,14 @@ function _project_release_taxonomy_help($vid = 0, $vocab_link = TRUE) {
   }
   return $text;
 }
+
+/**
+ * Implementation of hook_views_api().
+ */
+function project_release_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'project_release') .'/views',
+  );
+}
+
