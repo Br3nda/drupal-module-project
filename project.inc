@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.132 2009/01/12 20:14:53 dww Exp $
+// $Id: project.inc,v 1.133 2009/01/13 00:04:27 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -399,7 +399,7 @@ function project_project_view($node, $teaser = false, $page = false) {
     // We only want to add a clearing <br> after the final section if that
     // section didn't already add a clear for itself (e.g. the heaviest
     // section might already clear from hook_project_page_link_alter()).
-    if (empty($all_links[$last_section]['clear'])) {
+    if (empty($all_links[$last_section]['clear']) && !empty($last_section)) {
       $node->content[$last_section]['#suffix'] .= '<br style="clear:both;" />';
     }
   }
