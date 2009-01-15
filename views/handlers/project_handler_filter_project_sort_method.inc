@@ -4,7 +4,7 @@
  * Handler for a filter that allows for different sorting methods to be
  * used for project node listings.
  */
-class project_views_handler_filter_project_sort_method extends views_handler_filter {
+class project_handler_filter_project_sort_method extends views_handler_filter {
   /**
    * Since we're not using the operator option, we have to override parent::init().
    */

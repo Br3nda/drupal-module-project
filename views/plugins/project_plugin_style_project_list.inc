@@ -3,7 +3,7 @@
 /**
  * Style plugin to render a list of projects.
  */
-class project_views_plugin_style_project_list extends views_plugin_style {
+class project_plugin_style_project_list extends views_plugin_style {
   /**
    * Store the project type term being browsed for later usage.
    */

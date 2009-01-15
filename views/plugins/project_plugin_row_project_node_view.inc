@@ -6,7 +6,7 @@
  * Most of the code on this object is in the theme function.
  *
  */
-class project_views_plugin_row_project_node_view extends views_plugin_row {
+class project_plugin_row_project_node_view extends views_plugin_row {
   function option_definition() {
     $options = parent::option_definition();
 

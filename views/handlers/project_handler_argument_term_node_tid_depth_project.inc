@@ -6,7 +6,7 @@
  * @TODO:  more phpdoc.
  *
  */
-class project_views_handler_argument_term_node_tid_depth_project extends views_handler_argument_term_node_tid {
+class project_handler_argument_term_node_tid_depth_project extends views_handler_argument_term_node_tid {
   function summary_query() {
     $field = $this->table . '.' . $this->field;
     $join = $this->get_join();

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.views.inc,v 1.1 2009/01/12 20:34:06 dww Exp $
+// $Id: project.views.inc,v 1.2 2009/01/15 06:45:33 dww Exp $
 
 
 /**
@@ -202,7 +202,7 @@ function project_views_data_alter(&$data) {
     'help' => t('This argument produces a summary with the option to exclude top level terms.'),
     'real field' => 'tid',
     'argument' => array(
-      'handler' => 'project_views_handler_argument_term_node_tid_depth_project',
+      'handler' => 'project_handler_argument_term_node_tid_depth_project',
       'name table' => 'term_data',
       'name field' => 'name',
       'empty name field' => t('Uncategorized'),
@@ -217,7 +217,7 @@ function project_views_data_alter(&$data) {
     'help' => t('Limit the results to project type terms that are either parents or children, or both.'),
     'filter' => array(
       'field' => 'vid',
-      'handler' => 'project_views_handler_filter_project_type_vid',
+      'handler' => 'project_handler_filter_project_type_vid',
     ),
   );
 
@@ -229,11 +229,11 @@ function project_views_data_alter(&$data) {
     'field' => array(
       'title' => t('Project type terms'),
       'help' => t('The project type terms associated with a node.'),
-      'handler' => 'project_views_handler_field_term_node_project_type_tid',
+      'handler' => 'project_handler_field_term_node_project_type_tid',
     ),
     'filter' => array(
       'help' => t('Filter by the project type term.'),
-      'handler' => 'project_views_handler_filter_term_node_project_type_tid',
+      'handler' => 'project_handler_filter_term_node_project_type_tid',
       'hierarchy table' => 'term_hierarchy',
       'numeric' => TRUE,
     ),
@@ -246,7 +246,7 @@ function project_views_data_alter(&$data) {
     'title' => t('Sort method'),
     'help' => t('This is a filter that provides a sort method select box that can be exposed to the user.'),
     'filter' => array(
-      'handler' => 'project_views_handler_filter_project_sort_method',
+      'handler' => 'project_handler_filter_project_sort_method',
     ),
   );
 }
@@ -260,22 +260,22 @@ function project_views_handlers() {
       'path' => drupal_get_path('module', 'project') .'/views/handlers',
     ),
     'handlers' => array(
-      'project_views_handler_argument_term_node_tid_depth_project' => array(
+      'project_handler_argument_term_node_tid_depth_project' => array(
         'parent' => 'views_handler_argument_term_node_tid',
       ),
-      'project_views_handler_field_term_node_project_type_tid' => array(
+      'project_handler_field_term_node_project_type_tid' => array(
         'parent' => 'views_handler_field_term_node_tid',
       ),
-      'project_views_handler_filter_project_sort_method' => array(
+      'project_handler_filter_project_sort_method' => array(
         'parent' => 'views_handler_filter',
       ),
-      'project_views_handler_filter_project_type_vid' => array(
+      'project_handler_filter_project_type_vid' => array(
         'parent' => 'views_handler_filter_in_operator',
       ),
-      'project_views_handler_filter_project_type_vid' => array(
+      'project_handler_filter_project_type_vid' => array(
         'parent' => 'views_handler_filter_in_operator',
       ),
-      'project_views_handler_filter_term_node_project_type_tid' => array(
+      'project_handler_filter_term_node_project_type_tid' => array(
         'parent' => 'views_handler_filter_term_node_tid',
       ),
     ),
@@ -293,7 +293,7 @@ function project_views_plugins() {
       'project_list' => array(
         'title' => t('Project list'),
         'help' => t('Displays a list of project rows with additional project related information.'),
-        'handler' => 'project_views_plugin_style_project_list',
+        'handler' => 'project_plugin_style_project_list',
         'path' => "$project_path/views/plugins",
         'theme' => 'project_views_view_project_list',
         'theme file' => 'theme.inc',
@@ -320,7 +320,7 @@ function project_views_plugins() {
       'project_node' => array(
         'title' => t('Project node'),
         'help' => t('Display the project node with download table.'),
-        'handler' => 'project_views_plugin_row_project_node_view',
+        'handler' => 'project_plugin_row_project_node_view',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
         'theme' => 'project_views_view_row_project_node',
         'theme file' => 'theme.inc',
@@ -332,7 +332,7 @@ function project_views_plugins() {
       'project_fields' => array(   // Project row style for fields.
         'title' => t('Project fields'),
         'help' => t('Displays project fields.'),
-        'handler' => 'project_views_plugin_row_project_fields_view',
+        'handler' => 'project_plugin_row_project_fields_view',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
         'theme' => 'project_views_view_row_project_fields',
         'theme file' => 'theme.inc',
@@ -345,12 +345,12 @@ function project_views_plugins() {
     'argument validator' => array(
       'project_term_top_level' => array(
         'title' => t('Project type: Top level term'),
-        'handler' => 'project_views_plugin_argument_validate_project_term_top_level',
+        'handler' => 'project_plugin_argument_validate_project_term_top_level',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
       ),
       'project_type_term' => array(
         'title' => t('Project type term'),
-        'handler' => 'project_views_plugin_argument_validate_project_type_term',
+        'handler' => 'project_plugin_argument_validate_project_type_term',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
       ),
     ),

@@ -6,7 +6,7 @@
  *
  * Based on the class views_handler_field_term_node_tid in taxonomy.views.inc.
  */
-class project_views_handler_field_term_node_project_type_tid extends views_handler_field_term_node_tid {
+class project_handler_field_term_node_project_type_tid extends views_handler_field_term_node_tid {
   function option_definition() {
     $options = parent::option_definition();
 

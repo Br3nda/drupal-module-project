@@ -6,7 +6,7 @@
  * which must be a top level term.  Only child terms under this top level term will
  * be included in the filter.
  */
-class project_views_handler_filter_term_node_project_type_tid extends views_handler_filter_term_node_tid {
+class project_handler_filter_term_node_project_type_tid extends views_handler_filter_term_node_tid {
   function option_definition() {
     $options = parent::option_definition();
 

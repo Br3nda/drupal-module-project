@@ -5,7 +5,7 @@
  * depending on whether or not the term is a parent term with children, a parent term without children,
  * or a child term.
  */
-class project_views_plugin_argument_validate_project_type_term extends views_plugin_argument_validate {
+class project_plugin_argument_validate_project_type_term extends views_plugin_argument_validate {
   function validate_form(&$form, &$form_state) {
     // Vocabularies
     $form['validate_argument_project_term_vocabulary'] = array(

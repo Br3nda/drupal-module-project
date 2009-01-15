@@ -4,7 +4,7 @@
  * Filter by project type vocabulary.  This filter provides two checkboxes for
  * including top level project type terms and/or child project type terms.
  */
-class project_views_handler_filter_project_type_vid extends views_handler_filter_in_operator {
+class project_handler_filter_project_type_vid extends views_handler_filter_in_operator {
   var $include_form_type = 'checkboxes';
 
   function init(&$view, $options) {
