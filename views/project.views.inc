@@ -1,5 +1,5 @@
 <?php
-// $Id: project.views.inc,v 1.2 2009/01/15 06:45:33 dww Exp $
+// $Id: project.views.inc,v 1.3 2009/01/15 08:05:26 dww Exp $
 
 
 /**
@@ -351,6 +351,11 @@ function project_views_plugins() {
       'project_type_term' => array(
         'title' => t('Project type term'),
         'handler' => 'project_plugin_argument_validate_project_type_term',
+        'path' => drupal_get_path('module', 'project') .'/views/plugins',
+      ),
+      'project_nid' => array(
+        'title' => t('Project node'),
+        'handler' => 'project_plugin_argument_validate_project_nid',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
       ),
     ),
