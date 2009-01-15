@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.133 2009/01/13 00:04:27 dww Exp $
+// $Id: project.inc,v 1.134 2009/01/15 00:29:29 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -92,32 +92,52 @@ function project_project_form($node, $form_state) {
   }
 
   /* Project properties */
-  $form['project'] = array(
+  // We can't put the title and body inside $node->project or core gets
+  // confused (e.g node_body_field() and friends).  So, we put the core node
+  // fields in their own fieldset (for which is #tree is FALSE).
+  $form['project_node'] = array(
     '#type' => 'fieldset',
     '#title' => t('Project information'),
     '#collapsible' => TRUE,
   );
-  $form['project']['title'] = array(
+  $form['project_node']['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Full project name'),
     '#default_value' => isset($node->title) ? $node->title : NULL,
     '#maxlength' => 128,
     '#required' => TRUE,
   );
-  $form['project']['body_field'] = node_body_field($node, t('Full description'), 1);
-  $form['project']['uri'] = array(
+  // This is sort of a hack: We want the 'uri' to be in the $node->project
+  // array during validation and submission of this form, to protect the $node
+  // namespace, even though from a usability standpoint, this field belongs
+  // right up next to the title.  So, we add a 'project' subarray in here
+  // for which #tree is TRUE, and put the 'uri' field in there.  That way, it
+  // still lives inside the "Project information" fieldset as far as the UI is
+  // concerned, but the value shows up in the $node->project array for
+  // validation and submission as far as FAPI is concerned.
+  $form['project_node']['project'] = array('#tree' => TRUE);
+  $form['project_node']['project']['uri'] = array(
     '#type' => 'textfield',
     '#title' => t('Short project name'),
-    '#default_value' => isset($node->uri) ? $node->uri : NULL,
+    '#default_value' => isset($node->project['uri']) ? $node->project['uri'] : NULL,
     '#size' => 40,
     '#maxlength' => 50,
     '#description' => t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.'),
     '#required' => TRUE,
   );
+  $form['project_node']['body_field'] = node_body_field($node, t('Full description'), 1);
+
+  $form['project'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Project resources'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#tree' => TRUE,
+  );
   $form['project']['homepage'] = array(
     '#type' => 'textfield',
     '#title' => t('Homepage'),
-    '#default_value' => isset($node->homepage) ? $node->homepage : NULL,
+    '#default_value' => isset($node->project['homepage']) ? $node->project['homepage'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project homepage.'),
@@ -125,7 +145,7 @@ function project_project_form($node, $form_state) {
   $form['project']['documentation'] = array(
     '#type' => 'textfield',
     '#title' => t('Documentation'),
-    '#default_value' => isset($node->documentation) ? $node->documentation : NULL,
+    '#default_value' => isset($node->project['documentation']) ? $node->project['documentation'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project documentation.'),
@@ -133,7 +153,7 @@ function project_project_form($node, $form_state) {
   $form['project']['license'] = array(
     '#type' => 'textfield',
     '#title' => t('License'),
-    '#default_value' => isset($node->license) ? $node->license : NULL,
+    '#default_value' => isset($node->project['license']) ? $node->project['license'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project license.'),
@@ -141,7 +161,7 @@ function project_project_form($node, $form_state) {
   $form['project']['screenshots'] = array(
     '#type' => 'textfield',
     '#title' => t('Screenshots'),
-    '#default_value' => isset($node->screenshots) ? $node->screenshots : NULL,
+    '#default_value' => isset($node->project['screenshots']) ? $node->project['screenshots'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to project screenshots.'),
@@ -149,7 +169,7 @@ function project_project_form($node, $form_state) {
   $form['project']['changelog'] = array(
     '#type' => 'textfield',
     '#title' => t('Changelog'),
-    '#default_value' => isset($node->changelog) ? $node->changelog : NULL,
+    '#default_value' => isset($node->project['changelog']) ? $node->project['changelog'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to changelog.'),
@@ -157,7 +177,7 @@ function project_project_form($node, $form_state) {
   $form['project']['cvs'] = array(
     '#type' => 'textfield',
     '#title' => t('CVS tree'),
-    '#default_value' => isset($node->cvs) ? $node->cvs : NULL,
+    '#default_value' => isset($node->project['cvs']) ? $node->project['cvs'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to webcvs/viewcvs.'),
@@ -165,7 +185,7 @@ function project_project_form($node, $form_state) {
   $form['project']['demo'] = array(
     '#type' => 'textfield',
     '#title' => t('Demo site'),
-    '#default_value' => isset($node->demo) ? $node->demo : NULL,
+    '#default_value' => isset($node->project['demo']) ? $node->project['demo'] : NULL,
     '#size' => 40,
     '#maxlength' => 255,
     '#description' => t('Link to a live demo.'),
@@ -174,6 +194,14 @@ function project_project_form($node, $form_state) {
   return $form;
 }
 
+/**
+ * Implementation of hook_validate().
+ *
+ * @param $node
+ *   An object containing values from the project node form.  Note that since
+ *   this isn't a fully-loaded $node object, not all values will necessarily
+ *   be in the same location as they would after a node_load().
+ */
 function project_project_validate(&$node) {
   // Bail if user hasn't done a preview yet.
   if (!isset($node->title)) {
@@ -186,13 +214,13 @@ function project_project_validate(&$node) {
   }
 
   // Validate uri.
-  if (empty($node->uri)) {
-    form_set_error('uri', t('A short project name is required.'));
+  if (empty($node->project['uri'])) {
+    form_set_error('project][uri', t('A short project name is required.'));
   }
   else {
     // Make sure uri only includes valid characters
-    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $node->uri)) {
-      form_set_error('uri', t('Please only use alphanumerical characters for the project name.'));
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $node->project['uri'])) {
+      form_set_error('project][uri', t('Please only use alphanumerical characters for the project name.'));
     }
 
     // Make sure uri isn't already in use, or reserved.  Includes all X from
@@ -206,8 +234,8 @@ function project_project_validate(&$node) {
         }
       }
     }
-    if (in_array(strtolower($node->uri), $reserved_names) || db_result(db_query("SELECT COUNT(*) FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->uri, $node->nid))) {
-      form_set_error('uri', t('This project name is already in use.'));
+    if (in_array(strtolower($node->project['uri']), $reserved_names) || db_result(db_query("SELECT COUNT(*) FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->project['uri'], $node->nid))) {
+      form_set_error('project][uri', t('This project name is already in use.'));
     }
   }
 
@@ -219,8 +247,8 @@ function project_project_validate(&$node) {
     'demo' => t('Demo site'),
   );
   foreach ($fields as $uri => $name) {
-    if ($node->$uri && !preg_match('/^(http|https|ftp):\/\//i', $node->$uri)) {
-      form_set_error($uri, t('!field is not a valid URL.', array('!field' => $name)));
+    if ($node->project[$uri] && !preg_match('/^(http|https|ftp):\/\//i', $node->project[$uri])) {
+      form_set_error("project][$uri", t('!field is not a valid URL.', array('!field' => $name)));
     }
   }
 
@@ -311,14 +339,14 @@ function project_project_view($node, $teaser = false, $page = false) {
       'weight' => 4,
     );
     foreach (array('homepage' => t('Home page'), 'documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
-      if (!empty($node->$uri)) {
-        $all_links['resources']['links'][$uri] = l($name, $node->$uri);
+      if (!empty($node->project[$uri])) {
+        $all_links['resources']['links'][$uri] = l($name, $node->project[$uri]);
       }
     }
 
 
     // Flags that indicate what kind of access to project issues to allow.
-    $has_issues = module_exists('project_issue') && !empty($node->issues);
+    $has_issues = module_exists('project_issue') && !empty($node->project_issue['issues']);
     $view_issues = $has_issues && (user_access('access project issues') || user_access('access own project issues') || user_access('administer projects'));
     $make_issues = $has_issues && node_access('create', 'project_issue');
 
@@ -329,19 +357,19 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->uri, array('query' => 'categories=support&states=all'));
-      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->uri, array('query' => 'categories=support'));
-      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->uri, array('query' => 'categories=bug'));
-      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->uri, array('query' => 'categories=feature'));
-      $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->uri);
+      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support&states=all'));
+      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support'));
+      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=bug'));
+      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=feature'));
+      $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->project['uri']);
     }
     if ($make_issues) {
-      $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->uri .'/support');
-      $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->uri .'/bug');
-      $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->uri .'/feature');
+      $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->project['uri'] .'/support');
+      $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->project['uri'] .'/bug');
+      $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->project['uri'] .'/feature');
     }
     elseif ($has_issues) {
-      $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->uri);
+      $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->project['uri']);
     }
     $all_links['support']['links'] = $links;
 
@@ -353,13 +381,13 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->uri, array('query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
-      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->uri, array('query' => 'categories=task'));
-      $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->uri);
+      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->project['uri'], array('query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
+      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=task'));
+      $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->project['uri']);
     }
 
-    if ($node->cvs) {
-      $links['browse_repository'] = l(t('Browse the CVS repository'), $node->cvs);
+    if ($node->project['cvs']) {
+      $links['browse_repository'] = l(t('Browse the CVS repository'), $node->project['cvs']);
     }
 
     if (project_use_cvs($node)) {
@@ -407,8 +435,9 @@ function project_project_view($node, $teaser = false, $page = false) {
 }
 
 function project_project_load($node) {
-  $project = db_fetch_object(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
-
+  $additions = db_fetch_array(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
+  $project = new stdClass;
+  $project->project = $additions;
   return $project;
 }
 
@@ -422,7 +451,7 @@ function project_project_nodeapi(&$node, $op, $arg) {
     case 'insert':
       _project_save_taxonomy($node);
       if (module_exists('path')) {
-        path_set_alias("node/$node->nid", "project/$node->uri", NULL, $language);
+        path_set_alias("node/$node->nid", 'project/'. $node->project['uri'], NULL, $language);
       }
       break;
 
@@ -430,20 +459,20 @@ function project_project_nodeapi(&$node, $op, $arg) {
       _project_save_taxonomy($node);
       if (module_exists('path')) {
         path_set_alias("node/$node->nid");  // Clear existing alias.
-        path_set_alias("node/$node->nid", "project/$node->uri", NULL, $language);
+        path_set_alias("node/$node->nid", 'project/'. $node->project['uri'], NULL, $language);
       }
       break;
   }
 }
 
 function project_project_insert($node) {
-  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, screenshots, documentation, license) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')", $node->nid, $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->screenshots, $node->documentation, $node->license);
-//  project_release_scan_directory($node->uri);
+  db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, screenshots, documentation, license) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')", $node->nid, $node->project['uri'], $node->project['homepage'], $node->project['changelog'], $node->project['cvs'], $node->project['demo'], $node->project['screenshots'], $node->project['documentation'], $node->project['license']);
+//  project_release_scan_directory($node->project['uri']);
 }
 
 function project_project_update($node) {
-  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', screenshots = '%s', documentation = '%s', license = '%s' WHERE nid = %d", $node->uri, $node->homepage, $node->changelog, $node->cvs, $node->demo, $node->screenshots, $node->documentation, $node->license, $node->nid);
-//  project_release_scan_directory($node->uri);
+  db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', screenshots = '%s', documentation = '%s', license = '%s' WHERE nid = %d", $node->project['uri'], $node->project['homepage'], $node->project['changelog'], $node->project['cvs'], $node->project['demo'], $node->project['screenshots'], $node->project['documentation'], $node->project['license'], $node->nid);
+//  project_release_scan_directory($node->project['uri']);
 }
 
 function project_project_delete($node) {
@@ -456,7 +485,7 @@ function project_project_access($op, $node, $account) {
       // Since this function is shared for project_release nodes, we have to
       // be careful what node we pass to project_check_admin_access().
       if ($node->type == 'project_release') {
-        $node = node_load($node->pid);
+        $node = node_load($node->project['pid']);
       }
       if (project_check_admin_access($node)) {
         return TRUE;

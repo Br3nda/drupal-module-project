@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.23 2008/12/19 20:41:59 dww Exp $
+// $Id: project_usage.module,v 1.24 2009/01/15 00:29:29 dww Exp $
 
 /**
  * @file
@@ -370,7 +370,7 @@ function project_usage_project_page($node) {
  */
 function project_usage_release_page($node) {
   drupal_add_css(drupal_get_path('module', 'project_usage') .'/project_usage.css');
-  $project = node_load($node->pid);
+  $project = node_load($node->project_release['pid']);
   $breadcrumb = array(
     l(t('Usage'), 'project/usage'),
     l($project->title, 'project/usage/'. $project->nid),
@@ -650,10 +650,10 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
  */
 function theme_project_usage_header_links($project, $release = NULL) {
   $links = array();
-  $links[] = l(t('%project_name project page', array('%project_name' => $project->title)), 'project/'. $project->uri, array(), NULL, NULL, FALSE, TRUE);
+  $links[] = l(t('%project_name project page', array('%project_name' => $project->title)), 'project/'. $project->project['uri'], array(), NULL, NULL, FALSE, TRUE);
   if (!empty($release)) {
     $links[] = l(t('%release_name release page', array('%release_name' => $release->title)), 'node/' . $release->nid, array(), NULL, NULL, FALSE, TRUE);
-    $links[] = l(t('All %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->uri, array(), NULL, NULL, FALSE, TRUE);
+    $links[] = l(t('All %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->project['uri'], array(), NULL, NULL, FALSE, TRUE);
   }
   $links[] = l(t('Usage statistics for all projects'), 'project/usage');
   return theme('item_list', $links);
@@ -663,8 +663,8 @@ function theme_project_usage_header_links($project, $release = NULL) {
  * Implementation of hook_project_page_link_alter().
  */
 function project_usage_project_page_link_alter($node, &$links) {
-  if (user_access('view project usage') && $node->releases) {
-    $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/' . $node->uri);
+  if (user_access('view project usage') && $node->project_release['releases']) {
+    $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/'. $node->project['uri']);
   }
 }
 

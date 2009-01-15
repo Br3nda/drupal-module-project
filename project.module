@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.328 2009/01/12 23:40:52 dww Exp $
+// $Id: project.module,v 1.329 2009/01/15 00:29:29 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -885,13 +885,12 @@ function project_use_taxonomy() {
 }
 
 /**
- * Returns whether or not the project uses
- * version control or not
+ * Returns whether or not the project uses version control or not.
  */
 function project_use_cvs($project) {
   if (module_exists('cvs')) {
     $project = is_numeric($project) ? node_load($project) : $project;
-    return isset($project->cvs_repository) && ($project->cvs_repository != 0);
+    return !empty($project->cvs['repository']);
   }
 }
 

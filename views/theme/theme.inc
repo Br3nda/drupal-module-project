@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.2 2009/01/12 20:43:34 dww Exp $
+// $Id: theme.inc,v 1.3 2009/01/15 00:29:29 dww Exp $
 
 
 /**
@@ -93,11 +93,11 @@ function template_preprocess_project_views_view_row_project_node(&$vars) {
 
   // Link to the project's issue queue.
   if (!empty($options['project_issue_issues_link'])) {
-    if (isset($node->issues)) {
+    if (isset($node->project_issue['issues'])) {
       $vars['project_issue']->issues_link = array(
-          'title' => t('Bugs and feature requests'),
-          'href' => "project/issues/$node->uri",
-        );
+        'title' => t('Bugs and feature requests'),
+        'href' => 'project/issues/'. $node->project['uri'],
+      );
     }
   }
 }

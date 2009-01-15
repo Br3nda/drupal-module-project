@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.89 2009/01/13 19:59:29 dww Exp $
+// $Id: project_release.module,v 1.90 2009/01/15 00:29:29 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -214,7 +214,7 @@ function project_release_access($op, $node, $account) {
       // We can't just use project_project_access() here, since we
       // need to check access to the project itself, not the release
       // node, so we use the helper method and pass the project id.
-      return project_check_admin_access($node->pid);
+      return project_check_admin_access($node->project_release['pid']);
     case 'delete':
       // No one should ever delete a release node, only unpublish it.
       return FALSE;
@@ -244,20 +244,21 @@ function project_release_form($release) {
     // Initialize variables and $release object properties to prevent notices.
     $is_edit = FALSE;
     $admin = NULL;
-    $release->version_major = NULL;
-    $release->version_minor = NULL;
-    $release->version_patch = NULL;
-    $release->version_extra = NULL;
-    $release->tag = '';
-    $release->version = '';
-    $release->file_path = '';
-    $release->file_hash = '';
-    $release->file_date = 0;
-    $release->version_api_tid = NULL;
-    $release->pid = (integer) arg(3);
-    $project = node_load($release->pid);
+    $release->project_release = array();
+    $release->project_release['version_major'] = NULL;
+    $release->project_release['version_minor'] = NULL;
+    $release->project_release['version_patch'] = NULL;
+    $release->project_release['version_extra'] = NULL;
+    $release->project_release['tag'] = '';
+    $release->project_release['version'] = '';
+    $release->project_release['file_path'] = '';
+    $release->project_release['file_hash'] = '';
+    $release->project_release['file_date'] = 0;
+    $release->project_release['version_api_tid'] = NULL;
+    $release->project_release['pid'] = (integer) arg(3);
+    $project = node_load($release->project_release['pid']);
     if (!isset($project) || $project->type != 'project_project') {
-      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->pid)), 'error');
+      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->project_release['pid'])), 'error');
       drupal_goto('node/add/project-release');
     }
     // Make sure this user should have permissions to add releases for
@@ -278,7 +279,7 @@ function project_release_form($release) {
     global $user;
     $admin = user_access('administer projects');
     $is_edit = true;
-    $project = node_load($release->pid);
+    $project = node_load($release->project_release['pid']);
     $breadcrumb[] = l($project->title, 'node/'. $project->nid);
     $breadcrumb[] = l(t('Releases'), 'node/'. $project->nid . '/release');
     project_project_set_breadcrumb($project, $breadcrumb);
@@ -297,11 +298,11 @@ function project_release_form($release) {
     );
   }
   _project_release_form_add_text_element($form['rel_id']['title'], t('Title'), $release->title, $is_edit, $admin, TRUE, 40, 128);
-  _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->version, $is_edit, $admin, TRUE, 20, 255);
+  _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->project_release['version'], $is_edit, $admin, TRUE, 20, 255);
 
   $form['pid'] = array(
     '#type' => 'value',
-    '#value' => $release->pid,
+    '#value' => $release->project_release['pid'],
   );
   $form['version']['num'] = array(
     '#type' => 'fieldset',
@@ -321,7 +322,7 @@ function project_release_form($release) {
     '#title' => t('File information'),
     '#collapsible' => TRUE,
   );
-  if (empty($release->file_path)) {
+  if (empty($release->project_release['file_path'])) {
     $file = file_save_upload('file');
     $form['file']['file'] = array(
       '#title' => t('File'),
@@ -334,14 +335,14 @@ function project_release_form($release) {
   // Add a description to the body field.
   $form['body_field']['body']['#description'] = t('Enter a description of this release, such as a list of the major changes or updates.');
 
-  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->tag, $is_edit, $admin, TRUE, 40, 255);
+  _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $release->project_release['tag'], $is_edit, $admin, TRUE, 40, 255);
   $form['tag']['rebuild'] = array(
     '#type' => 'value',
-    '#value' => empty($release->rebuild) ? 0 : $release->rebuild,
+    '#value' => !empty($release->project_release['rebuild']),
   );
-  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->file_path, $is_edit, $admin, FALSE, 40, 255);
-  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->file_hash, $is_edit, FALSE, FALSE);
-  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->file_date, $is_edit, FALSE, FALSE);
+  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->project_release['file_path'], $is_edit, $admin, FALSE, 40, 255);
+  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->project_release['file_hash'], $is_edit, FALSE, FALSE);
+  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->project_release['file_date'], $is_edit, FALSE, FALSE);
 
   // Add a custom validation function.
   $form['#validate'][] = 'project_release_node_form_validate';
@@ -378,7 +379,7 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
     $form['version']['num'][$var_name] = array(
       '#type' => 'textfield',
       '#title' => $title,
-      '#default_value' => $release->$var_name,
+      '#default_value' => $release->project_release[$var_name],
       '#size' => $size,
       '#maxlength' => $size+10,
       '#attributes' => array('style' => 'width:auto'),
@@ -399,7 +400,7 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
   else {
     $form['version']['num'][$var_name] = array(
       '#type' => 'value',
-      '#value' => $release->$var_name,
+      '#value' => $release->project_release[$var_name],
     );
   }
 }
@@ -535,22 +536,24 @@ function project_release_node_form_validate(&$form, $form_state) {
   // title based on changes to the version elements on an edit, but we
   // have to be careful not to break the fancy N-page form when
   // cvs_form_alter() is involved...
-  if (isset($edit->project->uri)) {
-    $project_name = $edit->project->uri;
+  $project = isset($form_state['values']['project']) ? $form_state['values']['project'] : new stdClass;
+
+  if (isset($project->project['uri'])) {
+    $project_name = $project->project['uri'];
   }
-  elseif (isset($edit->pid)) {
-    $project_name = db_result(db_query("SELECT uri FROM {project_projects} WHERE nid = %d", $edit->pid));
+  elseif (isset($form_state['values']['pid'])) {
+    $project_name = db_result(db_query("SELECT uri FROM {project_projects} WHERE nid = %d", $form_state['values']['pid']));
   }
-  if (isset($edit->title)) {
+  if (isset($form_state['values']['title'])) {
     // TODO: Magic re-setting to "%project_name %version" ??
   }
-  elseif (isset($edit->version) && $edit->version !== '') {
-    form_set_value($form['title'], "$project_name $edit->version", $form_state);
+  elseif (isset($form_state['values']['version']) && $form_state['values']['version'] !== '') {
+    form_set_value($form['title'], $project_name .' '. $form_state['values']['version'], $form_state);
   }
-  elseif (isset($edit->project)) {
-    $version = project_release_get_version((object)$edit, $edit->project);
+  elseif (!empty($project)) {
+    $version = project_release_get_version((object)$form_state['values'], $project);
     form_set_value(array('#parents' => array('version')), $version, $form_state);
-    $title = $edit->project->title;
+    $title = $project->title;
     form_set_value($form['title'], "$title $version", $form_state);
   }
 }
@@ -565,7 +568,7 @@ function project_release_node_form_submit(&$form, $form_state) {
   //}
   //else {
   //  // If there's no upload, save whatever value is already in $node.
-  //  $file_path = $node->file_path;
+  //  $file_path = $node->project_release['file_path'];
   //}
 }
 
@@ -574,16 +577,24 @@ function project_release_node_form_submit(&$form, $form_state) {
  * @ingroup project_release_node
  */
 function project_release_load($node) {
-  $additions = db_fetch_object(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
+  $additions = db_fetch_array(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
   // Add the API term associated with the release.
   $api_vid = _project_release_get_api_vid();
   $api_tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE td.vid = %d AND tn.nid = %d", $api_vid, $node->nid));
-  $additions->version_api_tid = $api_tid;
-  return $additions;
+  $additions['version_api_tid'] = $api_tid;
+  $release = new stdClass;
+  $release->project_release = $additions;
+  return $release;
 }
 
 /**
  * Implementation of hook_insert().
+ *
+ * @param $node
+ *   Object containing form values from the project_release node form.  This
+ *   is NOT a fully loaded $node object, so the release-related values are
+ *   directly in $node, not in the $node->project_release array.
+ *
  * @ingroup project_release_node
  */
 function project_release_insert($node) {
@@ -603,6 +614,12 @@ function project_release_insert($node) {
 
 /**
  * Implementation of hook_update().
+ *
+ * @param $node
+ *   Object containing form values from the project_release node form.  This
+ *   is NOT a fully loaded $node object, so the release-related values are
+ *   directly in $node, not in the $node->project_release array.
+ *
  * @ingroup project_release_node
  */
 function project_release_update($node) {
@@ -620,7 +637,10 @@ function project_release_update($node) {
  * @see db_query
  * @ingroup project_release_internal
  *
- * @param $node Node object to save
+ * @param $node
+ *   Object containing form values from the project_release node form.  This
+ *   is NOT a fully loaded $node object, so the release-related values are
+ *   directly in $node, not in the $node->project_release array.
  * @param $is_new Is this a new release node, or are we updating?
  */
 function project_release_db_save($node, $is_new) {
@@ -643,13 +663,17 @@ function project_release_db_save($node, $is_new) {
   //  $file_path = $node->file_path;
   //}
 
-  $types = array( 'pid' => "%d", 'version' => "'%s'", 'tag' => "'%s'",
+  $types = array('pid' => "%d", 'version' => "'%s'", 'tag' => "'%s'",
     'file_path' => "'%s'", 'file_date' => "%d", 'file_hash' => "'%s'",
     'rebuild' => "%d",
   );
-  $values = array( 'pid' => $node->pid, 'version' => $node->version,
-    'tag' => $node->tag, 'file_path' => $node->file_path,
-    'file_date' => $node->file_date, 'file_hash' => $node->file_hash,
+  $values = array(
+    'pid' => $node->pid,
+    'version' => $node->version,
+    'tag' => $node->tag,
+    'file_path' => $node->file_path,
+    'file_date' => $node->file_date,
+    'file_hash' => $node->file_hash,
     'rebuild' => $node->rebuild,
   );
   $fields = array('version_major', 'version_minor', 'version_patch');
@@ -761,8 +785,8 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  * @ingroup project_release_node
  */
 function project_release_delete($node) {
-  if ($node->file_path) {
-    file_delete(file_create_path($node->file_path));
+  if ($node->project_release['file_path']) {
+    file_delete(file_create_path($node->project_release['file_path']));
   }
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
 }
@@ -778,8 +802,8 @@ function project_release_delete($node) {
  * @ingroup project_release_api
  */
 function project_release_get_version_format($project) {
-  if (!empty($project->version_format)) {
-    return $project->version_format;
+  if (!empty($project->project_release['version_format'])) {
+    return $project->project_release['version_format'];
   }
 
   $db_format = db_result(db_query("SELECT version_format FROM {project_release_projects} WHERE nid = %d", $project->nid));
@@ -812,15 +836,15 @@ function project_release_get_version($release, $project = NULL) {
     $node = $project;
   }
   else {
-    $node->nid = $release->pid;
+    $node->nid = $release->project_release['pid'];
   }
   $variables = array();
   foreach (array('major', 'minor', 'patch', 'extra') as $field) {
     $var = "version_$field";
-    if (isset($release->$var) && $release->$var !== '') {
-      $variables["!$field"] = $release->$var;
-      $variables["%$field"] = '.'. $release->$var;
-      $variables["#$field"] = '-'. $release->$var;
+    if (isset($release->project_release[$var]) && $release->project_release[$var] !== '') {
+      $variables["!$field"] = $release->project_release[$var];
+      $variables["%$field"] = '.'. $release->project_release[$var];
+      $variables["#$field"] = '-'. $release->project_release[$var];
     }
     else {
       $variables["!$field"] = '';
@@ -833,9 +857,10 @@ function project_release_get_version($release, $project = NULL) {
   $variables["#api"] = '';
   $vid = _project_release_get_api_vid();
   if (project_release_get_api_taxonomy()) {
-    if (isset($release->version_api_tid)) {
-      $tid = $release->version_api_tid;
+    if (isset($release->project_release['version_api_tid'])) {
+      $tid = $release->project_release['version_api_tid'];
     }
+    // @TODO: is this right?
     elseif (isset($release->$vid)) {
       $tid = $release->$vid;
     }
@@ -856,7 +881,7 @@ function project_release_get_version($release, $project = NULL) {
  */
 function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   $node = node_prepare($node, $teaser);
-  $project = node_load($node->pid);
+  $project = node_load($node->project_release['pid']);
 
   if ($page) {
     // Breadcrumb navigation
@@ -866,25 +891,25 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   $output = '';
-  if (project_use_cvs($project) && isset($node->tag)) {
-    if (!empty($node->rebuild)) {
-      $output .= t('Nightly development snapshot from CVS branch: @tag', array('@tag' => $node->tag)) .'<br />';
+  if (project_use_cvs($project) && isset($node->project_release['tag'])) {
+    if (!empty($node->project_release['rebuild'])) {
+      $output .= t('Nightly development snapshot from CVS branch: @tag', array('@tag' => $node->project_release['tag'])) .'<br />';
     }
     else {
-      $output .= t('Official release from CVS tag: @tag', array('@tag' => $node->tag)) .'<br />';
+      $output .= t('Official release from CVS tag: @tag', array('@tag' => $node->project_release['tag'])) .'<br />';
     }
   }
 
-  if (!empty($node->file_path)) {
-    $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $node->file_path))) .'</small><br />';
-    $output .= '<small>'. t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->file_path))))) .'</small><br />';
-    $output .= '<small>'. t('md5_file hash: !file_hash', array('!file_hash' => $node->file_hash)) .'</small><br />';
+  if (!empty($node->project_release['file_path'])) {
+    $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $node->project_release['file_path']))) .'</small><br />';
+    $output .= '<small>'. t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->project_release['file_path']))))) .'</small><br />';
+    $output .= '<small>'. t('md5_file hash: !file_hash', array('!file_hash' => $node->project_release['file_hash'])) .'</small><br />';
   }
   if ($node->created) {
     $output .= '<small>'. t('First released: !created', array('!created' => format_date($node->created))) .'</small><br />';
   }
-  if (!empty($node->file_date)  && ($node->file_date != $node->created)) {
-    $output .= '<small>'. t('Last updated: !changed', array('!changed' => format_date($node->file_date))) .'</small><br />';
+  if (!empty($node->project_release['file_date'])  && ($node->project_release['file_date'] != $node->created)) {
+    $output .= '<small>'. t('Last updated: !changed', array('!changed' => format_date($node->project_release['file_date']))) .'</small><br />';
   }
   if (module_exists('project_usage') && user_access('view project usage')) {
     $output .= '<small>'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</small><br />';
@@ -895,7 +920,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   );
 
   // Display packaging errors to admins.
-  if (project_check_admin_access($node->pid)) {
+  if (project_check_admin_access($node->project_release['pid'])) {
     $rows = array();
     $result = db_query('SELECT * FROM {project_release_package_errors} WHERE nid = %d', $node->nid);
     $error = db_fetch_object($result);
@@ -1227,7 +1252,7 @@ function project_release_project_edit_form($form_state, $node) {
     '#type' => 'fieldset',
     '#title' => t('Advanced options'),
     '#collapsible' => TRUE,
-    '#collapsed' => $node->releases,
+    '#collapsed' => $node->project_release['releases'],
     '#weight' => 5,
   );
 
@@ -1236,7 +1261,7 @@ function project_release_project_edit_form($form_state, $node) {
     '#title' => t('Enable releases'),
     '#return_value' => 1,
     '#weight' => -10,
-    '#default_value' => isset($node->releases) ? $node->releases : 1,
+    '#default_value' => isset($node->project_release['releases']) ? $node->project_release['releases'] : 1,
     '#description' => t('Allow releases of this project with specific versions.'),
   );
 
@@ -1244,7 +1269,7 @@ function project_release_project_edit_form($form_state, $node) {
     $form['advanced']['version_format'] = array(
       '#type' => 'textfield',
       '#title' => t('Version format string'),
-      '#default_value' => $node->version_format,
+      '#default_value' => $node->project_release['version_format'],
       '#size' => 50,
       '#maxlength' => 255,
       '#description' => t('Customize the format of the version strings for releases of this project.') .' '. PROJECT_RELEASE_VERSION_FORMAT_HELP .' '. t('If blank, this project will use the site-wide default (currently set to: %default)', array('%default' => variable_get('project_release_default_version_format', PROJECT_RELEASE_DEFAULT_VERSION_FORMAT))),
@@ -1506,15 +1531,15 @@ function project_release_project_edit_form_submit($form, &$form_state) {
 function project_release_alter_release_form(&$form) {
   global $user;
   $node = $form['#node'];
-  $tid = $node->version_api_tid;
+  $tid = $node->project_release['version_api_tid'];
   $vid = _project_release_get_api_vid();
   if (!project_release_get_api_taxonomy() && isset($form['taxonomy'][$vid])) {
     unset($form['taxonomy'][$vid]);
   }
   else {
 /*
-    if (isset($node->pid)) {
-      $project->nid = $node->pid;
+    if (isset($node->project_release['pid'])) {
+      $project->nid = $node->project_release['pid'];
     }
     elseif (arg(1) == 'add' && is_numeric(arg(3))) {
       $project->nid = arg(3);
@@ -1615,11 +1640,11 @@ function project_release_project_nodeapi_load(&$node) {
   if (!empty($project)) {
     $fields = array('releases', 'version_format');
     foreach ($fields as $field) {
-      $node->$field = $project->$field;
+      $node->project_release[$field] = $project->$field;
     }
     $wants_snapshots = db_result(db_query('SELECT tid FROM {project_release_supported_versions} WHERE nid = %d AND snapshot = %d LIMIT %d', $node->nid, 1, 1));
     if (isset($wants_snapshots)) {
-      $node->project_release_show_snapshots = TRUE;
+      $node->project_release['project_release_show_snapshots'] = TRUE;
     }
   }
 }
@@ -1659,8 +1684,8 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
       // Since release nodes can be unpublished, we need to make sure that the
       // recommended branch information is still up to date.
       if (module_exists('taxonomy')) {
-        if (isset($node->version_api_tid)) {
-          $tid = $node->version_api_tid;
+        if (isset($node->project_release['version_api_tid'])) {
+          $tid = $node->project_release['version_api_tid'];
         }
         else {
           $vid = _project_release_get_api_vid();
@@ -1669,7 +1694,7 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
           }
         }
         if (isset($tid)) {
-          project_release_check_supported_versions($node->pid, $tid, $node->version_major, ($op == 'delete' ? TRUE : FALSE));
+          project_release_check_supported_versions($node->project_release['pid'], $tid, $node->project_release['version_major'], ($op == 'delete' ? TRUE : FALSE));
         }
       }
       break;
@@ -1679,14 +1704,14 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
       $node->body = $node->content['release_info']['#value'] . $node->body;
       $node->teaser = $node->content['release_info']['#value'] . $node->teaser;
       // If the release node has a file, include an enclosure attribute for it.
-      if (!empty($node->file_path)) {
-        $file_link = theme('project_release_download_link', $node->file_path, NULL, TRUE);
+      if (!empty($node->project_release['file_path'])) {
+        $file_link = theme('project_release_download_link', $node->project_release['file_path'], NULL, TRUE);
         return array(
           array(
             'key' => 'enclosure',
             'attributes' => array(
               'url' => $file_link['href'],
-              'length' => filesize(file_create_path($node->file_path)),
+              'length' => filesize(file_create_path($node->project_release['file_path'])),
               'type' => 'application/octet-stream',
             )
           )
@@ -1761,12 +1786,12 @@ function project_release_get_current_recommended($project_nid, $api_tid, $recomm
  * Theme the appropriate release download table for a project node.
  */
 function theme_project_release_project_download_table($node) {
-  if (empty($node->releases)) {
+  if (empty($node->project_release['releases'])) {
     return;
   }
   $output = '<h3>'. t('Releases') .'</h3>';
   $output .= project_release_table($node, 'supported', 'official', t('Official releases'));
-  if ($node->project_release_show_snapshots) {
+  if ($node->project_release['project_release_show_snapshots']) {
     $output .= project_release_table($node, 'supported', 'snapshot', t('Development snapshots'));
   }
   return $output;
@@ -1778,7 +1803,7 @@ function theme_project_release_project_download_table($node) {
  * Note:  This is *not* an implementation of hook_link_alter().
  */
 function project_release_project_page_link_alter($node, &$all_links) {
-  if (empty($node->releases)) {
+  if (empty($node->project_release['releases'])) {
     return;
   }
   $all_links['project_release'] = array(
@@ -2009,7 +2034,9 @@ function project_release_table($project, $table_type = 'recommended', $release_t
  * Helper function to return an individual row for the download table.
  *
  * @param $release
- *   The release object queried from the database.
+ *   The release object queried from the database. Since this is NOT a
+ *   fully-loaded $node object, so the release-related fields are not in a
+ *   'project_release' sub-array.
  * @param $recommended
  *   Boolean indicating if this release is the currently recommended one.
  * @param $can_edit
@@ -2104,7 +2131,9 @@ function theme_project_release_download_table_row($release, $recommended = false
  * Return the message text for recommended releases in the download table.
  *
  * @param $release
- *   Object with data about the release.
+ *   The release object queried from the database. Since this is NOT a
+ *   fully-loaded $node object, so the release-related fields are not in a
+ *   'project_release' sub-array.
  * @param $text_type
  *   What kind of text to render.  Can be either 'summary' for the summary
  *   text to include directly on the project node, or 'message' for the text
