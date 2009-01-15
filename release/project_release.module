@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.90 2009/01/15 00:29:29 dww Exp $
+// $Id: project_release.module,v 1.91 2009/01/15 00:39:18 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -941,47 +941,6 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
 }
 
 /*
-function project_release_project_releases($node) {
-  // Breadcrumb navigation
-  $breadcrumb[] = l($node->title, 'node/'. $node->nid);
-  project_project_set_breadcrumb($node, $breadcrumb);
-
-  $output = project_release_list($node);
-
-  drupal_set_title(t('Releases for %project', array('%project' => $node->title)));
-  return $output;
-}
-*/
-
-/**
- * Display a list of releases for a given project
- * @ingroup project_release_api
-  // @TODO:  I believe we can remove this function since this is now
-  // provided by the project_release_by_project default view.
-  // However, we probably need to make sure the breadcrumb is
-  // properly set in that view.
-function project_release_project_releases($op = 'page') {
-  $nid = arg(1);
-  $node = node_load($nid);
-
-  switch ($op) {
-    case 'feed':
-      return project_release_feed($node);
-
-    case 'page':
-    default:
-      // Breadcrumb navigation
-      $breadcrumb[] = l($node->title, 'node/'. $node->nid);
-      project_project_set_breadcrumb($node, $breadcrumb);
-      drupal_set_title(t('Releases for %project', array('%project' => $node->title)));
-      drupal_add_feed(url('node/'. $nid .'/release/feed'), t('RSS - releases for @project_title', array('@project_title' => $node->title)));
-      $output = project_release_list($node);
-      return $output;
-  }
-}
-*/
-
-/*
  @TODO: This function is used by project_issue, so we need to keep it here,
  even though we're now creating the list of releases at node/XXX/release using
  the views module. however, it might be nice if we could replace this function
@@ -1057,44 +1016,6 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
 /**
  * @defgroup project_release_callback Menu callback functions
  */
-
-/**
- * Returns a listing of project release nodes
- * @ingroup project_release_callback
- * @TODO:  I believe we can remove this function since this is now
- * provided by the project_release_by_project default view.
-function project_release_list($project, $main = 0) {
-  if ($releases = project_release_get_releases($project, 1, 'date', 'files')) {
-    $output = '';
-    foreach ($releases as $release) {
-      $output .= node_view($release);
-    }
-  }
-  else {
-    $output = t('There are no published releases for this project.');
-  }
-  return $output;
-}
-*/
-
-/**
- * Prints an RSS feed of project release nodes
- *
- * @TODO: I believe we can remove this function since this is now
- *  provided by the project_release_by_project default view.
- *
-function project_release_feed($project) {
-  $project = node_invoke($project, 'view', FALSE, FALSE);
-  $channel['link'] = url('node/'. $project->nid .'/release', NULL, NULL, TRUE);
-  $channel['title'] = t('Releases for @project_title', array('@project_title' => $project->title));
-  $channel['description'] = $project->body;
-  $order_by = 'n.created';
-  $where = "AND (n.status = 1) AND (r.file_path <> '')";
-  $result = db_query_range(db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $project->nid, 0, variable_get('feed_default_items', 10));
-  node_feed($result, $channel);
-}
-*/
-
 
 /**
  * Returns a listing of all active project release compatibility terms
