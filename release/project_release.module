@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.18 2009/01/16 06:46:27 dww Exp $
+// $Id: project_release.module,v 1.66.2.19 2009/01/16 16:19:39 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -2274,7 +2274,7 @@ function project_release_pick_project_form() {
 
   // Fetch a list of all projects.
   $uris = NULL;
-  $projects = array(t('<none>')) + project_projects_select_options($uris);
+  $projects = array(0 => t('- Select a project -')) + project_projects_select_options($uris);
   if (count($projects) == 1) {
     drupal_set_message(t('You do not have access to any projects.'), 'error');
   }
