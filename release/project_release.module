@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.91 2009/01/15 00:39:18 dww Exp $
+// $Id: project_release.module,v 1.92 2009/01/16 06:46:24 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -18,8 +18,8 @@ function project_release_init() {
   // These constants are defined here since they use t() and the
   // global $locale variable needs to be initialized before calling
   // t() or you suffer a big performance hit.
-  define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t("The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #)."));
-  define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t('Available variables are:') .' %api, %major, %minor, %patch, %extra. '. t("The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
+  define('PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG', t('The version format string can only contain letters, numbers, and the characters . _ and - (in addition to the special characters used for identifying variables: % ! and #).'));
+  define('PROJECT_RELEASE_VERSION_FORMAT_HELP', t("Available variables are: %api, %major, %minor, %patch, %extra. The percent sign ('%') at the front of the variable name indicates that a period ('.') should be inserted as a delimiter before the value of the variable. The '%' can be replaced with a hash mark ('#') to use a hyphen ('-') delimiter, or with an exclaimation point ('!') to have the value printed without a delimiter. Any variable in the format string that has no value will be removed entirely from the final string.") .' '. PROJECT_RELEASE_VERSION_FORMAT_VALID_MSG);
 }
 
 /**
@@ -156,7 +156,7 @@ function project_release_settings_form() {
     '#default_value' => variable_get('project_release_download_base', ''),
     '#size' => 50,
     '#maxlength' => 255,
-    '#description' => t('By default, all download links to releases will use the standard download path for the site. However, if you wish to host the downloads at a different location, you can specify the base of the URL that should be used for download links. For example, if you stored releases in %files_path and you want to have download links pointing to %ftp_url, you would set this to %ftp_setting. Note that if you define this, the value should end with a slash (\'/\').', array('%files_path' => 'files/projects/foo.tar.gz', '%ftp_url' => 'ftp://ftp.example.com/files/projects/foo.tar.gz', '%ftp_setting' => 'ftp://ftp.example.com/')),
+    '#description' => t("By default, all download links to releases will use the standard download path for the site. However, if you wish to host the downloads at a different location, you can specify the base of the URL that should be used for download links. For example, if you stored releases in %files_path and you want to have download links pointing to %ftp_url, you would set this to %ftp_setting. Note that if you define this, the value should end with a slash ('/').", array('%files_path' => 'files/projects/foo.tar.gz', '%ftp_url' => 'ftp://ftp.example.com/files/projects/foo.tar.gz', '%ftp_setting' => 'ftp://ftp.example.com/')),
   );
   return system_settings_form($form);
 }
@@ -169,7 +169,7 @@ function project_release_settings_form_validate($form, &$form_state) {
   $default_tid = $form_state['values']['project_release_overview'];
   if ($default_tid != -1 && !$tids[$default_tid]) {
     $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
-    form_set_error('project_release_overview', t('Project release overview must be one of the active @vocab terms', array('@vocab' => $vocab->name)));
+    form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms.', array('%vocab' => $vocab->name)));
   }
 
   // Make sure the default version format has no bad characters.
@@ -178,7 +178,7 @@ function project_release_settings_form_validate($form, &$form_state) {
   // If set, the project_release_download_base must end with a '/'
   if (!empty($form_state['values']['project_release_download_base'])) {
     if (substr($form_state['values']['project_release_download_base'], -1) != '/') {
-       form_set_error('project_release_download_base', t('The %download_base_setting should end with a slash.', array('%download_base_setting' => t('Download link base URL'))));
+       form_set_error('project_release_download_base', t('The <em>Download link base URL</em> should end with a slash.'));
     }
   }
 }
@@ -462,10 +462,10 @@ function project_release_node_form_validate(&$form, $form_state) {
       form_set_error('version_major', t('You must fill in some version information.'));
       // TODO: find a better form value to mark as the error?
     }
-    foreach (array('version_major' => 'Major version number', 'version_minor' => 'Minor version number') as $field => $name) {
+    foreach (array('version_major' => t('Major version number'), 'version_minor' => t('Minor version number')) as $field => $name) {
       $val = $form_state['values'][$field];
       if (isset($val) && $val !== '' && !is_numeric($val)) {
-        form_set_error($field, t('!name must be a number.', array('!name' => $name)));
+        form_set_error($field, t('%name must be a number.', array('%name' => $name)));
       }
     }
     $val = $form_state['values']['version_patch'];
@@ -1070,11 +1070,14 @@ function project_release_version_filter_form($version = NULL) {
         '#options' => array($default_version => $terms[$default_version]),
         '#disabled' => TRUE,
       );
-      $register = '';
       if (variable_get('user_register', 1)) {
-        $register = ' or '. l(t('register'), 'user/register', array('query' => $destination)) .' ';
+        // Users can register themselves.
+        $form['version_login'] = array('#value' => t('<a href="@login">Login</a> or <a href="@register">register</a> to modify the filter.', array('@login' => url('user/login', array('query' => $destination)), '@register' => url('user/register', array('query' => $destination)))));
       }
-      $form['version_login'] = array('#value' => l(t('Login'), 'user/login', array('query' => $destination)) . $register . t('to modify the filter.'));
+      else {
+        // Only admins can add new users, no public registration.
+        $form['version_login'] = array('#value' => t('<a href="@login">Login</a> to modify the filter.', array('@login' => url('user/login', array('query' => $destination)))));
+      }
     }
     $form['#redirect'] = FALSE;
   }
@@ -1131,7 +1134,7 @@ function project_release_form_alter(&$form, &$form_state, $form_id) {
  * @see project_release_form_alter
  */
 function project_release_alter_project_form(&$form) {
-  $form['project']['uri']['#description'] .= ' '. t("This string is also used to generate the name of releases associated with this project.");
+  $form['project']['uri']['#description'] .= ' '. t('This string is also used to generate the name of releases associated with this project.');
 }
 
 /**

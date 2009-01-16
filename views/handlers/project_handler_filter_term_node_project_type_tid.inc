@@ -74,7 +74,7 @@ class project_handler_filter_term_node_project_type_tid extends views_handler_fi
     $form['associated_argument'] = array(
       '#type' => 'select',
       '#title' => t('Associated argument'),
-      '#description' => t('Select the argument this filter should be associated with.  If you later change your argument(s) or their order, you must come back to these options and confirm that the correct argument is still selected.'),
+      '#description' => t('Select the argument this filter should be associated with. If you later change your argument(s) or their order, you must come back to these options and confirm that the correct argument is still selected.'),
       '#options' => $argument_options,
       '#default_value' => $this->options['associated_argument'],
     );

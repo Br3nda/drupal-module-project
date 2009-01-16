@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_handler_filter_project_release_api_version.inc,v 1.1 2009/01/13 17:47:09 dww Exp $
+// $Id: project_release_handler_filter_project_release_api_version.inc,v 1.2 2009/01/16 06:46:24 dww Exp $
 
 
 /**
@@ -106,7 +106,7 @@ class project_release_handler_filter_project_release_api_version extends views_h
     // Only add a description to the select box if we're building the filter
     // options page, and not the actual exposed filter that the user sees.
     if (empty($form_state['exposed'])) {
-      $form['value']['#description'] = t('Only terms marked as active on the !project_release_settings_link page are displayed above.', array('!project_release_settings_link' => l(t('Project release settings'), 'admin/project/project-release-settings')));
+      $form['value']['#description'] = t('Only terms marked as active on the <a href="@project_release_settings_link">Project release settings</a> page are displayed above.', array('@project_release_settings_link' => url('admin/project/project-release-settings')));
     }
 
     if (empty($form_state['exposed'])) {

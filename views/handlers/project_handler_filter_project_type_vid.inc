@@ -98,13 +98,11 @@ class project_handler_filter_project_type_vid extends views_handler_filter_in_op
     $summary = parent::admin_summary();
     $this->include_options = $this->include_options();
     if (count($this->include) > 0) {
-      $summary .= t('(including');
+      $summary_options = array();
       foreach($this->include as $key => $value) {
-        $summary .= ' ' . $this->include_options[$key] . ',';
+        $summary_options[] = $this->include_options[$key];
       }
-      // Remove the trailing comma.
-      $summary = rtrim($summary, ',');
-      $summary .= t(' terms)');
+      $summary .= t('(including @summary_options terms)', array('@summary_options' => implode(', ', $summary_options)));
     }
     return $summary;
   }

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.views.inc,v 1.3 2009/01/15 08:05:26 dww Exp $
+// $Id: project.views.inc,v 1.4 2009/01/16 06:46:24 dww Exp $
 
 
 /**
@@ -306,7 +306,7 @@ function project_views_plugins() {
       ),
       'collapsible_summary' => array(
         'title' => t('Collapsible'),
-        'help' => t('Displays the summary in a collapsible fieldset'),
+        'help' => t('Displays the summary in a collapsible fieldset.'),
         'handler' => 'views_plugin_style_summary',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
         'theme' => 'project_views_view_collapsible_summary',

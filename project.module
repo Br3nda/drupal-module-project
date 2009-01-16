@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.329 2009/01/15 00:29:29 dww Exp $
+// $Id: project.module,v 1.330 2009/01/16 06:46:23 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -128,7 +128,7 @@ function project_node_info() {
     'project_project' => array(
       'name' => t('Project'),
       'module' => 'project_project',
-      'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.' ),
+      'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.'),
     ),
   );
 }

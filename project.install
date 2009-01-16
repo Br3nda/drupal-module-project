@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.23 2009/01/12 20:07:19 dww Exp $
+// $Id: project.install,v 1.24 2009/01/16 06:46:23 dww Exp $
 
 function project_install() {
   // Create the database tables.
@@ -82,7 +82,7 @@ function project_schema() {
         'default' => '',
       ),
       'screenshots' => array(
-        'description' => t('An external link screenshots of the project.'),
+        'description' => t('An external link to screenshots of the project.'),
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,

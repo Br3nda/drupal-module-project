@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.134 2009/01/15 00:29:29 dww Exp $
+// $Id: project.inc,v 1.135 2009/01/16 06:46:23 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -248,7 +248,7 @@ function project_project_validate(&$node) {
   );
   foreach ($fields as $uri => $name) {
     if ($node->project[$uri] && !preg_match('/^(http|https|ftp):\/\//i', $node->project[$uri])) {
-      form_set_error("project][$uri", t('!field is not a valid URL.', array('!field' => $name)));
+      form_set_error("project][$uri", t('The %field field is not a valid URL.', array('%field' => $name)));
     }
   }
 
@@ -541,7 +541,7 @@ function project_developers($nid = 0) {
   if ($project = node_load($nid)) {
     if (node_access('view', $project)) {
       $output = module_invoke('cvs', 'get_project_contributors', $nid);
-      drupal_set_title(t('Developers for %name', array('%name' => check_plain($project->title))));
+      drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
       project_project_set_breadcrumb($project, TRUE);
       return $output;
     }
@@ -559,7 +559,7 @@ function project_cvs($nid = 0) {
     if (node_access('view', $project)) {
       $_REQUEST['nid'] = $nid;
       $output = module_invoke('cvs', 'show_messages');
-      drupal_set_title(t('CVS messages for %name', array('%name' => check_plain($project->title))));
+      drupal_set_title(t('CVS messages for %name', array('%name' => $project->title)));
       project_project_set_breadcrumb($project, TRUE);
       return $output;
     }

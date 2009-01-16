@@ -84,7 +84,7 @@ class project_handler_filter_project_sort_method extends views_handler_filter {
     $sort_method_options = $this->options['sort_methods'];
     $sorts = $this->view->display_handler->get_option('sorts');
     $form['sort_methods'] = array(
-      '#prefix' => '<div class="form-item description">' . t('Below you will find a list of all available sort criteria.  Enable those criteria you wish to be available for the user to select.  You can change the order these sort criteria will be displayed in the dropdown box by changing the weight.  Changing the weight on this form will not affect the relative order of the sorts.  The value used in the Display name column is the name that will be displayed to the user.'),
+      '#prefix' => '<div class="form-item description">' . t('Below you will find a list of all available sort criteria. Enable those criteria you wish to be available for the user to select. You can change the order these sort criteria will be displayed in the dropdown box by changing the weight. Changing the weight on this form will not affect the relative order of the sorts. The value used in the "Display name" column is the name that will be displayed to the user.'),
       '#theme' => 'project_views_project_sort_method_options_form',
       '#suffix' => '</div>',
       '#tree' => TRUE,
