@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.6.2.17 2008/12/19 20:42:01 dww Exp $
+// $Id: project_usage.module,v 1.6.2.18 2009/01/16 06:46:27 dww Exp $
 
 /**
  * @file
@@ -426,21 +426,21 @@ function project_usage_settings_form() {
     '#title' => t('Daily usage data lifespan'),
     '#default_value' => variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK),
     '#options' => $age_options,
-    '#description' => t("Discard the daily usage data after this amount of time has passed."),
+    '#description' => t('Discard the daily usage data after this amount of time has passed.'),
   );
   $form['project_usage_life_weekly_project'] = array(
     '#type' => 'select',
     '#title' => t('Weekly project data lifespan'),
     '#default_value' => variable_get('project_usage_life_weekly_project', PROJECT_USAGE_YEAR),
     '#options' => $age_options,
-    '#description' => t("Discard the weekly usage for project nodes after this amount of time has passed. "),
+    '#description' => t('Discard the weekly usage for project nodes after this amount of time has passed.'),
   );
   $form['project_usage_life_weekly_release'] = array(
     '#type' => 'select',
     '#title' => t('Weekly release data lifespan'),
     '#default_value' => variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK),
     '#options' => $age_options,
-    '#description' => t("Discard the weekly usage for project nodes after this amount of time has passed. "),
+    '#description' => t('Discard the weekly usage for project nodes after this amount of time has passed.'),
   );
   return system_settings_form($form);
 }

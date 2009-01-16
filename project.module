@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.309.2.13 2009/01/09 15:15:15 dww Exp $
+// $Id: project.module,v 1.309.2.14 2009/01/16 06:46:27 dww Exp $
 
 $path = drupal_get_path('module', 'project');
 if (file_exists("$path/project.inc")) {
@@ -113,7 +113,7 @@ function project_node_info() {
     'project_project' => array(
       'name' => t('Project'),
       'module' => 'project_project',
-      'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.' ),
+      'description' => t('A project is something a group is working on. It can optionally have issue tracking, integration with revision control systems, releases, and so on.'),
     ),
   );
 }
@@ -1103,7 +1103,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
 
 function project_quick_navigate_form() {
   $uris = NULL;
-  $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options($uris, FALSE, 'node/'));
+  $projects = array_merge(array(0 => t('- Select a project -')), project_projects_select_options($uris, FALSE, 'node/'));
   $form = array();
   $form['project_goto'] = array(
     '#type' => 'select',
