@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.330 2009/01/16 06:46:23 dww Exp $
+// $Id: project.module,v 1.331 2009/01/16 16:19:25 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -713,7 +713,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
 
 function project_quick_navigate_form() {
   $uris = NULL;
-  $projects = array_merge(array(0 => t('<select a project>')), project_projects_select_options($uris, FALSE, 'node/'));
+  $projects = array_merge(array(0 => t('- Select a project -')), project_projects_select_options($uris, FALSE, 'node/'));
   $form = array();
   $form['project_goto'] = array(
     '#type' => 'select',
