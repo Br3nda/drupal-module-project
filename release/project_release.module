@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.93 2009/01/16 16:19:25 dww Exp $
+// $Id: project_release.module,v 1.94 2009/01/22 06:19:47 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1203,7 +1203,7 @@ function project_release_project_edit_form($form_state, $node) {
   $form['nid'] = array('#type' => 'value', '#value' => $node->nid);
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Update'),
+    '#value' => t('Save'),
     '#weight' => 45,
   );
 
