@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.332 2009/01/26 15:20:07 dww Exp $
+// $Id: project.module,v 1.333 2009/01/26 15:20:39 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -58,15 +58,19 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
     // Note:  We can get by with using BLOCK_CACHE_PER_ROLE below because
     // block caching is disabled when node access control modules are in use.
     $blocks[0] = array(
-      'info' => t('Project navigation'),
+      'info' => t('Project navigation (drop-down select)'),
       'cache' => BLOCK_CACHE_PER_ROLE,
-      );
+    );
     if (module_exists('search')) {
       $blocks[1] = array(
         'info' => t('Project search'),
         'cache' => BLOCK_CACHE_PER_ROLE,
       );
     }
+    $blocks[2] = array(
+      'info' => t('Project navigation (text field)'),
+      'cache' => BLOCK_CACHE_PER_ROLE,
+    );
     return $blocks;
   }
   else if ($op == 'view') {
@@ -77,6 +81,7 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
           'content' => drupal_get_form('project_quick_navigate_form'),
         );
         break;
+
       case 1:
         if (user_access('search content')) {
           $block = array(
@@ -84,6 +89,12 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
             'content' => drupal_get_form('project_search_block_form', 'project_project'),
           );
         }
+
+      case 2:
+        $block = array(
+          'subject' => t('Project navigation'),
+          'content' => drupal_get_form('project_quick_navigate_title_form'),
+        );
         break;
     }
     return $block;
@@ -713,7 +724,7 @@ function project_projects_select_options(&$project_urls, $issues = TRUE, $key_pr
 
 function project_quick_navigate_form() {
   $uris = NULL;
-  $projects = array_merge(array(0 => t('- Select a project -')), project_projects_select_options($uris, FALSE, 'node/'));
+  $projects = array_merge(array(0 => t('- Select a project -')), project_projects_select_options($uris, FALSE));
   $form = array();
   $form['project_goto'] = array(
     '#type' => 'select',
@@ -721,9 +732,10 @@ function project_quick_navigate_form() {
     '#options' => $projects,
     '#attributes' => array('title' => t('Select a project to view')),
   );
-  $form['submit'] = array(
+  $form['project'] = array(
     '#type' => 'submit',
-    '#value' => t('Go')
+    '#value' => t('View project'),
+    '#submit' => array('project_quick_navigate_project_submit'),
   );
   return $form;
 }
@@ -734,9 +746,46 @@ function project_quick_navigate_form_validate($form, $form_state) {
   }
 }
 
-function project_quick_navigate_form_submit($form, &$form_state) {
-  drupal_goto($form_state['values']['project_goto']);
+function project_quick_navigate_project_submit($form, &$form_state) {
+  $form_state['redirect'] = 'node/'. $form_state['values']['project_goto'];
 }
+ 
+function project_quick_navigate_title_form() {
+  $form = array();
+  $form['project_title'] = array(
+    '#title' => t('Project name'),
+    '#type' => 'textfield',
+    '#size' => 20,
+    '#autocomplete_path' => 'project/autocomplete',
+  );
+  $form['project'] = array(
+    '#type' => 'submit',
+    '#value' => t('View project'),
+    '#validate' => array('project_quick_navigate_title_project_validate'),
+    '#submit' => array('project_quick_navigate_title_project_submit'),
+  );
+  return $form;
+}
+
+function project_quick_navigate_title_project_validate($form, &$form_state) {
+  if (empty($form_state['values']['project_title'])) {
+    form_set_error('project_title', t('You must enter a project to navigate to.'));
+  }
+  else {
+    $nid = db_result(db_query("SELECT nid FROM {node} WHERE title = '%s' AND type = '%s'", $form_state['values']['project_title'], 'project_project'));
+    if (empty($nid)) {
+      form_set_error('project_title', t('The name you entered (%title) is not a valid project.', array('%title' => $form_state['values']['project_title'])));
+    }
+    else {
+      $form_state['nid'] = $nid;
+    }
+  }
+}
+
+function project_quick_navigate_title_project_submit($form, &$form_state) {
+  $form_state['redirect'] = 'node/'. $form_state['nid'];
+}
+ 
 
 /**
  * Implementation of hook_views_api().
