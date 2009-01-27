@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.135 2009/01/16 06:46:23 dww Exp $
+// $Id: project.inc,v 1.136 2009/01/27 14:38:36 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_form().
@@ -367,6 +367,7 @@ function project_project_view($node, $teaser = false, $page = false) {
       $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->project['uri'] .'/support');
       $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->project['uri'] .'/bug');
       $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->project['uri'] .'/feature');
+      $links['subscribe'] = l(t('Subscribe to issues'), 'project/issues/subscribe-mail/'. $node->project['uri'], array('query' => drupal_get_destination()));
     }
     elseif ($has_issues) {
       $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->project['uri']);
