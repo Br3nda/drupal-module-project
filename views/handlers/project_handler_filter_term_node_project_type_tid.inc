@@ -13,6 +13,19 @@ class project_handler_filter_term_node_project_type_tid extends views_handler_fi
     // Make the default exposed filter widget type be a select box.
     $options['type'] = array('default' => 'select');
 
+    $options['expose'] = array(
+      'default' => array(
+        'operator' => 'or',
+        'identifier' => t('type'),
+        'label' => t('Project type'),
+        'optional' => TRUE,
+        'single' => TRUE,
+        'remember' => FALSE,
+        'reduce' => TRUE,
+      ),
+    );
+
+
     // Make this filter be exposed by default.
     $options['exposed'] = array('default' => TRUE);
 
