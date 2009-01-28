@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.333 2009/01/26 15:20:39 dww Exp $
+// $Id: project.module,v 1.334 2009/01/28 16:23:53 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -462,7 +462,7 @@ function project_check_admin_access($project, $cvs_access = NULL) {
   }
 
   $project_obj = is_numeric($project) ? node_load($project) : $project;
-  if (!isset($project_obj) || $project_obj->type != 'project_project') {
+  if (!isset($project_obj) || (isset($project_obj->type) && $project_obj->type != 'project_project')) {
     return FALSE;
   }
 
