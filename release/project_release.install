@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.20 2009/01/12 20:07:19 dww Exp $
+// $Id: project_release.install,v 1.21 2009/01/28 17:20:17 thehunmonkgroup Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -15,7 +15,7 @@ function project_release_install() {
 function project_release_uninstall() {
   // Drop database tables.
   drupal_uninstall_schema('project_release');
-  
+
   $variables = array(
     'project_release_active_compatibility_tids',
     'project_release_api_vocabulary',
@@ -67,27 +67,6 @@ function project_release_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
-      'file_path' => array(
-        'description' => t('The path to the downloadable file for the release.'),
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'file_date' => array(
-        'description' => t('A Unix timestamp indicating when the file was created.'),
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'file_hash' => array(
-        'description' => t('An MD5 hash of the file.'),
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => '',
-      ),
       'rebuild' => array(
         'description' => t('A flag indicating whether or not the file associated with a release should be rebuilt periodically. For official releases this should be 0, for development snapshots it should be 1.'),
         'type' => 'int',
@@ -129,6 +108,35 @@ function project_release_schema() {
     'indexes' => array(
       'project_releases_pid' => array('pid')
     ),
+  );
+
+  $schema['project_release_file'] = array(
+    'description' => t('Stores information about files attached to release nodes.'),
+    'fields' => array(
+      'fid' => array(
+        'description' => t('Foreign Key: {files}.fid.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'nid' => array(
+        'description' => t('Foreign Key: {project_release_nodes}.nid.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'filehash' => array(
+        'description' => t('An MD5 hash of the file.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('fid'),
+    'indexes' => array('nid' => array('nid')),
   );
 
   $schema['project_release_projects'] = array(
@@ -295,6 +303,72 @@ function project_release_update_6000() {
     'not null' => TRUE,
   );
   db_add_field($ret, 'cache_project_release', 'serialized', $spec);
+  return $ret;
+}
+
+/**
+ * Add {project_release_file}.
+ */
+function project_release_update_6001() {
+  $ret = array();
+  $schema = project_release_schema();
+  db_create_table($ret, 'project_release_file', $schema['project_release_file']);
+  return $ret;
+}
+
+/**
+ * Convert release file attachments to use core's file API.
+ */
+function project_release_update_6002() {
+  // This determines how many issue nodes will be processed in each
+  // batch run. A reasonable default has been chosen, but you may
+  // want to tweak depending on your setup.
+  $limit = 100;
+
+  // Multi-part update
+  if (!isset($_SESSION['project_release_update_6002'])) {
+    $_SESSION['project_release_update_6002'] = 0;
+    $_SESSION['project_release_update_6002_max'] = db_result(db_query("SELECT COUNT(prn.nid) FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE prn.file_path <> ''"));
+  }
+
+  // Pull the next batch of files.
+  $files = db_query_range("SELECT prn.*, n.uid FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE prn.file_path <> '' ORDER BY prn.nid", $_SESSION['project_release_update_6002'], $limit);
+
+  // We never stored mime type for release files, so this will have
+  // to do as a default type.
+  $filemime = 'application/octet-stream';
+
+  // Loop through each file.
+  while ($file = db_fetch_object($files)) {
+    // Make sure file is still there.
+    if (file_exists($file->file_path)) {
+      $filename = basename($file->file_path);
+      $filesize = filesize(file_create_path($file->file_path));
+      db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', '%s', %d, %d)", $file->uid, $filename, $file->file_path, $filemime, $filesize, FILE_STATUS_PERMANENT, $file->file_date);
+      $fid = db_last_insert_id('files', 'fid');
+      db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d,'%s')", $fid, $file->nid, $file->file_hash);
+    }
+    $_SESSION['project_release_update_6002']++;
+  }
+
+  if ($_SESSION['project_release_update_6002'] >= $_SESSION['project_release_update_6002_max']) {
+    $count = $_SESSION['project_release_update_6002_max'];
+    unset($_SESSION['project_release_update_6002']);
+    unset($_SESSION['project_release_update_6002_max']);
+    return array(array('success' => TRUE, 'query' => t('Converted release file attachments for @count releases', array('@count' => $count))));
+  }
+  return array('#finished' => $_SESSION['project_release_update_6002'] / $_SESSION['project_release_update_6002_max']);
+
+}
+
+/**
+ * Drop unused fields from {project_release_nodes}.
+ */
+function project_release_update_6003() {
+  $ret = array();
+  db_drop_field($ret, 'project_release_nodes', 'file_path');
+  db_drop_field($ret, 'project_release_nodes', 'file_date');
+  db_drop_field($ret, 'project_release_nodes', 'file_hash');
   return $ret;
 }
 

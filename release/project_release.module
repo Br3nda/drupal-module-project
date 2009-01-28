@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.96 2009/01/28 17:13:56 dww Exp $
+// $Id: project_release.module,v 1.97 2009/01/28 17:20:17 thehunmonkgroup Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -239,7 +239,7 @@ function project_release_node_info() {
  * Implementation of hook_form().
  * @ingroup project_release_node
  */
-function project_release_form($release) {
+function project_release_form($release, &$form_state) {
   if (arg(1) == 'add') {
     // Initialize variables and $release object properties to prevent notices.
     $is_edit = FALSE;
@@ -251,9 +251,7 @@ function project_release_form($release) {
     $release->project_release['version_extra'] = NULL;
     $release->project_release['tag'] = '';
     $release->project_release['version'] = '';
-    $release->project_release['file_path'] = '';
-    $release->project_release['file_hash'] = '';
-    $release->project_release['file_date'] = 0;
+    $release->project_release['files']= array();
     $release->project_release['version_api_tid'] = NULL;
     $release->project_release['pid'] = (integer) arg(3);
     $project = node_load($release->project_release['pid']);
@@ -317,17 +315,37 @@ function project_release_form($release) {
   _project_release_form_add_version_element($form, $release, $modify, $format, 'patch', t('Patch-level'));
   _project_release_form_add_version_element($form, $release, $modify, $format, 'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
 
-  $form['file'] = array(
+  $form['project_release_files'] = array(
     '#type' => 'fieldset',
+    '#tree' => TRUE,
     '#title' => t('File information'),
     '#collapsible' => TRUE,
   );
-  if (empty($release->project_release['file_path'])) {
-    $file = file_save_upload('file');
-    $form['file']['file'] = array(
+
+  if (!empty($release->project_release['files'])) {
+    $files = $release->project_release['files'];
+    foreach ($files as $fid => $file) {
+      $form['project_release_files'][$fid]['file_info'] = array(
+        '#value' => theme('project_release_download_file', $file, FALSE),
+      );
+      if ($admin) {
+        $form['project_release_files'][$fid]['delete'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Delete @filename', array('@filename' => $file->filename)),
+          // TODO: we'll need to rip this out when multiple files lands.
+          '#description' => (isset($files) ? t('In order to add a new file, you must first delete %filename.', array('%filename' => $file->filename)) : ''),
+        );
+      }
+    }
+  }
+
+  // TODO: we'll need to rip out the conditional when multiple files lands.
+  if (!isset($files)) {
+    $form['project_release_files']['file'] = array(
       '#title' => t('File'),
       '#type' => 'file',
-      '#description' => (!empty($file) ? t('A file named %filename has already been uploaded. If you upload another file %filename will be replaced.', array('%filename' => $file->filename)) : t('Choose the file that will be associated with this release.')),
+      // TODO: fix the operator in this tenary.
+      '#description' => (FALSE ? t('A file named %filename has already been uploaded. If you upload another file %filename will be replaced.', array('%filename' => $file->filename)) : t('Choose a file that will be associated with this release.')),
     );
   }
 
@@ -340,13 +358,9 @@ function project_release_form($release) {
     '#type' => 'value',
     '#value' => !empty($release->project_release['rebuild']),
   );
-  _project_release_form_add_text_element($form['file']['file_path'], t('File path'), $release->project_release['file_path'], $is_edit, $admin, FALSE, 40, 255);
-  _project_release_form_add_text_element($form['file']['file_hash'], t('File md5 hash'), $release->project_release['file_hash'], $is_edit, FALSE, FALSE);
-  _project_release_form_add_text_element($form['file']['file_date'], t('File date'), $release->project_release['file_date'], $is_edit, FALSE, FALSE);
 
   // Add a custom validation function.
   $form['#validate'][] = 'project_release_node_form_validate';
-  $form['#submit'][] = 'project_release_node_form_submit';
   return $form;
 }
 
@@ -453,7 +467,7 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
   }
 }
 
-function project_release_node_form_validate(&$form, $form_state) {
+function project_release_node_form_validate(&$form, &$form_state) {
   global $user;
   if (!empty($form_state['values']['validate_version'])) {
     if (!isset($form_state['values']['version_major']) && !isset($form_state['values']['version_minor']) &&
@@ -474,42 +488,19 @@ function project_release_node_form_validate(&$form, $form_state) {
     }
   }
 
-  // @TODO:  Need to add in some validation here.
   $validators = array(
-    
+    'project_release_validate_file_extension' => array(),
   );
-  if ($file = file_save_upload('file', $validators, file_directory_path())) {
-    if (!empty($file)) {
-      // Make sure that the extension on the file is one of the allowed
-      // extensions for release files. Most of this validation code was
-      // modified from the code in file_check_upload().
-      $extensions = variable_get('project_release_file_extensions', PROJECT_RELEASE_FILE_EXTENSIONS);
-      $regex = '/\.('. ereg_replace(' +', '|', preg_quote($extensions)) .')$/i';
-      if (!preg_match($regex, $file->filename)) {
-        form_set_error('file', t('The selected file %name can not be attached to this post, because it is only possible to attach files with the following extensions: %files-allowed.', array('%name' => $file->filename, '%files-allowed' => $extensions)));
-        file_delete($file->filepath);
-      }
-      else {
-        if ($user->uid != 1) {
-          // Here something.php.pps becomes something.php_.pps
-          $file->filename = upload_munge_filename($file->filename, $extensions, 0);
-          $file->description = $file->filename;
-        }
-        // Using $form_values here is an ugly hack, but the caching mechanism
-        // in file_check_upload() causes problems if we can't pass this object
-        // @TODO:  Edit comment, since file_check_upload() doesn't exist.
-        // to the file_save_upload() call in the submit function which actually
-        // saves the file.
-        $form_state['project_release']['release_file'] = $file;
-        $filepath = file_create_path($file->filepath);
-        form_set_value($form['file']['file_path'], $file->filepath, $form_state);
-        form_set_value($form['file']['file_date'], filemtime($filepath), $form_state);
-        form_set_value($form['file']['file_hash'], md5_file($filepath), $form_state);
-      }
-    }
-    else {
-        form_set_error('file', t('There was a problem uploading the specified file.'));
-    }
+
+  // For some reason, with the $form['project_release_files'] element
+  // #tree'd, the uploaded file shows up in 'project_release_files'
+  // and not it's sub-element, so we use that here.
+  if ($file = file_save_upload('project_release_files', $validators, file_directory_path() . '/project')) {
+    // We need the file object and filehash for the submit function,
+    // so pass those into $form_state here.
+    $filepath = file_create_path($file->filepath);
+    $file->filehash = md5_file($filepath);
+    $form_state['project_release']['new_file'] = $file;
   }
 
   if (project_release_get_api_taxonomy()) {
@@ -561,18 +552,40 @@ function project_release_node_form_validate(&$form, $form_state) {
   }
 }
 
-function project_release_node_form_submit(&$form, $form_state) {
-    //// Handle file upload data.
-  //$file_data = new stdClass();
-  //if (isset($form_values['release_file'])) {
-  //  $file_data = file_save_upload($form_values['release_file'], file_directory_path());
-  //  // If a file was uploaded, this is what we need to use.
-  //  $file_path = $file_data->filepath;
-  //}
-  //else {
-  //  // If there's no upload, save whatever value is already in $node.
-  //  $file_path = $node->project_release['file_path'];
-  //}
+function project_release_validate_file_extension($file) {
+  // Make sure that the extension on the file is one of the allowed
+  // extensions for release files. Most of this validation code was
+  // modified from the code in file_check_upload().
+  $extensions = variable_get('project_release_file_extensions', PROJECT_RELEASE_FILE_EXTENSIONS);
+  $regex = '/\.('. ereg_replace(' +', '|', preg_quote($extensions)) .')$/i';
+  if (!preg_match($regex, $file->filename)) {
+    return array(t('It is only possible to attach files with the following extensions: %files-allowed.', array('%files-allowed' => $extensions)));
+  }
+  return array();
+}
+
+function project_release_node_submit(&$form, $form_state) {
+  // Get rid of the file upload item, not needed.
+  unset($form_state['values']['project_release_files']['file']);
+  $existing_files = !empty($form_state['values']['project_release_files']) ? $form_state['values']['project_release_files'] : NULL;
+  $new_file = isset($form_state['project_release']['new_file']) ? $form_state['project_release']['new_file'] : NULL;
+
+  if (isset($existing_files)) {
+    foreach ($existing_files as $fid => $values) {
+      if ($values['delete']) {
+        $file = db_fetch_object(db_query("SELECT * FROM {files} WHERE fid = %d", $fid));
+        project_release_file_delete($file);
+      }
+    }
+  }
+  // Add new files.
+  if (isset($new_file)) {
+    $status_updated = file_set_status($new_file, FILE_STATUS_PERMANENT);
+    if ($status_updated) {
+      $new_file->nid = $form_state['values']['nid'];
+      drupal_write_record('project_release_file', $new_file);
+    }
+  }
 }
 
 /**
@@ -585,6 +598,14 @@ function project_release_load($node) {
   $api_vid = _project_release_get_api_vid();
   $api_tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE td.vid = %d AND tn.nid = %d", $api_vid, $node->nid));
   $additions['version_api_tid'] = $api_tid;
+  // Add in file info.
+  $file_info = db_query("SELECT f.*, prf.filehash FROM {project_release_file} prf INNER JOIN {files} f ON prf.fid = f.fid WHERE prf.nid = %d", $node->nid);
+  $files = array();
+  while ($file = db_fetch_object($file_info)) {
+    $files[$file->fid] = $file;
+  }
+  $additions['files'] = $files;
+
   $release = new stdClass;
   $release->project_release = $additions;
   return $release;
@@ -653,30 +674,13 @@ function project_release_db_save($node, $is_new) {
     unset($node->version_patch);
   }
 
-  // @TODO:  Fix the file handling here--we just need to save the file now.
-  //// Handle file upload data.
-  //$file_data = new stdClass();
-  //if (isset($form_values['release_file'])) {
-  //  $file_data = file_save_upload($form_values['release_file'], file_directory_path());
-  //  // If a file was uploaded, this is what we need to use.
-  //  $file_path = $file_data->filepath;
-  //}
-  //else {
-  //  // If there's no upload, save whatever value is already in $node.
-  //  $file_path = $node->file_path;
-  //}
-
   $types = array('pid' => "%d", 'version' => "'%s'", 'tag' => "'%s'",
-    'file_path' => "'%s'", 'file_date' => "%d", 'file_hash' => "'%s'",
     'rebuild' => "%d",
   );
   $values = array(
     'pid' => $node->pid,
     'version' => $node->version,
     'tag' => $node->tag,
-    'file_path' => $node->file_path,
-    'file_date' => $node->file_date,
-    'file_hash' => $node->file_hash,
     'rebuild' => $node->rebuild,
   );
   $fields = array('version_major', 'version_minor', 'version_patch');
@@ -788,12 +792,25 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  * @ingroup project_release_node
  */
 function project_release_delete($node) {
-  if ($node->project_release['file_path']) {
-    file_delete(file_create_path($node->project_release['file_path']));
+  if (!empty($node->project_release['files'])) {
+    foreach ($node->project_release['files'] as $fid => $file) {
+      project_release_file_delete($file);
+    }
   }
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
 }
 
+/**
+ * Deletes release files.
+ *
+ * @param $file
+ *   The file object to delete.
+ */
+function project_release_file_delete($file) {
+  db_query("DELETE FROM {files} WHERE fid = %d", $file->fid);
+  db_query("DELETE FROM {project_release_file} WHERE fid = %d", $file->fid);
+  file_delete(file_create_path($file->filepath));
+}
 
 /**
  * @defgroup project_release_api Project release functions that other
@@ -902,18 +919,17 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
       $output .= t('Official release from CVS tag: @tag', array('@tag' => $node->project_release['tag'])) .'<br />';
     }
   }
-
-  if (!empty($node->project_release['file_path'])) {
-    $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $node->project_release['file_path']))) .'</small><br />';
-    $output .= '<small>'. t('Size: !size', array('!size' => format_size(filesize(file_create_path($node->project_release['file_path']))))) .'</small><br />';
-    $output .= '<small>'. t('md5_file hash: !file_hash', array('!file_hash' => $node->project_release['file_hash'])) .'</small><br />';
-  }
   if ($node->created) {
     $output .= '<small>'. t('First released: !created', array('!created' => format_date($node->created))) .'</small><br />';
   }
-  if (!empty($node->project_release['file_date'])  && ($node->project_release['file_date'] != $node->created)) {
-    $output .= '<small>'. t('Last updated: !changed', array('!changed' => format_date($node->project_release['file_date']))) .'</small><br />';
+  if (!empty($node->project_release['files'])) {
+    foreach ($node->project_release['files'] as $file) {
+      $output .= '<div class="project-release-download-file">';
+      $output .= theme('project_release_download_file', $file);
+      $output .= '</div>';
+    }
   }
+
   if (module_exists('project_usage') && user_access('view project usage')) {
     $output .= '<small>'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</small><br />';
   }
@@ -941,6 +957,20 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   return $node;
+}
+
+function theme_project_release_download_file($file, $download_link = TRUE) {
+  $output = '';
+  if ($download_link) {
+    $output .= '<small>'. t('Download: !file', array('!file' => theme('project_release_download_link', $file->filepath))) .'</small><br />';
+  }
+  else {
+    $output .= '<small>'. t('File: @filepath', array('@filepath' => $file->filepath)) .'</small><br />';
+  }
+  $output .= '<small>'. t('Size: !size', array('!size' => format_size($file->filesize))) .'</small><br />';
+  $output .= '<small>'. t('md5_file hash: !filehash', array('!filehash' => $file->filehash)) .'</small><br />';
+  $output .= '<small>'. t('Last updated: !changed', array('!changed' => format_date($file->timestamp))) .'</small><br />';
+  return $output;
 }
 
 /*
@@ -984,6 +1014,7 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
     $order_by = 'r.version';
   }
   $where = '';
+  $join = '';
   $args = array($project->nid);
   if (!project_check_admin_access($project)) {
     if (!empty($rids)) {
@@ -998,11 +1029,11 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
       $args[] = 1;
     }
     if ($filter_by == 'files') {
-      $where .= " AND (r.file_path <> '')";
+      $join .= "INNER JOIN {project_release_file} prf ON n.nid = prf.nid";
     }
   }
 
-  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $args);
+  $result = db_query(db_rewrite_sql("SELECT n.nid, r.* FROM {node} n INNER JOIN {project_release_nodes} r $join ON r.nid = n.nid WHERE (r.pid = %d) $where ORDER BY $order_by DESC"), $args);
   $releases = array();
   while ($obj = db_fetch_object($result)) {
     if ($nodes) {
@@ -1514,6 +1545,8 @@ function project_release_alter_release_form(&$form) {
   if (isset($form['taxonomy']) && !element_children($form['taxonomy'])) {
     unset($form['taxonomy']);
   }
+
+  $form['buttons']['submit']['#submit'][] = 'project_release_node_submit';
 }
 
 
@@ -1631,14 +1664,16 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
       $node->body = $node->content['release_info']['#value'] . $node->body;
       $node->teaser = $node->content['release_info']['#value'] . $node->teaser;
       // If the release node has a file, include an enclosure attribute for it.
-      if (!empty($node->project_release['file_path'])) {
-        $file_link = theme('project_release_download_link', $node->project_release['file_path'], NULL, TRUE);
+      if (!empty($node->project_release['files'])) {
+        // RSS will only take the first file.
+        $file = reset($node->project_release['files']);
+        $file_link = theme('project_release_download_link', $file->filepath, NULL, TRUE);
         return array(
           array(
             'key' => 'enclosure',
             'attributes' => array(
               'url' => $file_link['href'],
-              'length' => filesize(file_create_path($node->project_release['file_path'])),
+              'length' => $file->filesize,
               'type' => 'application/octet-stream',
             )
           )
@@ -1695,13 +1730,15 @@ function project_release_get_current_recommended($project_nid, $api_tid, $recomm
   $orderby[] = 'r.version_major DESC';
   $orderby[] = 'r.version_minor DESC';
   $orderby[] = 'r.version_patch DESC';
-  $orderby[] = 'r.file_date DESC';
+  $orderby[] = 'f.timestamp DESC';
   $order_by = 'ORDER BY '. implode(', ', $orderby);
 
   $params[] = 1;
   $result = db_query(db_rewrite_sql(
     "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid $join ".
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
+    "INNER JOIN {project_release_file} prf on n.nid = prf.nid ".
+    "INNER JOIN {files} f ON prf.fid = f.fid $join ".
     "$where $order_by LIMIT %d"), $params);
 
   $release = db_fetch_object($result);
@@ -1871,14 +1908,19 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   $orderby[] = 'r.version_major DESC';
   $orderby[] = 'r.version_minor DESC';
   $orderby[] = 'r.version_patch DESC';
-  $orderby[] = 'r.file_date DESC';
-  
+  $orderby[] = 'f.timestamp DESC';
+
   $order_by = !empty($orderby) ? (' ORDER BY '. implode(', ', $orderby)) : '';
   $select = !empty($selects) ? (implode(', ', $selects) .',') : '';
 
+  // TODO: we MUST rewrite this query when multiple files attachments
+  // per release node lands, as it will return a non-unique result set.
   $result = db_query(db_rewrite_sql(
-    "SELECT n.nid, n.created, $select r.* FROM {node} n ".
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid $join ".
+    "SELECT n.nid, n.created, f.filename, f.filepath, f.timestamp, ".
+    "f.filesize, $select r.* FROM {node} n ".
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
+    "INNER JOIN {project_release_file} prf ON n.nid = prf.nid ".
+    "INNER JOIN {files} f ON prf.fid = f.fid$join ".
     "WHERE (r.pid = %d) AND (n.status = %d) $where $order_by"),
     $args);
 
@@ -1981,8 +2023,8 @@ function theme_project_release_download_table_row($release, $recommended = false
     );
   }
   $links = array();
-  if (!empty($release->file_path)) {
-    $links['project_release_download'] = theme('project_release_download_link', $release->file_path, t('Download'), TRUE);
+  if (!empty($release->filepath)) {
+    $links['project_release_download'] = theme('project_release_download_link', $release->filepath, t('Download'), TRUE);
   }
   $links['project_release_notes'] = array(
     'title' => t('Release notes'),
@@ -2029,14 +2071,14 @@ function theme_project_release_download_table_row($release, $recommended = false
       ),
       array(
         'class' => 'release-date',
-        'data' => !empty($release->file_path) ? format_date($release->file_date, 'custom', 'Y-M-d') : format_date($release->created, 'custom', 'Y-M-d'),
+        'data' => !empty($release->filepath) ? format_date($release->timestamp, 'custom', 'Y-M-d') : format_date($release->created, 'custom', 'Y-M-d'),
       ),
     ),
   );
   if ($print_size) {
     $row['data'][] = array(
       'class' => 'release-size',
-      'data' => !empty($release->file_path) ? format_size(filesize(file_create_path($release->file_path))) : t('n/a'),
+      'data' => !empty($release->filepath) ? format_size($release->filesize) : t('n/a'),
       );
   }
   $row['data'][] = array(
@@ -2201,26 +2243,26 @@ function project_release_exists($version) {
  * function takes the 'project_release_download_base' setting into
  * account, so it should be used everywhere a download link is made.
  *
- * @param $file_path
+ * @param $filepath
  *   The path to the download file, as stored in the database.
  * @param $link_text
  *   The text to use for the download link. If NULL, the basename
- *   of the given $file_path is used.
+ *   of the given $filepath is used.
  * @param $as_array
  *   Should the link be returned as a structured array, or as raw HTML?
  * @return
  *   The link itself, as a structured array.
  */
-function theme_project_release_download_link($file_path, $link_text = NULL, $as_array = FALSE) {
+function theme_project_release_download_link($filepath, $link_text = NULL, $as_array = FALSE) {
   if (empty($link_text)) {
-    $link_text = basename($file_path);
+    $link_text = basename($filepath);
   }
   $download_base = variable_get('project_release_download_base', '');
   if (!empty($download_base)) {
-    $link_path = $download_base . $file_path;
+    $link_path = $download_base . $filepath;
   }
   else {
-    $link_path = file_create_url($file_path);
+    $link_path = file_create_url($filepath);
   }
   if ($as_array) {
     return array(
@@ -2236,14 +2278,14 @@ function theme_project_release_download_link($file_path, $link_text = NULL, $as_
 /**
  * Implementation of hook_file_download().
  *
- * @param $filepath
+ * @param $filename
  *   The name of the file to download.
  * @return
  *   An array of header fields for the download.
  */
 function project_release_file_download($filename) {
   $filepath = file_create_path($filename);
-  $result = db_query("SELECT f.nid FROM {project_release_nodes} f WHERE file_path = '%s'", $filepath);
+  $result = db_query("SELECT prf.nid FROM {project_release_file} prf INNER JOIN {files} f ON prf.fid = f.fid WHERE f.filepath = '%s'", $filepath);
   if ($nid = db_result($result)) {
     $node = node_load($nid);
     if (node_access('view', $node)) {
@@ -2329,9 +2371,15 @@ function project_release_pick_project_form_submit($form, &$form_state) {
  */
 function project_release_theme() {
   return array(
+    'project_release_download_file' => array(
+      'arguments' => array(
+        'file' => NULL,
+        'download_link' => TRUE,
+      ),
+    ),
     'project_release_download_link' => array(
       'arguments' => array(
-        'file_path' => NULL,
+        'filepath' => NULL,
         'link_text' => NULL,
         'as_array' => FALSE,
       ),
@@ -2408,7 +2456,7 @@ function project_release_theme() {
 function theme_project_release_node_form_version_elements($form) {
   $output = '<div class="version-elements">';
   $output .= drupal_render($form);
-  $output .= '</div>';  
+  $output .= '</div>';
   return $output;
 }
 
