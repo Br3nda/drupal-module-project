@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.99 2009/01/29 14:39:49 dww Exp $
+// $Id: project_release.module,v 1.100 2009/01/29 22:43:52 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -571,7 +571,7 @@ function project_release_node_form_validate(&$form, &$form_state) {
 
   // With cvs.module installed, this validation is already handled.
   // We only want to do it here if we're *not* doing the N-page form...
-  if (!project_use_cvs($project_release['pid']) && !isset($form_state['values']['nid'])) {
+  if (!empty($form_state['values']['validate_version']) && !isset($form_state['values']['nid'])) {
     $version = (object) $project_release;
     if (project_release_exists($version)) {
       // TODO: is there a better form element to mark with this error?
