@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.30 2008/10/29 00:19:39 dww Exp $
+// $Id: package-release-nodes.php,v 1.31 2009/01/29 23:04:55 dww Exp $
 
 /**
  * @file
@@ -171,33 +171,41 @@ elseif ($task == 'repair') {
 
 function package_releases($type, $project_id) {
   global $wd_err_msg;
+
+  $rel_node_join = '';
+  $where_args = array();
   if ($type == 'tag') {
-    $where = " AND (prn.rebuild = 0) AND (prn.file_path = '')";
+    $where = " AND (prn.rebuild = %d) AND (prn.file_path = '')";
+    $where_args[] = 0;
     $plural = t('tags');
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
-    $where = " AND (prn.rebuild = 1) AND ((prn.file_path = '') OR (nr.status = 1))";
+    $where = " AND (prn.rebuild = %d) AND ((prn.file_path = '') OR (nr.status = %d))";
+    $where_args[] = 1;
+    $where_args[] = 1;
     $plural = t('branches');
     if (empty($project_id)) {
-      wd_msg(t("Starting to package all snapshot releases."));
+      wd_msg("Starting to package all snapshot releases.");
     }
     else {
-      wd_msg(t("Starting to package snapshot releases for project id: @project_id.", array('@project_id' => $project_id)), l(t('view'), 'node/' . $project_id));
+      wd_msg("Starting to package snapshot releases for project id: @project_id.", array('@project_id' => $project_id), l(t('view'), 'node/' . $project_id));
     }
   }
   else {
-    wd_err(t("ERROR: package_releases() called with unknown type: %type", array('%type' => $type)));
+    wd_err("ERROR: package_releases() called with unknown type: %type", array('%type' => $type));
     return;
   }
   $args = array();
+  $args[] = 1;    // Account for np.status = 1.
+  $args[] = 1;    // Account for prp.releases = 1.
+  $args[] = (int)_project_release_get_api_vid();
   if (!empty($project_id)) {
     $where .= ' AND prn.pid = %d';
-    $args[] = $project_id;
+    $where_args[] = $project_id;
   }
-  $vid = (int)_project_release_get_api_vid();
-
-  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = 1 AND prp.releases = 1 AND td.vid = $vid " . $where . ' ORDER BY pp.uri', $args);
+  $args = $args + $where_args;
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
@@ -241,10 +249,10 @@ function package_releases($type, $project_id) {
   }
   if ($num_built || $type == 'branch') {
     if (!empty($project_id)) {
-      wd_msg(t("Done packaging releases for @uri from !plural: !num_built built, !num_considered considered.", array('@uri' => $uri, '!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered)));
+      wd_msg("Done packaging releases for @uri from !plural: !num_built built, !num_considered considered.", array('@uri' => $uri, '!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
     }
     else {
-      wd_msg(t("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered)));
+      wd_msg("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
     }
   }
 
@@ -295,7 +303,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
+      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $view_link);
       return false;
     }
   }
@@ -307,7 +315,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   // As soon as the tarball exists, we want to update the DB about it.
   package_release_update_node($nid, $file_path);
 
-  wd_msg(t("%id has changed, re-packaged.", array('%id' => $id)), $view_link);
+  wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$id");
@@ -349,7 +357,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
     return false;
   }
   if (!is_dir($fulldir)) {
-    wd_err(t("ERROR: %dir does not exist after cvs export %rev", array('%dir' => $fulldir, '%rev' =>  $rev)), $view_link);
+    wd_err("ERROR: %dir does not exist after cvs export %rev", array('%dir' => $fulldir, '%rev' =>  $rev), $view_link);
     return false;
   }
   if (!drupal_chdir($basedir)) {
@@ -369,7 +377,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   // Fix any .info files
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err(t("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file)), $view_link);
+      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $view_link);
       return false;
     }
   }
@@ -413,7 +421,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   // As soon as the tarball exists, update the DB
   package_release_update_node($nid, $file_path);
 
-  wd_msg(t("%id has changed, re-packaged.", array('%id' => $id)), $view_link);
+  wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$basedir/$uri");
@@ -455,7 +463,7 @@ function package_release_contrib_pre_d6_translation($uri, $version, $view_link) 
     }
   }
   else {
-    wd_err(t("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version)), $view_link);
+    wd_err("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version), $view_link);
     return FALSE;
   }
 
@@ -473,7 +481,7 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
         // Rename text files to $name[1].$uri.txt so there will be no conflict
         // with core text files when the package is deployed.
         if (!rename("$uri/$file", "$uri/$name[1].$uri.txt")) {
-          wd_err(t("ERROR: Unable to rename text files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          wd_err("ERROR: Unable to rename text files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
           return FALSE;
         }
       }
@@ -481,7 +489,7 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
 
         // Generate stats information about the .po file handled.
         if (!drupal_exec("$msgfmt --statistics $uri/$file 2>> $uri/STATUS.$uri.txt")) {
-          wd_err(t("ERROR: Unable to generate statistics for %file in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version, '%file' => $file)), $view_link);
+          wd_err("ERROR: Unable to generate statistics for %file in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version, '%file' => $file), $view_link);
           return FALSE;
         }
 
@@ -511,11 +519,11 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
         // Create target folder and copy file there, while removing fuzzies.
         $target_dir = dirname($uri_target);
         if (!is_dir($target_dir) && !mkdir($target_dir, 0777, TRUE)) {
-          wd_err(t("ERROR: Unable to generate directory structure in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          wd_err("ERROR: Unable to generate directory structure in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
           return FALSE;
         }
         if (!drupal_exec("$msgattrib --no-fuzzy $uri/$file -o $uri_target")) {
-          wd_err(t("ERROR: Unable to filter fuzzy strings and copying the translation files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version)), $view_link);
+          wd_err("ERROR: Unable to filter fuzzy strings and copying the translation files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
           return FALSE;
         }
       
@@ -539,13 +547,13 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
 function verify_packages($task, $project_id) {
   global $dest_root;
   $do_repair = $task == 'repair' ? TRUE : FALSE;
-  $args = array();
+  $args = array(1);
   $where = '';
   if (!empty($project_id)) {
     $where = ' AND prn.pid = %d';
     $args[] = $project_id;
   }
-  $query = db_query("SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE n.status = 1 AND prn.file_path <> '' $where", $args);
+  $query = db_query("SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE n.status = %d AND prn.file_path <> '' $where", $args);
   while ($release = db_fetch_object($query)) {
     // Grab all the results into RAM to free up the DB connection for
     // when we need to update the DB to correct metadata or log messages.
@@ -574,7 +582,7 @@ function verify_packages($task, $project_id) {
 
     if (!is_file($full_path)) {
       $num_not_exist++;
-      wd_err(t('WARNING: %file does not exist.', array('%file' => $full_path)), $view_link);
+      wd_err('WARNING: %file does not exist.', array('%file' => $full_path), $view_link);
       continue;
     }
     $real_date = filemtime($full_path);
@@ -602,20 +610,20 @@ function verify_packages($task, $project_id) {
     }
 
     if (!$valid_date && !$valid_hash) {
-      wd_check(t('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables), $view_link);
+      wd_check('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables, $view_link);
     }
     else if (!$valid_date) {
-      wd_check(t('File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)', $variables), $view_link);
+      wd_check('File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)', $variables, $view_link);
     }
     else { // !$valid_hash
-      wd_check(t('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables), $view_link);
+      wd_check('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables, $view_link);
     }
 
     if (!$do_repair) {
       $num_need_repair++;
     }
     else if (!db_query("UPDATE {project_release_nodes} SET file_hash = '%s', file_date = %d WHERE nid = %d", $real_hash, $real_date, $nid)) {
-      wd_err(t('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path)), $view_link);
+      wd_err('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path), $view_link);
       $num_failed++;
     }
     else {
@@ -631,21 +639,21 @@ function verify_packages($task, $project_id) {
     '!num_wrong_hash' => $num_wrong_hash,
   );
   if ($num_failed) {
-    wd_err(t('ERROR: unable to repair !num_failed releases due to db_query() failures.', array('!num_failed' => $num_failed)));
+    wd_err('ERROR: unable to repair !num_failed releases due to db_query() failures.', array('!num_failed' => $num_failed));
   }
   if ($num_not_exist) {
-    wd_err(t('ERROR: !num_not_exist files are in the database but do not exist on disk.', array('!num_not_exist' => $num_not_exist)));
+    wd_err('ERROR: !num_not_exist files are in the database but do not exist on disk.', array('!num_not_exist' => $num_not_exist));
   }
   if ($do_repair) {
-    wd_check(t('Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars));
+    wd_check('Done checking releases: !num_repaired repaired, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars);
   }
   else {
     if (empty($project_id)) {
-      wd_check(t('Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars));
+      wd_check('Done checking releases: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars);
     }
     else {
       $num_vars['@project_id'] = $project_id;
-      wd_check(t('Done checking releases for project id @project_id: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars), l(t('view'), 'node/' . $project_id));
+      wd_check('Done checking releases for project id @project_id: !num_need_repair need repairing, !num_wrong_date invalid dates, !num_wrong_hash invalid md5 hashes, !num_considered considered.', $num_vars, l(t('view'), 'node/' . $project_id));
     }
   }
 }
@@ -665,7 +673,7 @@ function drupal_exec($cmd) {
   // Made sure we grab stderr, too...
   exec("$cmd 2>&1", $output, $rval);
   if ($rval) {
-    wd_err(t("ERROR: %cmd failed with status !rval", array('%cmd' => $cmd, '!rval' => $rval)) . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)));
+    wd_err("ERROR: %cmd failed with status !rval" . '<pre>' . implode("\n", array_map('htmlspecialchars', $output)), array('%cmd' => $cmd, '!rval' => $rval));
     return false;
   }
   return true;
@@ -678,7 +686,7 @@ function drupal_exec($cmd) {
  */
 function drupal_chdir($dir) {
   if (!chdir($dir)) {
-    wd_err(t("ERROR: Can't chdir(@dir)", array('@dir' => $dir)));
+    wd_err("ERROR: Can't chdir(@dir)", array('@dir' => $dir));
     return false;
   }
   return true;
@@ -693,31 +701,31 @@ function wprint($var) {
  * Wrapper function for watchdog() to log notice messages. Uses a
  * different watchdog message type depending on the task (branch vs. tag).
  */
-function wd_msg($msg, $link = NULL) {
+function wd_msg($msg, $variables = array(), $link = NULL) {
   global $task;
-  watchdog('package_' . $task, $msg, WATCHDOG_NOTICE, $link);
+  watchdog('package_' . $task, $msg, $variables, WATCHDOG_NOTICE, $link);
   echo $msg ."\n";
 }
 
 /**
  * Wrapper function for watchdog() to log error messages.
  */
-function wd_err($msg, $link = NULL) {
+function wd_err($msg, $variables = array(), $link = NULL) {
   global $wd_err_msg;
   if (!isset($wd_err_msg)) {
     $wd_err_msg = array();
   }
-  watchdog('package_error', $msg, WATCHDOG_ERROR, $link);
-  echo $msg ."\n";
-  $wd_err_msg[] = $msg;
+  watchdog('package_error', $msg, $variables, WATCHDOG_ERROR, $link);
+  echo t($msg, $variables) ."\n";
+  $wd_err_msg[] = t($msg, $variables);
 }
 
 /**
  * Wrapper function for watchdog() to log messages about checking
  * package metadata.
  */
-function wd_check($msg, $link = NULL) {
-  watchdog('package_check', $msg, WATCHDOG_NOTICE, $link);
+function wd_check($msg, $variables = array(), $link = NULL) {
+  watchdog('package_check', $msg, $variables, WATCHDOG_NOTICE, $link);
   echo $msg ."\n";
 }
 
@@ -732,7 +740,7 @@ function initialize_tmp_dir($task) {
   global $tmp_dir, $tmp_root;
 
   if (!is_dir($tmp_root)) {
-    wd_err(t("ERROR: tmp_root: @dir is not a directory", array('@dir' => $tmp_root)));
+    wd_err("ERROR: tmp_root: @dir is not a directory", array('@dir' => $tmp_root));
     exit(1);
   }
 
@@ -742,7 +750,7 @@ function initialize_tmp_dir($task) {
     drupal_exec("$rm -rf $tmp_dir/*");
   }
   else if (!@mkdir($tmp_dir)) {
-    wd_err(t("ERROR: mkdir(@dir) failed", array('@dir' => $tmp_dir)));
+    wd_err("ERROR: mkdir(@dir) failed", array('@dir' => $tmp_dir));
     exit(1);
   }
 }
@@ -782,15 +790,15 @@ function fix_info_file_version($file, $uri, $version) {
   $info .= "\n";
 
   if (!chmod($file, 0644)) {
-    wd_err(t("ERROR: chmod(@file, 0644) failed", array('@file' => $file)));
+    wd_err("ERROR: chmod(@file, 0644) failed", array('@file' => $file));
     return false;
   }
   if (!$info_fd = fopen($file, 'ab')) {
-    wd_err(t("ERROR: fopen(@file, 'ab') failed", array('@file' => $file)));
+    wd_err("ERROR: fopen(@file, 'ab') failed", array('@file' => $file));
     return false;
   }
   if (!fwrite($info_fd, $info)) {
-    wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $file)) . '<pre>' . $info);
+    wd_err("ERROR: fwrite(@file) failed". '<pre>' . $info, array('@file' => $file));
     return false;
   }
   return true;
@@ -816,12 +824,12 @@ function package_release_update_node($nid, $file_path) {
   db_query("UPDATE {project_release_nodes} SET file_path = '%s', file_hash = '%s', file_date = %d WHERE nid = %d", $file_path, $file_hash, $file_date, $nid);
 
   // Don't auto-publish security updates.
-  if ($task == 'tag' && db_num_rows(db_query("SELECT * FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
-    watchdog('package_security', t("Not auto-publishing security update release."), WATCHDOG_NOTICE, l(t('view'), 'node/'. $nid));
+  if ($task == 'tag' && db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
+    watchdog('package_security', "Not auto-publishing security update release.", array(), WATCHDOG_NOTICE, l(t('view'), 'node/'. $nid));
     return;
   }
 
-  db_query("UPDATE {node} SET status = 1 WHERE nid = %d", $nid);
+  db_query("UPDATE {node} SET status = %d WHERE nid = %d", 1, $nid);
 }
 
 /**
