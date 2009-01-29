@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.15 2008/10/29 00:19:39 dww Exp $
+// $Id: project-release-create-history.php,v 1.16 2009/01/29 23:26:35 dww Exp $
 
 /**
  * @file
@@ -73,7 +73,7 @@ drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 define('BASE_DIRECTORY', DRUPAL_ROOT .'/'. file_create_path(variable_get('project_release_history_directory', 'release-history')));
 
 if (!is_dir(BASE_DIRECTORY)) {
-  wd_err(t("ERROR: History directory (%directory) does not exist, aborting.\n", array('%directory' => BASE_DIRECTORY)));
+  wd_err("ERROR: History directory (%directory) does not exist, aborting.\n", array('%directory' => BASE_DIRECTORY));
   exit(1);
 }
 
@@ -90,7 +90,7 @@ project_list_generate();
  */
 function project_release_history_generate_all() {
   $api_terms = project_release_compatibility_list();
-  wd_msg(t('Generating XML release history files for all projects.'));
+  wd_msg(array('message' => 'Generating XML release history files for all projects.', 'args' => array()));
 
   // Generate all.xml files for projects with releases.
   $query = db_query("SELECT DISTINCT(pid) FROM {project_release_nodes}");
@@ -99,18 +99,18 @@ function project_release_history_generate_all() {
     project_release_history_generate_project_xml($project->pid);
     $i++;
   }
-  wd_msg(format_plural($i, 'Generated an XML release history summary for a project.', 'Generated XML release history summaries for @count projects.'));
+  wd_msg(array('message' => format_plural($i, 'Generated an XML release history summary for a project.', 'Generated XML release history summaries for @count projects.'), 'args' => array()));
 
   // Generate XML files based on API compatibility.
   $tids = array_keys($api_terms);
-  $placeholders = implode(',', array_fill(0, count($tids), '%d'));
+  $placeholders = db_placeholders($tids);
   $query = db_query("SELECT DISTINCT(prn.pid), tn.tid FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid WHERE tn.tid IN ($placeholders)", $tids);
   $i = 0;
   while ($project = db_fetch_object($query)) {
     project_release_history_generate_project_xml($project->pid, $project->tid);
     $i++;
   }
-  wd_msg(t('Completed XML release history files for @num_projects.', array('@num_projects' => format_plural($i, '1 project/version pair', '@count project/version pairs'))));
+  wd_msg(array('message' => 'Completed XML release history files for @num_projects.', 'args' => array('@num_projects' => format_plural($i, '1 project/version pair', '@count project/version pairs'))));
 }
 
 /**
@@ -137,7 +137,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     // Restrict output to a specific API compatibility term.
     $api_terms = project_release_compatibility_list();
     if (!isset($api_terms[$api_tid])) {
-      wd_err(t('API compatibility term %tid not found.', array('%tid' => $api_tid)));
+      wd_err('API compatibility term %tid not found.', array('%tid' => $api_tid));
       return FALSE;
     }
     $api_version = $api_terms[$api_tid];
@@ -152,11 +152,16 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $sql = "SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid WHERE p.nid = %d";
     $query = db_query($sql, $project_nid);
   }
-  if (!db_num_rows($query)) {
-    wd_err(t('Project ID %pid not found', array('%pid' => $project_nid)));
+
+  $project_found = FALSE;
+  while ($project = db_fetch_object($query)) {
+    $project_found = TRUE;
+  }
+
+  if (!$project_found) {
+    wd_err('Project ID %pid not found', array('%pid' => $project_nid));
     return FALSE;
   }
-  $project = db_fetch_object($query);
 
   $xml = '<title>'. check_plain($project->title) ."</title>\n";
   $xml .= '<short_name>'. check_plain($project->uri) ."</short_name>\n";
@@ -196,7 +201,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   }
 
   $xml .= '<project_status>'. $project_status ."</project_status>\n";
-  $xml .= '<link>'. url("node/$project->nid", NULL, NULL, TRUE) ."</link>\n";
+  $xml .= '<link>'. url("node/$project->nid", array('absolute' => TRUE)) ."</link>\n";
 
   // To prevent the update(_status) module from having problems parsing the XML,
   // the terms need to be at the end of the information for the project.
@@ -246,7 +251,8 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     // duplicate release nodes and ensure we're just looking at the API term,
     // we need to add a WHERE clause for the API vocabulary id.
     $joins[] = "INNER JOIN {term_data} td ON tn.tid = td.tid";
-    $where[] = 'td.vid = '. _project_release_get_api_vid();
+    $where[] = 'td.vid = %d';
+    $parameters[] = _project_release_get_api_vid();
     $fields[] = 'td.weight';
   }
 
@@ -286,7 +292,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     if ($release->status) {
       // Published, so we should include the links.
       $xml .= "  <status>published</status>\n";
-      $xml .= '  <release_link>'. url("node/$release->nid", NULL, NULL, TRUE) ."</release_link>\n";
+      $xml .= '  <release_link>'. url("node/$release->nid", array('absolute' => TRUE)) ."</release_link>\n";
       if (!empty($release->file_path)) {
         $download_link = theme('project_release_download_link', $release->file_path, NULL, TRUE);
         $xml .= '  <download_link>'. $download_link['href'] ."</download_link>\n";
@@ -358,9 +364,18 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
     $filename = $project_dir .'/'. $project_id;
     $tmp_filename = $filename .'.new';
     $errors = array(
-      'mkdir'  => t("ERROR: mkdir(@dir) failed, can't write history for %project.", array('@dir' => $project_dir, '%project' => $project->title)),
-      'unlink' => t("ERROR: unlink(@file) failed, can't write history for %project.", array('@file' => $tmp_filename, '%project' => $project->title)),
-      'rename' => t("ERROR: rename(@old, @new) failed, can't write history for %project.", array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title))
+      'mkdir'  => array(
+        'message' => "ERROR: mkdir(@dir) failed, can't write history for %project.",
+        'args' => array('@dir' => $project_dir, '%project' => $project->title),
+      ),
+      'unlink' => array(
+        'message' => "ERROR: unlink(@file) failed, can't write history for %project.",
+        'args' => array('@file' => $tmp_filename, '%project' => $project->title),
+      ),
+      'rename' => array(
+        'message' => "ERROR: rename(@old, @new) failed, can't write history for %project.",
+        'args' => array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title),
+      ),
     );
     $full_xml = '<project '. $dc_namespace .">\n". $xml ."</project>\n";
   }
@@ -377,11 +392,11 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
   }
   // Write the XML history to "[project]-[version].xml.new".
   if (!$hist_fd = fopen($tmp_filename, 'xb')) {
-    wd_err(t("ERROR: fopen(@file, 'xb') failed", array('@file' => $tmp_filename)));
+    wd_err(array('message' => "ERROR: fopen(@file, 'xb') failed", 'args' => array('@file' => $tmp_filename)));
     return FALSE;
   }
   if (!fwrite($hist_fd, $full_xml)) {
-    wd_err(t("ERROR: fwrite(@file) failed", array('@file' => $tmp_filename)) . '<pre>' . check_plain($full_xml));
+    wd_err(array('message' => "ERROR: fwrite(@file) failed" . '<pre>' . check_plain($full_xml), 'args' => array('@file' => $tmp_filename)));
     return FALSE;
   }
   // We have to close this handle before we can rename().
@@ -450,16 +465,28 @@ function project_list_generate() {
 
 /**
  * Wrapper function for watchdog() to log notice messages.
+ * 
+ * @param $notice
+ *   An associative array with 'message' and 'args' keys for the notice message
+ *   and any arguments respectively.
+ * @param $link
+ *   A link to associate with the message.
  */
-function wd_msg($msg, $link = NULL) {
-  watchdog('release_history', $msg, WATCHDOG_NOTICE, $link);
+function wd_msg($notice, $link = NULL) {
+  watchdog('release_history', $notice['message'], $notice['args'], WATCHDOG_NOTICE, $link);
 }
 
 /**
  * Wrapper function for watchdog() to log error messages.
+ *
+ * @param $error
+ *   An associative array with 'message' and 'args' keys for the error message
+ *   and any arguments respectively.
+ * @param $link
+ *   A link to associate with the message.
  */
-function wd_err($msg, $link = NULL) {
-  watchdog('release_hist_err', $msg, WATCHDOG_ERROR, $link);
+function wd_err($error, $link = NULL) {
+  watchdog('release_hist_err', $error['message'], $error['args'], WATCHDOG_ERROR, $link);
 }
 
 /**
