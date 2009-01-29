@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.98 2009/01/29 00:34:56 dww Exp $
+// $Id: project_release.module,v 1.99 2009/01/29 14:39:49 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -565,6 +565,7 @@ function project_release_node_form_validate(&$form, &$form_state) {
     }
     if (isset($tid) && is_numeric($tid)) {
       $form_state['values']['version_api_tid'] = $tid;
+      $project_release['version_api_tid'] = $tid;
     }
   }
 
@@ -590,6 +591,7 @@ function project_release_node_form_validate(&$form, &$form_state) {
   elseif (isset($project_release['pid'])) {
     $project_name = db_result(db_query("SELECT uri FROM {project_projects} WHERE nid = %d", $form_state['values']['project_release']['pid']));
   }
+
   if (isset($form_state['values']['title'])) {
     // TODO: Magic re-setting to "%project_name %version" ??
   }
@@ -599,7 +601,7 @@ function project_release_node_form_validate(&$form, &$form_state) {
   elseif (!empty($project)) {
     $version = project_release_get_version((object) $project_release, $project);
     form_set_value(array('#parents' => array('project_release', 'version')), $version, $form_state);
-    $title = $project->title;
+    $title = !empty($project_name) ? $project_name : $project->title;
     form_set_value($form['title'], "$title $version", $form_state);
   }
 }
@@ -818,7 +820,6 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
   }
   else {
     // Adding or editing a release.
-
     // First make sure this branch has at least 1 published release node
     $published_releases = db_result(db_query("SELECT COUNT(*) FROM {project_release_nodes} r INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND r.version_major = %d AND tn.tid = %d AND n.status = %d", $pid, $major, $tid, 1));
     if ($published_releases) {
@@ -916,23 +917,34 @@ function _project_release_validate_format_string($form_values, $element) {
 }
 
 /**
- * Returns the formatted version string for a given release node.
+ * Returns the formatted version string for a given version object.
+ *
+ * @param $version
+ *   Object containing the separate version-related fields, such as
+ *   version_major, version_minor, etc.
+ * @param $project
+ *   Optional project node that the version corresponds with.  If not defined,
+ *   the version object should at least include a "pid" field.
+ *
+ * @return
+ *   The formatted version string for the given version and project info.
+ *
  * @ingroup project_release_api
  */
-function project_release_get_version($release, $project = NULL) {
+function project_release_get_version($version, $project = NULL) {
   if (isset($project)) {
     $node = $project;
   }
   else {
-    $node->nid = $release->project_release['pid'];
+    $node->nid = $version->pid;
   }
   $variables = array();
   foreach (array('major', 'minor', 'patch', 'extra') as $field) {
     $var = "version_$field";
-    if (isset($release->project_release[$var]) && $release->project_release[$var] !== '') {
-      $variables["!$field"] = $release->project_release[$var];
-      $variables["%$field"] = '.'. $release->project_release[$var];
-      $variables["#$field"] = '-'. $release->project_release[$var];
+    if (isset($version->$var) && $version->$var !== '') {
+      $variables["!$field"] = $version->$var;
+      $variables["%$field"] = '.'. $version->$var;
+      $variables["#$field"] = '-'. $version->$var;
     }
     else {
       $variables["!$field"] = '';
@@ -940,24 +952,17 @@ function project_release_get_version($release, $project = NULL) {
       $variables["#$field"] = '';
     }
   }
-  $variables["!api"] = '';
-  $variables["%api"] = '';
-  $variables["#api"] = '';
   $vid = _project_release_get_api_vid();
-  if (project_release_get_api_taxonomy()) {
-    if (isset($release->project_release['version_api_tid'])) {
-      $tid = $release->project_release['version_api_tid'];
-    }
-    // @TODO: is this right?
-    elseif (isset($release->$vid)) {
-      $tid = $release->$vid;
-    }
-    if (isset($tid)) {
-      $term = taxonomy_get_term($tid);
-      $variables["!api"] = $term->name;
-      $variables["%api"] = '.'. $term->name;
-      $variables["#api"] = '-'. $term->name;
-    }
+  if (project_release_get_api_taxonomy() && isset($version->version_api_tid)) {
+    $term = taxonomy_get_term($version->version_api_tid);
+    $variables["!api"] = $term->name;
+    $variables["%api"] = '.'. $term->name;
+    $variables["#api"] = '-'. $term->name;
+  }
+  else {
+    $variables["!api"] = '';
+    $variables["%api"] = '';
+    $variables["#api"] = '';
   }
   $version_format = project_release_get_version_format($node);
   return strtr($version_format, $variables);
@@ -1236,10 +1241,10 @@ function theme_project_release_version_filter_form($form) {
  */
 function project_release_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id == 'project_project_node_form') {
-    return project_release_alter_project_form($form);
+    return project_release_alter_project_form($form, $form_state);
   }
   if ($form_id == 'project_release_node_form') {
-    return project_release_alter_release_form($form);
+    return project_release_alter_release_form($form, $form_state);
   }
 }
 
@@ -1339,7 +1344,7 @@ function _project_release_get_version_major_data($node) {
   $tid_where = '';
   if (!empty($active_tids)) {
     $tid_where = 'prsv.tid IN ('. db_placeholders($active_tids) .')';
-    $params = $params + array_keys($active_tids);
+    $params = array_merge($params, array_keys($active_tids));
   }
   $result = db_query("SELECT prsv.*, td.name AS term_name FROM {project_release_supported_versions} prsv INNER JOIN {term_data} td ON prsv.tid = td.tid WHERE prsv.nid = %d AND $tid_where ORDER BY td.weight, td.name", $params);
   while ($obj = db_fetch_object($result)) {
@@ -1567,59 +1572,53 @@ function project_release_project_edit_form_submit($form, &$form_state) {
  * @ingroup project_release_fapi
  * @see project_release_form_alter
  */
-function project_release_alter_release_form(&$form) {
+function project_release_alter_release_form(&$form, &$form_state) {
   global $user;
   $node = $form['#node'];
-  $tid = $node->project_release['version_api_tid'];
+  $tid = '';
+  if (!empty($node->project_release['version_api_tid'])) {
+    $tid = $node->project_release['version_api_tid'];
+  }
   $vid = _project_release_get_api_vid();
   if (!project_release_get_api_taxonomy() && isset($form['taxonomy'][$vid])) {
     unset($form['taxonomy'][$vid]);
   }
   else {
-/*
-    if (isset($node->project_release['pid'])) {
-      $project->nid = $node->project_release['pid'];
-    }
-    elseif (arg(1) == 'add' && is_numeric(arg(3))) {
-      $project->nid = arg(3);
-    }
-    if (isset($project->nid)) {
-*/
-      if (!user_access('administer projects')) {
-        // The user doesn't have 'administer projects' permission, so
-        // we restrict their options for the compatibility taxonomy.
-        if (isset($tid)) {
-          // If we already have the term, we want to force it to stay.
+    if (!user_access('administer projects')) {
+      // The user doesn't have 'administer projects' permission, so
+      // we restrict their options for the compatibility taxonomy.
+      if (!empty($tid)) {
+        // If we already have the term, we want to force it to stay.
+        $indexes = form_get_options($form['taxonomy'][$vid], $tid);
+        if ($indexes !== FALSE) {
+          foreach ($indexes as $index) {
+            $options[] = $form['taxonomy'][$vid]['#options'][$index];
+          }
+        }
+        $form['taxonomy'][$vid]['#default_value'] = $tid;
+      }
+      elseif ($tids = variable_get('project_release_active_compatibility_tids', '')) {
+        // We don't have the term since we're adding a new release.
+        // Restrict to the active terms (if any).
+        foreach (array_filter($tids) as $tid) {
           $indexes = form_get_options($form['taxonomy'][$vid], $tid);
+
           if ($indexes !== FALSE) {
             foreach ($indexes as $index) {
-              $options[] = $form['taxonomy'][$vid]['#options'][$index];
-            }
-          }
-          $form['taxonomy'][$vid]['#default_value'] = $tid;
-        }
-        elseif ($tids = variable_get('project_release_active_compatibility_tids', '')) {
-          // We don't have the term since we're adding a new release.
-          // Restrict to the active terms (if any).
-          foreach (array_filter($tids) as $tid) {
-            $indexes = form_get_options($form['taxonomy'][$vid], $tid);
-            if ($indexes !== FALSE) {
-              foreach ($indexes as $index) {
-                $options[$index] = $form['taxonomy'][$vid]['#options'][$index];
-              }
+              $options[$index] = $form['taxonomy'][$vid]['#options'][$index];
             }
           }
         }
-        if (!empty($options)) {
-          $form['taxonomy'][$vid]['#options'] = $options;
-        }
-        else {
-          unset($form['taxonomy'][$vid]);
-        }
-        // If they're not project admins, remove the delete button (if any).
-        unset($form['delete']);
       }
-//    }
+      if (!empty($options)) {
+        $form['taxonomy'][$vid]['#options'] = $options;
+      }
+      else {
+        unset($form['taxonomy'][$vid]);
+      }
+      // If they're not project admins, remove the delete button (if any).
+      unset($form['delete']);
+    }
   }
   // If there are no children elements, we should unset the entire
   // thing so we don't end up with an empty fieldset.
