@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.21 2009/01/30 22:16:46 damz Exp $
+// $Id: project_solr.module,v 1.22 2009/01/30 22:21:39 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -313,7 +313,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
         $term = taxonomy_get_term($tid);
 
-        $active = $query->has_field('imfield_project_release_api_terms', $tid);
+        $active = $query->has_field('core', $term->name);
         $unclick_link = '';
         $new_query = clone $query;
 
