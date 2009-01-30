@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.26 2009/01/20 19:06:11 dww Exp $
+// $Id: project_usage.module,v 1.27 2009/01/30 07:12:51 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -43,32 +43,74 @@ define('PROJECT_USAGE_SHOW_WEEKS', 6);
 /**
  * Implementation of hook_menu().
  */
-function project_usage_menu($may_cache) {
-  $items = array();
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/project/project-usage-settings',
-      'title' => t('Project usage settings'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('project_usage_settings_form'),
-      'description' => t('Configure how long usage data is retained.'),
-      'weight' => 1,
-    );
-    $items[] = array(
-      'path' => 'project/usage',
-      'title' => t('Project usage'),
-      'callback' => 'project_usage_dispatch',
-      'access' => user_access('view project usage'),
-    );
-  }
+function project_usage_menu() {
+  $items['admin/project/project-usage-settings'] = array(
+    'title' => 'Project usage settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('project_usage_settings_form'),
+    'access arguments' => array('administer projects'),
+    'description' => 'Configure how long usage data is retained.',
+    'weight' => 1,
+  );
+  $items['project/usage'] = array(
+    'title' => 'Project usage overview',
+    'page callback' => 'project_usage_overview',
+    'access arguments' => array('view project usage'),
+  );
+  $items['project/usage/%'] = array(
+    'title' => 'Project usage',
+    'page callback' => 'project_usage_dispatch',
+    'access arguments' => array('view project usage'),
+  );
   return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function project_usage_theme() {
+  return array(
+    'project_usage_chart' => array(
+      'arguments' => array('args' => NULL),
+    ),
+    'project_usage_chart_by_release' => array(
+      'arguments' => array(
+        'title' => NULL,
+        'header' => NULL,
+        'rows' => NULL,
+      ),
+    ),
+    'project_usage_header_links' => array(
+      'arguments' => array(
+        'project' => NULL,
+        'release' => NULL,
+      ),
+    ),
+    'project_usage_project_page' => array(
+      'arguments' => array(
+        'project' => NULL,
+        'release_header' => NULL,
+        'release_rows' => NULL,
+        'project_header' => NULL,
+        'project_rows' => NULL,
+      ),
+    ),
+    'project_usage_release_page' => array(
+      'arguments' => array(
+        'project' => NULL,
+        'release' => NULL,
+        'header' => NULL,
+        'rows' => NULL,
+      ),
+    ),
+  );
 }
 
 /**
  * Implementation of hook_help().
  */
-function project_usage_help($section) {
-  switch ($section) {
+function project_usage_help($path, $arg) {
+  switch ($path) {
     case 'project/usage':
       return '<p>'.
         t('This page summarizes the usage of all projects on @site_name. For each week beginning on the given date the figures show the number of sites that reported they are using (any version of) the project. Detailed usage information for each release of a project is available by clicking the project name.', array('@site_name' => variable_get('site_name', t('this site'))))
@@ -89,17 +131,12 @@ function project_usage_perm() {
  * Menu handler for project URLs.
  *
  * @param $key
- *   Optional node id or project uri. NULL gets the overview page, project
- *   nids and uris get the project usage page, release nids get the release
- *   usage page, and everything else gets a not found. In addition, if a user
- *   does not have permission to view the project or release node they've
- *   requested, they get an access denied page.
+ *   Node id or project uri. project nids and uris get the project usage page,
+ *   release nids get the release usage page, and everything else gets a not
+ *   found. In addition, if a user does not have permission to view the project
+ *   or release node they've requested, they get an access denied page.
  */
-function project_usage_dispatch($key = NULL) {
-  if (!isset($key)) {
-    return project_usage_overview();
-  }
-
+function project_usage_dispatch($key) {
   // Load the node the user has requested.  We want to only use
   // project_project_retrieve() if the $key parameter is not numeric because
   // project_project_retrieve() will only return a project_project node, and
@@ -134,7 +171,6 @@ function project_usage_dispatch($key = NULL) {
  */
 function project_usage_overview() {
   drupal_add_css(drupal_get_path('module', 'project_usage') .'/project_usage.css');
-  drupal_set_title(t('Project usage overview'));
 
   // Grab an array of active week timestamps.
   $weeks = project_usage_get_active_weeks();
@@ -211,7 +247,7 @@ function project_usage_overview() {
 
   // Cache the completed page.
   if (project_can_cache()) {
-    cache_set($cid, 'cache_project_usage', $output, project_usage_cache_time());
+    cache_set($cid, $output, 'cache_project_usage', project_usage_cache_time());
   }
 
   return $output;
@@ -359,7 +395,7 @@ function project_usage_project_page($node) {
 
   // Cache the completed page.
   if (project_can_cache()) {
-    cache_set($cid, 'cache_project_usage', $output, project_usage_cache_time());
+    cache_set($cid, $output, 'cache_project_usage', project_usage_cache_time());
   }
 
   return $output;
@@ -401,7 +437,7 @@ function project_usage_release_page($node) {
 
   // Cache the completed page.
   if (project_can_cache()) {
-    cache_set($cid, 'cache_project_usage', $output, project_usage_cache_time());
+    cache_set($cid, $output, 'cache_project_usage', project_usage_cache_time());
   }
 
   return $output;
@@ -650,10 +686,10 @@ function theme_project_usage_release_page($project, $release, $header, $rows) {
  */
 function theme_project_usage_header_links($project, $release = NULL) {
   $links = array();
-  $links[] = l(t('%project_name project page', array('%project_name' => $project->title)), 'node/'. $project->nid, array(), NULL, NULL, FALSE, TRUE);
+  $links[] = l(t('%project_name project page', array('%project_name' => $project->title)), 'node/'. $project->nid, array('html' => TRUE));
   if (!empty($release)) {
-    $links[] = l(t('%release_name release page', array('%release_name' => $release->title)), 'node/' . $release->nid, array(), NULL, NULL, FALSE, TRUE);
-    $links[] = l(t('All %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->project['uri'], array(), NULL, NULL, FALSE, TRUE);
+    $links[] = l(t('%release_name release page', array('%release_name' => $release->title)), 'node/' . $release->nid, array('html' => TRUE));
+    $links[] = l(t('All %project_name usage statistics', array('%project_name' => $project->title)), 'project/usage/' . $project->project['uri'], array('html' => TRUE));
   }
   $links[] = l(t('Usage statistics for all projects'), 'project/usage');
   return theme('item_list', $links);
@@ -824,4 +860,3 @@ function theme_project_usage_chart($args) {
   $title = empty($args['chtt']) ? '' : $args['chtt'];
   return theme('image', 'http://chart.apis.google.com/chart?'. implode('&', $params), $title, $title, NULL, FALSE);
 }
-
