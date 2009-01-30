@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.13 2009/01/30 18:56:19 dww Exp $
+// $Id: project_solr.module,v 1.14 2009/01/30 19:03:35 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -105,7 +105,7 @@ function project_solr_browse_page($term_name) {
   }
   drupal_set_title($parent_term->name);
 
-  $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : '');
+  $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
   $params = array(
     'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
@@ -253,6 +253,41 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         'content' => theme('apachesolr_facet_list', $terms, 200),
       );
       return;
+    }
+    else if ($delta == 'project_solr_order') {
+      $sorts = array(
+        'stitle' => array('name' => t('Title'), 'default' => 'asc'),
+        'name' => array('name' => t('Author'), 'default' => 'asc'),
+        'created' => array('name' => t('Date'), 'default' => 'desc'),
+      );
+
+      $solrsorts = array();
+      $sort_parameter = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE;
+      foreach (explode(',', $sort_parameter) as $solrsort) {
+        $parts = explode(' ', $solrsort);
+        if (!empty($parts[0]) && !empty($parts[1])) {
+          $solrsorts[$parts[0]] = $parts[1];
+        }
+      }
+
+      if (empty($solrsorts)) {
+        $solrsorts = array(
+          'stitle' => 'asc'
+        );
+      }
+
+      $sort_links = array();
+      $path = 'project/' . drupal_strtolower($parent_term->name);
+      $new_query = clone $query;
+      foreach ($sorts as $type => $sort) {
+        $new_sort = isset($solrsorts[$type]) ? $solrsorts[$type] == 'asc' ? 'desc' : 'asc' : $sort['default'];
+        $new_query->set_solrsort($type == "relevancy" ? '' : "solrsort={$type} {$new_sort}");
+        $active = isset($solrsorts[$type]) || ($type == "stitle" && !$solrsorts);
+        $direction = isset($solrsorts[$type]) ? $solrsorts[$type] : '';
+        $sort_links[] = theme('apachesolr_sort_link', $sort['name'], $path, $new_query->get_url_querystring(), $active, $direction);
+      }
+      return array('subject' => t('Sort by'),
+                   'content' => theme('apachesolr_sort_list', $sort_links));
     }
   }
 }
