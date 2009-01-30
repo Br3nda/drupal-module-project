@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.100 2009/01/29 22:43:52 dww Exp $
+// $Id: project_release.module,v 1.101 2009/01/30 01:13:45 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -239,7 +239,7 @@ function project_release_node_info() {
  * Implementation of hook_form().
  * @ingroup project_release_node
  */
-function project_release_form($release, &$form_state) {
+function project_release_form(&$release, &$form_state) {
 
   if (arg(1) == 'add') {
     // Initialize variables and $release object properties to prevent notices.
@@ -335,7 +335,7 @@ function project_release_form($release, &$form_state) {
     '#value' => $release->project_release['pid'],
   );
 
-  $form['validate_version'] = array('#type' => 'hidden', '#value' => 1);
+  $form['validate_version'] = array('#type' => 'value', '#value' => 1);
   _project_release_form_add_version_element($form, $release, $modify, $format, 'major', t('Major'));
   _project_release_form_add_version_element($form, $release, $modify, $format, 'minor', t('Minor'));
   _project_release_form_add_version_element($form, $release, $modify, $format, 'patch', t('Patch-level'));
@@ -371,7 +371,7 @@ function project_release_form($release, &$form_state) {
       // Store the fid here in the proper $node->project_release[] array
       // so it can be used to generate file previews.
       $form['project_release']['files'][$fid] = array(
-        '#type' => 'hidden',
+        '#type' => 'value',
         '#value' => $fid,
       );
     }
@@ -394,7 +394,7 @@ function project_release_form($release, &$form_state) {
     // Account for already uploaded files being previewed.
     if (isset($new_file)) {
       $form['project_release_files']['temp'] = array(
-        '#type' => 'hidden',
+        '#type' => 'value',
         '#value' => $new_file->fid,
       );
     }
@@ -504,7 +504,6 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
       '#type' => 'textfield',
       '#title' => $title,
       '#default_value' => $value,
-      '#value' => $value,
       '#required' => $required,
       '#size' => $size,
       '#maxlength' => $maxlength,
@@ -515,7 +514,7 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
   }
   else {
     $form = array(
-      '#type' => 'hidden',
+      '#type' => 'value',
       '#value' => $value,
     );
   }
@@ -1403,7 +1402,7 @@ function _project_release_edit_version_major_form($data) {
           '#attributes' => array('class' => 'snapshot'),
         ),
         'version_name' => array(
-          '#type' => 'hidden',
+          '#type' => 'value',
           '#value' => $version_name,
           '#attributes' => array('class' => 'version-name'),
         ),
