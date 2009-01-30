@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.24 2009/01/30 22:32:11 damz Exp $
+// $Id: project_solr.module,v 1.25 2009/01/30 22:40:56 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -242,7 +242,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $unclick_link = '';
         $term = taxonomy_get_term($tid);
         $new_query = clone $query;
-
+        
         $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
           $new_query->remove_field('tid', $term->tid);
@@ -265,7 +265,13 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $vocab = taxonomy_vocabulary_load(_project_get_vid());
 
       if (!empty($terms)) {
-        ksort($terms);
+        ksort($current_term);
+
+        // The currently selected term should be first.
+        $current_term = $terms[$current_tid];
+        unset($terms[$current_tid]);
+        $terms = array_merge(array($current_tid => $current_term), $terms);
+
         return array(
           'subject' => $vocab->name,
           'content' => theme('apachesolr_facet_list', $terms, 200),
@@ -319,11 +325,11 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $active = $query->has_field('core', $term->name);
 
         $new_query = clone $query;
-        $new_query->remove_field('core', $term->name);
+        $new_query->remove_field('core');
+        $new_query->add_field('core', $term->name);
 
         $path = 'project/' . drupal_strtolower($parent_term->name);
         $querystring = $new_query->get_url_querystring();
-        $new_query->add_field('core', $term->name);
 
         $unclick_link = $active ? theme('apachesolr_unclick_link', $path, $querystring) : '';
 
