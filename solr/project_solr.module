@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.15 2009/01/30 19:29:16 damz Exp $
+// $Id: project_solr.module,v 1.16 2009/01/30 19:39:25 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -107,6 +107,17 @@ function project_solr_browse_page($term_name) {
 
   $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
+  // Rewrite core compatibility filters
+  foreach ($query->get_filters() as $filter) {
+    if ($filter['#name'] == 'core') {
+      $tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $filter['#value']));
+      if ($tid) {
+        $query->add_field('imfield_project_release_api_terms', $tid);
+      }
+    }
+  }
+  $query->remove_field('core');
+  
   $params = array(
     'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
     'rows' => variable_get('apachesolr_rows', 10),
@@ -300,20 +311,21 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $terms = array();
 
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
-        $active = $query->has_field('tid', $tid);
-        $unclick_link = '';
         $term = taxonomy_get_term($tid);
+
+        $active = $query->has_field('core', $term->name);
+        $unclick_link = '';
         $new_query = clone $query;
         $new_query->remove_field('type', 'project_project');
 
         $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
-          $new_query->remove_field('tid', $term->tid);
+          $new_query->remove_field('core', $term->name);
           $querystring = $new_query->get_url_querystring();
           $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
         }
         else {
-          $new_query->add_field('tid', $term->tid);
+          $new_query->add_field('core', $term->name);
           $querystring = $new_query->get_url_querystring();
         }
         $countsort = $count == 0 ? '' : 1 / $count;
