@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.20 2009/01/30 21:47:06 dww Exp $
+// $Id: project_solr.module,v 1.21 2009/01/30 22:16:46 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -94,9 +94,11 @@ function project_solr_browse_page($term_name) {
     $output .= '<p>' . filter_xss($parent_term->description) . '</p>';
   }
 
-  $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
+  include_once drupal_get_path('module', 'apachesolr') .'/Solr_Base_Query.php';
+  include_once drupal_get_path('module', 'project_solr') .'/project-solr-query.php';
+  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
-  // Rewrite core compatibility filters
+  // Rewrite core compatibility filters.
   if (module_exists('project_release')) {
     $compatibility_filters = array();
     foreach ($query->get_fields() as $field) {
@@ -388,4 +390,3 @@ function project_solr_render_search_result($result) {
   }
   return theme('project_summary', $project);
 }
-
