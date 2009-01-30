@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.16 2009/01/30 19:39:25 damz Exp $
+// $Id: project_solr.module,v 1.17 2009/01/30 19:43:46 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -108,9 +108,9 @@ function project_solr_browse_page($term_name) {
   $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
   // Rewrite core compatibility filters
-  foreach ($query->get_filters() as $filter) {
-    if ($filter['#name'] == 'core') {
-      $tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $filter['#value']));
+  foreach ($query->get_fields() as $field) {
+    if ($field['#name'] == 'core') {
+      $tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $field['#value']));
       if ($tid) {
         $query->add_field('imfield_project_release_api_terms', $tid);
       }
