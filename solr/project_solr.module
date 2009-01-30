@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.4 2009/01/30 16:15:22 dww Exp $
+// $Id: project_solr.module,v 1.5 2009/01/30 16:30:15 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -48,6 +48,15 @@ function project_solr_apachesolr_update_index(&$document, $node) {
     $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
     while ($term = db_fetch_object($query)) {
       $document->setMultiValue('imfield_project_release_api_terms', $term->tid);
+    }
+    if (module_exists('project_usage')) {
+      $weeks = variable_get('project_usage_active_weeks', array());
+      $week = reset($weeks);
+      $query = db_query_range("SELECT * FROM {project_usage_week_projects} WHERE nid = %d AND timestamp = %d", $node->nid, $week);
+      while ($usage = db_fetch_object($query)) {
+        $key = 'isfield_project_release_api_usage_'. $usage->tid;
+        $document->$key = $usage->count;
+      }
     }
   }
 }
