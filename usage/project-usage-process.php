@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-// $Id: project-usage-process.php,v 1.4 2008/12/15 09:03:27 dww Exp $
+// $Id: project-usage-process.php,v 1.5 2009/01/30 07:09:02 thehunmonkgroup Exp $
 
 
 /**
@@ -116,7 +116,7 @@ function project_usage_process_daily() {
   $timestamp = project_usage_daily_timestamp(NULL, 1);
   $time_0 = time();
 
-  watchdog('project_usage', t('Starting to process daily usage data for !date.', array('!date' => format_date($timestamp, 'custom', 'Y-m-d'))));
+  watchdog('project_usage', 'Starting to process daily usage data for !date.', array('!date' => format_date($timestamp, 'custom', 'Y-m-d')));
 
   // Assign API version term IDs.
   $terms = array();
@@ -135,7 +135,7 @@ function project_usage_process_daily() {
     '!rows' => format_plural($num_updates, '1 row', '@count rows'),
     '!delta' => format_interval($time_1 - $time_0),
   );
-  watchdog('project_usage', t('Assigned API version term IDs for !rows (!delta).', $substitutions));
+  watchdog('project_usage', 'Assigned API version term IDs for !rows (!delta).', $substitutions);
 
   // Asign project and release node IDs.
   $num_updates = 0;
@@ -153,7 +153,7 @@ function project_usage_process_daily() {
     '!rows' => format_plural($num_updates, '1 row', '@count rows'),
     '!delta' => format_interval($time_2 - $time_1),
   );
-  watchdog('project_usage', t('Assigned project and release node IDs to !rows (!delta).', $substitutions));
+  watchdog('project_usage', 'Assigned project and release node IDs to !rows (!delta).', $substitutions);
 
   // Move usage records with project node IDs into the daily table and remove
   // the rest.
@@ -167,7 +167,7 @@ function project_usage_process_daily() {
     '!raw_rows' => format_plural($num_deleted_raw_rows, '1 row', '@count rows'),
     '!delta' => format_interval($time_3 - $time_2),
   );
-  watchdog('project_usage', t('Moved usage from raw to daily: !day_rows added to {project_usage_day}, !raw_rows deleted from {project_usage_raw} (!delta).', $substitutions));
+  watchdog('project_usage', 'Moved usage from raw to daily: !day_rows added to {project_usage_day}, !raw_rows deleted from {project_usage_raw} (!delta).', $substitutions);
 
   // Remove old daily records.
   $seconds = variable_get('project_usage_life_daily', 4 * PROJECT_USAGE_WEEK);
@@ -177,9 +177,9 @@ function project_usage_process_daily() {
     '!rows' => format_plural(db_affected_rows(), '1 old daily row', '@count old daily rows'),
     '!delta' => format_interval($time_4 - $time_3),
   );
-  watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
+  watchdog('project_usage', 'Removed !rows (!delta).', $substitutions);
 
-  watchdog('project_usage', t('Completed daily usage data processing (total time: !delta).', array('!delta' => format_interval($time_4 - $time_0))));
+  watchdog('project_usage', 'Completed daily usage data processing (total time: !delta).', array('!delta' => format_interval($time_4 - $time_0)));
 }
 
 /**
@@ -189,7 +189,7 @@ function project_usage_process_daily() {
  *   UNIX timestamp indicating the last time weekly stats were processed.
  */
 function project_usage_process_weekly($timestamp) {
-  watchdog('project_usage', t('Starting to process weekly usage data.'));
+  watchdog('project_usage', 'Starting to process weekly usage data.');
   $time_0 = time();
 
   // Get all the weeks since we last ran.
@@ -218,10 +218,10 @@ function project_usage_process_weekly($timestamp) {
       '!delta' => format_interval($time_2 - $time_1),
     );
     if (!$result) {
-      watchdog('project_usage', t('Query failed inserting weekly project tallies for !date, query: %query (!delta).', $substitutions), WATCHDOG_ERROR);
+      watchdog('project_usage', 'Query failed inserting weekly project tallies for !date, query: %query (!delta).', $substitutions, WATCHDOG_ERROR);
     }
     else {
-      watchdog('project_usage', t('Computed weekly project tallies for !date for !projects (!delta).', $substitutions));
+      watchdog('project_usage', 'Computed weekly project tallies for !date for !projects (!delta).', $substitutions);
     }
 
     $sql = "INSERT INTO {project_usage_week_release} (nid, timestamp, count) SELECT nid, %d, COUNT(DISTINCT site_key) FROM {project_usage_day} WHERE timestamp >= %d AND timestamp < %d AND nid <> 0 GROUP BY nid";
@@ -236,10 +236,10 @@ function project_usage_process_weekly($timestamp) {
       '!delta' => format_interval($time_3 - $time_2),
     );
     if (!$result) {
-      watchdog('project_usage', t('Query failed inserting weekly release tallies for !date, query: %query (!delta).', $substitutions), WATCHDOG_ERROR);
+      watchdog('project_usage', 'Query failed inserting weekly release tallies for !date, query: %query (!delta).', $substitutions, WATCHDOG_ERROR);
     }
     else {
-      watchdog('project_usage', t('Computed weekly release tallies for !date for !releases (!delta).', $substitutions));
+      watchdog('project_usage', 'Computed weekly release tallies for !date for !releases (!delta).', $substitutions);
     }
   }
 
@@ -252,7 +252,7 @@ function project_usage_process_weekly($timestamp) {
     '!rows' => format_plural(db_affected_rows(), '1 old weekly project row', '@count old weekly project rows'),
     '!delta' => format_interval($time_5 - $time_4),
   );
-  watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
+  watchdog('project_usage', 'Removed !rows (!delta).', $substitutions);
 
   $release_life = variable_get('project_usage_life_weekly_release', 26 * PROJECT_USAGE_WEEK);
   db_query("DELETE FROM {project_usage_week_release} WHERE timestamp < %d", $now - $release_life);
@@ -261,8 +261,8 @@ function project_usage_process_weekly($timestamp) {
     '!rows' => format_plural(db_affected_rows(), '1 old weekly release row', '@count old weekly release rows'),
     '!delta' => format_interval($time_6 - $time_5),
   );
-  watchdog('project_usage', t('Removed !rows (!delta).', $substitutions));
+  watchdog('project_usage', 'Removed !rows (!delta).', $substitutions);
 
-  watchdog('project_usage', t('Completed weekly usage data processing (total time: !delta).', array('!delta' => format_interval($time_6 - $time_0))));
+  watchdog('project_usage', 'Completed weekly usage data processing (total time: !delta).', array('!delta' => format_interval($time_6 - $time_0)));
 }
 
