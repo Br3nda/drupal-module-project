@@ -1,5 +1,7 @@
-; $Id: project_usage.info,v 1.1 2007/08/07 20:21:33 dww Exp $
+; $Id: project_usage.info,v 1.2 2009/01/30 07:09:39 thehunmonkgroup Exp $
 name = Project usage
 description = "Provides data about installed usage of projects (requires update_status.module clients connecting to this site -- most sites should NOT enable this module)."
 package = Project
-dependencies = project project_release
+dependencies[] = project
+dependencies[] = project_release
+core = 6.x
