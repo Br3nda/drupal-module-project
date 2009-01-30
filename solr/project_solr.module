@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.23 2009/01/30 22:26:50 damz Exp $
+// $Id: project_solr.module,v 1.24 2009/01/30 22:32:11 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -317,19 +317,16 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $term = taxonomy_get_term($tid);
 
         $active = $query->has_field('core', $term->name);
-        $unclick_link = '';
+
         $new_query = clone $query;
+        $new_query->remove_field('core', $term->name);
 
         $path = 'project/' . drupal_strtolower($parent_term->name);
-        if ($active) {
-          $new_query->remove_field('core', $term->name);
-          $querystring = $new_query->get_url_querystring();
-          $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
-        }
-        else {
-          $new_query->add_field('core', $term->name);
-          $querystring = $new_query->get_url_querystring();
-        }
+        $querystring = $new_query->get_url_querystring();
+        $new_query->add_field('core', $term->name);
+
+        $unclick_link = $active ? theme('apachesolr_unclick_link', $path, $querystring) : '';
+
         $countsort = $count == 0 ? '' : 1 / $count;
         // if numdocs == 1 and !active, don't add.
         if ($response->numFound == 1 && !$active) {
