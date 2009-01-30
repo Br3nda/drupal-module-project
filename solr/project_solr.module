@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.12 2009/01/30 17:54:52 dww Exp $
+// $Id: project_solr.module,v 1.13 2009/01/30 18:56:19 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -265,12 +265,17 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
  * Perform the business logic to 
  */
 function project_solr_render_search_result($result) {
+  $project = node_load($result->nid);
+  $project = node_build_content($project, TRUE, FALSE);
   $download_table = '';
-  if (module_exists('project_release') && !empty($result->isfield_project_has_releases)) {
-    $download_table = project_release_table($result, 'recommended', 'all', t('Version'), FALSE, FALSE);
+  if (!empty($project->project_release['releases'])) {
+    $download_table = project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE);
   }
-  // TODO
+  
   $project_terms = '';
+  if (!empty($project->taxonomy)) {
+    $project_terms = theme('links', taxonomy_link('taxonomy terms', $project));
+  }
   return theme('project_solr_result', $result, $project_terms, $download_table);
 }
 
@@ -290,13 +295,14 @@ function project_solr_render_search_result($result) {
 function theme_project_solr_result($project, $project_terms = '', $download_table = '') {
   $output = '';
   $output .= '<div class="project-solr-teaser">';
+  $output .= '<div class="project-title">'. l($project->title, "node/$project->nid") .'</div>';
   $output .= '<div class="project-changed">'. format_date($project->changed) .'</div>';
-  $output .= '<div class="project-teaser">'. $project->body .'</div>';
+  $output .= '<div class="project-teaser">'. $project->teaser .'</div>';
   if (!empty($download_table)) {
     $output .= '<div class="project-download-table">'. $download_table .'</div>';
   }
   if (!empty($project_terms)) {
-    $output .= '<div class="project-terms">'. $project->terms .'</div>';
+    $output .= '<div class="project-terms">'. $project_terms .'</div>';
   }
   $output .= '</div>';
   return $output;
