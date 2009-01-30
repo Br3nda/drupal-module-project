@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.9 2009/01/30 17:46:59 dww Exp $
+// $Id: project_solr.module,v 1.10 2009/01/30 17:47:50 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -94,8 +94,18 @@ function project_solr_browse_summary_page() {
   return theme('item_list', $items);
 }
 
-function project_solr_browse_page($parent_term) {
-  $query = apachesolr_drupal_query("type:project_project");
+function project_solr_browse_page($term_name) {
+  $vid = _project_get_vid();
+
+  $parent_term = db_fetch_object(db_query("SELECT t.tid, t.name FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $term_name));
+
+  if (!$parent_term) {
+    // XXX: this is the Drupal 5 way...
+    drupal_not_found();
+  }
+  drupal_set_title($parent_term->name);
+
+  $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : '');
 
   $params = array(
     'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
@@ -110,9 +120,7 @@ function project_solr_browse_page($parent_term) {
     'qt' => 'standard',
   );
 
- if (isset($_GET['solrsort'])) {
-    $sort = check_plain($_GET['solrsort']);
-  }
+ $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
 
   // Validate sort parameter
   if (isset($sort) && preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) {
@@ -124,6 +132,12 @@ function project_solr_browse_page($parent_term) {
   // This is the object that does the communication with the solr server.
   $solr = apachesolr_get_solr();
 
+  // This hook allows modules to modify the query and params objects.
+  apachesolr_modify_query($query, $params, 'apachesolr_search');
+  if (!$query) {
+    return array();
+  }
+
   $response = $solr->search($query->get_query_basic(), $params['start'], $params['rows'], $params);
   // The response is cached so that it is accessible to the blocks and anything
   // else that needs it beyond the initial search.
@@ -132,7 +146,8 @@ function project_solr_browse_page($parent_term) {
   project_solr_response_cache(array($query, $response, $parent_term));
 
   // Set breadcrumb
-  drupal_set_breadcrumb($query->get_breadcrumb());
+  $breadcrumb = menu_get_active_breadcrumb();
+  drupal_set_breadcrumb($breadcrumb);
 
   pager_query("SELECT %d", $params['rows'], 0, NULL, $total);
   $output = "";
@@ -154,6 +169,9 @@ function project_solr_browse_page($parent_term) {
       $doc = node_load($doc->nid);
       $output .= theme('project_solr_teaser', $doc);
     }
+  }
+  else {
+    $output .= t('No project found in this category.');
   }
   return $output;
 }
@@ -188,28 +206,46 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
   }
 
   if ($op == 'view' && ($search = project_solr_response_cache())) {
-    list($query, $response, $main_type) = $search;
+    list($query, $response, $parent_term) = $search;
 
     if ($delta == 'project_solr_categories') {
       $facet = 'imfield_vid_'.  _project_get_vid();
       $terms = array();
+
+      // Get the terms at the current depth.
+      $current_tid = $parent_term->tid;
+      foreach ($query->get_fields() as $field) {
+        if ($field['#name'] == 'tid') {
+          $current_tid = $field['#value'];
+          break;
+        }
+      }
+      $current_level_terms = array();
+      $tree = taxonomy_get_tree(_project_get_vid(), $current_tid, -1, 1);
+      foreach ($tree as $term) {
+        $current_level_terms[$term->tid] = $term;
+      }
+
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
+        $active = $query->has_field('tid', $tid);
+        if (!isset($current_level_terms[$tid]) && (!$active || $tid != $current_tid)) {
+          continue;
+        }
         $unclick_link = '';
-        unset($active);
         $term = taxonomy_get_term($tid);
         $new_query = clone $query;
         $new_query->remove_field('type', 'project_project');
 
-        if ($active = $query->has_field('tid', $tid)) {
+        if ($active) {
           $contains_active = TRUE;
           $new_query->remove_field('tid', $term->tid);
-          $path = 'project/' . $main_type . '/' . $new_query->get_query_basic();
+          $path = 'project/' . drupal_strtolower($parent_term->name);
           $querystring = $new_query->get_url_querystring();
           $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
         }
         else {
           $new_query->add_field('tid', $term->tid);
-          $path = 'project/' . $main_type . '/' . $new_query->get_query_basic();
+          $path = 'project/' . drupal_strtolower($parent_term->name);
           $querystring = $new_query->get_url_querystring();
         }
         $countsort = $count == 0 ? '' : 1 / $count;
@@ -224,10 +260,9 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $vocab = taxonomy_vocabulary_load(_project_get_vid());
 
       ksort($terms);
-      $limit = isset($initial_limits['apachesolr_search'][$delta]) ? $initial_limits['apachesolr_search'][$delta] : $limit_default;
       return array(
         'subject' => $vocab->name,
-        'content' => theme('apachesolr_facet_list', $terms, $limit),
+        'content' => theme('apachesolr_facet_list', $terms, 200),
       );
       return;
     }
