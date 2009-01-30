@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.6 2009/01/30 16:32:02 damz Exp $
+// $Id: project_solr.module,v 1.7 2009/01/30 16:36:03 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -60,11 +60,14 @@ function project_solr_apachesolr_update_index(&$document, $node) {
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
       $week = reset($weeks);
+      $total_usage = 0;
       $query = db_query_range("SELECT * FROM {project_usage_week_projects} WHERE nid = %d AND timestamp = %d", $node->nid, $week);
       while ($usage = db_fetch_object($query)) {
         $key = 'isfield_project_release_api_usage_'. $usage->tid;
         $document->$key = $usage->count;
+        $total_usage += $usage->count;
       }
+      $document->isfield_project_release_total_usage = $total_usage;
     }
   }
 }
