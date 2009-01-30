@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.18 2009/01/30 19:54:51 dww Exp $
+// $Id: project_solr.module,v 1.19 2009/01/30 19:58:21 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -93,15 +93,18 @@ function project_solr_browse_page($term_name) {
   $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
   // Rewrite core compatibility filters
-  foreach ($query->get_fields() as $field) {
-    if ($field['#name'] == 'core') {
-      $tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $field['#value']));
-      if ($tid) {
-        $query->add_field('imfield_project_release_api_terms', $tid);
+  if (module_exists('project_release')) {
+    $compatibility_filters = array();
+    foreach ($query->get_fields() as $field) {
+      if ($field['#name'] == 'core') {
+        if ($tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE t.vid = %d AND LOWER(t.name) = LOWER('%s')", _project_release_get_api_vid(), $field['#value']))) {
+          $query->add_field('imfield_project_release_api_terms', $tid);
+        }
+        $compatibility_filters[] = $field['#value'];
       }
     }
+    $query->remove_field('core');
   }
-  $query->remove_field('core');
   
   $params = array(
     'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
@@ -117,7 +120,7 @@ function project_solr_browse_page($term_name) {
     'qt' => 'standard',
   );
 
- $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
+  $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
 
   // Validate sort parameter
   if (isset($sort) && preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) {
@@ -139,6 +142,14 @@ function project_solr_browse_page($term_name) {
   // The response is cached so that it is accessible to the blocks and anything
   // else that needs it beyond the initial search.
   $total = $response->response->numFound;
+
+  // Rewrite core compatibility filters (this is ugly).
+  if (module_exists('project_release')) {
+    foreach ($compatibility_filters as $filter) {
+      $query->add_field('core', $filter);
+    }
+    $query->remove_field('imfield_project_release_api_terms');
+  }
 
   project_solr_response_cache(array($query, $response, $parent_term));
 
@@ -223,7 +234,6 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $unclick_link = '';
         $term = taxonomy_get_term($tid);
         $new_query = clone $query;
-        $new_query->remove_field('type', 'project_project');
 
         $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
@@ -298,10 +308,9 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
         $term = taxonomy_get_term($tid);
 
-        $active = $query->has_field('core', $term->name);
+        $active = $query->has_field('imfield_project_release_api_terms', $tid);
         $unclick_link = '';
         $new_query = clone $query;
-        $new_query->remove_field('type', 'project_project');
 
         $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
