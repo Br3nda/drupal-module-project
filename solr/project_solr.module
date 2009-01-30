@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.14 2009/01/30 19:03:35 damz Exp $
+// $Id: project_solr.module,v 1.15 2009/01/30 19:29:16 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -115,6 +115,7 @@ function project_solr_browse_page($term_name) {
     'facet.sort' => 'true',
     'facet.field' => array(
       'imfield_vid_'. _project_get_vid(),
+      'imfield_project_release_api_terms',
     ),
     'facet.limit' => 200,
     'qt' => 'standard',
@@ -190,6 +191,10 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         'info' => t('Project: ordering'),
         'cache' => BLOCK_CACHE_PER_PAGE,
       ),
+      'project_solr_compability' => array(
+        'info' => t('Project: core compatibility'),
+        'cache' => BLOCK_CACHE_PER_PAGE,
+      ),
     );
   }
 
@@ -224,16 +229,14 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $new_query = clone $query;
         $new_query->remove_field('type', 'project_project');
 
+        $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
-          $contains_active = TRUE;
           $new_query->remove_field('tid', $term->tid);
-          $path = 'project/' . drupal_strtolower($parent_term->name);
           $querystring = $new_query->get_url_querystring();
           $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
         }
         else {
           $new_query->add_field('tid', $term->tid);
-          $path = 'project/' . drupal_strtolower($parent_term->name);
           $querystring = $new_query->get_url_querystring();
         }
         $countsort = $count == 0 ? '' : 1 / $count;
@@ -247,11 +250,13 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       }
       $vocab = taxonomy_vocabulary_load(_project_get_vid());
 
-      ksort($terms);
-      return array(
-        'subject' => $vocab->name,
-        'content' => theme('apachesolr_facet_list', $terms, 200),
-      );
+      if (!empty($terms)) {
+        ksort($terms);
+        return array(
+          'subject' => $vocab->name,
+          'content' => theme('apachesolr_facet_list', $terms, 200),
+        );
+      }
       return;
     }
     else if ($delta == 'project_solr_order') {
@@ -288,6 +293,48 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       }
       return array('subject' => t('Sort by'),
                    'content' => theme('apachesolr_sort_list', $sort_links));
+    }
+    else if (module_exists('project_release') && $delta == 'project_solr_compability') {
+      $vid = _project_release_get_api_vid();
+      $facet = 'imfield_project_release_api_terms';
+      $terms = array();
+
+      foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
+        $active = $query->has_field('tid', $tid);
+        $unclick_link = '';
+        $term = taxonomy_get_term($tid);
+        $new_query = clone $query;
+        $new_query->remove_field('type', 'project_project');
+
+        $path = 'project/' . drupal_strtolower($parent_term->name);
+        if ($active) {
+          $new_query->remove_field('tid', $term->tid);
+          $querystring = $new_query->get_url_querystring();
+          $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
+        }
+        else {
+          $new_query->add_field('tid', $term->tid);
+          $querystring = $new_query->get_url_querystring();
+        }
+        $countsort = $count == 0 ? '' : 1 / $count;
+        // if numdocs == 1 and !active, don't add.
+        if ($response->numFound == 1 && !$active) {
+          // skip
+        }
+        else {
+          $terms[$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('apachesolr_facet_item', $term->name, $count, $path, $querystring, $active, $unclick_link, $response->numFound);
+        }
+      }
+      $vocab = taxonomy_vocabulary_load(_project_get_vid());
+
+      if (!empty($terms)) {
+        ksort($terms);
+        return array(
+          'subject' => t('Filter by compatibility'),
+          'content' => theme('apachesolr_facet_list', $terms, 200),
+        );
+      }
+      return;
     }
   }
 }
