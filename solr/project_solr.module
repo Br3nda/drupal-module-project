@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.17 2009/01/30 19:43:46 damz Exp $
+// $Id: project_solr.module,v 1.18 2009/01/30 19:54:51 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -26,21 +26,6 @@ function project_solr_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   return $items;
-}
-
-/**
- * Implementation of hook_theme().
- */
-function project_solr_theme() {
-  return array(
-    'project_solr_result' => array(
-      'arguments' => array(
-        'project' => NULL,
-        'project_terms' => '',
-        'download_table' => '',
-      ),
-    ),
-  );
 }
 
 //----------------------------------------
@@ -101,9 +86,9 @@ function project_solr_browse_page($term_name) {
 
   if (!$parent_term) {
     // XXX: this is the Drupal 5 way...
-    drupal_not_found();
+    return drupal_not_found();
   }
-  drupal_set_title($parent_term->name);
+  drupal_set_title(check_plain($parent_term->name));
 
   $query = apachesolr_drupal_query("type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
 
@@ -361,44 +346,34 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 function project_solr_render_search_result($result) {
   $project = node_load($result->nid);
   $project = node_build_content($project, TRUE, FALSE);
-  $download_table = '';
+  $project->body = $project->teaser;
+
   if (!empty($project->project_release['releases'])) {
-    $download_table = project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE);
+    $project->download_table = project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE);
   }
   
+/*
+  $vid = _project_get_vid();
+  $tree = taxonomy_get_tree($vid, 0, -1, 1);
   $project_terms = '';
   if (!empty($project->taxonomy)) {
-    $project_terms = theme('links', taxonomy_link('taxonomy terms', $project));
+    $terms = array();
+    foreach ($project->taxonomy as $tid => $term) {
+      
+    }
   }
-  return theme('project_solr_result', $result, $project_terms, $download_table);
-}
-
-/**
- * Return the themeable output to display for Solr project search results.
- *
- * @param $project
- *   Pseudo-node object returned by ApacheSolr search query.
- * @param $project_terms
- *   HTML for the project taxonomy terms for this project.
- * @param $download_table
- *   
- *
- * @return
- *   Themed HTML output for the search result.
- */
-function theme_project_solr_result($project, $project_terms = '', $download_table = '') {
-  $output = '';
-  $output .= '<div class="project-solr-teaser">';
-  $output .= '<div class="project-title">'. l($project->title, "node/$project->nid") .'</div>';
-  $output .= '<div class="project-changed">'. format_date($project->changed) .'</div>';
-  $output .= '<div class="project-teaser">'. $project->teaser .'</div>';
-  if (!empty($download_table)) {
-    $output .= '<div class="project-download-table">'. $download_table .'</div>';
+*/
+  $project->links = array();
+  $project->links['read_more'] = array(
+    'title' => t('Find out more'),
+    'href' => "node/$project->nid",
+  );
+  if (!empty($project->project_issue['issues'])) {
+    $project->links['issues'] = array(
+      'title' => t('Bugs and feature requests'),
+      'href' => 'project/issues/'. $project->project['uri'],
+    );
   }
-  if (!empty($project_terms)) {
-    $output .= '<div class="project-terms">'. $project_terms .'</div>';
-  }
-  $output .= '</div>';
-  return $output;
+  return theme('project_summary', $project);
 }
 
