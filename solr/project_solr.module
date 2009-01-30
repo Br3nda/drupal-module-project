@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.26 2009/01/30 22:46:13 dww Exp $
+// $Id: project_solr.module,v 1.27 2009/01/30 23:36:46 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -42,13 +42,19 @@ function project_solr_apachesolr_update_index(&$document, $node) {
   if (module_exists('project_release') && $node->project_release['releases']) {
     $document->isfield_project_has_releases = 1;
 
+    $max_filetime = 0;
     $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
     while ($term = db_fetch_object($query)) {
       $document->setMultiValue('imfield_project_release_api_terms', $term->tid);
       $key = 'isfield_project_latest_release_timestamp_'. $term->tid;
-      $document->$key = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", 0, 1, $term->tid, $node->nid));
+      $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", 0, 1, $term->tid, $node->nid));
+      $document->$key = $filetime;
+      if ($filetime > $max_filetime) {
+        $max_filetime = $filetime;
+      }
     }
-
+    $document->isfield_project_latest_release_timestamp = $max_filetime;
+    
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
       $week = reset($weeks);
