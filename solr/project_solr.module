@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.11 2009/01/30 17:51:15 damz Exp $
+// $Id: project_solr.module,v 1.12 2009/01/30 17:54:52 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -153,20 +153,9 @@ function project_solr_browse_page($term_name) {
   $output = "";
   if ($total > 0) {
     foreach ($response->response->docs as $doc) {
-      $extra = array();
       $doc->created = strtotime($doc->created);
       $doc->changed = strtotime($doc->changed);
-      $result = array(
-        'link' => $doc->url,
-        'type' => node_get_types('name', $doc),
-        'title' => $doc->title,
-        'user' => theme('username', $doc),
-        'date' => $doc->created,
-        'node' => $doc,
-        'extra' => $extra,
-        'score' => $doc->score,
-      );
-      $output .= theme('project_solr_result', $doc);
+      $output .= project_solr_render_search_result($doc);
     }
   }
   else {
