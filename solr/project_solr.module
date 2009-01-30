@@ -1,5 +1,9 @@
 <?php
-// $Id: project_solr.module,v 1.1 2009/01/30 15:08:38 dww Exp $
+// $Id: project_solr.module,v 1.2 2009/01/30 15:46:31 dww Exp $
+
+//----------------------------------------
+// Core hooks
+//----------------------------------------
 
 /**
  * Implementation of hook_menu().
@@ -17,6 +21,23 @@ function project_solr_menu() {
 }
 
 /**
+ * Implementation of hook_theme().
+ */
+function project_solr_theme() {
+  return array(
+    'project_solr_teaser' => array(
+      'arguments' => array(
+        'project' => NULL,
+      ),
+    ),
+  );
+}
+
+//----------------------------------------
+// Page callbacks
+//----------------------------------------
+
+/**
  * Summary project browsing page.
  */
 function project_solr_browse_summary_page() {
@@ -28,5 +49,29 @@ function project_solr_browse_summary_page() {
   }
   drupal_set_title(t('Project types'));
   return theme('item_list', $items);
+}
+
+//----------------------------------------
+// Theme functions
+//----------------------------------------
+
+/**
+ * Return the themeable output to display for Solr project search results.
+ *
+ * @param $project
+ *   Pseudo-node object returned by ApacheSolr search query.
+ *
+ * @return
+ *   Themed HTML output for the search result.
+ */
+function theme_project_solr_teaser($project) {
+  $output = '';
+  $output .= '<div class="project-solr-teaser">';
+  $output .= '<div class="project-changed">'. $project->changed .'</div>';
+  $output .= '<div class="project-teaser">'. $project->body .'</div>';
+  $output .= '<div class="project-download-table">'. project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE) .'</div>';
+  $output .= '<div class="project-terms">'. $project->terms .'</div>';
+  $output .= '</div>';
+  return $output;
 }
 
