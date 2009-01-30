@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.102 2009/01/30 04:00:44 dww Exp $
+// $Id: project_release.module,v 1.103 2009/01/30 15:38:35 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1905,13 +1905,17 @@ function theme_project_release_table_overview($project, $table_type, $release_ty
  *
  * @param $print_size
  *   Should the table include the filesize of each release?
+ *
+ * @param $check_edit
+ *   Should the table check for and include edit links to user with access?
  */
-function project_release_table($project, $table_type = 'recommended', $release_type = 'all', $title = NULL, $print_size = TRUE) {
+function project_release_table($project, $table_type = 'recommended', $release_type = 'all', $title = NULL, $print_size = TRUE, $check_edit = TRUE) {
   if (empty($title)) {
     $title = t('Version');
   }
+
   // Can the current user edit releases for this project?
-  $can_edit = node_access('update', $project);
+  $can_edit = $check_edit ? node_access('update', $project) : FALSE;
 
   // Generate the cache ID.
   $cid = 'table:'. $project->nid .':'. $table_type .':'. $release_type .':'. $title .':'. (int)$print_size .':'. (int)$can_edit;
