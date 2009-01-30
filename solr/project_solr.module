@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.7 2009/01/30 16:36:03 dww Exp $
+// $Id: project_solr.module,v 1.8 2009/01/30 17:04:01 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -91,10 +91,10 @@ function project_solr_browse_summary_page() {
 }
 
 function project_solr_browse_page($parent_term) {
-  $query = apachesolr_drupal_query("type:project smfield_vid_Project_types:$parent_term");
+  $query = apachesolr_drupal_query("type:project_project");
 
   $params = array(
-    'fl' => 'id,nid,title,comment_count,type,created,changed,score,url,uid,name',
+    'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
     'rows' => variable_get('apachesolr_rows', 10),
     'facet' => 'true',
     'facet.mincount' => 1,
@@ -103,6 +103,7 @@ function project_solr_browse_page($parent_term) {
       'imfield_vid_'. _project_get_vid(),
     ),
     'facet.limit' => 200,
+    'qt' => 'standard',
   );
 
  if (isset($_GET['solrsort'])) {
@@ -134,14 +135,8 @@ function project_solr_browse_page($parent_term) {
   if ($total > 0) {
     foreach ($response->response->docs as $doc) {
       $extra = array();
-      $snippet = isset($response->highlighting->{$doc->id}->$hl_fl) ? theme('apachesolr_search_snippets', $doc, $response->highlighting->{$doc->id}->$hl_fl) : '';
-      if (!isset($doc->body)) {
-        $doc->body = $snippet;
-      }
       $doc->created = strtotime($doc->created);
       $doc->changed = strtotime($doc->changed);
-      $extra += node_invoke_nodeapi($doc, 'search result');
-      $extra['score'] = $doc->score;
       $result = array(
         'link' => $doc->url,
         'type' => node_get_types('name', $doc),
@@ -151,9 +146,9 @@ function project_solr_browse_page($parent_term) {
         'node' => $doc,
         'extra' => $extra,
         'score' => $doc->score,
-        'snippet' => $snippet,
       );
-      $output .= theme('project_solr_theme_functionXXX', $result);
+      $doc = node_load($doc->nid);
+      $output .= theme('project_solr_teaser', $doc);
     }
   }
   return $output;
@@ -189,15 +184,18 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
   }
 
   if ($op == 'view' && ($search = project_solr_response_cache())) {
-    list($response, $query, $main_type) = $search;
+    list($query, $response, $main_type) = $search;
 
     if ($delta == 'project_solr_categories') {
       $facet = 'imfield_vid_'.  _project_get_vid();
+      $terms = array();
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
         $unclick_link = '';
         unset($active);
         $term = taxonomy_get_term($tid);
         $new_query = clone $query;
+        $new_query->remove_field('type', 'project_project');
+
         if ($active = $query->has_field('tid', $tid)) {
           $contains_active = TRUE;
           $new_query->remove_field('tid', $term->tid);
@@ -216,19 +214,17 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
           // skip
         }
         else {
-          $terms[$term->vid][$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('apachesolr_facet_item', $term->name, $count, $path, $querystring, $active, $unclick_link, $response->numFound);
+          $terms[$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('apachesolr_facet_item', $term->name, $count, $path, $querystring, $active, $unclick_link, $response->numFound);
         }
       }
-      $vid = substr($delta, 12);
-      $vocab = taxonomy_vocabulary_load($vid);
-      if (is_numeric($vid) && is_array($terms) && isset($terms[$vid]) && is_array($terms[$vid])) {
-        ksort($terms[$vid]);
-        $limit = isset($initial_limits['apachesolr_search'][$delta]) ? $initial_limits['apachesolr_search'][$delta] : $limit_default;
-        return array(
-          'subject' => $vocab->name,
-          'content' => theme('apachesolr_facet_list', $terms[$vid], $limit),
-        );
-      }
+      $vocab = taxonomy_vocabulary_load(_project_get_vid());
+
+      ksort($terms);
+      $limit = isset($initial_limits['apachesolr_search'][$delta]) ? $initial_limits['apachesolr_search'][$delta] : $limit_default;
+      return array(
+        'subject' => $vocab->name,
+        'content' => theme('apachesolr_facet_list', $terms, $limit),
+      );
       return;
     }
   }
