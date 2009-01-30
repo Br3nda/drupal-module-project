@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.31 2009/01/29 23:04:55 dww Exp $
+// $Id: package-release-nodes.php,v 1.32 2009/01/30 00:18:16 dww Exp $
 
 /**
  * @file
@@ -175,13 +175,13 @@ function package_releases($type, $project_id) {
   $rel_node_join = '';
   $where_args = array();
   if ($type == 'tag') {
-    $where = " AND (prn.rebuild = %d) AND (prn.file_path = '')";
+    $where = " AND (prn.rebuild = %d) AND (f.filepath = '')";
     $where_args[] = 0;
     $plural = t('tags');
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
-    $where = " AND (prn.rebuild = %d) AND ((prn.file_path = '') OR (nr.status = %d))";
+    $where = " AND (prn.rebuild = %d) AND ((f.filepath = '') OR (nr.status = %d))";
     $where_args[] = 1;
     $where_args[] = 1;
     $plural = t('branches');
@@ -205,7 +205,7 @@ function package_releases($type, $project_id) {
     $where_args[] = $project_id;
   }
   $args = $args + $where_args;
-  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {files} f ON prf.fid = f.fid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
@@ -553,7 +553,7 @@ function verify_packages($task, $project_id) {
     $where = ' AND prn.pid = %d';
     $args[] = $project_id;
   }
-  $query = db_query("SELECT prn.nid, prn.file_path, prn.file_date, prn.file_hash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE n.status = %d AND prn.file_path <> '' $where", $args);
+  $query = db_query("SELECT prn.nid, f.filepath, f.timestamp, prf.filehash FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = %d AND f.filepath <> '' $where", $args);
   while ($release = db_fetch_object($query)) {
     // Grab all the results into RAM to free up the DB connection for
     // when we need to update the DB to correct metadata or log messages.
@@ -575,10 +575,10 @@ function verify_packages($task, $project_id) {
     $num_considered++;
     $nid = $release->nid;
     $view_link = l(t('view'), 'node/' . $nid);
-    $file_path = $release->file_path;
+    $file_path = $release->filepath;
     $full_path = $dest_root . '/' . $file_path;
-    $db_date = (int)$release->file_date;
-    $db_hash = $release->file_hash;
+    $db_date = (int)$release->timestamp;
+    $db_hash = $release->filehash;
 
     if (!is_file($full_path)) {
       $num_not_exist++;
@@ -622,12 +622,21 @@ function verify_packages($task, $project_id) {
     if (!$do_repair) {
       $num_need_repair++;
     }
-    else if (!db_query("UPDATE {project_release_nodes} SET file_hash = '%s', file_date = %d WHERE nid = %d", $real_hash, $real_date, $nid)) {
-      wd_err('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path), $view_link);
-      $num_failed++;
-    }
     else {
-      $num_repaired++;
+      $ret1 = $ret2 = FALSE;
+      // TODO: Broken for N>1 files per release.
+      $fid = db_result(db_query("SELECT fid FROM {project_release_file} WHERE nid = %d", $nid));
+      if (!empty($fid)) {
+        $ret1 = db_query("UPDATE {project_release_file} SET filehash = '%s' WHERE fid = %d", $real_hash, $fid);
+        $ret2 = db_query("UPDATE {files} SET timestamp = %d WHERE fid = %d", $real_date, $fid);
+      }
+      if ($ret1 && $ret2) {
+        $num_repaired++;
+      }
+      else {
+        wd_err('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path), $view_link);
+        $num_failed++;
+      }
     }
   }
 
@@ -804,7 +813,6 @@ function fix_info_file_version($file, $uri, $version) {
   return true;
 }
 
-
 /**
  * Update the DB with the new file info for a given release node.
  */
@@ -817,11 +825,17 @@ function package_release_update_node($nid, $file_path) {
   clearstatcache();
 
   // Now that we have the official file, compute some metadata:
+  $file_name = basename($file_path);
   $file_date = filemtime($full_path);
+  $file_size = filesize($full_path);
   $file_hash = md5_file($full_path);
+  $file_mime = file_get_mimetype($full_path);
+  $uid = db_result(db_query("SELECT n.uid FROM {node} n WHERE n.nid = %d", $nid));
 
-  // Finally, update the node in the DB about this file:
-  db_query("UPDATE {project_release_nodes} SET file_path = '%s', file_hash = '%s', file_date = %d WHERE nid = %d", $file_path, $file_hash, $file_date, $nid);
+  // Finally, save this file to the DB:
+  db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', %d, %d, %d)", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date);
+  $fid = db_last_insert_id('files', 'fid');
+  db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d, '%s')", $fid, $nid, $file_hash);
 
   // Don't auto-publish security updates.
   if ($task == 'tag' && db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
