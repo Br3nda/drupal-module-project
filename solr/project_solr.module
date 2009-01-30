@@ -1,0 +1,32 @@
+<?php
+// $Id: project_solr.module,v 1.1 2009/01/30 15:08:38 dww Exp $
+
+/**
+ * Implementation of hook_menu().
+ */
+function project_solr_menu() {
+  $items = array();
+  $items['project'] = array(
+    'title' => 'Project summary',
+    'description' => '',
+    'page callback' => 'project_solr_browse_summary_page',
+    'access arguments' => array('access content'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Summary project browsing page.
+ */
+function project_solr_browse_summary_page() {
+  $vid = _project_get_vid();
+  $tree = taxonomy_get_tree($vid, 0, -1, 1);
+  $items = array();
+  foreach ($tree as $term) {
+    $items[] = theme('project_type', $term);
+  }
+  drupal_set_title(t('Project types'));
+  return theme('item_list', $items);
+}
+

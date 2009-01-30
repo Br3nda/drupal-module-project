@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.334 2009/01/28 16:23:53 dww Exp $
+// $Id: project.module,v 1.335 2009/01/30 15:08:38 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -834,6 +834,11 @@ function project_theme() {
         'form' => NULL,
       ),
     ),
+    'project_type' => array(
+      'arguments' => array(
+        'term' => NULL,
+      ),
+    ),
   );
 }
 
@@ -974,3 +979,15 @@ function project_project_type_vocabulary_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Theme a project type item.
+ *
+ */
+function theme_project_type($term) {
+  $link = l($term->name, check_url('project/'. drupal_strtolower($term->name)));
+  $output = "<div>$link</div>\n";
+  if ($term->description) {
+    $output .= '<p>' . filter_xss($term->description) . '</p>';
+  }
+  return $output;
+}
