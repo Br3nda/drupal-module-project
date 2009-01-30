@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.21 2009/01/28 17:20:17 thehunmonkgroup Exp $
+// $Id: project_release.install,v 1.22 2009/01/30 00:34:26 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -334,16 +334,13 @@ function project_release_update_6002() {
   // Pull the next batch of files.
   $files = db_query_range("SELECT prn.*, n.uid FROM {project_release_nodes} prn INNER JOIN {node} n ON prn.nid = n.nid WHERE prn.file_path <> '' ORDER BY prn.nid", $_SESSION['project_release_update_6002'], $limit);
 
-  // We never stored mime type for release files, so this will have
-  // to do as a default type.
-  $filemime = 'application/octet-stream';
-
   // Loop through each file.
   while ($file = db_fetch_object($files)) {
     // Make sure file is still there.
     if (file_exists($file->file_path)) {
       $filename = basename($file->file_path);
       $filesize = filesize(file_create_path($file->file_path));
+      $filemime = file_get_mimetype($filename);
       db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', '%s', %d, %d)", $file->uid, $filename, $file->file_path, $filemime, $filesize, FILE_STATUS_PERMANENT, $file->file_date);
       $fid = db_last_insert_id('files', 'fid');
       db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d,'%s')", $fid, $file->nid, $file->file_hash);
