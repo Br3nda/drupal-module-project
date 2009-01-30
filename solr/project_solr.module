@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.8 2009/01/30 17:04:01 damz Exp $
+// $Id: project_solr.module,v 1.9 2009/01/30 17:46:59 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -36,6 +36,8 @@ function project_solr_theme() {
     'project_solr_teaser' => array(
       'arguments' => array(
         'project' => NULL,
+        'project_terms' => '',
+        'download_table' => '',
       ),
     ),
   );
@@ -52,7 +54,9 @@ function project_solr_theme() {
  * so we can facet on releases (API compatibility terms, etc).
  */
 function project_solr_apachesolr_update_index(&$document, $node) {
-  if (module_exists('project_release')) {
+  if (module_exists('project_release') && $node->project_release['releases']) {
+    $document->isfield_project_has_releases = 1;
+
     $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
     while ($term = db_fetch_object($query)) {
       $document->setMultiValue('imfield_project_release_api_terms', $term->tid);
@@ -231,25 +235,47 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 }
 
 //----------------------------------------
-// Theme functions
+// Theme-related functions
 //----------------------------------------
+
+/**
+ * Perform the business logic to 
+ */
+function project_solr_render_search_result($result) {
+  $download_table = '';
+  if (module_exists('project_release') && !empty($result->isfield_project_has_releases)) {
+    $download_table = project_release_table($result, 'recommended', 'all', t('Version'), FALSE, FALSE);
+  }
+  // TODO
+  $project_terms = '';
+  return theme('project_solr_result', $result, $project_terms, $download_table);
+}
 
 /**
  * Return the themeable output to display for Solr project search results.
  *
  * @param $project
  *   Pseudo-node object returned by ApacheSolr search query.
+ * @param $project_terms
+ *   HTML for the project taxonomy terms for this project.
+ * @param $download_table
+ *   
  *
  * @return
  *   Themed HTML output for the search result.
  */
-function theme_project_solr_teaser($project) {
+function theme_project_solr_result($project, $project_terms = '', $download_table = '') {
   $output = '';
   $output .= '<div class="project-solr-teaser">';
-  $output .= '<div class="project-changed">'. $project->changed .'</div>';
+  $output .= '<div class="project-changed">'. format_date($project->changed) .'</div>';
   $output .= '<div class="project-teaser">'. $project->body .'</div>';
-  $output .= '<div class="project-download-table">'. project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE) .'</div>';
-  $output .= '<div class="project-terms">'. $project->terms .'</div>';
+  if (!empty($download_table)) {
+    $output .= '<div class="project-download-table">'. $download_table .'</div>';
+  }
+  if (!empty($project_terms)) {
+    $output .= '<div class="project-terms">'. $project->terms .'</div>';
+  }
   $output .= '</div>';
   return $output;
 }
+
