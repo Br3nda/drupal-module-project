@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.27 2009/01/30 23:36:46 dww Exp $
+// $Id: project_solr.module,v 1.28 2009/01/30 23:57:53 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -103,9 +103,12 @@ function project_solr_browse_page($term_name) {
     $output .= '<p>' . filter_xss($parent_term->description) . '</p>';
   }
 
+  $text_query = !empty($_GET['text']) ? $_GET['text'] : '';
+
   include_once drupal_get_path('module', 'apachesolr') .'/Solr_Base_Query.php';
   include_once drupal_get_path('module', 'project_solr') .'/project-solr-query.php';
-  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project tid:{$parent_term->tid}", !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE);
+  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project tid:{$parent_term->tid} " . $text_query, !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : 'stitle asc');
+  $query->text_query = $text_query;
 
   // Rewrite core compatibility filters.
   if (module_exists('project_release')) {
@@ -219,6 +222,10 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         'info' => t('Project: core compatibility'),
         'cache' => BLOCK_CACHE_PER_PAGE,
       ),
+      'project_solr_text' => array(
+        'info' => t('Project: text search'),
+        'cache' => BLOCK_CACHE_PER_PAGE,
+      ),
     );
   }
 
@@ -277,9 +284,11 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         ksort($terms);
 
         // The currently selected term should be first.
-        $current_term = $terms[$current_tid];
-        unset($terms[$current_tid]);
-        $terms = array_merge(array($current_tid => $current_term), $terms);
+        if (isset($terms[$current_tid])) {
+          $current_term = $terms[$current_tid];
+          unset($terms[$current_tid]);
+          $terms = array_merge(array($current_tid => $current_term), $terms);
+        }
 
         return array(
           'subject' => $vocab->name,
@@ -306,7 +315,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       if (empty($solrsorts)) {
         $solrsorts = array(
-          'stitle' => 'asc'
+          'stitle' => 'asc',
         );
       }
 
@@ -315,12 +324,12 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $new_query = clone $query;
       foreach ($sorts as $type => $sort) {
         $new_sort = isset($solrsorts[$type]) ? $solrsorts[$type] == 'asc' ? 'desc' : 'asc' : $sort['default'];
-        $new_query->set_solrsort($type == "relevancy" ? '' : "solrsort={$type} {$new_sort}");
+        $new_query->set_solrsort($type == "relevancy" ? '' : "{$type} {$new_sort}");
         $active = isset($solrsorts[$type]) || ($type == "stitle" && !$solrsorts);
         $direction = isset($solrsorts[$type]) ? $solrsorts[$type] : '';
         $sort_links[] = theme('apachesolr_sort_link', $sort['name'], $path, $new_query->get_url_querystring(), $active, $direction);
       }
-      return array('subject' => t('Sort by'),
+      return array('subject' => t('Sort by...'),
                    'content' => theme('apachesolr_sort_list', $sort_links));
     }
     else if (module_exists('project_release') && $delta == 'project_solr_compability') {
@@ -362,7 +371,48 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       }
       return;
     }
+    else if ($delta == 'project_solr_text') {
+      return array(
+        'subject' => t('Filter by term'),
+        'content' => drupal_get_form('project_sort_freetext'),
+      );
+    }
   }
+}
+
+/**
+ * Form callback; display a free text form.
+ */
+function project_sort_freetext() {
+  list($query, $response, $parent_term) = project_solr_response_cache();
+
+  $form = array();
+  $form['text'] = array(
+    '#type' => 'textfield',
+    '#default_value' => $query->text_query,
+    '#size' => 30,
+  );
+  $form['path'] = array(
+    '#type' => 'value',
+    '#value' => 'project/' . drupal_strtolower($parent_term->name),
+  );
+  $form['querystring'] = array(
+    '#type' => 'value',
+    '#value' => $query->get_url_querystring(),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+  return $form;
+}
+
+/**
+ * Submit handler for project_sort_freetext().
+ */
+function project_sort_freetext_submit($form, &$form_state) {
+  $form_state['values']['querystring'] .= (!empty($form_state['values']['querystring']) ? '&' : '') . 'text=' . $form_state['values']['text'];
+  $form_state['redirect'] = array($form_state['values']['path'], $form_state['values']['querystring']);
 }
 
 //----------------------------------------
