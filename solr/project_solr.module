@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.28 2009/01/30 23:57:53 damz Exp $
+// $Id: project_solr.module,v 1.29 2009/01/31 00:59:51 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -329,8 +329,10 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         $direction = isset($solrsorts[$type]) ? $solrsorts[$type] : '';
         $sort_links[] = theme('apachesolr_sort_link', $sort['name'], $path, $new_query->get_url_querystring(), $active, $direction);
       }
-      return array('subject' => t('Sort by...'),
-                   'content' => theme('apachesolr_sort_list', $sort_links));
+      return array(
+        'subject' => t('Sort by'),
+        'content' => theme('apachesolr_sort_list', $sort_links),
+      );
     }
     else if (module_exists('project_release') && $delta == 'project_solr_compability') {
       $vid = _project_release_get_api_vid();
@@ -373,7 +375,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     }
     else if ($delta == 'project_solr_text') {
       return array(
-        'subject' => t('Filter by term'),
+        'subject' => t('Search @project_type', array('@project_type' => drupal_strtolower($parent_term->name))),
         'content' => drupal_get_form('project_sort_freetext'),
       );
     }
@@ -390,7 +392,7 @@ function project_sort_freetext() {
   $form['text'] = array(
     '#type' => 'textfield',
     '#default_value' => $query->text_query,
-    '#size' => 30,
+    '#size' => 20,
   );
   $form['path'] = array(
     '#type' => 'value',
