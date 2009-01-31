@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.30 2009/01/31 01:52:54 dww Exp $
+// $Id: project_solr.module,v 1.31 2009/01/31 07:33:13 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -121,7 +121,7 @@ function project_solr_browse_page($term_name) {
   }
   drupal_set_title(check_plain($parent_term->name));
   if (!empty($parent_term->description)) {
-    $output .= '<p>' . filter_xss($parent_term->description) . '</p>';
+    $output .= theme('project_type_description', $parent_term);
   }
 
   $text_query = !empty($_GET['text']) ? $_GET['text'] : '';
@@ -196,6 +196,7 @@ function project_solr_browse_page($term_name) {
   $breadcrumb = menu_get_active_breadcrumb();
   drupal_set_breadcrumb($breadcrumb);
 
+  $output .= '<div id="project-overview">';
   pager_query("SELECT %d", $params['rows'], 0, NULL, $total);
   if ($total > 0) {
     foreach ($response->response->docs as $doc) {
@@ -208,6 +209,7 @@ function project_solr_browse_page($term_name) {
     $output .= t('No projects found in this category.');
   }
 
+  $output .= '</div>'; // id="project-overview"
   $output .= theme('pager', NULL, $params['rows'], 0);
 
   return $output;

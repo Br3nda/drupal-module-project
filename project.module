@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.335 2009/01/30 15:08:38 dww Exp $
+// $Id: project.module,v 1.336 2009/01/31 07:33:13 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -839,6 +839,11 @@ function project_theme() {
         'term' => NULL,
       ),
     ),
+    'project_type_description' => array(
+      'arguments' => array(
+        'term' => NULL,
+      ),
+    ),
   );
 }
 
@@ -877,9 +882,11 @@ function theme_project_summary($project) {
     $output .= '<p><small>' . t('Last changed: !interval ago', array('!interval' => format_interval(time() - $project->changed, 2))) . '</small></p>';
   }
   $output .= $project->body;
-  $output .= theme('links', $project->links);
   if (!empty($project->download_table)) {
     $output .= $project->download_table;
+  }
+  if (!empty($project->links)) {
+    $output .= theme('links', $project->links);
   }
   if (!empty($project->terms)) {
     $output .= theme('links', $project->terms);
@@ -981,7 +988,6 @@ function project_project_type_vocabulary_validate($form, &$form_state) {
 
 /**
  * Theme a project type item.
- *
  */
 function theme_project_type($term) {
   $link = l($term->name, check_url('project/'. drupal_strtolower($term->name)));
@@ -991,3 +997,15 @@ function theme_project_type($term) {
   }
   return $output;
 }
+
+/**
+ * Theme a project type description.
+ */
+function theme_project_type_description($term) {
+  $output = '';
+  if ($term->description) {
+    $output .= '<p>' . filter_xss($term->description) . '</p>';
+  }
+  return $output;
+}
+
