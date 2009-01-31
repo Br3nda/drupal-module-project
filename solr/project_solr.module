@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.29 2009/01/31 00:59:51 dww Exp $
+// $Id: project_solr.module,v 1.30 2009/01/31 01:52:54 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -26,6 +26,27 @@ function project_solr_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   return $items;
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function project_solr_theme() {
+  return array(
+    'project_solr_no_count_facet_item' => array(
+      'arguments' => array(
+        'name' => NULL,
+        'path' => '',
+        'querystring' => '',
+        'active' => FALSE,
+        'unclick_link' => NULL,
+        'num_found' => NULL,
+        'project' => NULL,
+        'project_terms' => '',
+        'download_table' => '',
+      ),
+    ),
+  );
 }
 
 //----------------------------------------
@@ -359,7 +380,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
           // skip
         }
         else {
-          $terms[$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('apachesolr_facet_item', $term->name, $count, $path, $querystring, $active, $unclick_link, $response->numFound);
+          $terms[$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('project_solr_no_count_facet_item', $term->name, $path, $querystring, $active, $unclick_link, $response->numFound);
         }
       }
       $vocab = taxonomy_vocabulary_load(_project_get_vid());
@@ -457,3 +478,17 @@ function project_solr_render_search_result($result) {
   }
   return theme('project_summary', $project);
 }
+
+function theme_project_solr_no_count_facet_item($name, $path, $querystring = '', $active = FALSE, $unclick_link = NULL, $num_found = NULL) {
+  $attributes = array();
+  if ($active) {
+    $attributes['class'] = 'active';
+  }
+  if ($unclick_link) {
+    return $unclick_link . ' '. check_plain($name);
+  }
+  else {
+    return apachesolr_l($name,  $path, array('attributes' => $attributes, 'query' => $querystring));
+  }
+}
+
