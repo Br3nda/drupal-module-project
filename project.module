@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.336 2009/01/31 07:33:13 dww Exp $
+// $Id: project.module,v 1.337 2009/02/01 18:14:11 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -1007,5 +1007,40 @@ function theme_project_type_description($term) {
     $output .= '<p>' . filter_xss($term->description) . '</p>';
   }
   return $output;
+}
+
+
+/**
+ * Find a project node ID (nid) based on project short name (uri).
+ *
+ * @param $uri
+ *   The project shortname (uri) to search for.
+ *
+ * @return
+ *   The project node ID (nid) of the given project, or NULL if not found.
+ */
+function project_get_nid_from_uri($uri) {
+  static $nids = array();
+  if (!isset($nids[$uri])) {
+    $nids[$uri] = db_result(db_query_range("SELECT nid FROM {project_projects} WHERE uri = '%s'", $uri, 0, 1));
+  }
+  return $nids[$uri];
+}
+
+/**
+ * Find a project shortname (uri) based on project node ID (nid).
+ *
+ * @param $uri
+ *   The project node ID (nid) to search for.
+ *
+ * @return
+ *   The project shortname (uri) of the given project, or NULL if not found.
+ */
+function project_get_uri_from_nid($nid) {
+  static $uris = array();
+  if (!isset($uris[$nid])) {
+    $uris[$nid] = db_result(db_query_range("SELECT uri FROM {project_projects} WHERE nid = %d", $nid, 0, 1));
+  }
+  return $uris[$nid];
 }
 

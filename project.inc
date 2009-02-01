@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.136 2009/01/27 14:38:36 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.137 2009/02/01 18:14:11 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -234,7 +234,11 @@ function project_project_validate(&$node) {
         }
       }
     }
-    if (in_array(strtolower($node->project['uri']), $reserved_names) || db_result(db_query("SELECT COUNT(*) FROM {project_projects} WHERE uri = '%s' AND nid <> %d", $node->project['uri'], $node->nid))) {
+    if (in_array(strtolower($node->project['uri']), $reserved_names)) {
+      form_set_error('project][uri', t('This project name is reserved.'));
+    }
+    $existing_nid = project_get_nid_from_uri($node->project['uri']);
+    if (!empty($existing_nid) && $existing_nid != $node->nid) {
       form_set_error('project][uri', t('This project name is already in use.'));
     }
   }
@@ -521,21 +525,11 @@ function project_project_access($op, $node, $account) {
 }
 
 function project_project_retrieve($key = 0) {
-  if ($key) {
-    if (is_numeric($key)) {
-      return node_load(array('nid' => $key, 'type' => 'project_project'));
-    }
-    else {
-      $nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s' LIMIT %d", $key, 1));
-      if (!$nid) {
-        return new StdClass();
-      }
-      else {
-        return node_load(array('nid' => $nid, 'type' => 'project_project'));
-      }
-    }
+  if (!is_numeric($key)) {
+    $nid = project_get_nid_from_uri($key);
   }
-  return NULL;
+  $node = node_load($nid);
+  return ($node->type == 'project_project') ? $node : NULL;
 }
 
 function project_developers($nid = 0) {

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.103 2009/01/30 15:38:35 dww Exp $
+// $Id: project_release.module,v 1.104 2009/02/01 18:14:11 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -588,7 +588,7 @@ function project_release_node_form_validate(&$form, &$form_state) {
     $project_name = $project->project['uri'];
   }
   elseif (isset($project_release['pid'])) {
-    $project_name = db_result(db_query("SELECT uri FROM {project_projects} WHERE nid = %d", $form_state['values']['project_release']['pid']));
+    $project_name = project_get_uri_from_nid($form_state['values']['project_release']['pid']);
   }
 
   if (isset($form_state['values']['title'])) {
