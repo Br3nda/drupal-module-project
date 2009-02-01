@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.34 2009/02/01 17:43:09 dww Exp $
+// $Id: project_solr.module,v 1.35 2009/02/01 17:48:46 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -56,10 +56,19 @@ function project_solr_theme() {
 /**
  * Implementation of hook_apachesolr_update_index().
  *
+
  * This adds information about releases for the project to the Solr document
- * so we can facet on releases (API compatibility terms, etc).
+ * so we can facet on releases (API compatibility terms, usage, etc), along
+ * with other project-specific metadata (e.g. shortname/uri).
+ *
+ * Beware that this hook is invoked for all nodes, so we should be careful in
+ * here to check that we're really dealing with a project node before trying
+ * to access any project-specifc data.
  */
 function project_solr_apachesolr_update_index(&$document, $node) {
+  if (!empty($node->project['uri'])) {
+    $document->ssfield_project_uri = $node->project['uri'];
+  }
   if (module_exists('project_release') && !empty($node->project_release['releases'])) {
     $document->isfield_project_has_releases = 1;
 
