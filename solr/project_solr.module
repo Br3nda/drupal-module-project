@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.33 2009/02/01 17:42:29 dww Exp $
+// $Id: project_solr.module,v 1.34 2009/02/01 17:43:09 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -128,7 +128,7 @@ function project_solr_browse_page($term_name) {
 
   include_once drupal_get_path('module', 'apachesolr') .'/Solr_Base_Query.php';
   include_once drupal_get_path('module', 'project_solr') .'/project-solr-query.php';
-  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project tid:{$parent_term->tid} " . $text_query, !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : 'stitle asc');
+  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project isfield_project_has_releases:1 tid:{$parent_term->tid} " . $text_query, !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : 'stitle asc');
   $query->text_query = $text_query;
 
   // Rewrite core compatibility filters.
