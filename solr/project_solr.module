@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.37 2009/02/04 00:47:04 dww Exp $
+// $Id: project_solr.module,v 1.38 2009/02/04 02:09:06 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -382,15 +382,18 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       foreach ($active_terms as $tid => $term_name) {
         if (!empty($active_term_counts[$tid])) {
           $active = $query->has_field('core', $term_name);
-
-          $new_query = clone $query;
-          $new_query->remove_field('core');
-          $new_query->add_field('core', $term_name);
-
           $path = 'project/' . drupal_strtolower($parent_term->name);
-          $querystring = $new_query->get_url_querystring();
-
-          $unclick_link = $active ? theme('apachesolr_unclick_link', $path, $querystring) : '';
+          $new_query = clone $query;
+          $new_query->remove_field('core', $term->tid);
+          if ($active) {
+            $querystring = $new_query->get_url_querystring();
+            $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
+          }
+          else {
+            $new_query->add_field('core', $term_name);
+            $querystring = $new_query->get_url_querystring();
+            $unclick_link = '';
+          }
           $terms[$term_name] = theme('project_solr_no_count_facet_item', $term_name, $path, $querystring, $active, $unclick_link, $response->numFound);
         }
       }
