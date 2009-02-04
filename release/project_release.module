@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.104 2009/02/01 18:14:11 dww Exp $
+// $Id: project_release.module,v 1.105 2009/02/04 01:18:19 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1140,15 +1140,11 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
  * Returns a listing of all active project release compatibility terms
  * in the system.
  * @ingroup project_release_api
- *
- * @TODO: Consider not adding $terms[-1] = '<all>' here since views
- * will handle that on its own.
  */
 function project_release_compatibility_list() {
   static $terms = array();
   if (empty($terms) && $tree = project_release_get_api_taxonomy()) {
     $tids = variable_get('project_release_active_compatibility_tids', '');
-    $terms[-1] = '<'. t('all') .'>';
     foreach ($tree as $term) {
       if (($tids && !empty($tids[$term->tid])) || !$tids) {
         $terms[$term->tid] = $term->name;
@@ -1157,78 +1153,6 @@ function project_release_compatibility_list() {
   }
   return $terms;
 }
-
-/**
- * Creates a form array for the "filter by version" selector when browsing
- * projects on a site with 'project_release_browse_versions' enabled.
- * @see project_page_overview
- */
-function project_release_version_filter_form($version = NULL) {
-  global $user;
-  if ($terms = project_release_compatibility_list()) {
-    if ($user->uid) {
-      if (is_null($version)) {
-        $version = isset($_SESSION['project_version']) ? $_SESSION['project_version'] : variable_get('project_release_overview', -1);
-      }
-      $form['version_tid'] = array(
-        '#type' => 'select',
-        '#default_value' => $version,
-        '#options' => $terms,
-      );
-      $form['submit'] = array(
-        '#type' => 'submit',
-        '#value' => t('Filter'),
-      );
-    }
-    else {
-      $destination = drupal_get_destination();
-      $default_version = variable_get('project_release_overview', -1);
-      $form['version_tid'] = array(
-        '#type' => 'select',
-        '#default_value' => $default_version,
-        '#options' => array($default_version => $terms[$default_version]),
-        '#disabled' => TRUE,
-      );
-      if (variable_get('user_register', 1)) {
-        // Users can register themselves.
-        $form['version_login'] = array('#value' => t('<a href="@login">Login</a> or <a href="@register">register</a> to modify the filter.', array('@login' => url('user/login', array('query' => $destination)), '@register' => url('user/register', array('query' => $destination)))));
-      }
-      else {
-        // Only admins can add new users, no public registration.
-        $form['version_login'] = array('#value' => t('<a href="@login">Login</a> to modify the filter.', array('@login' => url('user/login', array('query' => $destination)))));
-      }
-    }
-    $form['#redirect'] = FALSE;
-  }
-  return isset($form) ? $form : '';
-}
-
-function project_release_version_filter_form_submit($form, &$form_state) {
-  if (isset($form_state['values']['version_tid'])) {
-    $_SESSION['project_version'] = $form_state['values']['version_tid'];
-  }
-}
-
-function project_release_version_filter_form_validate($form, &$form_state) {
-  global $user;
-  if (!$user->uid && $form_state['values']['version_tid'] != variable_get('project_release_overview', -1)) {
-    $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
-    form_set_error('version_tid', t('You must login or register to modify the @vocab filter.', array('@vocab' => $vocab->name)));
-  }
-}
-
-function theme_project_release_version_filter_form($form) {
-  if (project_release_get_api_taxonomy()) {
-    $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
-    $label = check_plain($vocab->name);
-  }
-  else {
-    $label = t('version');
-  }
-  $output = '<div class="container-inline">'. t('Filter by !label:', array('!label' => $label)) . drupal_render($form) .'</div>';
-  return $output;
-}
-
 
 /**
  * @defgroup project_release_fapi Form API hooks
@@ -1267,10 +1191,7 @@ function project_release_project_edit_releases($node) {
 
 function project_release_project_edit_form($form_state, $node) {
   $active_tids = project_release_compatibility_list();
-  // Make sure there is more than 1 active tid because
-  // project_release_compatibility_list() will always
-  // add $terms[-1] = 'all'.
-  if (count($active_tids) > 1) {
+  if (count($active_tids) > 0) {
     // Get all the data about major versions for this project.
     $data = _project_release_get_version_major_data($node);
 
@@ -1335,11 +1256,6 @@ function _project_release_get_version_major_data($node) {
   $params = array();
   $params[] = $node->nid;
   $active_tids = project_release_compatibility_list();
-  // Get rid of -1 => 'all' element inserted by
-  // project_release_compatibility_list().
-  if (isset($active_tids[-1])) {
-    unset($active_tids[-1]);
-  }
   $tid_where = '';
   if (!empty($active_tids)) {
     $tid_where = 'prsv.tid IN ('. db_placeholders($active_tids) .')';
@@ -1927,18 +1843,15 @@ function project_release_table($project, $table_type = 'recommended', $release_t
   $join = $where = $order_by = '';
   $args = array();
   $tids = project_release_compatibility_list();
-  if ($tids) {
-    unset($tids[-1]); // get rid of that one.
-    if (!empty($tids)) {
-      $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in ('
-        . db_placeholders($tids) .') '
-        .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
-      $args = array_keys($tids);
-      $selects[] = 'tn.tid';
-      $selects[] = 'td.name as api_term_name';
-      $orderby[] = 'td.weight';
-      $orderby[] = 'td.name';
-    }
+  if (!empty($tids)) {
+    $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid in ('
+      . db_placeholders($tids) .') '
+      .' INNER JOIN {term_data} td ON td.tid = tn.tid ';
+    $args = array_keys($tids);
+    $selects[] = 'tn.tid';
+    $selects[] = 'td.name as api_term_name';
+    $orderby[] = 'td.weight';
+    $orderby[] = 'td.name';
   }
 
   if ($tids) {
@@ -2521,11 +2434,6 @@ function project_release_theme() {
         'release_type' => NULL,
         'title' => NULL,
         'print_size' => NULL,
-      ),
-    ),
-    'project_release_version_filter_form' => array(
-      'arguments' => array(
-        'form' => NULL,
       ),
     ),
     'project_release_node_form_version_elements' => array(
