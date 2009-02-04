@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.36 2009/02/04 00:42:32 dww Exp $
+// $Id: project_solr.module,v 1.37 2009/02/04 00:47:04 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -370,34 +370,32 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $vid = _project_release_get_api_vid();
       $facet = 'imfield_project_release_api_terms';
       $terms = array();
+      $active_terms = array_reverse(project_release_compatibility_list(FALSE), TRUE);
 
+      $active_term_counts = array();
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
-        $term = taxonomy_get_term($tid);
-
-        $active = $query->has_field('core', $term->name);
-
-        $new_query = clone $query;
-        $new_query->remove_field('core');
-        $new_query->add_field('core', $term->name);
-
-        $path = 'project/' . drupal_strtolower($parent_term->name);
-        $querystring = $new_query->get_url_querystring();
-
-        $unclick_link = $active ? theme('apachesolr_unclick_link', $path, $querystring) : '';
-
-        $countsort = $count == 0 ? '' : 1 / $count;
-        // if numdocs == 1 and !active, don't add.
-        if ($response->numFound == 1 && !$active) {
-          // skip
-        }
-        else {
-          $terms[$active ? $countsort . $term->name : 1 + $countsort . $term->name] = theme('project_solr_no_count_facet_item', $term->name, $path, $querystring, $active, $unclick_link, $response->numFound);
+        if (!empty($active_terms[$tid])) {
+          $active_term_counts[$tid] = $count;
         }
       }
-      $vocab = taxonomy_vocabulary_load(_project_get_vid());
+
+      foreach ($active_terms as $tid => $term_name) {
+        if (!empty($active_term_counts[$tid])) {
+          $active = $query->has_field('core', $term_name);
+
+          $new_query = clone $query;
+          $new_query->remove_field('core');
+          $new_query->add_field('core', $term_name);
+
+          $path = 'project/' . drupal_strtolower($parent_term->name);
+          $querystring = $new_query->get_url_querystring();
+
+          $unclick_link = $active ? theme('apachesolr_unclick_link', $path, $querystring) : '';
+          $terms[$term_name] = theme('project_solr_no_count_facet_item', $term_name, $path, $querystring, $active, $unclick_link, $response->numFound);
+        }
+      }
 
       if (!empty($terms)) {
-        ksort($terms);
         return array(
           'subject' => t('Filter by compatibility'),
           'content' => theme('apachesolr_facet_list', $terms, 200),
