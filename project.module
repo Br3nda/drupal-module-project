@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.337 2009/02/01 18:14:11 dww Exp $
+// $Id: project.module,v 1.338 2009/02/04 01:36:52 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -382,9 +382,9 @@ function project_menu() {
   // projects'.  At this point I'm not sure what the best way to do this is,
   // but we need to figure this out to keep the same functionality.
 
-  $items['project/autocomplete'] = array(
+  $items['project/autocomplete/project'] = array(
     'title' => 'Autocomplete project',
-    'page callback' => 'project_autocomplete',
+    'page callback' => 'project_autocomplete_project',
     'access callback' => 'project_project_access_any',
     'type' => MENU_CALLBACK,
   );
@@ -756,7 +756,7 @@ function project_quick_navigate_title_form() {
     '#title' => t('Project name'),
     '#type' => 'textfield',
     '#size' => 20,
-    '#autocomplete_path' => 'project/autocomplete',
+    '#autocomplete_path' => 'project/autocomplete/project',
   );
   $form['project'] = array(
     '#type' => 'submit',
@@ -907,9 +907,9 @@ function theme_project_feed_icon($url, $title) {
 /**
  * Return a string of valid project names for use with JS autocomplete fields.
  */
-function project_autocomplete($string = '') {
+function project_autocomplete_project($string = '') {
   $matches = array();
-  $result = db_query_range("SELECT n.title FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid WHERE LOWER(n.title) LIKE LOWER('%%%s%%')", $string, 0, 10);
+  $result = db_query_range(db_rewrite_sql("SELECT n.title FROM {node} n WHERE n.status = %d AND n.type = '%s' AND LOWER(n.title) LIKE LOWER('%%%s%%')"), 1, 'project_project', $string, 0, 10);
   while ($project = db_fetch_object($result)) {
     $matches[$project->title] = check_plain($project->title);
   }
