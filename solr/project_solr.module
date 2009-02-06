@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.39 2009/02/06 21:11:28 dww Exp $
+// $Id: project_solr.module,v 1.40 2009/02/06 22:23:26 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -169,6 +169,9 @@ function project_solr_browse_page($term_name) {
   // Validate sort parameter
   if (isset($sort) && preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) {
     $params['sort'] = $sort;
+  }
+  elseif (empty($_GET['text'])) {
+    $params['sort'] = 'stitle asc';
   }
 
   $page = isset($_GET['page']) ? $_GET['page'] : 0;
