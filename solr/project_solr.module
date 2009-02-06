@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.38 2009/02/04 02:09:06 dww Exp $
+// $Id: project_solr.module,v 1.39 2009/02/06 21:11:28 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -135,24 +135,12 @@ function project_solr_browse_page($term_name) {
 
   $text_query = !empty($_GET['text']) ? $_GET['text'] : '';
 
-  include_once drupal_get_path('module', 'apachesolr') .'/Solr_Base_Query.php';
-  include_once drupal_get_path('module', 'project_solr') .'/project-solr-query.php';
-  $query = new Project_Solr_Query(apachesolr_get_solr(), "type:project_project isfield_project_has_releases:1 tid:{$parent_term->tid} " . $text_query, !empty($_GET['filters']) ? $_GET['filters'] : FALSE, isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : 'stitle asc');
+  $query = apachesolr_current_query($text_query);
+
+  // TODO: What is this for?
   $query->text_query = $text_query;
 
-  // Rewrite core compatibility filters.
-  if (module_exists('project_release')) {
-    $compatibility_filters = array();
-    foreach ($query->get_fields() as $field) {
-      if ($field['#name'] == 'core') {
-        if ($tid = db_result(db_query("SELECT t.tid FROM {term_data} t WHERE t.vid = %d AND LOWER(t.name) = LOWER('%s')", _project_release_get_api_vid(), $field['#value']))) {
-          $query->add_field('imfield_project_release_api_terms', $tid);
-        }
-        $compatibility_filters[] = $field['#value'];
-      }
-    }
-    $query->remove_field('core');
-  }
+  $query->add_field_aliases(array('imfield_project_release_api_terms' => 'drupal_core'));
 
   $params = array(
     'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
@@ -165,11 +153,19 @@ function project_solr_browse_page($term_name) {
       'imfield_project_release_api_terms',
     ),
     'facet.limit' => 200,
-    'qt' => 'standard',
   );
 
-  $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
+  // We add 'fq' (filter query) parameters here to include all the constant
+  // filters for the query -- project nodes of the given top-level type that
+  // have releases (if project_release is enabled).
+  $fq[] = 'type:project_project';
+  $fq[] = 'tid:'. $parent_term->tid;
+  if (module_exists('project_release')) {
+    $fq[] = 'isfield_project_has_releases:1';
+  }
+  $params['fq'][] = '('. implode(' AND ', $fq) .')';
 
+  $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
   // Validate sort parameter
   if (isset($sort) && preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) {
     $params['sort'] = $sort;
@@ -177,6 +173,7 @@ function project_solr_browse_page($term_name) {
 
   $page = isset($_GET['page']) ? $_GET['page'] : 0;
   $params['start'] = $page * $params['rows'];
+
   // This is the object that does the communication with the solr server.
   $solr = apachesolr_get_solr();
 
@@ -187,17 +184,10 @@ function project_solr_browse_page($term_name) {
   }
 
   $response = $solr->search($query->get_query_basic(), $params['start'], $params['rows'], $params);
+
   // The response is cached so that it is accessible to the blocks and anything
   // else that needs it beyond the initial search.
   $total = $response->response->numFound;
-
-  // Rewrite core compatibility filters (this is ugly).
-  if (module_exists('project_release')) {
-    foreach ($compatibility_filters as $filter) {
-      $query->add_field('core', $filter);
-    }
-    $query->remove_field('imfield_project_release_api_terms');
-  }
 
   project_solr_response_cache(array($query, $response, $parent_term));
 
@@ -381,16 +371,16 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       foreach ($active_terms as $tid => $term_name) {
         if (!empty($active_term_counts[$tid])) {
-          $active = $query->has_field('core', $term_name);
+          $active = $query->has_field('imfield_project_release_api_terms', $tid);
           $path = 'project/' . drupal_strtolower($parent_term->name);
           $new_query = clone $query;
-          $new_query->remove_field('core', $term->tid);
+          $new_query->remove_field('imfield_project_release_api_terms', $term->tid);
           if ($active) {
             $querystring = $new_query->get_url_querystring();
             $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
           }
           else {
-            $new_query->add_field('core', $term_name);
+            $new_query->add_field('imfield_project_release_api_terms', $tid);
             $querystring = $new_query->get_url_querystring();
             $unclick_link = '';
           }
