@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.105 2009/02/04 01:18:19 dww Exp $
+// $Id: project_release.module,v 1.106 2009/02/07 10:26:42 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -240,24 +240,14 @@ function project_release_node_info() {
  * @ingroup project_release_node
  */
 function project_release_form(&$release, &$form_state) {
-
   if (arg(1) == 'add') {
     // Initialize variables and $release object properties to prevent notices.
     $is_edit = FALSE;
     $admin = NULL;
-    $release->project_release = array();
-    $release->project_release['version_major'] = NULL;
-    $release->project_release['version_minor'] = NULL;
-    $release->project_release['version_patch'] = NULL;
-    $release->project_release['version_extra'] = NULL;
-    $release->project_release['tag'] = '';
-    $release->project_release['version'] = '';
-    $release->project_release['files']= array();
-    $release->project_release['version_api_tid'] = NULL;
-    $release->project_release['pid'] = (integer) arg(3);
-    $project = node_load($release->project_release['pid']);
+    $pid = (integer) arg(3);
+    $project = node_load($pid);
     if (!isset($project) || $project->type != 'project_project') {
-      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $release->project_release['pid'])), 'error');
+      drupal_set_message(t('Node %nid is not a valid project.', array('%nid' => $pid)), 'error');
       drupal_goto('node/add/project-release');
     }
     // Make sure this user should have permissions to add releases for
@@ -273,6 +263,7 @@ function project_release_form(&$release, &$form_state) {
       '#value' => $project,
     );
     $format = project_release_get_version_format($project);
+    $release->project_release['pid'] = $pid;
   }
   else {
     global $user;
@@ -330,9 +321,16 @@ function project_release_form(&$release, &$form_state) {
     '#theme' => 'project_release_node_form_version_elements',
   );
 
+  if (!empty($release->project_release['pid'])) {
+    $pid = $release->project_release['pid'];
+  }
+  elseif (!empty($form_state['values']['project_release']['pid'])) {
+    $pid = $form_state['values']['project_release']['pid'];
+  }
+  // else?
   $form['project_release']['pid'] = array(
     '#type' => 'value',
-    '#value' => $release->project_release['pid'],
+    '#value' => $pid,
   );
 
   $form['validate_version'] = array('#type' => 'value', '#value' => 1);
