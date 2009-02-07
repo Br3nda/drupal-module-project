@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.34 2009/02/07 10:41:25 dww Exp $
+// $Id: package-release-nodes.php,v 1.35 2009/02/07 10:42:42 dww Exp $
 
 /**
  * @file
@@ -204,7 +204,7 @@ function package_releases($type, $project_id) {
     $where .= ' AND prn.pid = %d';
     $where_args[] = $project_id;
   }
-  $args = $args + $where_args;
+  $args = array_merge($args, $where_args);
   $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join LEFT JOIN {project_release_file} prf ON prn.nid = prf.nid LEFT JOIN {files} f ON prf.fid = f.fid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
