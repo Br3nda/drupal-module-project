@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.42 2009/02/07 06:27:28 dww Exp $
+// $Id: project_solr.module,v 1.43 2009/02/07 06:43:05 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -343,7 +343,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         }
       }
 
-      if (empty($solrsorts)) {
+      if (empty($solrsorts) && empty($_GET['text'])) {
         $solrsorts = array(
           'stitle' => 'asc',
         );
@@ -355,7 +355,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       foreach ($sorts as $type => $sort) {
         $new_sort = isset($solrsorts[$type]) ? $solrsorts[$type] == 'asc' ? 'desc' : 'asc' : $sort['default'];
         $new_query->set_solrsort($type == "relevancy" ? '' : "{$type} {$new_sort}");
-        $active = isset($solrsorts[$type]) || ($type == "stitle" && !$solrsorts);
+        $active = isset($solrsorts[$type]);
         $direction = isset($solrsorts[$type]) ? $solrsorts[$type] : '';
         $sort_links[] = theme('apachesolr_sort_link', $sort['name'], $path, $new_query->get_url_querystring(), $active, $direction);
       }
