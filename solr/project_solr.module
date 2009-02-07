@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.43 2009/02/07 06:43:05 dww Exp $
+// $Id: project_solr.module,v 1.44 2009/02/07 08:34:51 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -143,7 +143,7 @@ function project_solr_browse_page($term_name) {
   $query->add_field_aliases(array('imfield_project_release_api_terms' => 'drupal_core'));
 
   $params = array(
-    'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name',
+    'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,isfield_project_release_total_usage,isfield_project_latest_release_timestamp',
     'rows' => variable_get('apachesolr_rows', 10),
     'facet' => 'true',
     'facet.mincount' => 1,
