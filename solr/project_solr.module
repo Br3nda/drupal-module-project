@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.40 2009/02/06 22:23:26 dww Exp $
+// $Id: project_solr.module,v 1.41 2009/02/07 06:21:23 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -325,9 +325,14 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     else if ($delta == 'project_solr_order') {
       $sorts = array(
         'stitle' => array('name' => t('Title'), 'default' => 'asc'),
-        'name' => array('name' => t('Author'), 'default' => 'asc'),
-        'created' => array('name' => t('Date'), 'default' => 'desc'),
+        'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
+      if (module_exists('project_release')) {
+        $sorts['isfield_project_latest_release_timestamp'] = array('name' => t('Last release'), 'default' => 'desc');
+      }
+      if (module_exists('project_usage')) {
+        $sorts['isfield_project_release_total_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
+      }
 
       $solrsorts = array();
       $sort_parameter = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE;
