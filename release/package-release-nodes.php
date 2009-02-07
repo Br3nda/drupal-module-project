@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.32 2009/01/30 00:18:16 dww Exp $
+// $Id: package-release-nodes.php,v 1.33 2009/02/07 10:35:31 dww Exp $
 
 /**
  * @file
@@ -175,13 +175,13 @@ function package_releases($type, $project_id) {
   $rel_node_join = '';
   $where_args = array();
   if ($type == 'tag') {
-    $where = " AND (prn.rebuild = %d) AND (f.filepath = '')";
+    $where = " AND (prn.rebuild = %d) AND (f.filepath IS NULL OR f.filepath = '')";
     $where_args[] = 0;
     $plural = t('tags');
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
-    $where = " AND (prn.rebuild = %d) AND ((f.filepath = '') OR (nr.status = %d))";
+    $where = " AND (prn.rebuild = %d) AND ((f.filepath IS NULL) OR (f.filepath = '') OR (nr.status = %d))";
     $where_args[] = 1;
     $where_args[] = 1;
     $plural = t('branches');
@@ -205,7 +205,7 @@ function package_releases($type, $project_id) {
     $where_args[] = $project_id;
   }
   $args = $args + $where_args;
-  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {files} f ON prf.fid = f.fid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join LEFT JOIN {project_release_file} prf ON prn.nid = prf.nid LEFT JOIN {files} f ON prf.fid = f.fid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
