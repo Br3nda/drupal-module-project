@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.35 2009/02/07 10:42:42 dww Exp $
+// $Id: package-release-nodes.php,v 1.36 2009/02/07 10:45:03 dww Exp $
 
 /**
  * @file
@@ -176,14 +176,14 @@ function package_releases($type, $project_id) {
   $where_args = array();
   if ($type == 'tag') {
     $where = " AND (prn.rebuild = %d) AND (f.filepath IS NULL OR f.filepath = '')";
-    $where_args[] = 0;
+    $where_args[] = 0;  // prn.rebuild
     $plural = t('tags');
   }
   elseif ($type == 'branch') {
     $rel_node_join = " INNER JOIN {node} nr ON prn.nid = nr.nid";
     $where = " AND (prn.rebuild = %d) AND ((f.filepath IS NULL) OR (f.filepath = '') OR (nr.status = %d))";
-    $where_args[] = 1;
-    $where_args[] = 1;
+    $where_args[] = 1;  // prn.rebuild
+    $where_args[] = 1;  // nr.status
     $plural = t('branches');
     if (empty($project_id)) {
       wd_msg("Starting to package all snapshot releases.");
