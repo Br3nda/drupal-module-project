@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.41 2009/02/07 06:21:23 dww Exp $
+// $Id: project_solr.module,v 1.42 2009/02/07 06:27:28 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -459,22 +459,12 @@ function project_solr_render_search_result($result) {
   $project = node_load($result->nid);
   $project = node_build_content($project, TRUE, FALSE);
   $project->body = $project->teaser;
+  $project->solr_result = $result;
 
   if (!empty($project->project_release['releases'])) {
     $project->download_table = project_release_table($project, 'recommended', 'all', t('Version'), FALSE, FALSE);
   }
   
-/*
-  $vid = _project_get_vid();
-  $tree = taxonomy_get_tree($vid, 0, -1, 1);
-  $project_terms = '';
-  if (!empty($project->taxonomy)) {
-    $terms = array();
-    foreach ($project->taxonomy as $tid => $term) {
-      
-    }
-  }
-*/
   $project->links = array();
   $project->links['read_more'] = array(
     'title' => t('Find out more'),
