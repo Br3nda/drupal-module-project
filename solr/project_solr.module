@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.44 2009/02/07 08:34:51 dww Exp $
+// $Id: project_solr.module,v 1.45 2009/02/07 08:42:10 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -77,7 +77,7 @@ function project_solr_apachesolr_update_index(&$document, $node) {
     while ($term = db_fetch_object($query)) {
       $document->setMultiValue('imfield_project_release_api_terms', $term->tid);
       $key = 'isfield_project_latest_release_timestamp_'. $term->tid;
-      $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
+      $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
       $document->$key = $filetime;
       if ($filetime > $max_filetime) {
         $max_filetime = $filetime;
