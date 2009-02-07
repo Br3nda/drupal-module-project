@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.338 2009/02/04 01:36:52 dww Exp $
+// $Id: project.module,v 1.339 2009/02/07 04:42:35 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -385,6 +385,14 @@ function project_menu() {
   $items['project/autocomplete/project'] = array(
     'title' => 'Autocomplete project',
     'page callback' => 'project_autocomplete_project',
+    'access callback' => 'project_project_access_any',
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['project/autocomplete/project-user/%'] = array(
+    'title' => 'Autocomplete project',
+    'page callback' => 'project_autocomplete_project_user',
+    'page arguments' => array(3, 4),
     'access callback' => 'project_project_access_any',
     'type' => MENU_CALLBACK,
   );
@@ -909,10 +917,55 @@ function theme_project_feed_icon($url, $title) {
  */
 function project_autocomplete_project($string = '') {
   $matches = array();
-  $result = db_query_range(db_rewrite_sql("SELECT n.title FROM {node} n WHERE n.status = %d AND n.type = '%s' AND LOWER(n.title) LIKE LOWER('%%%s%%')"), 1, 'project_project', $string, 0, 10);
-  while ($project = db_fetch_object($result)) {
-    $matches[$project->title] = check_plain($project->title);
+
+  // The user enters a comma-separated list of projects. We only autocomplete
+  // the last one.
+  $array = drupal_explode_tags($string);
+  $last_string = trim(array_pop($array));
+
+  if ($last_string != '') {
+    $result = db_query_range(db_rewrite_sql("SELECT n.title FROM {node} n WHERE n.status = %d AND n.type = '%s' AND LOWER(n.title) LIKE LOWER('%%%s%%')"), 1, 'project_project', $last_string, 0, 10);
+
+    $prefix = count($array) ? implode(', ', $array) .', ' : '';
+    while ($project = db_fetch_object($result)) {
+      $title = $project->title;
+      // Commas and quotes in terms are special cases, so encode 'em.
+      if (strpos($title, ',') !== FALSE || strpos($title, '"') !== FALSE) {
+        $title = '"'. str_replace('"', '""', $project->title) .'"';
+      }
+      $matches[$prefix . $title] = check_plain($project->title);
+    }
   }
+
+  drupal_json($matches);
+}
+
+
+/**
+ * Return a string of valid project names owned by a given user.
+ */
+function project_autocomplete_project_user($uid, $string = '') {
+  $matches = array();
+
+  // The user enters a comma-separated list of projects. We only autocomplete
+  // the last one.
+  $array = drupal_explode_tags($string);
+  $last_string = trim(array_pop($array));
+
+  if ($last_string != '') {
+    $result = db_query_range(db_rewrite_sql("SELECT n.title FROM {node} n WHERE n.status = %d AND n.type = '%s' AND n.uid = %d AND LOWER(n.title) LIKE LOWER('%%%s%%')"), 1, 'project_project', $uid, $last_string, 0, 10);
+
+    $prefix = count($array) ? implode(', ', $array) .', ' : '';
+    while ($project = db_fetch_object($result)) {
+      $title = $project->title;
+      // Commas and quotes in terms are special cases, so encode 'em.
+      if (strpos($title, ',') !== FALSE || strpos($title, '"') !== FALSE) {
+        $title = '"'. str_replace('"', '""', $project->title) .'"';
+      }
+      $matches[$prefix . $title] = check_plain($project->title);
+    }
+  }
+
   drupal_json($matches);
 }
 
