@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.339 2009/02/07 04:42:35 dww Exp $
+// $Id: project.module,v 1.340 2009/02/07 06:05:54 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -351,7 +351,13 @@ function project_term_path($term) {
       break;
     }
   }
-  return 'project/' . drupal_strtolower($termname) . "/category/$term->tid";
+  // TODO: when the project browsing views work, if there's a direct URL to
+  // link to a project category view, we should add that here.
+  // Also, note that in the project_solr case, we'd like to link to,
+  // e.g. "project/modules?filter=tid:12" but it's apparently impossible to
+  // return url() for this since things get double encoded or something.
+  // So, for now, we punt and always link the subterms to the taxonomy page.
+  return 'taxonomy/term/'. $term->tid;
 }
 
 /**
