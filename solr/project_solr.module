@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.46 2009/02/09 10:33:01 damz Exp $
+// $Id: project_solr.module,v 1.47 2009/02/09 11:29:00 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -133,15 +133,22 @@ function project_solr_browse_page($term_name) {
       $output .= theme('project_type_description', $parent_term);
     }
 
-    $text_query = !empty($_GET['text']) ? $_GET['text'] : '';
+    $text_query = isset($_GET['text']) ? $_GET['text'] : '';
+    $filters = isset($_GET['filters']) ? $_GET['filters'] : '';
 
-    $query = apachesolr_drupal_query($text_query);
-    if (is_null($query)) {
-      throw new Exception(t('Could not construct a Solr query in function apachesolr_search_search()'));
+    $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
+
+    // Validate sort parameter
+    if ((!isset($sort) || !preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) && empty($text_query)) {
+      $sort = 'stitle asc';
     }
 
-    // TODO: What is this for?
-    $query->text_query = $text_query;
+    include_once drupal_get_path('module', 'project_solr') .'/ProjectSolrQuery.php';
+
+    $query = new ProjectSolrQuery(apachesolr_get_solr(), $text_query, $filters, $sort);
+    if (is_null($query)) {
+      throw new Exception(t('Could not construct a Solr query.'));
+    }
 
     $query->add_field_aliases(array('imfield_project_release_api_terms' => 'drupal_core'));
 
@@ -156,6 +163,7 @@ function project_solr_browse_page($term_name) {
         'imfield_project_release_api_terms',
       ),
       'facet.limit' => 200,
+      'sort' => $query->solrsort,
     );
 
     // We add 'fq' (filter query) parameters here to include all the constant
@@ -167,16 +175,6 @@ function project_solr_browse_page($term_name) {
       $fq[] = 'isfield_project_has_releases:1';
     }
     $params['fq'][] = '('. implode(' AND ', $fq) .')';
-
-    $sort = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
-
-    // Validate sort parameter
-    if (isset($sort) && preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) {
-      $params['sort'] = $sort;
-    }
-    elseif (empty($_GET['text'])) {
-      $params['sort'] = 'stitle asc';
-    }
 
     $page = isset($_GET['page']) ? $_GET['page'] : 0;
     $params['start'] = $page * $params['rows'];
@@ -431,16 +429,16 @@ function project_sort_freetext() {
   $form = array();
   $form['text'] = array(
     '#type' => 'textfield',
-    '#default_value' => $query->text_query,
+    '#default_value' => $query->querypath,
     '#size' => 20,
   );
   $form['path'] = array(
     '#type' => 'value',
     '#value' => 'project/' . drupal_strtolower($parent_term->name),
   );
-  $form['querystring'] = array(
+  $form['query'] = array(
     '#type' => 'value',
-    '#value' => $query->get_url_querystring(),
+    '#value' => $query,
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -453,8 +451,9 @@ function project_sort_freetext() {
  * Submit handler for project_sort_freetext().
  */
 function project_sort_freetext_submit($form, &$form_state) {
-  $form_state['values']['querystring'] .= (!empty($form_state['values']['querystring']) ? '&' : '') . 'text=' . $form_state['values']['text'];
-  $form_state['redirect'] = array($form_state['values']['path'], $form_state['values']['querystring']);
+  $query = $form_state['values']['query'];
+  $query->querypath = $form_state['values']['text'];
+  $form_state['redirect'] = array($form_state['values']['path'], $query->get_url_querystring());
 }
 
 //----------------------------------------
