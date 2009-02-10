@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.340 2009/02/07 06:05:54 dww Exp $
+// $Id: project.module,v 1.341 2009/02/10 07:28:40 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -443,10 +443,20 @@ function project_menu() {
 
 /**
  * Menu loader callback to load a project node.
+ *
+ * @param $arg
+ *   The menu argument to attempt to load a project from.  Can be either a
+ *   numeric node ID (nid), or a string project short name (uri).
+ *
+ * @return
+ *   The loaded node object if the argument was a valid project, FALSE if not.
  */
-function project_node_load($nid) {
-  if (!is_numeric($nid)) {
-    return FALSE;
+function project_node_load($arg) {
+  if (is_numeric($arg)) {
+    $nid = $arg;
+  }
+  else {
+    $nid = db_result(db_query(db_rewrite_sql("SELECT p.nid FROM {project_projects} p WHERE p.uri = '%s'", 'p'), $arg));
   }
   $node = node_load($nid);
   if (!isset($node->type) || $node->type != 'project_project') {
