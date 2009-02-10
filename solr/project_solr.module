@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.47 2009/02/09 11:29:00 damz Exp $
+// $Id: project_solr.module,v 1.48 2009/02/10 08:48:41 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -166,16 +166,6 @@ function project_solr_browse_page($term_name) {
       'sort' => $query->solrsort,
     );
 
-    // We add 'fq' (filter query) parameters here to include all the constant
-    // filters for the query -- project nodes of the given top-level type that
-    // have releases (if project_release is enabled).
-    $fq[] = 'type:project_project';
-    $fq[] = 'tid:'. $parent_term->tid;
-    if (module_exists('project_release')) {
-      $fq[] = 'isfield_project_has_releases:1';
-    }
-    $params['fq'][] = '('. implode(' AND ', $fq) .')';
-
     $page = isset($_GET['page']) ? $_GET['page'] : 0;
     $params['start'] = $page * $params['rows'];
 
@@ -187,6 +177,16 @@ function project_solr_browse_page($term_name) {
     if (!$query) {
       return array();
     }
+
+    // We add 'fq' (filter query) parameters here to include all the constant
+    // filters for the query -- project nodes of the given top-level type that
+    // have releases (if project_release is enabled).
+    $fq[] = 'type:project_project';
+    $fq[] = 'imfield_vid_'. _project_get_vid() .':'. $parent_term->tid;
+    if (module_exists('project_release')) {
+      $fq[] = 'isfield_project_has_releases:1';
+    }
+    $params['fq'][] = '('. implode(' AND ', $fq) .')';
 
     $response = $solr->search($query->get_query_basic(), $params['start'], $params['rows'], $params);
 
