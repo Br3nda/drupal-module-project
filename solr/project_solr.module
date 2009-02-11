@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.48 2009/02/10 08:48:41 damz Exp $
+// $Id: project_solr.module,v 1.49 2009/02/11 13:04:35 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -66,23 +66,23 @@ function project_solr_theme() {
  */
 function project_solr_apachesolr_update_index(&$document, $node) {
   if (!empty($node->project['uri'])) {
-    $document->ssfield_project_uri = $node->project['uri'];
+    $document->ss_project_uri = $node->project['uri'];
   }
   if (module_exists('project_release') && !empty($node->project_release['releases'])) {
-    $document->isfield_project_has_releases = 1;
+    $document->is_project_has_releases = 1;
 
     $max_filetime = 0;
     $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
     while ($term = db_fetch_object($query)) {
-      $document->setMultiValue('imfield_project_release_api_terms', $term->tid);
-      $key = 'isfield_project_latest_release_timestamp_'. $term->tid;
+      $document->setMultiValue('im_project_release_api_terms', $term->tid);
+      $key = 'is_project_latest_release_timestamp_'. $term->tid;
       $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
       $document->$key = $filetime;
       if ($filetime > $max_filetime) {
         $max_filetime = $filetime;
       }
     }
-    $document->isfield_project_latest_release_timestamp = $max_filetime;
+    $document->is_project_latest_release_timestamp = $max_filetime;
     
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
@@ -90,11 +90,11 @@ function project_solr_apachesolr_update_index(&$document, $node) {
       $total_usage = 0;
       $query = db_query("SELECT * FROM {project_usage_week_project} WHERE nid = %d AND timestamp = %d", $node->nid, $week);
       while ($usage = db_fetch_object($query)) {
-        $key = 'isfield_project_release_api_usage_'. $usage->tid;
+        $key = 'is_project_release_api_usage_'. $usage->tid;
         $document->$key = $usage->count;
         $total_usage += $usage->count;
       }
-      $document->isfield_project_release_total_usage = $total_usage;
+      $document->is_project_release_total_usage = $total_usage;
     }
   }
 }
@@ -150,17 +150,17 @@ function project_solr_browse_page($term_name) {
       throw new Exception(t('Could not construct a Solr query.'));
     }
 
-    $query->add_field_aliases(array('imfield_project_release_api_terms' => 'drupal_core'));
+    $query->add_field_aliases(array('im_project_release_api_terms' => 'drupal_core'));
 
     $params = array(
-      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,isfield_project_release_total_usage,isfield_project_latest_release_timestamp',
+      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,is_project_release_total_usage,is_project_latest_release_timestamp',
       'rows' => variable_get('apachesolr_rows', 10),
       'facet' => 'true',
       'facet.mincount' => 1,
       'facet.sort' => 'true',
       'facet.field' => array(
-        'imfield_vid_'. _project_get_vid(),
-        'imfield_project_release_api_terms',
+        'im_vid_'. _project_get_vid(),
+        'im_project_release_api_terms',
       ),
       'facet.limit' => 200,
       'sort' => $query->solrsort,
@@ -182,9 +182,9 @@ function project_solr_browse_page($term_name) {
     // filters for the query -- project nodes of the given top-level type that
     // have releases (if project_release is enabled).
     $fq[] = 'type:project_project';
-    $fq[] = 'imfield_vid_'. _project_get_vid() .':'. $parent_term->tid;
+    $fq[] = 'im_vid_'. _project_get_vid() .':'. $parent_term->tid;
     if (module_exists('project_release')) {
-      $fq[] = 'isfield_project_has_releases:1';
+      $fq[] = 'is_project_has_releases:1';
     }
     $params['fq'][] = '('. implode(' AND ', $fq) .')';
 
@@ -265,7 +265,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     list($query, $response, $parent_term) = $search;
 
     if ($delta == 'project_solr_categories') {
-      $facet = 'imfield_vid_'.  _project_get_vid();
+      $facet = 'im_vid_'.  _project_get_vid();
       $terms = array();
 
       // Get the terms at the current depth.
@@ -335,10 +335,10 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
       if (module_exists('project_release')) {
-        $sorts['isfield_project_latest_release_timestamp'] = array('name' => t('Last release'), 'default' => 'desc');
+        $sorts['is_project_latest_release_timestamp'] = array('name' => t('Last release'), 'default' => 'desc');
       }
       if (module_exists('project_usage')) {
-        $sorts['isfield_project_release_total_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
+        $sorts['is_project_release_total_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
       }
 
       $solrsorts = array();
@@ -373,7 +373,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     }
     else if (module_exists('project_release') && $delta == 'project_solr_compability') {
       $vid = _project_release_get_api_vid();
-      $facet = 'imfield_project_release_api_terms';
+      $facet = 'im_project_release_api_terms';
       $terms = array();
       $active_terms = array_reverse(project_release_compatibility_list(FALSE), TRUE);
 
@@ -386,16 +386,16 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       foreach ($active_terms as $tid => $term_name) {
         if (!empty($active_term_counts[$tid])) {
-          $active = $query->has_field('imfield_project_release_api_terms', $tid);
+          $active = $query->has_field('im_project_release_api_terms', $tid);
           $path = 'project/' . drupal_strtolower($parent_term->name);
           $new_query = clone $query;
-          $new_query->remove_field('imfield_project_release_api_terms', $term->tid);
+          $new_query->remove_field('im_project_release_api_terms', $term->tid);
           if ($active) {
             $querystring = $new_query->get_url_querystring();
             $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
           }
           else {
-            $new_query->add_field('imfield_project_release_api_terms', $tid);
+            $new_query->add_field('im_project_release_api_terms', $tid);
             $querystring = $new_query->get_url_querystring();
             $unclick_link = '';
           }
