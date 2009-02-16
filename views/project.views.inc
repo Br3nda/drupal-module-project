@@ -1,5 +1,5 @@
 <?php
-// $Id: project.views.inc,v 1.4 2009/01/16 06:46:24 dww Exp $
+// $Id: project.views.inc,v 1.5 2009/02/16 22:43:15 dww Exp $
 
 
 /**
@@ -23,6 +23,7 @@ function project_views_data() {
 
   $data['project_projects']['table']['join'] = array(
     'node' => array(
+      'type' => 'INNER',
       'left_field' => 'nid',
       'field' => 'nid',
     ),
