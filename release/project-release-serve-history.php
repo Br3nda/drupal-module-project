@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.10 2008/10/24 23:16:41 thehunmonkgroup Exp $
+// $Id: project-release-serve-history.php,v 1.11 2009/02/18 00:57:23 dww Exp $
 
 /**
  * @file
@@ -28,6 +28,14 @@ define('HISTORY_ROOT', '');
  * bootstrapping and recording usage statistics.
  */
 define('DRUPAL_ROOT', '');
+
+/**
+ * Required configuration: name of your site.
+ *
+ * Needed to find the right settings.php file to bootstrap Drupal with.
+ */
+define('SITE_NAME', '');
+
 
 /**
  * Find and serve the proper history file.
@@ -90,6 +98,17 @@ if (isset($_GET['site_key'])) {
   if (!chdir(DRUPAL_ROOT)) {
     exit(1);
   }
+
+  // Setup variables for Drupal bootstrap
+  $script_name = $argv[0];
+  $_SERVER['HTTP_HOST'] = SITE_NAME;
+  $_SERVER['REQUEST_URI'] = '/' . $script_name;
+  $_SERVER['SCRIPT_NAME'] = '/' . $script_name;
+  $_SERVER['PHP_SELF'] = '/' . $script_name;
+  $_SERVER['SCRIPT_FILENAME'] = $_SERVER['PWD'] .'/'. $script_name;
+  $_SERVER['PATH_TRANSLATED'] = $_SERVER['SCRIPT_FILENAME'];
+
+  // Actually do the bootstrap.
   include_once './includes/bootstrap.inc';
   drupal_bootstrap(DRUPAL_BOOTSTRAP_DATABASE);
 
@@ -98,19 +117,7 @@ if (isset($_GET['site_key'])) {
   if (db_table_exists('project_usage_raw')) {
     $site_key = $_GET['site_key'];
     $project_version = isset($_GET['version']) ? $_GET['version'] : '';
-
-    // In D6, we added support for Drupal to run behind a proxy, including a
-    // new proxy-aware function to get the IP address of the incoming
-    // request. Although this code is not in D5, drupal.org itself is running
-    // a patched version of core and is behind a proxy. So, even though this
-    // is the D5 version of the script, we check for this function and use it
-    // if it exists, to get proper results on drupal.org itself.
-    if (function_exists('ip_address')) {
-      $ip_addr = ip_address();
-    }
-    else {
-      $ip_addr = $_SERVER['REMOTE_ADDR'];
-    }
+    $ip_addr = ip_address();
 
     // Compute a GMT timestamp for begining of the day. getdate() is
     // affected by the server's timezone so we need to cancel it out.
