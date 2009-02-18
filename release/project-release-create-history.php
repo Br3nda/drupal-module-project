@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.16 2009/01/29 23:26:35 dww Exp $
+// $Id: project-release-create-history.php,v 1.17 2009/02/18 06:49:49 dww Exp $
 
 /**
  * @file
@@ -73,7 +73,7 @@ drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 define('BASE_DIRECTORY', DRUPAL_ROOT .'/'. file_create_path(variable_get('project_release_history_directory', 'release-history')));
 
 if (!is_dir(BASE_DIRECTORY)) {
-  wd_err("ERROR: History directory (%directory) does not exist, aborting.\n", array('%directory' => BASE_DIRECTORY));
+  wd_err(array('message' => "ERROR: History directory (%directory) does not exist, aborting.\n", 'args' => array('%directory' => BASE_DIRECTORY)));
   exit(1);
 }
 
@@ -99,7 +99,12 @@ function project_release_history_generate_all() {
     project_release_history_generate_project_xml($project->pid);
     $i++;
   }
-  wd_msg(array('message' => format_plural($i, 'Generated an XML release history summary for a project.', 'Generated XML release history summaries for @count projects.'), 'args' => array()));
+  if ($i == 1) {
+    wd_msg(array('message' => 'Generated an XML release history summary for a project.'));
+  }
+  else {
+    wd_msg(array('message' => 'Generated XML release history summaries for @count projects.', 'args' => array('@count' => $i)));
+  }
 
   // Generate XML files based on API compatibility.
   $tids = array_keys($api_terms);
@@ -110,7 +115,12 @@ function project_release_history_generate_all() {
     project_release_history_generate_project_xml($project->pid, $project->tid);
     $i++;
   }
-  wd_msg(array('message' => 'Completed XML release history files for @num_projects.', 'args' => array('@num_projects' => format_plural($i, '1 project/version pair', '@count project/version pairs'))));
+  if ($i == 1) {
+    wd_msg(array('message' => 'Completed XML release history files for 1 project/version pair'));
+  }
+  else {
+    wd_msg(array('message' => 'Completed XML release history files for @count project/version pairs', 'args' => array('@count' => $i)));
+  }
 }
 
 /**
@@ -137,7 +147,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     // Restrict output to a specific API compatibility term.
     $api_terms = project_release_compatibility_list();
     if (!isset($api_terms[$api_tid])) {
-      wd_err('API compatibility term %tid not found.', array('%tid' => $api_tid));
+      wd_err(array('message' => 'API compatibility term %tid not found.', 'args' => array('%tid' => $api_tid)));
       return FALSE;
     }
     $api_version = $api_terms[$api_tid];
@@ -159,7 +169,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   }
 
   if (!$project_found) {
-    wd_err('Project ID %pid not found', array('%pid' => $project_nid));
+    wd_err(array('message' => 'Project ID %pid not found', 'args' => array('%pid' => $project_nid)));
     return FALSE;
   }
 
@@ -344,9 +354,18 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
     $filename = $project_dir .'/project-list-all.xml';
     $tmp_filename = $filename .'.new';
     $errors = array(
-      'mkdir'  => t("ERROR: mkdir(@dir) failed, can't write project list.", array('@dir' => $project_dir)),
-      'unlink' => t("ERROR: unlink(@file) failed, can't write project list.", array('@file' => $tmp_filename)),
-      'rename' => t("ERROR: rename(@old, @new) failed, can't write project list.", array('@old' => $tmp_filename, '@new' => $filename))
+      'mkdir' => array(
+        'message' => 'ERROR: mkdir(@dir) failed, cannot write project list.',
+        'args' => array('@dir' => $project_dir),
+      ),
+      'unlink' => array(
+        'message' => 'ERROR: unlink(@file) failed, cannot write project list.',
+        'args' => array('@file' => $tmp_filename),
+      ),
+      'rename' => array(
+        'message' => 'ERROR: rename(@old, @new) failed, cannot write project list.',
+        'args' => array('@old' => $tmp_filename, '@new' => $filename),
+      ),
     );
     $full_xml = '<projects '. $dc_namespace .">\n". $xml ."</projects>\n";
   }
@@ -418,7 +437,7 @@ function project_list_generate() {
   
   $query = db_query("SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid");
   if (!db_num_rows($query)) {
-    wd_err(t('No projects found on this server.'));
+    wd_err(array('message' => 'No projects found on this server.'));
     return FALSE;
   }
   $xml = '';
