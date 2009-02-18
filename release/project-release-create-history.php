@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.17 2009/02/18 06:49:49 dww Exp $
+// $Id: project-release-create-history.php,v 1.18 2009/02/18 07:32:43 dww Exp $
 
 /**
  * @file
@@ -163,14 +163,15 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $query = db_query($sql, $project_nid);
   }
 
-  $project_found = FALSE;
-  while ($project = db_fetch_object($query)) {
-    $project_found = TRUE;
-  }
-
-  if (!$project_found) {
-    wd_err(array('message' => 'Project ID %pid not found', 'args' => array('%pid' => $project_nid)));
+  $project = db_fetch_object($query);
+  if (empty($project)) {
+    if (empty($api_tid)) {
+      wd_err(array('message' => 'Project ID @pid not found', 'args' => array('@pid' => $project_nid)));
+    }
+    else {
+      wd_err(array('message' => 'Project ID @pid has no supported releases for API term ID @api_tid', 'args' => array('@pid' => $project_nid, '@api_tid' => $api_tid)));
     return FALSE;
+    }
   }
 
   $xml = '<title>'. check_plain($project->title) ."</title>\n";
@@ -229,11 +230,13 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $joins = array();
   $where = array();
   $parameters = array();
+  // TODO: This is broken for N files per release node.
   $fields = array(
     'prn.nid',
-    'prn.file_path',
-    'prn.file_date',
-    'prn.file_hash',
+    'f.filepath',
+    'f.filesize',
+    'f.timestamp',
+    'prf.filehash',
     'prn.rebuild',
     'prn.version',
     'prn.version_major',
@@ -246,6 +249,8 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   );
 
   $joins[] = "INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid";
+  $joins[] = "INNER JOIN {project_release_file} prf ON n.nid = prf.nid";
+  $joins[] = "INNER JOIN {files} f ON prf.fid = f.fid";
   $where[] = "prn.pid = '%d'";
   $parameters[] = $project->nid;
 
@@ -303,8 +308,8 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
       // Published, so we should include the links.
       $xml .= "  <status>published</status>\n";
       $xml .= '  <release_link>'. url("node/$release->nid", array('absolute' => TRUE)) ."</release_link>\n";
-      if (!empty($release->file_path)) {
-        $download_link = theme('project_release_download_link', $release->file_path, NULL, TRUE);
+      if (!empty($release->filepath)) {
+        $download_link = theme('project_release_download_link', $release->filepath, NULL, TRUE);
         $xml .= '  <download_link>'. $download_link['href'] ."</download_link>\n";
       }
     }
@@ -312,11 +317,14 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
       $xml .= "  <status>unpublished</status>\n";
     }
     // We want to include the rest of these regardless of the status.
-    if (!empty($release->file_date)) {
-      $xml .= '  <date>'. check_plain($release->file_date) ."</date>\n";
+    if (!empty($release->timestamp)) {
+      $xml .= '  <date>'. check_plain($release->timestamp) ."</date>\n";
     }
-    if (!empty($release->file_hash)) {
-      $xml .= '  <mdhash>'. check_plain($release->file_hash) ."</mdhash>\n";
+    if (!empty($release->filehash)) {
+      $xml .= '  <mdhash>'. check_plain($release->filehash) ."</mdhash>\n";
+    }
+    if (isset($release->filesize)) {
+      $xml .= '  <filesize>'. check_plain($release->filesize) ."</filesize>\n";
     }
     $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d AND v.vid != %d", $release->nid, $api_vid);
     $xml_terms = '';
@@ -436,16 +444,13 @@ function project_list_generate() {
   $api_vid = _project_release_get_api_vid();
   
   $query = db_query("SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid");
-  if (!db_num_rows($query)) {
-    wd_err(array('message' => 'No projects found on this server.'));
-    return FALSE;
-  }
+
   $xml = '';
   while ($project = db_fetch_object($query)) {
     $xml .= " <project>\n";
     $xml .= '  <title>'. check_plain($project->title) ."</title>\n";
     $xml .= '  <short_name>'. check_plain($project->uri) ."</short_name>\n";
-    $xml .= '  <link>'. url("node/$project->nid", NULL, NULL, TRUE) ."</link>\n";
+    $xml .= '  <link>'. url("node/$project->nid", array('absolute' => TRUE)) ."</link>\n";
     $xml .= '  <dc:creator>'. check_plain($project->username). "</dc:creator>\n";
     $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
     $xml_terms = '';
@@ -474,6 +479,10 @@ function project_list_generate() {
     }
     
     $xml .= " </project>\n";
+  }
+  if (empty($xml)) {
+    wd_err(array('message' => 'No projects found on this server.'));
+    return FALSE;
   }
   project_release_history_write_xml($xml);
 }
@@ -557,7 +566,7 @@ function _release_sort($a, $b) {
     'rebuild' => -1,
     'version_minor' => 1,
     'version_patch' => 1,
-    'file_date' => 1,
+    'timestamp' => 1,
   );
   foreach ($fields as $field => $sign) {
     if (!isset($a->$field) && !isset($b->$field)) {
