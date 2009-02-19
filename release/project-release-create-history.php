@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.18 2009/02/18 07:32:43 dww Exp $
+// $Id: project-release-create-history.php,v 1.19 2009/02/19 09:41:03 dww Exp $
 
 /**
  * @file
@@ -212,7 +212,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   }
 
   $xml .= '<project_status>'. $project_status ."</project_status>\n";
-  $xml .= '<link>'. url("node/$project->nid", array('absolute' => TRUE)) ."</link>\n";
+  $xml .= '<link>'. prch_url("node/$project->nid") ."</link>\n";
 
   // To prevent the update(_status) module from having problems parsing the XML,
   // the terms need to be at the end of the information for the project.
@@ -307,7 +307,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     if ($release->status) {
       // Published, so we should include the links.
       $xml .= "  <status>published</status>\n";
-      $xml .= '  <release_link>'. url("node/$release->nid", array('absolute' => TRUE)) ."</release_link>\n";
+      $xml .= '  <release_link>'. prch_url("node/$release->nid") ."</release_link>\n";
       if (!empty($release->filepath)) {
         $download_link = theme('project_release_download_link', $release->filepath, NULL, TRUE);
         $xml .= '  <download_link>'. $download_link['href'] ."</download_link>\n";
@@ -450,7 +450,7 @@ function project_list_generate() {
     $xml .= " <project>\n";
     $xml .= '  <title>'. check_plain($project->title) ."</title>\n";
     $xml .= '  <short_name>'. check_plain($project->uri) ."</short_name>\n";
-    $xml .= '  <link>'. url("node/$project->nid", array('absolute' => TRUE)) ."</link>\n";
+    $xml .= '  <link>'. prch_url("node/$project->nid") ."</link>\n";
     $xml .= '  <dc:creator>'. check_plain($project->username). "</dc:creator>\n";
     $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
     $xml_terms = '';
@@ -578,3 +578,35 @@ function _release_sort($a, $b) {
     return ($a->$field < $b->$field) ? $sign : (-1 * $sign);
   }
 }
+
+/**
+ * Helper function to generate clean absolute links for the XML files.
+ *
+ * Relying on core's url() gives us crazy results when the script is invoked
+ * with a full path, since the construction of $base_url during bootstrapping
+ * is all wrong.
+ *
+ * @todo This doesn't handle sites installed in subdirectories that actually
+ * define their own $base_url in settings.php...
+ */
+function prch_url($path) {
+  static $base_url = NULL;
+  static $clean_url = NULL;
+  if (!isset($clean_url)) {
+    $clean_url = (bool)variable_get('clean_url', '0');
+  }
+
+  if (!isset($base_url)) {
+    $base_root = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https' : 'http';
+    $base_url = $base_root .= '://'. $_SERVER['HTTP_HOST'] .'/';
+  }
+
+  $path = drupal_get_path_alias($path, '');
+  if ($clean_url) {
+    return $base_url . $path;
+  }
+  else {
+    return $base_url .'?q='. $path;
+  }
+}
+
