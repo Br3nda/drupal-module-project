@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.49 2009/02/11 13:04:35 damz Exp $
+// $Id: project_solr.module,v 1.50 2009/02/19 10:06:48 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -140,7 +140,7 @@ function project_solr_browse_page($term_name) {
 
     // Validate sort parameter
     if ((!isset($sort) || !preg_match('/^([a-z0-9_]+ (asc|desc)(,)?)+$/i', $sort)) && empty($text_query)) {
-      $sort = 'stitle asc';
+      $sort = 'title_sort asc';
     }
 
     include_once drupal_get_path('module', 'project_solr') .'/ProjectSolrQuery.php';
@@ -331,7 +331,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     }
     else if ($delta == 'project_solr_order') {
       $sorts = array(
-        'stitle' => array('name' => t('Title'), 'default' => 'asc'),
+        'title_sort' => array('name' => t('Title'), 'default' => 'asc'),
         'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
       if (module_exists('project_release')) {
@@ -352,7 +352,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       if (empty($solrsorts) && empty($_GET['text'])) {
         $solrsorts = array(
-          'stitle' => 'asc',
+          'title_sort' => 'asc',
         );
       }
 
