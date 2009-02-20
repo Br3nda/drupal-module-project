@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.138 2009/02/20 17:21:12 dww Exp $
+// $Id: project.inc,v 1.139 2009/02/20 17:43:29 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -361,16 +361,16 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support&states=all'));
+      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support&status=All'));
       $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support'));
       $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=bug'));
       $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=feature'));
       $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->project['uri']);
     }
     if ($make_issues) {
-      $links['request_support'] = l(t('Request support'), 'node/add/project_issue/'. $node->project['uri'] .'/support');
-      $links['report_bug'] = l(t('Report new bug'), 'node/add/project_issue/'. $node->project['uri'] .'/bug');
-      $links['request_feature'] = l(t('Request new feature'), 'node/add/project_issue/'. $node->project['uri'] .'/feature');
+      $links['request_support'] = l(t('Request support'), 'node/add/project-issue/'. $node->project['uri'] .'/support');
+      $links['report_bug'] = l(t('Report new bug'), 'node/add/project-issue/'. $node->project['uri'] .'/bug');
+      $links['request_feature'] = l(t('Request new feature'), 'node/add/project-issue/'. $node->project['uri'] .'/feature');
       $links['subscribe'] = l(t('Subscribe to issues'), 'project/issues/subscribe-mail/'. $node->project['uri'], array('query' => drupal_get_destination()));
     }
     elseif ($has_issues) {
@@ -386,7 +386,7 @@ function project_project_view($node, $teaser = false, $page = false) {
     );
     $links = array();
     if ($view_issues) {
-      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/'. $node->project['uri'], array('query' => 'states=8,13', 'absolute' => TRUE, 'html' => TRUE));
+      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/search/'. $node->project['uri'], array('query' => 'status[]=8&status[]=13&status[]=14'));
       $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=task'));
       $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->project['uri']);
     }
