@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.106 2009/02/07 10:26:42 dww Exp $
+// $Id: project_release.module,v 1.107 2009/02/20 17:21:13 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1759,11 +1759,11 @@ function theme_project_release_project_download_table($node) {
  *
  * Note:  This is *not* an implementation of hook_link_alter().
  */
-function project_release_project_page_link_alter($node, &$all_links) {
+function project_release_project_page_link_alter(&$links, $node) {
   if (empty($node->project_release['releases'])) {
     return;
   }
-  $all_links['project_release'] = array(
+  $links['project_release'] = array(
     // NOTE:  The 'name' element of this array is not defined here because
     // it's actually printed as part of the output of the
     // theme_project_release_project_download_table() function above.
@@ -1775,8 +1775,8 @@ function project_release_project_page_link_alter($node, &$all_links) {
   );
 
   if (project_check_admin_access($node->nid)) {
-    $all_links['project_release']['links']['add_new_release'] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
-    $all_links['project_release']['links']['administer_releases'] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
+    $links['project_release']['links']['add_new_release'] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
+    $links['project_release']['links']['administer_releases'] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
   }
 }
 

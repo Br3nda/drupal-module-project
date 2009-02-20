@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.137 2009/02/01 18:14:11 dww Exp $
+// $Id: project.inc,v 1.138 2009/02/20 17:21:12 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -402,7 +402,7 @@ function project_project_view($node, $teaser = false, $page = false) {
     $all_links['development']['links'] = $links;
 
     // Allow other modules to add sections of links and/or links to the sections defined above.
-    project_page_link_alter($node, $all_links);
+    drupal_alter('project_page_link', $all_links, $node);
 
     // Format links in $all_links for display in the project_project node.
     // Keep track of the section with the heaviest weight (which will be last)
@@ -597,29 +597,6 @@ function _project_save_taxonomy(&$node) {
 
 function _project_db_save_taxonomy($nid, $tid, $vid) {
   db_query('INSERT INTO {term_node} (nid, tid, vid) VALUES (%d, %d, %d)', $nid, $tid, $vid);
-}
-
-/**
- * Allow modules to alter the project page links.
- *
- * @param $node
- *   The project_project node object.  This can be useful for modules that
- *   implement this hook to determine whether a user viewing
- *   the node should have access to certain links.  See the
- *   implementation of this hook in project_release.module for an
- *   example.
- *   NOTE:  $node is passed by value and not by reference, so modules
- *   implementing this hook cannot actually modify the node object.
- * @param $links
- *   An array of links.
- * @param $section
- *   The link section of the project page.
- */
-function project_page_link_alter($node, &$all_links) {
-  foreach (module_implements('project_page_link_alter') as $module) {
-    $function = $module .'_project_page_link_alter';
-    $function($node, $all_links);
-  }
 }
 
 /**
