@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.37 2009/02/18 19:38:55 dww Exp $
+// $Id: package-release-nodes.php,v 1.38 2009/02/21 02:15:06 dww Exp $
 
 /**
  * @file
@@ -817,6 +817,8 @@ function fix_info_file_version($file, $uri, $version) {
 
 /**
  * Update the DB with the new file info for a given release node.
+ *
+ * @todo This assumes 1:1 relationship of release nodes to files.
  */
 function package_release_update_node($nid, $file_path) {
   global $dest_root, $task;
@@ -834,10 +836,22 @@ function package_release_update_node($nid, $file_path) {
   $file_mime = file_get_mimetype($full_path);
   $uid = db_result(db_query("SELECT n.uid FROM {node} n WHERE n.nid = %d", $nid));
 
-  // Finally, save this file to the DB:
-  db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', %d, %d, %d)", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date);
-  $fid = db_last_insert_id('files', 'fid');
-  db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d, '%s')", $fid, $nid, $file_hash);
+  // Finally, save this file to the DB.
+
+  // First, see if we already have a file for this release node
+  $file_data = db_fetch_object(db_query("SELECT * FROM {project_release_file} WHERE nid = %d  GROUP BY nid ORDER BY fid DESC", $nid));
+
+  if (empty($file_data)) {
+    // Don't have an file data for this release, insert a new record.
+    db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', %d, %d, %d)", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date);
+    $fid = db_last_insert_id('files', 'fid');
+    db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d, '%s')", $fid, $nid, $file_hash);
+  }
+  else {
+    // Already have a file for this release, update it.
+    db_query("UPDATE {files} SET uid = %d, filename = '%s', filepath = '%s', filemime = '%s', filesize = %d, status = %d, timestamp = %d WHERE fid = %d", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date, $file_data->fid);
+    db_query("UPDATE {project_release_file} SET filehash = '%s' WHERE fid = %d", $file_hash, $file_data->fid);
+  }
 
   // Don't auto-publish security updates.
   if ($task == 'tag' && db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
