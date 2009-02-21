@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.342 2009/02/18 19:40:25 dww Exp $
+// $Id: project.module,v 1.343 2009/02/21 19:00:13 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -663,15 +663,6 @@ function project_empty_query() {
       'pieces' => array(),
     )
   );
-}
-
-// TODO: this should probably be moved to cvs.module...
-function project_user($type, $edit, &$user, $category = NULL) {
-  if ($type == 'view') {
-    if ($projects = module_invoke('cvs', 'get_contributed_projects', $user->uid)) {
-      return array(t('Projects') => $projects);
-    }
-  }
 }
 
 /**
