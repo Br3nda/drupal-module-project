@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.343 2009/02/21 19:00:13 dww Exp $
+// $Id: project.module,v 1.344 2009/02/21 22:24:07 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -150,6 +150,8 @@ function project_perm() {
     'maintain projects',
     'access projects',
     'access own projects',
+    'delete any projects',
+    'delete own projects',
     'browse project listings',
   );
   return $perms;

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.139 2009/02/20 17:43:29 dww Exp $
+// $Id: project.inc,v 1.140 2009/02/21 22:24:07 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -517,7 +517,7 @@ function project_project_access($op, $node, $account) {
       }
       break;
     case 'delete':
-      if (project_check_admin_access($node, FALSE)) {
+      if (user_access('delete any projects', $account) || (user_access('delete own projects', $account) && ($account->uid == $node->uid))) {
         return TRUE;
       }
       break;
