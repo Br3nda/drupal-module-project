@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.38 2009/02/21 02:15:06 dww Exp $
+// $Id: package-release-nodes.php,v 1.39 2009/02/21 02:17:10 dww Exp $
 
 /**
  * @file
@@ -11,6 +11,7 @@
  *
  * TODO:
  * - translation stats
+ * - correctly handle N files per release, package to .zip and .tgz, etc.
  *
  */
 
