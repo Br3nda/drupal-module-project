@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.20 2009/02/21 02:10:00 dww Exp $
+// $Id: project-release-create-history.php,v 1.21 2009/02/21 09:37:53 dww Exp $
 
 /**
  * @file
@@ -274,7 +274,6 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $query = "SELECT ". implode(', ', $fields) ." FROM {node} n ";
   $query .= implode(' ', $joins);
   $query .= " WHERE " . implode(' AND ', $where);
-  $query .= " GROUP BY prn.nid";
   $result = db_query($query, $parameters);
 
   $releases = array();
