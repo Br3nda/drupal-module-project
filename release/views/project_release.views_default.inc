@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views_default.inc,v 1.2 2009/02/18 17:37:43 dww Exp $
+// $Id: project_release.views_default.inc,v 1.3 2009/02/22 18:43:38 dww Exp $
 
 /**
  * @file
@@ -113,27 +113,19 @@ function project_release_views_default_views() {
         'button' => 'Expose',
       ),
     ),
-    'status' => array(
+    'status_extra' => array(
       'operator' => '=',
-      'value' => 1,
-      'group' => 0,
+      'value' => '',
+      'group' => '0',
       'exposed' => FALSE,
       'expose' => array(
-        'operator' => '',
-        'label' => 'Published',
-        'use_operator' => FALSE,
-        'identifier' => 'status',
-        'remember' => FALSE,
-        'single' => TRUE,
-        'optional' => FALSE,
+        'operator' => FALSE,
+        'label' => '',
       ),
-      'id' => 'status',
+      'id' => 'status_extra',
       'table' => 'node',
-      'field' => 'status',
+      'field' => 'status_extra',
       'relationship' => 'none',
-      'expose_button' => array(
-        'button' => 'Expose',
-      ),
     ),
     'project_release_api_version' => array(
       'operator' => 'or',
