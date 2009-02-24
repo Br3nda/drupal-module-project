@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.39 2009/02/21 02:17:10 dww Exp $
+// $Id: package-release-nodes.php,v 1.40 2009/02/24 00:43:41 dww Exp $
 
 /**
  * @file
@@ -860,7 +860,14 @@ function package_release_update_node($nid, $file_path) {
     return;
   }
 
-  db_query("UPDATE {node} SET status = %d WHERE nid = %d", 1, $nid);
+  // Finally publish the node.  Instead of directly updating {node}.status, we
+  // use node_save() so that other modules which implement hook_nodeapi() will
+  // know that this node is now published.  However, we don't want to waste
+  // too much RAM by leaving all these loaded nodes in RAM, so we reset the
+  // node_load() cache each time we call it.
+  $node = node_load($nid, NULL, TRUE);
+  $node->status = 1;
+  node_save($node);
 }
 
 /**
