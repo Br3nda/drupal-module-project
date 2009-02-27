@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.41 2009/02/26 01:26:03 dww Exp $
+// $Id: package-release-nodes.php,v 1.42 2009/02/27 23:11:16 dww Exp $
 
 /**
  * @file
@@ -133,11 +133,6 @@ $_SERVER['PHP_SELF'] = '/' . $script_name;
 $_SERVER['SCRIPT_FILENAME'] = $_SERVER['PWD'] . '/' . $script_name;
 $_SERVER['PATH_TRANSLATED'] = $_SERVER['SCRIPT_FILENAME'];
 
-// Set a variable so that on sites using DB replication, we ensure that all
-// our queries are against the primary database to avoid problems where the
-// connection to a secondard DB might timeout causing node_load() to fail.
-$_SESSION['not_slavesafe'] = TRUE;
-
 if (!chdir($drupal_root)) {
   print "ERROR: Can't chdir($drupal_root): aborting.\n";
   exit(1);
@@ -151,6 +146,11 @@ require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 // We have to initialize the theme() system before we leave $drupal_root
 $hack = theme('placeholder', 'hack');
+
+// Set a variable so that on sites using DB replication, we ensure that all
+// our queries are against the primary database to avoid problems where the
+// connection to a secondary DB might timeout causing node_load() to fail.
+$_SESSION['not_slavesafe'] = TRUE;
 
 if ($task == 'check' || $task == 'repair') {
   verify_packages($task, $project_id);
