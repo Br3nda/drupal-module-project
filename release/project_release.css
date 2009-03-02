@@ -1,6 +1,6 @@
-/* $Id: project_release.css,v 1.8 2009/01/12 20:07:19 dww Exp $ */
+/* $Id: project_release.css,v 1.9 2009/03/02 04:55:31 dww Exp $ */
 
-.node-form fieldset .version-elements .form-item {
+.node-form .version-elements .form-item {
   float: left;
   padding-right: 0.8em;
   margin: 0.05em 0.1em;
