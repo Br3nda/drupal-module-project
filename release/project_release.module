@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.109 2009/03/02 01:11:45 dww Exp $
+// $Id: project_release.module,v 1.110 2009/03/02 01:14:16 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -323,6 +323,15 @@ function project_release_form(&$release, &$form_state) {
   _project_release_form_add_version_element($form, $release, $modify, $format, 'patch', t('Patch-level'));
   _project_release_form_add_version_element($form, $release, $modify, $format, 'extra', t('Extra identifier'), t('Optionally specify other identifying information for this version, for example "beta-1", "rc-1" or "dev". In most cases, this should be left blank.'), 40);
 
+  // A boolean to indicate if this release should be regularly rebuilt
+  // (e.g. from a revision control branch) or not (e.g. an official release
+  // from a tag).  There's no UI for this field, since it's only used if a
+  // revision-control integration module is enabled.
+  $form['project_release']['rebuild'] = array(
+    '#type' => 'value',
+    '#value' => !empty($release->project_release['rebuild']),
+  );
+
   $form['project_release_files'] = array(
     '#type' => 'fieldset',
     '#tree' => TRUE,
@@ -389,11 +398,6 @@ function project_release_form(&$release, &$form_state) {
   $tag = isset($release->project_release['tag']) ? $release->project_release['tag'] : '';
   _project_release_form_add_text_element($form['tag']['tag'], t('Tag'), $tag, $is_edit, $admin, TRUE, 40, 255);
   $form['tag']['tag']['#parents'] = array('project_release', 'tag');
-  $form['tag']['rebuild'] = array(
-    '#type' => 'value',
-    '#value' => !empty($release->project_release['rebuild']),
-    '#parents' => array('project_release', 'rebuild'),
-  );
 
   // Add a custom validation function.
   $form['#validate'][] = 'project_release_node_form_validate';
