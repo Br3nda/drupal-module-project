@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.50 2009/02/19 10:06:48 dww Exp $
+// $Id: project_solr.module,v 1.51 2009/03/08 02:36:05 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -74,15 +74,15 @@ function project_solr_apachesolr_update_index(&$document, $node) {
     $max_filetime = 0;
     $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
     while ($term = db_fetch_object($query)) {
-      $document->setMultiValue('im_project_release_api_terms', $term->tid);
-      $key = 'is_project_latest_release_timestamp_'. $term->tid;
+      $document->setMultiValue('im_project_release_api_tids', $term->tid);
+      $key = 'ds_project_latest_release_'. $term->tid;
       $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
-      $document->$key = $filetime;
+      $document->$key = apachesolr_date_iso($filetime);
       if ($filetime > $max_filetime) {
         $max_filetime = $filetime;
       }
     }
-    $document->is_project_latest_release_timestamp = $max_filetime;
+    $document->ds_project_latest_release = apachesolr_date_iso($max_filetime);
     
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
@@ -90,11 +90,11 @@ function project_solr_apachesolr_update_index(&$document, $node) {
       $total_usage = 0;
       $query = db_query("SELECT * FROM {project_usage_week_project} WHERE nid = %d AND timestamp = %d", $node->nid, $week);
       while ($usage = db_fetch_object($query)) {
-        $key = 'is_project_release_api_usage_'. $usage->tid;
+        $key = 'sis_project_release_usage_'. $usage->tid;
         $document->$key = $usage->count;
         $total_usage += $usage->count;
       }
-      $document->is_project_release_total_usage = $total_usage;
+      $document->sis_project_release_usage = $total_usage;
     }
   }
 }
@@ -150,17 +150,17 @@ function project_solr_browse_page($term_name) {
       throw new Exception(t('Could not construct a Solr query.'));
     }
 
-    $query->add_field_aliases(array('im_project_release_api_terms' => 'drupal_core'));
+    $query->add_field_aliases(array('im_project_release_api_tids' => 'drupal_core'));
 
     $params = array(
-      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,is_project_release_total_usage,is_project_latest_release_timestamp',
+      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,sis_project_release_usage,ds_project_latest_release',
       'rows' => variable_get('apachesolr_rows', 10),
       'facet' => 'true',
       'facet.mincount' => 1,
       'facet.sort' => 'true',
       'facet.field' => array(
         'im_vid_'. _project_get_vid(),
-        'im_project_release_api_terms',
+        'im_project_release_api_tids',
       ),
       'facet.limit' => 200,
       'sort' => $query->solrsort,
@@ -330,19 +330,31 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       return;
     }
     else if ($delta == 'project_solr_order') {
+      $fields = $query->get_fields();
       $sorts = array(
         'title_sort' => array('name' => t('Title'), 'default' => 'asc'),
         'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
+      $api_tid = 0;
+      foreach ($fields as $field) {
+        if ($field['#name'] == 'im_project_release_api_tids') {
+          $api_tid = $field['#value'];
+          break;
+        }
+      }
       if (module_exists('project_release')) {
-        $sorts['is_project_latest_release_timestamp'] = array('name' => t('Last release'), 'default' => 'desc');
+        $sort_field = 'ds_project_latest_release';
+        if (!empty($api_tid)) {
+          $sort_field .= '_' . $api_tid;
+        }
+        $sorts[$sort_field] = array('name' => t('Last release'), 'default' => 'desc');
       }
       if (module_exists('project_usage')) {
-        $sorts['is_project_release_total_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
+        $sorts['sis_project_release_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
       }
 
       $solrsorts = array();
-      $sort_parameter = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : FALSE;
+      $sort_parameter = isset($_GET['solrsort']) ? check_plain($_GET['solrsort']) : '';
       foreach (explode(',', $sort_parameter) as $solrsort) {
         $parts = explode(' ', $solrsort);
         if (!empty($parts[0]) && !empty($parts[1])) {
@@ -373,7 +385,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
     }
     else if (module_exists('project_release') && $delta == 'project_solr_compability') {
       $vid = _project_release_get_api_vid();
-      $facet = 'im_project_release_api_terms';
+      $facet = 'im_project_release_api_tids';
       $terms = array();
       $active_terms = array_reverse(project_release_compatibility_list(FALSE), TRUE);
 
@@ -386,17 +398,19 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       foreach ($active_terms as $tid => $term_name) {
         if (!empty($active_term_counts[$tid])) {
-          $active = $query->has_field('im_project_release_api_terms', $tid);
+          $active = $query->has_field('im_project_release_api_tids', $tid);
           $path = 'project/' . drupal_strtolower($parent_term->name);
           $new_query = clone $query;
-          $new_query->remove_field('im_project_release_api_terms', $term->tid);
+          $new_query->remove_field('im_project_release_api_tids', $term->tid);
           if ($active) {
             $querystring = $new_query->get_url_querystring();
             $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
           }
           else {
-            $new_query->add_field('im_project_release_api_terms', $tid);
-            $querystring = $new_query->get_url_querystring();
+            $new_query->add_field('im_project_release_api_tids', $tid);
+            $querystring = project_solr_append_api_term($new_query->get_url_querystring(), $tid);
+            
+            
             $unclick_link = '';
           }
           $terms[$term_name] = theme('project_solr_no_count_facet_item', $term_name, $path, $querystring, $active, $unclick_link, $response->numFound);
@@ -418,6 +432,17 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       );
     }
   }
+}
+
+/**
+ * Append the API tid to slected fields that might be in the string.
+ */
+function project_solr_append_api_term($string, $tid) {
+  $api_fields = array('ds_project_latest_release', 'sis_project_release_usage', 'ds_project_latest_activity');
+  foreach($api_fields as $field) {
+    $replace[] = $field .'_'. $tid;
+  }
+  return str_replace($api_fields, $replace, $string);
 }
 
 /**
