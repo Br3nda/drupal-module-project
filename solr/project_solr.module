@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.53 2009/03/08 02:59:32 dww Exp $
+// $Id: project_solr.module,v 1.54 2009/03/08 04:23:16 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -72,17 +72,37 @@ function project_solr_apachesolr_update_index(&$document, $node) {
     $document->is_project_has_releases = 1;
 
     $max_filetime = 0;
-    $query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
-    while ($term = db_fetch_object($query)) {
+    $max_official_filetime = 0;
+    $term_query = db_query("SELECT DISTINCT(tn.tid) FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {term_node} tn ON n.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d", $node->nid, _project_release_get_api_vid());
+    while ($term = db_fetch_object($term_query)) {
       $document->setMultiValue('im_project_release_api_tids', $term->tid);
-      $key = 'ds_project_latest_release_'. $term->tid;
-      $filetime = db_result(db_query_range("SELECT f.timestamp FROM {project_release_nodes} prn INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
+      $latest_activity = db_fetch_object(db_query_range("SELECT f.timestamp, prn.rebuild FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = 1 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
+      $filetime = $latest_activity->timestamp;
+      $key = 'ds_project_latest_activity_'. $term->tid;
       $document->$key = apachesolr_date_iso($filetime);
       if ($filetime > $max_filetime) {
         $max_filetime = $filetime;
       }
+
+      // Now, look for the most recent official release for this API version.
+      $key = 'ds_project_latest_release_'. $term->tid;
+      if ($latest_activity->rebuild == 0) {
+        // The latest activity is official, we're done.
+        $document->$key = apachesolr_date_iso($filetime);
+        if ($filetime > $max_official_filetime) {
+          $max_official_filetime = $filetime;
+        }
+      }
+      else {
+        $filetime = db_result(db_query_range("SELECT f.timestamp FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = 1 AND prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
+        $document->$key = apachesolr_date_iso($filetime);
+        if ($filetime > $max_official_filetime) {
+          $max_official_filetime = $filetime;
+        }
+      }
     }
-    $document->ds_project_latest_release = apachesolr_date_iso($max_filetime);
+    $document->ds_project_latest_activity = apachesolr_date_iso($max_filetime);
+    $document->ds_project_latest_release = apachesolr_date_iso($max_official_filetime);
     
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
@@ -153,7 +173,7 @@ function project_solr_browse_page($term_name) {
     $query->add_field_aliases(array('im_project_release_api_tids' => 'drupal_core'));
 
     $params = array(
-      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,sis_project_release_usage,ds_project_latest_release',
+      'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,sis_project_release_usage,ds_project_latest_release,ds_project_latest_activity',
       'rows' => variable_get('apachesolr_rows', 10),
       'facet' => 'true',
       'facet.mincount' => 1,
@@ -347,11 +367,16 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         }
       }
       if (module_exists('project_release')) {
-        $sort_field = 'ds_project_latest_release';
-        if (!empty($api_tid)) {
-          $sort_field .= '_' . $api_tid;
+        $sort_fields = array(
+          'ds_project_latest_release' => t('Last release'),
+          'ds_project_latest_activity' => t('Recent activity'),
+        );
+        foreach ($sort_fields as $field => $label) {
+          if (!empty($api_tid)) {
+            $field .= '_' . $api_tid;
+          }
+          $sorts[$field] = array('name' => $label, 'default' => 'desc');
         }
-        $sorts[$sort_field] = array('name' => t('Last release'), 'default' => 'desc');
       }
       if (module_exists('project_usage')) {
         $sorts['sis_project_release_usage'] = array('name' => t('Usage statistics'), 'default' => 'desc');
