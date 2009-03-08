@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.52 2009/03/08 02:46:35 dww Exp $
+// $Id: project_solr.module,v 1.53 2009/03/08 02:59:32 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -330,13 +330,17 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       return;
     }
     else if ($delta == 'project_solr_order') {
-      $fields = $query->get_fields();
-      $sorts = array(
+      $sorts = array();
+      if (!empty($_GET['text'])) {
+        // The user has searched for a keyword.
+        $sorts['relevancy'] = array('name' => t('Relevancy'), 'default' => 'asc');
+      }
+      $sorts += array(
         'sort_title' => array('name' => t('Title'), 'default' => 'asc'),
         'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
       $api_tid = 0;
-      foreach ($fields as $field) {
+      foreach ($query->get_fields() as $field) {
         if ($field['#name'] == 'im_project_release_api_tids') {
           $api_tid = $field['#value'];
           break;
@@ -372,9 +376,9 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $path = 'project/' . drupal_strtolower($parent_term->name);
       $new_query = clone $query;
       foreach ($sorts as $type => $sort) {
-        $new_sort = isset($solrsorts[$type]) ? $solrsorts[$type] == 'asc' ? 'desc' : 'asc' : $sort['default'];
+         $new_sort = isset($solrsorts[$type]) ? $solrsorts[$type] == 'asc' ? 'desc' : 'asc' : $sort['default'];
         $new_query->set_solrsort($type == "relevancy" ? '' : "{$type} {$new_sort}");
-        $active = isset($solrsorts[$type]);
+        $active = isset($solrsorts[$type]) || ($type == "relevancy" && empty($solrsorts));
         $direction = isset($solrsorts[$type]) ? $solrsorts[$type] : '';
         $sort_links[] = theme('apachesolr_sort_link', $sort['name'], $path, $new_query->get_url_querystring(), $active, $direction);
       }
@@ -478,7 +482,7 @@ function project_sort_freetext() {
 function project_sort_freetext_submit($form, &$form_state) {
   $query = $form_state['values']['query'];
   $query->querypath = $form_state['values']['text'];
-  $form_state['redirect'] = array($form_state['values']['path'], $query->get_url_querystring());
+  $form_state['redirect'] = array($form_state['values']['path'], $query->get_url_querystring(FALSE));
 }
 
 //----------------------------------------
