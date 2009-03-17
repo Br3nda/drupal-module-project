@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-// $Id: project-usage-process.php,v 1.5 2009/01/30 07:09:02 thehunmonkgroup Exp $
+// $Id: project-usage-process.php,v 1.6 2009/03/17 23:16:13 dww Exp $
 
 
 /**
@@ -72,6 +72,8 @@ if (!module_exists('project_usage')) {
   exit(1);
 }
 
+// Load the API functions we need for manipulating dates and timestamps.
+module_load_include('inc', 'project_usage', 'includes/date_api');
 
 // ------------------------------------------------------------
 // Call the daily and weekly processing tasks as needed.
