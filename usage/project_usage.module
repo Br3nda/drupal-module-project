@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.30 2009/03/17 17:42:58 dww Exp $
+// $Id: project_usage.module,v 1.31 2009/03/17 19:15:26 dww Exp $
 
 /**
  * @file
@@ -116,6 +116,34 @@ function project_usage_help($path, $arg) {
       return '<p>'.
         t('This page summarizes the usage of all projects on @site_name. For each week beginning on the given date the figures show the number of sites that reported they are using (any version of) the project. Detailed usage information for each release of a project is available by clicking the project name.', array('@site_name' => variable_get('site_name', t('this site'))))
         .'</p>';
+
+    case 'project/usage/%':
+      return _project_usage_help($arg[2]);
+
+  }
+}
+
+/**
+ * Helper function to display per-project or per-release usage help.
+ *
+ * @param $key
+ *   URL argument that either identifies a project or a release node (either a
+ *   node ID or a project short name).
+ */
+function _project_usage_help($key) {
+  if (is_numeric($key)) {
+    $node = node_load($key);
+  }
+  else {
+    $node = project_project_retrieve($key);
+  }
+  switch ($node->type) {
+    case 'project_project':
+      return '<p>'. t('This page provides information about the usage of the %project_title project, including summaries across all versions and details for each release. For each week beginning on the given date the figures show the number of sites that reported they are using a given version of the project. ', array('%project_title' => $node->title)) .'</p>'; 
+
+    case 'project_release':
+      return '<p>'. t('For each week beginning on a given date, the figures show the number of sites that reported they are using the %release_title release. ', array('%release_title' => $node->title)) .'</p>'; 
+
   }
 }
 
