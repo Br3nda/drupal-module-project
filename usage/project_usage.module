@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.29 2009/01/31 08:12:49 dww Exp $
+// $Id: project_usage.module,v 1.30 2009/03/17 17:42:58 dww Exp $
 
 /**
  * @file
@@ -372,11 +372,13 @@ function project_usage_project_page($node) {
   // but it ends up being a more expensive query and harder to read.
   $project_header = array(0 => array('data' => t('Week')));
   $blank_row = array(0 => array('data' => ''));
-  $result = db_query("SELECT DISTINCT td.tid, td.name FROM {project_usage_week_project} p INNER JOIN {term_data} td ON p.tid = td.tid WHERE p.nid = %d ORDER BY td.weight, td.name", $node->nid);
+  $result = db_query("SELECT DISTINCT td.tid, td.name FROM {project_usage_week_project} p INNER JOIN {term_data} td ON p.tid = td.tid WHERE p.nid = %d ORDER BY td.weight DESC, td.name", $node->nid);
   while ($row = db_fetch_object($result)) {
     $project_header[$row->tid] = array('data' => check_plain($row->name), 'class' => 'project-usage-numbers');
     $blank_row[$row->tid] = array('data' => 0, 'class' => 'project-usage-numbers');
   }
+  $project_header['total'] = array('data' => t('Total'), 'class' => 'project-usage-numbers');
+  $blank_row['total'] = array('data' => 0, 'class' => 'project-usage-numbers');
 
   // Now create a blank table with a row for each week and formatted date in
   // the first column...
@@ -389,7 +391,19 @@ function project_usage_project_page($node) {
   // ...then fill it in with our data.
   $result = db_query("SELECT timestamp, tid, count FROM {project_usage_week_project} WHERE nid = %d", $node->nid);
   while ($row = db_fetch_object($result)) {
-    $project_rows[$row->timestamp][$row->tid]['data'] = number_format($row->count);
+    $project_rows[$row->timestamp][$row->tid]['data'] = $row->count;
+  }
+
+  // ...and add the weekly totals across all API versions
+  foreach ($project_rows as $timestamp => $row) {
+    $total = 0;
+    foreach ($row as $tid => $data) {
+      if (!empty($tid) && !empty($data['data'])) {
+        $total += $data['data'];
+        $project_rows[$timestamp][$tid]['data'] = number_format($data['data']);
+      }
+    }
+    $project_rows[$timestamp]['total']['data'] = number_format($total);
   }
 
   $output = theme('project_usage_project_page', $node, $release_header, $release_rows, $project_header, $project_rows);
@@ -638,11 +652,11 @@ function theme_project_usage_project_page($project, $release_header = NULL, $rel
     return $output;
   }
 
-  $output .= '<h3>'. t('Recent release usage') .'</h3>';
-  $output .= theme('table', $release_header, $release_rows, array('id' => 'project-usage-project-releases'));
   $output .= '<h3>'. t('Weekly project usage') .'</h3>';
   $output .= theme('project_usage_chart_by_release', t('Weekly @project usage by API version', array('@project' => $project->title)), $project_header, $project_rows);
   $output .= theme('table', $project_header, $project_rows, array('id' => 'project-usage-project-api'));
+  $output .= '<h3>'. t('Recent release usage') .'</h3>';
+  $output .= theme('table', $release_header, $release_rows, array('id' => 'project-usage-project-releases'));
   return $output;
 }
 
