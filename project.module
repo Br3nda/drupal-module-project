@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.344 2009/02/21 22:24:07 dww Exp $
+// $Id: project.module,v 1.345 2009/03/20 08:10:31 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -368,9 +368,6 @@ function project_term_path($term) {
 function project_taxonomy($op, $type, $array = NULL) {
   if ($op == 'delete' && $type == 'vocabulary' && $array['vid'] == _project_get_vid())  {
     variable_del('project_vocabulary');
-  }
-  elseif ($type == 'term' && $array['vid'] == _project_get_vid()) {
-    menu_rebuild();
   }
 }
 
