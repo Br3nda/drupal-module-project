@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.55 2009/03/08 04:33:02 dww Exp $
+// $Id: project_solr.module,v 1.56 2009/03/23 18:33:50 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -113,14 +113,18 @@ function project_solr_apachesolr_update_index(&$document, $node) {
       }
       else {
         $filetime = db_result(db_query_range("SELECT f.timestamp FROM {node} n INNER JOIN {project_release_nodes} prn ON n.nid = prn.nid INNER JOIN {project_release_file} prf ON prn.nid = prf.nid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = 1 AND prn.rebuild = 0 AND tn.tid = %d AND prn.pid = %d ORDER BY f.timestamp DESC", $term->tid, $node->nid, 0, 1));
-        $document->$key = apachesolr_date_iso($filetime);
+        if (!empty($filetime)) {
+          $document->$key = apachesolr_date_iso($filetime);
+        }
         if ($filetime > $max_official_filetime) {
           $max_official_filetime = $filetime;
         }
       }
     }
     $document->ds_project_latest_activity = apachesolr_date_iso($max_filetime);
-    $document->ds_project_latest_release = apachesolr_date_iso($max_official_filetime);
+    if (!empty($max_official_filetime)) {
+      $document->ds_project_latest_release = apachesolr_date_iso($max_official_filetime);
+    }
     
     if (module_exists('project_usage')) {
       $weeks = variable_get('project_usage_active_weeks', array());
