@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.346 2009/03/22 08:50:55 dww Exp $
+// $Id: project.module,v 1.347 2009/04/03 22:05:28 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -588,6 +588,7 @@ function project_form_alter(&$form, &$form_state, $form_id) {
 function project_nodeapi(&$node, $op, $arg) {
   switch ($node->type) {
     case 'project_project':
+      module_load_include('inc', 'project', 'project');
       project_project_nodeapi($node, $op, $arg);
       break;
   }
