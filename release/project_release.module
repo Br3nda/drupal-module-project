@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.110 2009/03/02 01:14:16 dww Exp $
+// $Id: project_release.module,v 1.111 2009/04/04 19:32:05 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -842,6 +842,7 @@ function project_release_delete($node) {
       project_release_file_delete($file);
     }
   }
+  db_query("DELETE FROM {project_release_package_errors} WHERE nid = %d", $node->nid);
   db_query("DELETE FROM {project_release_nodes} WHERE nid = %d", $node->nid);
 }
 
