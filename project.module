@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.347 2009/04/03 22:05:28 dww Exp $
+// $Id: project.module,v 1.348 2009/04/10 23:36:31 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -57,45 +57,47 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
   if ($op == 'list') {
     // Note:  We can get by with using BLOCK_CACHE_PER_ROLE below because
     // block caching is disabled when node access control modules are in use.
-    $blocks[0] = array(
+    $blocks['project_navigation_select'] = array(
       'info' => t('Project navigation (drop-down select)'),
       'cache' => BLOCK_CACHE_PER_ROLE,
     );
+    $blocks['project_navigation_text'] = array(
+      'info' => t('Project navigation (text field)'),
+      'cache' => BLOCK_CACHE_PER_ROLE,
+    );
     if (module_exists('search')) {
-      $blocks[1] = array(
+      $blocks['project_search'] = array(
         'info' => t('Project search'),
         'cache' => BLOCK_CACHE_PER_ROLE,
       );
     }
-    $blocks[2] = array(
-      'info' => t('Project navigation (text field)'),
-      'cache' => BLOCK_CACHE_PER_ROLE,
-    );
     return $blocks;
   }
   else if ($op == 'view') {
     switch ($delta) {
-      case 0:
+      case 'project_navigation_select':
         $block = array(
           'subject' => t('Project navigation'),
           'content' => drupal_get_form('project_quick_navigate_form'),
         );
         break;
 
-      case 1:
+      case 'project_navigation_text':
+        $block = array(
+          'subject' => t('Project navigation'),
+          'content' => drupal_get_form('project_quick_navigate_title_form'),
+        );
+        break;
+
+      case 'project_search':
         if (user_access('search content')) {
           $block = array(
             'subject' => t('Search projects'), 
             'content' => drupal_get_form('project_search_block_form', 'project_project'),
           );
         }
-
-      case 2:
-        $block = array(
-          'subject' => t('Project navigation'),
-          'content' => drupal_get_form('project_quick_navigate_title_form'),
-        );
         break;
+
     }
     return $block;
   }
