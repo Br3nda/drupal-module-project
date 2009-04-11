@@ -1,5 +1,5 @@
 <?php
-// $Id: date_api.inc,v 1.1 2009/03/17 23:16:13 dww Exp $
+// $Id: date_api.inc,v 1.2 2009/04/11 22:42:34 dww Exp $
 
 /**
  * @file
@@ -107,6 +107,14 @@ function project_usage_get_active_weeks($reset = FALSE) {
     variable_set('project_usage_active_weeks', $weeks);
   }
   return $weeks;
+}
+
+function project_usage_get_current_active_week() {
+  static $current_week = 0;
+  if (empty($current_week)) {
+    $current_week = array_shift(project_usage_get_active_weeks());
+  }
+  return $current_week;
 }
 
 /**

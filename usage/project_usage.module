@@ -1,5 +1,5 @@
 <?php
-// $Id: project_usage.module,v 1.32 2009/03/17 23:16:13 dww Exp $
+// $Id: project_usage.module,v 1.33 2009/04/11 22:42:34 dww Exp $
 
 /**
  * @file
@@ -167,5 +167,64 @@ function project_usage_project_page_link_alter(&$links, $node) {
   if (user_access('view project usage') && $node->project_release['releases']) {
     $links['resources']['links']['project_usage'] = l(t('View usage statistics'), 'project/usage/'. $node->project['uri']);
   }
+}
+
+/**
+ * Return the total usage data for a given project across all versions.
+ *
+ * @param $nid
+ *   The project node ID.
+ *
+ * @return
+ *   The total reported usage for all versions of the given project.
+ */
+function project_usage_get_project_total_usage($nid) {
+  $active_tids = project_release_compatibility_list();
+  static $total = array();
+  if (empty($total[$nid])) {
+    $total[$nid] = 0;
+    foreach ($active_tids as $tid => $term_name) {
+      $total[$nid] += project_usage_get_project_usage($nid, $tid);
+    }
+  }
+  return $total[$nid];
+}
+
+/**
+ * Return usage data for a given API version of a project.
+ *
+ * @param $nid
+ *   The project node ID.
+ * @param $tid
+ *   The API compatibility taxonomy term ID to get usage for.
+ *
+ * @return
+ *   The total reported usage for the given version of the given project.
+ */
+function project_usage_get_project_usage($nid, $tid) {
+  static $usage = array();
+  module_load_include('inc', 'project_usage', 'includes/date_api');
+  if (empty($usage[$nid][$tid])) {
+    $usage[$nid][$tid] = db_result(db_query("SELECT count FROM {project_usage_week_project} WHERE nid = %d AND tid = %d AND timestamp = %d", $nid, $tid, project_usage_get_current_active_week()));
+  }
+  return $usage[$nid][$tid];
+}
+
+/**
+ * Return usage data for a given release.
+ *
+ * @param $nid
+ *   The release node ID.
+ *
+ * @return
+ *   The total reported usage for the given release.
+ */
+function project_usage_get_release_usage($nid) {
+  static $usage = array();
+  module_load_include('inc', 'project_usage', 'includes/date_api');
+  if (empty($usage[$nid])) {
+    $usage[$nid] = db_result(db_query("SELECT count FROM {project_usage_week_release} WHERE nid = %d AND timestamp = %d", $nid, project_usage_get_current_active_week()));
+  }
+  return $usage[$nid];
 }
 
