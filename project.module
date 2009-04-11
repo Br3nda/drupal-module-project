@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.348 2009/04/10 23:36:31 dww Exp $
+// $Id: project.module,v 1.349 2009/04/11 02:21:12 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -71,6 +71,17 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
         'cache' => BLOCK_CACHE_PER_ROLE,
       );
     }
+
+    module_load_include('inc', 'project', 'project');
+    foreach (project_get_project_link_info() as $key => $links) {
+      if (isset($links['type']) && $links['type'] == 'block') {
+        $blocks[$key] = array(
+          'info' => t('Project: @section', array('@section' => $links['name'])),
+          'cache' => BLOCK_CACHE_PER_ROLE | BLOCK_CACHE_PER_PAGE,
+        );
+      }
+    }
+
     return $blocks;
   }
   else if ($op == 'view') {
@@ -98,6 +109,17 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
         }
         break;
 
+    }
+    if (empty($block) && ($node = menu_get_object()) && $node->type == 'project_project' && node_access('view', $node)) {
+      module_load_include('inc', 'project', 'project');
+      foreach (project_get_project_link_info($node) as $key => $links) {
+        if ($delta == $key && isset($links['type']) && $links['type'] == 'block' && !empty($links['links'])) {
+          $block = array(
+            'subject' => $links['name'],
+            'content' => theme('item_list', $links['links']),
+          );
+        }
+      }
     }
     return $block;
   }

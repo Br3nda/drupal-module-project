@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.141 2009/04/11 01:57:00 dww Exp $
+// $Id: project.inc,v 1.142 2009/04/11 02:21:12 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -334,38 +334,8 @@ function project_project_view($node, $teaser = false, $page = false) {
       );
     }
 
-    // Build a nested array of sections of links to display on project_project node pages.
-    $all_links = array();
-
-    // Resources section
-    $all_links['resources'] = array(
-      'name' => t('Resources'),
-      'weight' => 4,
-    );
-    foreach (array('homepage' => t('Home page'), 'documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
-      if (!empty($node->project[$uri])) {
-        $all_links['resources']['links'][$uri] = l($name, $node->project[$uri]);
-      }
-    }
-
-    // Developer section
-    $all_links['development'] = array(
-      'name' => t('Development'),
-      'weight' => 8,
-    );
-    $links = array();
-    if ($node->project['cvs']) {
-      $links['browse_repository'] = l(t('Browse the CVS repository'), $node->project['cvs']);
-    }
-
-    if (project_use_cvs($node)) {
-      $links['view_cvs_messages'] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
-      $links['developers'] = l(t('Developers'), 'project/developers/'. $node->nid);
-    }
-    $all_links['development']['links'] = $links;
-
-    // Allow other modules to add sections of links and/or links to the sections defined above.
-    drupal_alter('project_page_link', $all_links, $node);
+    // Retrieve nested array of sections of links to display on node page.
+    $all_links = project_get_project_link_info($node);
 
     // Format links in $all_links for display in the project_project node.
     // Keep track of the section with the heaviest weight (which will be last)
@@ -374,8 +344,8 @@ function project_project_view($node, $teaser = false, $page = false) {
     $max_weight = -10000;
     $last_section = '';
     foreach($all_links as $section => $values) {
-      // Only add the section if there are links for the section.
-      if (!empty($values['links'])) {
+      // Only add the section if there are links, and section type is "inline".
+      if (!empty($values['links']) && (empty($values['type']) || $values['type'] == 'inline')) {
         $weight = !empty($values['weight']) ? $values['weight'] : 0;
         $node->content[$section] = array(
           '#value' => theme('item_list', $values['links'], isset($values['name']) ? $values['name'] : NULL),
@@ -574,5 +544,51 @@ function theme_project_project_node_form_taxonomy($form) {
     $output .= '</div>';
   }
   return $output;
+}
+
+/**
+ * Build a nested array of sections of links to display on project_project node pages.
+ */
+function project_get_project_link_info($node = NULL) {
+  static $all_links;
+
+  // We only need to build the links array once per page.
+  if (is_array($all_links)) {
+    return $all_links;
+  }
+
+  // Resources section
+  $all_links['resources'] = array(
+    'name' => t('Resources'),
+    'weight' => 4,
+    'type' => 'inline',
+  );
+  foreach (array('homepage' => t('Home page'), 'documentation' => t('Read documentation'), 'license' => t('Read license'), 'changelog' => t('Read complete log of changes'), 'demo' => t('Try out a demonstration'), 'screenshots' => t('Look at screenshots')) as $uri => $name) {
+    if (!empty($node->project[$uri])) {
+      $all_links['resources']['links'][$uri] = l($name, $node->project[$uri]);
+    }
+  }
+
+  // Developer section
+  $all_links['development'] = array(
+    'name' => t('Development'),
+    'weight' => 8,
+    'type' => 'inline',
+  );
+  $links = array();
+  if (!empty($node->project['cvs'])) {
+    $links['browse_repository'] = l(t('Browse the CVS repository'), $node->project['cvs']);
+  }
+
+  if (project_use_cvs($node)) {
+    $links['view_cvs_messages'] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
+    $links['developers'] = l(t('Developers'), 'project/developers/'. $node->nid);
+  }
+  $all_links['development']['links'] = $links;
+
+  // Allow other modules to add sections of links and/or links to the sections defined above.
+  drupal_alter('project_page_link', $all_links, $node);
+
+  return $all_links;
 }
 
