@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.140 2009/02/21 22:24:07 dww Exp $
+// $Id: project.inc,v 1.141 2009/04/11 01:57:00 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -348,49 +348,12 @@ function project_project_view($node, $teaser = false, $page = false) {
       }
     }
 
-
-    // Flags that indicate what kind of access to project issues to allow.
-    $has_issues = module_exists('project_issue') && !empty($node->project_issue['issues']);
-    $view_issues = $has_issues && (user_access('access project issues') || user_access('access own project issues') || user_access('administer projects'));
-    $make_issues = $has_issues && node_access('create', 'project_issue');
-
-    // Support section.
-    $all_links['support'] = array(
-      'name' => t('Support'),
-      'weight' => 6,
-    );
-    $links = array();
-    if ($view_issues) {
-      $links['all_support'] = l(t('View all support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support&status=All'));
-      $links['pending_support'] = l(t('View pending support requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=support'));
-      $links['pending_bugs'] = l(t('View pending bug reports'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=bug'));
-      $links['pending_features'] = l(t('View pending feature requests'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=feature'));
-      $links['search_issues'] = l(t('Search issues'), 'project/issues/search/'. $node->project['uri']);
-    }
-    if ($make_issues) {
-      $links['request_support'] = l(t('Request support'), 'node/add/project-issue/'. $node->project['uri'] .'/support');
-      $links['report_bug'] = l(t('Report new bug'), 'node/add/project-issue/'. $node->project['uri'] .'/bug');
-      $links['request_feature'] = l(t('Request new feature'), 'node/add/project-issue/'. $node->project['uri'] .'/feature');
-      $links['subscribe'] = l(t('Subscribe to issues'), 'project/issues/subscribe-mail/'. $node->project['uri'], array('query' => drupal_get_destination()));
-    }
-    elseif ($has_issues) {
-      $links['create_forbidden'] = theme('project_issue_create_forbidden', $node->project['uri']);
-    }
-    $all_links['support']['links'] = $links;
-
-
     // Developer section
     $all_links['development'] = array(
       'name' => t('Development'),
       'weight' => 8,
     );
     $links = array();
-    if ($view_issues) {
-      $links['pending_patches'] = l(t('View pending patches'), 'project/issues/search/'. $node->project['uri'], array('query' => 'status[]=8&status[]=13&status[]=14'));
-      $links['available_tasks'] = l(t('View available tasks'), 'project/issues/'. $node->project['uri'], array('query' => 'categories=task'));
-      $links['pending_issues'] = l(t('View all pending issues'), 'project/issues/'. $node->project['uri']);
-    }
-
     if ($node->project['cvs']) {
       $links['browse_repository'] = l(t('Browse the CVS repository'), $node->project['cvs']);
     }
