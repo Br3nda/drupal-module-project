@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.24 2009/01/16 06:46:23 dww Exp $
+// $Id: project.install,v 1.25 2009/04/11 23:47:08 dww Exp $
 
 function project_install() {
   // Create the database tables.
@@ -122,3 +122,15 @@ function project_update_6000() {
   }
   return array();
 }
+
+/**
+ * Fix deltas for project blocks.
+ */
+function project_update_6001() {
+  $ret = array();
+  $ret[] = update_sql("UPDATE {blocks} SET delta = 'project_navigation_select' WHERE delta = '0' AND module = 'project'");
+  $ret[] = update_sql("UPDATE {blocks} SET delta = 'project_search' WHERE delta = '1' AND module = 'project'");
+  $ret[] = update_sql("UPDATE {blocks} SET delta = 'project_navigation_text' WHERE delta = '2' AND module = 'project'");
+  return $ret;
+}
+
