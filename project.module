@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.349 2009/04/11 02:21:12 dww Exp $
+// $Id: project.module,v 1.350 2009/04/12 22:17:44 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -110,7 +110,7 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
         break;
 
     }
-    if (empty($block) && ($node = menu_get_object()) && $node->type == 'project_project' && node_access('view', $node)) {
+    if (empty($block) && ($node = project_get_project_from_menu()) && node_access('view', $node)) {
       module_load_include('inc', 'project', 'project');
       foreach (project_get_project_link_info($node) as $key => $links) {
         if ($delta == $key && isset($links['type']) && $links['type'] == 'block' && !empty($links['links'])) {
@@ -1127,5 +1127,19 @@ function project_get_uri_from_nid($nid) {
     $uris[$nid] = db_result(db_query_range("SELECT uri FROM {project_projects} WHERE nid = %d", $nid, 0, 1));
   }
   return $uris[$nid];
+}
+
+/**
+ * Get the project node context from the currently active menu, if any.
+ *
+ * @return
+ *   A fully loaded project $node object if the currently active menu has a
+ *   project node context, or NULL if the menu isn't pointing to a project.
+ */
+function project_get_project_from_menu() {
+  if (($node = menu_get_object('project_node')) ||
+      (($node = menu_get_object()) && $node->type == 'project_project')) {
+    return $node;
+  }
 }
 
