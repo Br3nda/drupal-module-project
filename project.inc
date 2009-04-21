@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.142 2009/04/11 02:21:12 dww Exp $
+// $Id: project.inc,v 1.143 2009/04/21 19:04:49 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -295,8 +295,9 @@ function project_project_set_breadcrumb($node = NULL, $extra = NULL) {
     $path = array_slice($path, 0, count($path) - 1);
     $path = implode('/', $path);
     $menu_link = db_fetch_object(db_query("SELECT * FROM {menu_links} ml INNER JOIN {menu_router} m ON m.path = ml.router_path WHERE ml.hidden = %d AND ml.link_path = '%s' ORDER BY ml.weight", 0, $path));
-
-    $breadcrumb[] = l($menu_link->link_title, 'project', array('title' => t('Browse projects')));
+    if (!empty($menu_link)) {
+      $breadcrumb[] = l($menu_link->link_title, 'project', array('title' => t('Browse projects')));
+    }
   }
 
   if (!empty($node->nid) && project_use_taxonomy()) {
