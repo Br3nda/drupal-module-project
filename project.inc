@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.143 2009/04/21 19:04:49 dww Exp $
+// $Id: project.inc,v 1.144 2009/05/05 17:15:44 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -466,23 +466,6 @@ function project_project_retrieve($key = 0) {
   return ($node->type == 'project_project') ? $node : NULL;
 }
 
-function project_developers($nid = 0) {
-  if ($project = node_load($nid)) {
-    if (node_access('view', $project)) {
-      $output = module_invoke('cvs', 'get_project_contributors', $nid);
-      drupal_set_title(t('Developers for %name', array('%name' => $project->title)));
-      project_project_set_breadcrumb($project, TRUE);
-      return $output;
-    }
-    else {
-      drupal_access_denied();
-    }
-  }
-  else {
-    drupal_not_found();
-  }
-}
-
 function project_cvs($nid = 0) {
   if ($project = node_load($nid)) {
     if (node_access('view', $project)) {
@@ -583,7 +566,6 @@ function project_get_project_link_info($node = NULL) {
 
   if (project_use_cvs($node)) {
     $links['view_cvs_messages'] = l(t('View CVS messages'), 'project/cvs/'. $node->nid);
-    $links['developers'] = l(t('Developers'), 'project/developers/'. $node->nid);
   }
   $all_links['development']['links'] = $links;
 

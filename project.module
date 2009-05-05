@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.350 2009/04/12 22:17:44 dww Exp $
+// $Id: project.module,v 1.351 2009/05/05 17:15:44 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -422,14 +422,6 @@ function project_menu() {
     'title' => 'Autocomplete project',
     'page callback' => 'project_autocomplete_project_user',
     'page arguments' => array(3, 4),
-    'access callback' => 'project_project_access_any',
-    'type' => MENU_CALLBACK,
-  );
-
-  // Developers
-  $items['project/developers'] = array(
-    'title' => 'Developers',
-    'page callback' => 'project_developers',
     'access callback' => 'project_project_access_any',
     'type' => MENU_CALLBACK,
   );
