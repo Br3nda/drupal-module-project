@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.57 2009/03/23 20:42:56 dww Exp $
+// $Id: project_solr.module,v 1.58 2009/05/06 20:52:43 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -331,9 +331,9 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       // Get the terms at the current depth.
       $current_tid = $parent_term->tid;
-      foreach ($query->get_fields() as $field) {
-        if ($field['#name'] == 'tid') {
-          $current_tid = $field['#value'];
+      foreach ($query->get_filters() as $filter) {
+        if ($filter['#name'] == 'tid') {
+          $current_tid = $filter['#value'];
           break;
         }
       }
@@ -344,7 +344,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       }
 
       foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
-        $active = $query->has_field('tid', $tid);
+        $active = $query->has_filter('tid', $tid);
         if (!isset($current_level_terms[$tid]) && (!$active || $tid != $current_tid)) {
           continue;
         }
@@ -354,12 +354,12 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         
         $path = 'project/' . drupal_strtolower($parent_term->name);
         if ($active) {
-          $new_query->remove_field('tid', $term->tid);
+          $new_query->remove_filter('tid', $term->tid);
           $querystring = $new_query->get_url_querystring();
           $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
         }
         else {
-          $new_query->add_field('tid', $term->tid);
+          $new_query->add_filter('tid', $term->tid);
           $querystring = $new_query->get_url_querystring();
         }
         $countsort = $count == 0 ? '' : 1 / $count;
@@ -401,9 +401,9 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
         'created' => array('name' => t('Creation date'), 'default' => 'desc'),
       );
       $api_tid = 0;
-      foreach ($query->get_fields() as $field) {
-        if ($field['#name'] == 'im_project_release_api_tids') {
-          $api_tid = $field['#value'];
+      foreach ($query->get_filters() as $filter) {
+        if ($filter['#name'] == 'im_project_release_api_tids') {
+          $api_tid = $filter['#value'];
           break;
         }
       }
@@ -468,16 +468,16 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 
       foreach ($active_terms as $tid => $term_name) {
         if (!empty($active_term_counts[$tid])) {
-          $active = $query->has_field('im_project_release_api_tids', $tid);
+          $active = $query->has_filter('im_project_release_api_tids', $tid);
           $path = 'project/' . drupal_strtolower($parent_term->name);
           $new_query = clone $query;
-          $new_query->remove_field('im_project_release_api_tids', $term->tid);
+          $new_query->remove_filter('im_project_release_api_tids', $term->tid);
           if ($active) {
             $querystring = $new_query->get_url_querystring();
             $unclick_link = theme('apachesolr_unclick_link', $path, $querystring);
           }
           else {
-            $new_query->add_field('im_project_release_api_tids', $tid);
+            $new_query->add_filter('im_project_release_api_tids', $tid);
             $querystring = project_solr_append_api_term($new_query->get_url_querystring(), $tid);
             
             
