@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views_default.inc,v 1.3 2009/02/22 18:43:38 dww Exp $
+// $Id: project_release.views_default.inc,v 1.4 2009/05/13 22:11:12 dww Exp $
 
 /**
  * @file
@@ -52,7 +52,7 @@ function project_release_views_default_views() {
       'table' => 'node',
       'field' => 'created',
       'order' => 'DESC',
-      'granularity' => 'day',
+      'granularity' => 'minute',
       'relationship' => 'none',
     ),
   ));
