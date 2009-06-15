@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.144 2009/05/05 17:15:44 dww Exp $
+// $Id: project.inc,v 1.145 2009/06/15 03:51:00 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -373,13 +373,6 @@ function project_project_view($node, $teaser = false, $page = false) {
   return $node;
 }
 
-function project_project_load($node) {
-  $additions = db_fetch_array(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
-  $project = new stdClass;
-  $project->project = $additions;
-  return $project;
-}
-
 /**
  * hook_nodeapi() implementation specific for project nodes.
  * @see project_nodeapi().
@@ -416,46 +409,6 @@ function project_project_update($node) {
 
 function project_project_delete($node) {
   db_query('DELETE FROM {project_projects} WHERE nid = %d', $node->nid);
-}
-
-function project_project_access($op, $node, $account) {
-  switch ($op) {
-    case 'view':
-      // Since this function is shared for project_release nodes, we have to
-      // be careful what node we pass to project_check_admin_access().
-      if ($node->type == 'project_release') {
-        $node = node_load($node->project['pid']);
-      }
-      if (project_check_admin_access($node)) {
-        return TRUE;
-      }
-      if (!user_access('access projects')) {
-         return FALSE;
-      }
-      break;
-    case 'create':
-      if ($account->uid && user_access('maintain projects')) {
-        // Since this CVS access checking is non-standard, we need to
-        // special-case uid 1 to always allow everything.
-        if ($account->uid != 1 && module_exists('cvs') && variable_get('cvs_restrict_project_creation', 1)) {
-          return db_result(db_query("SELECT uid FROM {cvs_accounts} WHERE uid = %d AND status = %d", $account->uid, CVS_APPROVED)) ? TRUE : FALSE;
-        }
-        else {
-          return TRUE;
-        }
-      }
-      break;
-    case 'update':
-      if (project_check_admin_access($node)) {
-        return TRUE;
-      }
-      break;
-    case 'delete':
-      if (user_access('delete any projects', $account) || (user_access('delete own projects', $account) && ($account->uid == $node->uid))) {
-        return TRUE;
-      }
-      break;
-  }
 }
 
 function project_project_retrieve($key = 0) {
