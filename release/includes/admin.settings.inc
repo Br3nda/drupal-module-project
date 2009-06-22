@@ -1,5 +1,5 @@
 <?php
-// $Id: admin.settings.inc,v 1.1 2009/06/22 05:28:12 dww Exp $
+// $Id: admin.settings.inc,v 1.2 2009/06/22 05:35:45 dww Exp $
 
 /**
  * @file
@@ -88,11 +88,16 @@ function project_release_settings_form_validate($form, &$form_state) {
   if (!empty($form_state['values']['project_release_directory'])) {
     form_set_error('project_release_directory', t('Release directory setting has been deprecated.'));
   }
-  $tids = $form_state['values']['project_release_active_compatibility_tids'];
-  $default_tid = $form_state['values']['project_release_overview'];
-  if ($default_tid != -1 && !$tids[$default_tid]) {
-    $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
-    form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms.', array('%vocab' => $vocab->name)));
+  // Only validate these form elements if the API compatibility form elements
+  // were even added to the form to avoid PHP notices when there are no terms
+  // in the API compatibility vocabulary.
+  if (isset($form_state['values']['project_release_active_compatibility_tids'])) {
+    $tids = $form_state['values']['project_release_active_compatibility_tids'];
+    $default_tid = $form_state['values']['project_release_overview'];
+    if ($default_tid != -1 && !$tids[$default_tid]) {
+      $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
+      form_set_error('project_release_overview', t('Project release overview must be one of the active %vocab terms.', array('%vocab' => $vocab->name)));
+    }
   }
 
   // Make sure the default version format has no bad characters.
