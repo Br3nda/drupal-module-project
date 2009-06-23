@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.116 2009/06/22 05:44:46 dww Exp $
+// $Id: project_release.module,v 1.117 2009/06/23 03:33:18 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -66,7 +66,7 @@ function project_release_menu() {
     'access callback' => 'node_access',
     'access arguments' => array('create', 'project_release'),
     'type' => MENU_CALLBACK,
-    'file' => 'includes/release_node_form.inc';
+    'file' => 'includes/release_node_form.inc',
   );
 
   return $items;
