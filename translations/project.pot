@@ -1,4 +1,4 @@
-# $Id: project.pot,v 1.1 2009/07/17 22:01:22 hass Exp $
+# $Id: project.pot,v 1.2 2009/07/17 23:04:07 hass Exp $
 #
 # LANGUAGE translation of Drupal (root)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -13,13 +13,12 @@
 #  project_usage.info,v 1.2 2009/01/30 07:09:39 thehunmonkgroup
 #  pages.inc,v 1.1 2009/03/17 23:16:13 dww
 #  project.views.inc,v 1.5 2009/02/16 22:43:15 dww
-#  project.install,v 1.25 2009/04/11 23:47:08 dww
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2009-07-17 23:55+0200\n"
+"POT-Creation-Date: 2009-07-18 00:17+0200\n"
 "PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
 "Last-Translator: NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
@@ -306,42 +305,6 @@ msgstr ""
 
 #: project.module:0
 msgid "project"
-msgstr ""
-
-#: project.install:36
-msgid "Primary Key: The {node}.nid of the project_project node."
-msgstr ""
-
-#: project.install:43
-msgid "The short name of the project."
-msgstr ""
-
-#: project.install:50
-msgid "An external link to the project's homepage."
-msgstr ""
-
-#: project.install:57
-msgid "An external link to a log of changes for the project."
-msgstr ""
-
-#: project.install:64
-msgid "An external link to the CVS repository for the project."
-msgstr ""
-
-#: project.install:71
-msgid "An external link to a demonstration site for the project."
-msgstr ""
-
-#: project.install:78
-msgid "An external link to documentation for the project."
-msgstr ""
-
-#: project.install:85
-msgid "An external link to screenshots of the project."
-msgstr ""
-
-#: project.install:92
-msgid "An external link to the license of the project."
 msgstr ""
 
 #: project.info:0
