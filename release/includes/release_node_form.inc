@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.2 2009/06/22 05:44:46 dww Exp $
+// $Id: release_node_form.inc,v 1.3 2009/07/31 07:55:20 dww Exp $
 
 /**
  * @file
@@ -62,8 +62,9 @@ function _project_release_form(&$release, &$form_state) {
     );
   }
   _project_release_form_add_text_element($form['rel_id']['title'], t('Title'), $release->title, $is_edit, $admin, TRUE, 40, 128);
-  _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->project_release['version'], $is_edit, $admin, TRUE, 20, 255);
-
+  if (!empty($release->project_release['version'])) {
+    _project_release_form_add_text_element($form['rel_id']['version'], t('Version string'), $release->project_release['version'], $is_edit, $admin, TRUE, 20, 255);
+  }
   // The version string belongs in $node->project_release[], so we set
   // #parents to ensure the form value is placed there during validate,
   // preview, and submit.
@@ -201,9 +202,9 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
     $form['project_release'][$var_name] = array(
       '#type' => 'textfield',
       '#title' => $title,
-      '#default_value' => $release->project_release[$var_name],
+      '#default_value' => isset($release->project_release[$var_name]) ? $release->project_release[$var_name] : '',
       '#size' => $size,
-      '#maxlength' => $size+10,
+      '#maxlength' => $size + 10,
       '#attributes' => array('style' => 'width:auto'),
     );
     if ($required) {
@@ -223,7 +224,7 @@ function _project_release_form_add_version_element(&$form, $release, $modify, $f
   else {
     $form['project_release'][$var_name] = array(
       '#type' => 'value',
-      '#value' => $release->project_release[$var_name],
+      '#value' => isset($release->project_release[$var_name]) ? $release->project_release[$var_name] : '',
     );
   }
 }
