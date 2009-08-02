@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-private-download.php,v 1.1 2009/08/01 18:56:23 dww Exp $
+// $Id: project-release-private-download.php,v 1.2 2009/08/02 23:20:28 dww Exp $
 
 /**
  * @file
@@ -141,8 +141,8 @@ if (!is_file($full_path)) {
 // something.  Even if they managed to find a file that actually exists that
 // way, it's not going to match a valid release node.  So they're going to get
 // a 403, not the file they're trying to steal.
-$release = db_fetch_object(db_query(db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {project_release_file} prf ON n.nid = prf.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = 1 AND f.filepath = '%s'"), $path));
-if (empty($release)) {
+$nid = db_result(db_query(db_rewrite_sql("SELECT n.nid FROM {node} n INNER JOIN {project_release_file} prf ON n.nid = prf.nid INNER JOIN {files} f ON prf.fid = f.fid WHERE n.status = 1 AND f.filepath = '%s'"), $path));
+if (empty($nid)) {
   drupal_access_denied();
   exit(1);
 }
@@ -168,4 +168,8 @@ else {
   flush();
   readfile($full_path);
 }
+
+// If we got this far, invoke our hook to let modules know this happened.
+global $user;
+module_invoke_all('project_release_download', $nid, $path, $user->uid);
 
