@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.118 2009/08/03 23:30:47 dww Exp $
+// $Id: project_release.module,v 1.119 2009/08/03 23:36:24 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1331,6 +1331,9 @@ function project_release_exists($version) {
       $values[$field] = $version->$field;
       $foo = $version->$field;
     }
+    else {
+      $null_types[] = $field;
+    }
   }
   $fields = array('version', 'version_extra');
   foreach ($fields as $field) {
@@ -1339,8 +1342,11 @@ function project_release_exists($version) {
       $values[$field] = $version->$field;
       $str = $version->$field;
     }
+    elseif ($field == 'version_extra') {
+      $null_types[] = $field;
+    }
   }
-  if (!isset($types)) {
+  if (empty($types) && empty($null_types)) {
     // We have nothing to query, yet...
     return false;
   }
@@ -1354,8 +1360,15 @@ function project_release_exists($version) {
   }
 
   $sql = 'SELECT COUNT(*) FROM {project_release_nodes} p'. $taxo_join .' WHERE p.pid = %d';
-  foreach ($types as $field => $type) {
-    $sql .= " AND p.$field = $type";
+  if (!empty($types)) {
+    foreach ($types as $field => $type) {
+      $sql .= " AND p.$field = $type";
+    }
+  }
+  if (!empty($null_types)) {
+    foreach ($null_types as $field) {
+      $sql .= " AND p.$field IS NULL";
+    }
   }
   $sql .= $taxo_where;
   // we put pid as the first WHERE, so stick it on the front
