@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.22 2009/01/30 00:34:26 dww Exp $
+// $Id: project_release.install,v 1.23 2009/08/03 18:25:15 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -37,38 +37,38 @@ function project_release_uninstall() {
  */
 function project_release_schema() {
   $schema['project_release_nodes'] = array(
-    'description' => t('The base table for project_project nodes.'),
+    'description' => 'The base table for project_project nodes.',
     'fields' => array(
       'nid' => array(
-        'description' => t('Primary Key: The {node}.nid of the project_release node.'),
+        'description' => 'Primary Key: The {node}.nid of the project_release node.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'pid' => array(
-        'description' => t('The {project_projects}.nid of the project_project node with which the project_release node is associated.'),
+        'description' => 'The {project_projects}.nid of the project_project node with which the project_release node is associated.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'version' => array(
-        'description' => t('A string containing the full version of a release. The format of this string for a given project is dictated by {project_release_projects}.version_format.'),
+        'description' => 'A string containing the full version of a release. The format of this string for a given project is dictated by {project_release_projects}.version_format.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'tag' => array(
-        'description' => t('The name of a CVS branch or tag on which a release is based.'),
+        'description' => 'The name of a CVS branch or tag on which a release is based.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'rebuild' => array(
-        'description' => t('A flag indicating whether or not the file associated with a release should be rebuilt periodically. For official releases this should be 0, for development snapshots it should be 1.'),
+        'description' => 'A flag indicating whether or not the file associated with a release should be rebuilt periodically. For official releases this should be 0, for development snapshots it should be 1.',
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => FALSE,
@@ -76,28 +76,28 @@ function project_release_schema() {
         'default' => 0,
       ),
       'version_major' => array(
-        'description' => t('The major version number of a release.'),
+        'description' => 'The major version number of a release.',
         'type' => 'int',
         'unsigned' => FALSE,
         'not null' => FALSE,
         'default' => NULL,
       ),
       'version_minor' => array(
-        'description' => t('The minor version number of a release.'),
+        'description' => 'The minor version number of a release.',
         'type' => 'int',
         'unsigned' => FALSE,
         'not null' => FALSE,
         'default' => NULL,
       ),
       'version_patch' => array(
-        'description' => t('The patch level version number of a release.'),
+        'description' => 'The patch level version number of a release.',
         'type' => 'int',
         'unsigned' => FALSE,
         'not null' => FALSE,
         'default' => NULL,
       ),
       'version_extra' => array(
-        'description' => t('A text string that can be used to provide additional information about a release.  Ex: BETA'),
+        'description' => 'A text string that can be used to provide additional information about a release.  Ex: BETA',
         'type' => 'varchar',
         'length' => 255,
         'not null' => FALSE,
@@ -111,24 +111,24 @@ function project_release_schema() {
   );
 
   $schema['project_release_file'] = array(
-    'description' => t('Stores information about files attached to release nodes.'),
+    'description' => 'Stores information about files attached to release nodes.',
     'fields' => array(
       'fid' => array(
-        'description' => t('Foreign Key: {files}.fid.'),
+        'description' => 'Foreign Key: {files}.fid.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'nid' => array(
-        'description' => t('Foreign Key: {project_release_nodes}.nid.'),
+        'description' => 'Foreign Key: {project_release_nodes}.nid.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'filehash' => array(
-        'description' => t('An MD5 hash of the file.'),
+        'description' => 'An MD5 hash of the file.',
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
@@ -140,17 +140,17 @@ function project_release_schema() {
   );
 
   $schema['project_release_projects'] = array(
-    'description' => t('Table used to store release specific information about projects.'),
+    'description' => 'Table used to store release specific information about projects.',
     'fields' => array(
       'nid' => array(
-        'description' => t('Primary Key: The {project_projects}.nid of the project_project node.'),
+        'description' => 'Primary Key: The {project_projects}.nid of the project_project node.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'releases' => array(
-        'description' => t('A flag indicating whether or not releases are enabled for a project.'),
+        'description' => 'A flag indicating whether or not releases are enabled for a project.',
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => FALSE,
@@ -158,7 +158,7 @@ function project_release_schema() {
         'default' => 1,
       ),
       'version_format' => array(
-        'description' => t('A string used to designate the format of the {project_release_nodes}.version field for releases of a project.'),
+        'description' => 'A string used to designate the format of the {project_release_nodes}.version field for releases of a project.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -172,31 +172,31 @@ function project_release_schema() {
   );
 
   $schema['project_release_supported_versions'] = array(
-    'description' => t('Table used to store information about which major versions of a project are supported and/or recommended.'),
+    'description' => 'Table used to store information about which major versions of a project are supported and/or recommended.',
     'fields' => array(
       'nid' => array(
-        'description' => t('Primary Key: The {project_projects}.nid of the project_project node.'),
+        'description' => 'Primary Key: The {project_projects}.nid of the project_project node.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'tid' => array(
-        'description' => t('Primary Key: The {term_data}.tid of the API compatability version associated with a major version of a project.'),
+        'description' => 'Primary Key: The {term_data}.tid of the API compatability version associated with a major version of a project.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'major' => array(
-        'description' => t('Primary Key: The {project_release_nodes}.version_major of a release node.'),
+        'description' => 'Primary Key: The {project_release_nodes}.version_major of a release node.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'supported' => array(
-        'description' => t('A flag to indicate whether or not a given major version of a project is supported.'),
+        'description' => 'A flag to indicate whether or not a given major version of a project is supported.',
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => TRUE,
@@ -204,7 +204,7 @@ function project_release_schema() {
         'default' => 1,
       ),
       'recommended' => array(
-        'description' => t('A flag to indicate whether or not a given major version of a project is recommended.'),
+        'description' => 'A flag to indicate whether or not a given major version of a project is recommended.',
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => TRUE,
@@ -212,7 +212,7 @@ function project_release_schema() {
         'default' => 0,
       ),
       'snapshot' => array(
-        'description' => t('A flag to indicate whether or not snapshot releases of a major version of a project should be shown in the release download table.'),
+        'description' => 'A flag to indicate whether or not snapshot releases of a major version of a project should be shown in the release download table.',
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => TRUE,
@@ -224,17 +224,17 @@ function project_release_schema() {
   );
 
   $schema['project_release_package_errors'] = array(
-    'description' => t('Table used to store error messages generated by the scripts that package project_release nodes into tarballs.'),
+    'description' => 'Table used to store error messages generated by the scripts that package project_release nodes into tarballs.',
     'fields' => array(
       'nid' => array(
-        'description' => t('Primary Key: The {node}.nid of the project_release node.'),
+        'description' => 'Primary Key: The {node}.nid of the project_release node.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'messages' => array(
-        'description' => t('The text of any error messages created by the packaging scripts.'),
+        'description' => 'The text of any error messages created by the packaging scripts.',
         'type' => 'text',
         'not null' => FALSE,
       )
@@ -243,40 +243,40 @@ function project_release_schema() {
   );
 
   $schema['cache_project_release'] = array(
-    'description' => t('Cache table used to store the project release download tables.'),
+    'description' => 'Cache table used to store the project release download tables.',
     'fields' => array(
       'cid' => array(
-        'description' => t('Primary Key: Unique cache ID.'),
+        'description' => 'Primary Key: Unique cache ID.',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'data' => array(
-        'description' => t('A collection of data to cache.'),
+        'description' => 'A collection of data to cache.',
         'type' => 'blob',
         'not null' => FALSE,
         'size' => 'big',
       ),
       'expire' => array(
-        'description' => t('A Unix timestamp indicating when the cache entry should expire, or 0 for never.'),
+        'description' => 'A Unix timestamp indicating when the cache entry should expire, or 0 for never.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'created' => array(
-        'description' => t('A Unix timestamp indicating when the cache entry was created.'),
+        'description' => 'A Unix timestamp indicating when the cache entry was created.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'headers' => array(
-        'description' => t('Any custom HTTP headers to be added to cached data.'),
+        'description' => 'Any custom HTTP headers to be added to cached data.',
         'type' => 'text',
         'not null' => FALSE,
       ),
       'serialized' => array(
-        'description' => t('A flag to indicate whether content is serialized (1) or not (0).'),
+        'description' => 'A flag to indicate whether content is serialized (1) or not (0).',
         'type' => 'int',
         'size' => 'small',
         'not null' => TRUE,
