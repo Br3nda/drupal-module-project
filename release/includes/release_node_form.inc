@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.3 2009/07/31 07:55:20 dww Exp $
+// $Id: release_node_form.inc,v 1.4 2009/08/03 23:30:47 dww Exp $
 
 /**
  * @file
@@ -277,7 +277,12 @@ function _project_release_form_add_text_element(&$form, $title, $value, $is_edit
   }
 }
 
-function project_release_node_form_validate(&$form, &$form_state) {
+/**
+ * Private callback to validate a release node form.
+ *
+ * @see project_release_node_form_validate()
+ */
+function _project_release_node_form_validate(&$form, &$form_state) {
   global $user;
   $project_release = $form_state['values']['project_release'];
   if (!empty($form_state['values']['validate_version'])) {

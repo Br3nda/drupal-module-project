@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.117 2009/06/23 03:33:18 dww Exp $
+// $Id: project_release.module,v 1.118 2009/08/03 23:30:47 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -141,6 +141,17 @@ function project_release_form(&$release, &$form_state) {
   module_load_include('inc', 'project_release', 'includes/release_node_form');
   return _project_release_form($release, $form_state);
 }
+
+/**
+ * Validation callback for project release node forms.
+ *
+ * @see _project_release_node_form_validate()
+ */
+function project_release_node_form_validate(&$form, &$form_state) {
+  module_load_include('inc', 'project_release', 'includes/release_node_form');
+  return _project_release_node_form_validate($form, $form_state);
+}
+
 
 /**
  * Implementation of hook_load().
