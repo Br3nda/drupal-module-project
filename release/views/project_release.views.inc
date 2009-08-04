@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.1 2009/01/13 17:47:09 dww Exp $
+// $Id: project_release.views.inc,v 1.2 2009/08/04 18:03:36 dww Exp $
 
 /**
  * @file
@@ -100,14 +100,43 @@ function project_release_views_data() {
     ),
   );
 
-  // @TODO:  file_path
-  // @TODO:  file_date
-  // @TODO:  file_hash
+  $data['project_release_nodes']['files'] = array(
+    'title' => t('Project release files'),
+    'help' => t('All files attached to a release node.'),
+    'real field' => 'nid',
+    'field' => array(
+      'handler' => 'project_release_handler_field_files',
+    ),
+    // @TODO: filter
+    'relationship' => array(
+      'title' => t('Release files'),
+      'help' => t('Add a relationship to gain access to more file data for files attached to release nodes. Note that this relationship will cause duplicate nodes if there are multiple files attached to the release.'),
+      'relationship table' => 'project_release_file',
+      'relationship field' => 'fid',
+      'base' => 'files',
+      'field' => 'fid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Release files'),
+    ),
+  );
+
   // @TODO:  rebuild
   // @TODO:  version_major
   // @TODO:  version_minor
   // @TODO:  version_patch
   // @TODO:  version_extra
+
+  $data['project_release_file']['table']['group']  = t('Project release');
+  $data['project_release_file']['table']['join'] = array(
+    'node' => array(
+      'left_field' => 'nid',
+      'field' => 'nid',
+    ),
+    'files' => array(
+      'left_field' => 'fid',
+      'field' => 'fid',
+    ),
+  );
 
   return $data;
 }
@@ -206,6 +235,9 @@ function project_release_views_handlers() {
     'handlers' => array(
       'project_release_handler_field_download_table' => array(
         'parent' => 'views_handler_field',
+      ),
+      'project_release_handler_field_files' => array(
+        'parent' => 'views_handler_field_prerender_list',
       ),
       'project_release_handler_field_most_recent_release' => array(
         'parent' => 'views_handler_field_date',
