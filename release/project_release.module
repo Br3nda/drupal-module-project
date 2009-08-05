@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.119 2009/08/03 23:36:24 dww Exp $
+// $Id: project_release.module,v 1.120 2009/08/05 01:26:24 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -215,17 +215,36 @@ function project_release_update($node) {
  *   The project ID.
  * @param $tid
  *   The API compatibility term ID.
- * $param $major
+ * @param $major
  *   The major version of the new/modified/deleted release.
- * $param $delete
+ * @param $delete
  *   Boolean to indicate if we're deleting a release of this major or not.
+ *
+ * @return
+ *   TRUE if we updated a record in {project_release_supported_versions},
+ *   otherwise FALSE (e.g. if there were no published releases on the
+ *   requested branch).
  */
 function project_release_check_supported_versions($pid, $tid, $major, $delete) {
+  // Remember if we updated {project_release_supported_versions} so we can
+  // return the value to our caller.
+  $did_update = FALSE;
+
+  // Regardless of if we're deleting, adding, or editing, we need to know the
+  // latest and recommended releases (if any) from the given branch. If
+  // there's no published release, these values will be 0.
+  list($latest_release, $recommended_release) = project_release_find_latest_releases($pid, $tid, $major);
+
   if ($delete) {
     // Make sure this isn't the last release node for the given major.
-    $active_branch_releases = db_result(db_query("SELECT COUNT(DISTINCT(r.nid)) FROM {project_release_nodes} r INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND tn.tid = %d AND n.status = %d AND r.version_major = %d", $pid, $tid, 1, $major));
-    if (empty($active_branch_releases)) {
-      // Remove the bogus record.
+    if (!empty($latest_release)) {
+      // Since the node we just deleted might have been the latest or
+      // recommended on the branch, update our record with the real values.
+      db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $pid, $tid, $major);
+      $did_update = TRUE;
+    }
+    else {
+      // No latest release -- remove the bogus record for this branch.
       db_query("DELETE FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d AND major = %d", $pid, $tid, $major);
 
       $num_recommended = db_result(db_query("SELECT COUNT(*) FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d AND supported = %d AND recommended = %d", $pid, $tid, 1, 1));
@@ -248,9 +267,7 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
   }
   else {
     // Adding or editing a release.
-    // First make sure this branch has at least 1 published release node
-    $published_releases = db_result(db_query("SELECT COUNT(*) FROM {project_release_nodes} r INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND r.version_major = %d AND tn.tid = %d AND n.status = %d", $pid, $major, $tid, 1));
-    if ($published_releases) {
+    if (!empty($latest_release)) {
       // We have at least 1 published release, so make sure we have an entry
       // for this major version in {project_release_supported_versions}.
       $current_branches = db_query("SELECT major FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d", $pid, $tid);
@@ -265,16 +282,24 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
       }
       if ($num_branches == 0) {
         // First entry for this API tid. Add it as supported and recommended.
-        $recommended = 1;
+        $recommended_branch = 1;
       }
       elseif (!$have_current_branch) {
         // We've already got some branches (num_branches > 0), but not the
         // current branch, so add it as supported but not recommended.
-        $recommended = 0;
+        $recommended_branch = 0;
       }
-      if (isset($recommended)) {
-        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot) VALUES (%d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, $recommended, 0);
+      if (isset($recommended_branch)) {
+        // This is a branch new branch, so add a new record to the table.
+        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot, recommended_release, latest_release) VALUES (%d, %d, %d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, $recommended_branch, 0, $recommended_release, $latest_release);
       }
+      else {
+        // We already have this branch in the table, but the latest_release
+        // and recommended_release fields might be stale based on whatever
+        // node was just added or edited.
+        db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $pid, $tid, $major);
+      }
+      $did_update = TRUE;
     }
   }
 
@@ -282,6 +307,8 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
   // display might have changed, too.
   $cid = 'table:'. $pid .':';
   cache_clear_all($cid, 'cache_project_release', TRUE);
+
+  return $did_update;
 }
 
 /**
@@ -807,67 +834,133 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
   }
 }
 
-
 /**
- * Finds the currently recommended release for a given project.
+ * Fetch information about the current releases for a given project.
+ *
+ * This just queries the {project_release_supported_versions} table for either
+ * the latest release or the recommended release, and retrieves data about
+ * that release from the {node} and {project_release_nodes} tables. To
+ * actually recompute the latest and recommended releases for a given branch,
+ * you must use project_release_find_latest_releases().
  *
  * @param $project_nid
- *  The nid of the project to find the current release for.
+ *   The nid of the project to find the current release for.
  * @param $api_tid
- *  The API compatibility term ID you want to search.
+ *   The API compatibility term ID you want to search.
  * @param $recommended_major
- *  (Optional) a specific major version to search. If not specified, the
- *  current value from the {project_release_supported_versions} table is used.
+ *   An optional major version to search. If not specified, the current
+ *   recommended branch from {project_release_supported_versions} is used.
+ * @param $type
+ *   String for what kind of release to get ('recommended' or 'latest').
  *
  * @return
- *  An object containing all the fields from {project_release_nodes}, along
- *  with {node}.title, for the appropriate release.
+ *   An object containing all the fields from {project_release_nodes}, along
+ *   with {node}.title and {node}.created, for the appropriate release; or
+ *   FALSE if no published releases exists that the caller can access on the
+ *   requested branch of the desired project.
  */
-function project_release_get_current_recommended($project_nid, $api_tid, $recommended_major = NULL) {
-  static $current = array();
-  $major = isset($recommended_major) ? $recommended_major : 'current';
-  if (isset($current_major[$project_nid][$api_tid][$major])) {
-    return $current[$project_nid][$api_tid][$major];
+function project_release_get_current_recommended($project_nid, $api_tid, $recommended_major = NULL, $type = 'recommended') {
+  // Compute the appropriate JOIN ON clauses based on the arguments.
+  $prsv_joins[] = 'n.nid = ' . $type == 'recommended' ? 'prsv.recommended_release' : 'prsv.latest_release';
+  $prsv_joins[] = 'prsv.nid = %d';
+  $join_params[] = $project_nid;
+  $prsv_joins[] = 'prsv.tid = %d';
+  $join_params[] = $api_tid;
+  if (!isset($recommended_major)) {
+    $prsv_joins[] = 'prsv.recommended = %d';
+    $join_params[] = 1;
   }
+  else {
+    $prsv_joins[] = 'prsv.major = %d';
+    $join_params[] = $recommended_major;
+  }
+  // Build the actual JOIN ON string by AND'ing all the clauses together.
+  $prsv_join = implode(' AND ', $prsv_joins);
+  $result = db_query(db_rewrite_sql(
+    "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
+    "INNER JOIN {project_release_supported_versions} prsv ON $prsv_join "),
+    $join_params);
+  return db_fetch_object($result);
+}
 
-  $join = $where = '';
+/**
+ * Finds the latest and recommended releases for a given project and branch.
+ *
+ * The "latest" release just means the published release node with the highest
+ * version string. The "recommended" release is the published release node
+ * with the highest version string that doesn't have a "version_extra" field
+ * (e.g. "beta1"). If all releases on the given branch have "extra", then the
+ * recommended release will be the same as the latest release.
+ * 
+ * @param $project_nid
+ *   The node ID of the project to find the latest and recommended releases of.
+ * @param $api_tid
+ *   The API compatibility term ID to search.
+ * @param $major
+ *   The {project_release_nodes}.version_major field of the branch to search.
+ * @param $access
+ *   Optional boolean to indicate if node access checks should be enforced.
+ *   Defaults to FALSE since the caller might not actually have access to all
+ *   the releases or projects. However, this function usually has to compute
+ *   the accurate values regardless of access, and consumers of this data are
+ *   responsible for ensuring access.
+ *
+ * @return
+ *  An array containing the node ID (nid) of both the latest and recommended
+ *  releases from the given branch.
+ */
+function project_release_find_latest_releases($project_nid, $api_tid, $major, $access = FALSE) {
+  $latest_release = $recommended_release = 0;
   $params = $orderby = array();
 
   $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid = %d';
   $params[] = $api_tid;
 
-  $where = 'WHERE (r.pid = %d) AND (n.status = %d)';
+  $where = 'WHERE (r.pid = %d) AND (r.version_major = %d) AND (n.status = %d)';
   $params[] = $project_nid;
+  $params[] = $major;
   $params[] = 1;
-
-  if (isset($recommended_major)) {
-    $where .= ' AND (r.version_major = %d)';
-    $params[] = $recommended_major;
-  }
-  else {
-    $join .= ' INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = r.pid AND prsv.tid = tn.tid AND prsv.major = r.version_major AND prsv.recommended = %d ';
-    $params[] = 1;
-  }
 
   // We always want the dev snapshots to show up last.
   $orderby[] = 'r.rebuild';
   $orderby[] = 'r.version_major DESC';
   $orderby[] = 'r.version_minor DESC';
   $orderby[] = 'r.version_patch DESC';
+  // Since we can't really be sure of the relative ordering of versions with
+  // extra, and since there's no good way to do something like
+  // version_compare() directly in the SQL query, for all releases at the same
+  // patch level, we'll order things by the latest file timestamp instead of
+  // trying to do a string comparison based on version_extra.
   $orderby[] = 'f.timestamp DESC';
   $order_by = 'ORDER BY '. implode(', ', $orderby);
 
-  $params[] = 1;
-  $result = db_query(db_rewrite_sql(
-    "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
+  $sql = "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
     "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
     "INNER JOIN {project_release_file} prf on n.nid = prf.nid ".
     "INNER JOIN {files} f ON prf.fid = f.fid $join ".
-    "$where $order_by LIMIT %d"), $params);
+    "$where $order_by";
 
-  $release = db_fetch_object($result);
-  $current_major[$project_nid][$api_tid][$major] = $release;
-  return $release;
+  // Only enforce node access via db_rewrite_sql() if the caller specifically
+  // requested that behavior.
+  if ($access) {
+    $sql = db_rewrite_sql($sql);
+  }
+
+  $result = db_query($sql, $params);
+  while ($release = db_fetch_object($result)) {
+    if (empty($latest_release)) {
+      $latest_release = $release->nid;
+    }
+    if (empty($release->version_extra)) {
+      $recommended_release = $release->nid;
+      break;
+    }
+  }
+  if (empty($recommended_release)) {
+    $recommended_release = $latest_release;
+  }
+  return array($latest_release, $recommended_release);
 }
 
 /**

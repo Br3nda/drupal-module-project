@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.23 2009/08/03 18:25:15 dww Exp $
+// $Id: project_release.install,v 1.24 2009/08/05 01:26:24 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -219,6 +219,20 @@ function project_release_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'recommended_release' => array(
+        'description' => 'The {project_release_nodes}.nid of the recommended release node for this tid and major version (the latest release without any "extra" version info such as "alpha1").',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'latest_release' => array(
+        'description' => 'The {project_release_nodes}.nid of the latest release node for this tid and major version (even if it has "extra" version info such as "alpha1").',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('nid', 'tid', 'major'),
   );
@@ -366,6 +380,42 @@ function project_release_update_6003() {
   db_drop_field($ret, 'project_release_nodes', 'file_path');
   db_drop_field($ret, 'project_release_nodes', 'file_date');
   db_drop_field($ret, 'project_release_nodes', 'file_hash');
+  return $ret;
+}
+
+/**
+ * Add new columns to {project_release_supported_versions}.
+ */
+function project_release_update_6004() {
+  $ret = array('#finished' => 0);
+  if (!isset($_SESSION['project_release_update_6004'])) {
+    $spec = array('type' => 'int', 'unsigned' => TRUE, 'default' => NULL, 'not null' => FALSE);
+    db_add_field($ret, 'project_release_supported_versions', 'recommended_release', $spec);
+    db_add_field($ret, 'project_release_supported_versions', 'latest_release', $spec);
+    $_SESSION['project_release_update_6004'] = 0;
+    $_SESSION['project_release_update_6004_max'] = db_result(db_query("SELECT COUNT(*) FROM {project_release_supported_versions}"));
+  }
+
+  // Number of rows to convert per batch.
+  $limit = 20;
+  while ($limit-- && $item = db_fetch_array(db_query_range("SELECT * FROM {project_release_supported_versions} WHERE latest_release IS NULL", 0, 1))) {
+    if (!project_release_check_supported_versions($item['nid'], $item['tid'], $item['major'], FALSE)) {
+      db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d WHERE nid = %d AND tid = %d AND major = %d", 0, 0, $item['nid'], $item['tid'], $item['major']);
+    }
+    $_SESSION['project_release_update_6004']++;
+  }
+
+  if ($_SESSION['project_release_update_6004'] >= $_SESSION['project_release_update_6004_max']) {
+    // We're done.  Set our new columns to default to 0 from here on out.
+    $ret[] = update_sql("ALTER TABLE {project_release_supported_versions} ALTER COLUMN recommended_release SET DEFAULT 0");
+    $ret[] = update_sql("ALTER TABLE {project_release_supported_versions} ALTER COLUMN latest_release SET DEFAULT 0");
+    unset($_SESSION['project_release_update_6004']);
+    unset($_SESSION['project_release_update_6004_max']);
+    $ret['#finished'] = 1;
+  }
+  else {
+    $ret['#finished'] = $_SESSION['project_release_update_6004'] / $_SESSION['project_release_update_6004_max'];
+  }
   return $ret;
 }
 
