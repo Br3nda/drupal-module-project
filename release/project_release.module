@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.121 2009/08/06 00:50:49 dww Exp $
+// $Id: project_release.module,v 1.122 2009/08/06 01:20:33 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -857,7 +857,7 @@ function project_release_release_nodeapi(&$node, $op, $arg) {
  */
 function project_release_get_current_recommended($project_nid, $api_tid, $recommended_major = NULL, $type = 'recommended') {
   // Compute the appropriate JOIN ON clauses based on the arguments.
-  $prsv_joins[] = 'n.nid = ' . $type == 'recommended' ? 'prsv.recommended_release' : 'prsv.latest_release';
+  $prsv_joins[] = 'n.nid = ' . ($type == 'recommended' ? 'prsv.recommended_release' : 'prsv.latest_release');
   $prsv_joins[] = 'prsv.nid = %d';
   $join_params[] = $project_nid;
   $prsv_joins[] = 'prsv.tid = %d';
