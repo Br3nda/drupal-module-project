@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.120 2009/08/05 01:26:24 dww Exp $
+// $Id: project_release.module,v 1.121 2009/08/06 00:50:49 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -159,10 +159,6 @@ function project_release_node_form_validate(&$form, &$form_state) {
  */
 function project_release_load($node) {
   $additions = db_fetch_array(db_query("SELECT * FROM {project_release_nodes} WHERE nid = %d", $node->nid));
-  // Add the API term associated with the release.
-  $api_vid = _project_release_get_api_vid();
-  $api_tid = db_result(db_query("SELECT tn.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid WHERE td.vid = %d AND tn.nid = %d", $api_vid, $node->nid));
-  $additions['version_api_tid'] = $api_tid;
   // Add in file info.
   $file_info = db_query("SELECT f.*, prf.filehash FROM {project_release_file} prf INNER JOIN {files} f ON prf.fid = f.fid WHERE prf.nid = %d", $node->nid);
   $files = array();
@@ -1417,7 +1413,7 @@ function _project_release_get_api_vid() {
 }
 
 function project_release_exists($version) {
-  $fields = array('version_major', 'version_minor', 'version_patch');
+  $fields = array('version_major', 'version_minor', 'version_patch', 'version_api_tid');
   foreach ($fields as $field) {
     if (isset($version->$field) && is_numeric($version->$field)) {
       $types[$field] = "%d";
@@ -1444,26 +1440,17 @@ function project_release_exists($version) {
     return false;
   }
 
-  $taxo_join = $taxo_where = '';
-  if (isset($version->version_api_tid)) {
-    $taxo_join = ' INNER JOIN {term_node} t ON p.nid = t.nid';
-    $taxo_where = ' AND t.tid = %d';
-    $values['tid'] = $version->version_api_tid;
-    $tid = $version->version_api_tid;
-  }
-
-  $sql = 'SELECT COUNT(*) FROM {project_release_nodes} p'. $taxo_join .' WHERE p.pid = %d';
+  $sql = 'SELECT COUNT(*) FROM {project_release_nodes} WHERE pid = %d';
   if (!empty($types)) {
     foreach ($types as $field => $type) {
-      $sql .= " AND p.$field = $type";
+      $sql .= " AND $field = $type";
     }
   }
   if (!empty($null_types)) {
     foreach ($null_types as $field) {
-      $sql .= " AND p.$field IS NULL";
+      $sql .= " AND $field IS NULL";
     }
   }
-  $sql .= $taxo_where;
   // we put pid as the first WHERE, so stick it on the front
   $values = array_merge(array('pid' => $version->pid), $values);
   return db_result(db_query($sql, $values));

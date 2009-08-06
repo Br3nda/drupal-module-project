@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.24 2009/08/05 01:26:24 dww Exp $
+// $Id: project_release.install,v 1.25 2009/08/06 00:50:49 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -100,6 +100,13 @@ function project_release_schema() {
         'description' => 'A text string that can be used to provide additional information about a release.  Ex: BETA',
         'type' => 'varchar',
         'length' => 255,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+      'version_api_tid' => array(
+        'description' => 'The denormalized {term_node}.tid of the API compatibility term for this release, or 0 if the release has no such term.',
+        'type' => 'int',
+        'unsigned' => TRUE,
         'not null' => FALSE,
         'default' => NULL,
       ),
@@ -416,6 +423,28 @@ function project_release_update_6004() {
   else {
     $ret['#finished'] = $_SESSION['project_release_update_6004'] / $_SESSION['project_release_update_6004_max'];
   }
+  return $ret;
+}
+
+/**
+ * Add the 'version_api_tid' column to {project_release_nodes}.
+ */
+function project_release_update_6005() {
+  $ret = array();
+
+  $spec = array(
+    'description' => 'The denormalized {term_node}.tid of the API compatibility term for this release, or 0 if the release has no such term.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => FALSE,
+    'default' => NULL,
+  );
+  db_add_field($ret, 'project_release_nodes', 'version_api_tid', $spec);
+
+  // Populate the new column from {term_node}.
+  $api_vid = _project_release_get_api_vid();
+  $ret[] = update_sql("UPDATE {project_release_nodes} SET version_api_tid = (SELECT tn.tid FROM {node} n INNER JOIN {term_node} tn ON n.vid = tn.vid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE n.nid = {project_release_nodes}.nid AND td.vid = $api_vid)");
+
   return $ret;
 }
 

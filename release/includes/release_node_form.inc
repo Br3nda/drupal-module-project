@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.4 2009/08/03 23:30:47 dww Exp $
+// $Id: release_node_form.inc,v 1.5 2009/08/06 00:50:49 dww Exp $
 
 /**
  * @file
@@ -460,6 +460,11 @@ function project_release_db_save($node, $is_new) {
   if (!empty($node->project_release['version_extra'])) {
     $types['version_extra'] = "'%s'";
     $values['version_extra'] = $node->project_release['version_extra'];
+  }
+  // This is a special case since it doesn't live in $node->project_release[].
+  if (isset($node->version_api_tid)) {
+    $types['version_api_tid'] = "%d";
+    $values['version_api_tid'] = $node->version_api_tid;
   }
 
   if ($is_new) {
