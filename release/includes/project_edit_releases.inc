@@ -1,5 +1,5 @@
 <?php
-// $Id: project_edit_releases.inc,v 1.1 2009/06/22 05:36:48 dww Exp $
+// $Id: project_edit_releases.inc,v 1.2 2009/08/06 01:32:57 dww Exp $
 
 /**
  * @file
@@ -144,7 +144,14 @@ function _project_release_edit_version_major_form($data) {
           '#attributes' => array('class' => 'snapshot'),
         ),
         'version_name' => array(
-          '#type' => 'value',
+          // Normally, form elements of #type 'hidden' are evil, since the
+          // values can be easily tampered with. However, in this case, we
+          // totally don't care: the values are all completely ignored by the
+          // submit handler. We need these values sent on to the browser so
+          // they can be hidden/show by project_release.js, so we need to use
+          // 'hidden' here or the values are never sent to the browser.
+          // @TODO: We could replace these with drupal JS settings.
+          '#type' => 'hidden',
           '#value' => $version_name,
           '#attributes' => array('class' => 'version-name'),
         ),
