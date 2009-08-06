@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.122 2009/08/06 01:20:33 dww Exp $
+// $Id: project_release.module,v 1.123 2009/08/06 23:35:29 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1630,6 +1630,60 @@ function theme_project_release_node_form_version_elements($form) {
   $output .= drupal_render($form);
   $output .= '</div>';
   return $output;
+}
+
+/**
+ * Implement hook_token_list() (from token.module)
+ */
+function project_release_token_list($type) {
+  if ($type == 'node') {
+    $tokens['node'] = array(
+      'project_release_pid' => t("A release's project nid"),
+      'project_release_project_title' => t("A release's project title"),
+      'project_release_project_title-raw' => t("A release's project title raw"),
+      'project_release_project_shortname' => t("A release's project short name"),
+      'project_release_version' => t("A release's version string"),
+      'project_release_version_major' => t("A release's major version number"),
+      'project_release_version_minor' => t("A release's minor version number"),
+      'project_release_version_patch' => t("A release's patch version number"),
+      'project_release_version_extra' => t("A release's extra version identifier"),
+    );
+    return $tokens;
+  }
+}
+
+/**
+ * Implement hook_token_values() (from token.module).
+ */
+function project_release_token_values($type = 'all', $object = NULL) {
+  if ($type == 'node') {
+    // Defaults in case it's not a release or we run into other problems.
+    $values = array(
+      'project_release_pid' => '',
+      'project_release_project_title' => '',
+      'project_release_project_title-raw' => '',
+      'project_release_project_shortname' => '',
+      'project_release_version' => '',
+      'project_release_version_major' => '',
+      'project_release_version_minor' => '',
+      'project_release_version_patch' => '',
+      'project_release_version_extra' => '',
+    );
+    if ($object->type == 'project_release') {
+      if ($project = node_load($object->project_release['pid'])) {
+        $values['project_release_pid'] = intval($object->project_release['pid']);
+        $values['project_release_project_title'] = check_plain($project->title);
+        $values['project_release_project_title-raw'] = $project->title;
+        $values['project_release_project_shortname'] = check_plain($project->project['uri']);
+      }
+      $values['project_release_version'] = check_plain($object->project_release['version']);
+      $values['project_release_version_major'] = check_plain($object->project_release['version_major']);
+      $values['project_release_version_minor'] = check_plain($object->project_release['version_minor']);
+      $values['project_release_version_patch'] = check_plain($object->project_release['version_patch']);
+      $values['project_release_version_extra'] = check_plain($object->project_release['version_extra']);
+    }
+    return $values;
+  }
 }
 
 /**

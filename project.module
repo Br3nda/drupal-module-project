@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.352 2009/06/15 03:51:01 dww Exp $
+// $Id: project.module,v 1.353 2009/08/06 23:35:29 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -1185,6 +1185,54 @@ function project_get_project_from_menu() {
   if (($node = menu_get_object('project_node')) ||
       (($node = menu_get_object()) && $node->type == 'project_project')) {
     return $node;
+  }
+}
+
+/**
+ * Implement hook_token_list() (from token.module)
+ */
+function project_token_list($type) {
+  if ($type == 'node') {
+    $tokens['node'] = array(
+      'project_shortname' => t("A project's short name"),
+      'project_homepage' => t("Link to a project's home page"),
+      'project_changelog' => t("Link to a project's changelog"),
+      'project_cvs' => t("Link to a project's cvs tree"),
+      'project_demo' => t('Demonstration link for a project'),
+      'project_documentation' => t("Link to a project's documentation"),
+      'project_screenshots' => t("Link to a project's screenshots"),
+      'project_license' => t("Link to a project's license"),
+    );
+    return $tokens;
+  }
+}
+ 
+/**
+ * Implement hook_token_values() (from token.module)
+ */
+function project_token_values($type = 'all', $object = NULL) {
+  if ($type == 'node') {
+    if ($object->type == 'project_project') {
+      $values['project_shortname'] = check_plain($object->project['uri']);
+      $values['project_homepage'] = check_url($object->project['homepage']);
+      $values['project_changelog'] = check_url($object->project['changelog']);
+      $values['project_cvs'] = check_url($object->project['cvs']);
+      $values['project_demo'] = check_url($object->project['demo']);
+      $values['project_documentation'] = check_url($object->project['documentation']);
+      $values['project_screenshots'] = check_url($object->project['screenshots']);
+      $values['project_license'] = check_url($object->project['license']);
+    }
+    else {
+      $values['project_shortname'] = '';
+      $values['project_homepage'] = '';
+      $values['project_changelog'] = '';
+      $values['project_cvs'] = '';
+      $values['project_demo'] = '';
+      $values['project_documentation'] = '';
+      $values['project_screenshots'] = '';
+      $values['project_license'] = '';
+    }
+    return $values;
   }
 }
 
