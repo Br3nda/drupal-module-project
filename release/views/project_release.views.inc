@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.2 2009/08/04 18:03:36 dww Exp $
+// $Id: project_release.views.inc,v 1.3 2009/08/06 00:53:31 dww Exp $
 
 /**
  * @file
@@ -57,6 +57,19 @@ function project_release_views_data() {
       'base' => 'node',
       'handler' => 'views_handler_relationship',
       'label' => t('Project node'),
+    ),
+  );
+  // Add a relationship for information and filters about supported releases.
+  $data['project_release_nodes']['supported_releases_rel'] = array(
+    'group' => t('Project release'),
+    'title' => t('Supported releases'),
+    'help' => t('Create a relationship to more information about supported releases.'),
+    'real field' => 'pid',
+    'relationship' => array(
+      'base' => 'project_release_supported_versions',
+      'relationship field' => 'pid',
+      'handler' => 'project_release_handler_relationship_supported_versions',
+      'label' => t('supported versions'),
     ),
   );
 
@@ -138,6 +151,100 @@ function project_release_views_data() {
     ),
   );
 
+  $data['project_release_supported_versions']['table']['group']  = t('Project release');
+  // We only want to JOIN on this table via explicit relationships.
+
+  $data['project_release_supported_versions']['nid'] = array(
+    'title' => t('Project ID'),
+    'help' => t('Project node ID of the supported version information.'),
+    'field' => array(
+      'handler' => 'views_handler_field_node',
+      'click sortable' => TRUE,
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_node_nid',
+      'name field' => 'title',
+      'numeric' => TRUE,
+      'validate type' => 'nid',
+    ),
+    'relationship' => array(
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Project node'),
+    ),
+  );
+  $data['project_release_supported_versions']['supported'] = array(
+    'title' => t('Supported'),
+    'help' => t('Is the specific branch supported by a given project.'),
+    'field' => array(
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+      'type' => 'yes-no',
+    ),
+  );
+  $data['project_release_supported_versions']['recommended'] = array(
+    'title' => t('Recommended branch'),
+    'help' => t('Is the specific branch the recommended branch for a given project.'),
+    'field' => array(
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+      'type' => 'yes-no',
+    ),
+  );
+  $data['project_release_supported_versions']['snapshot'] = array(
+    'title' => t('Show snapshot'),
+    'help' => t('Show development snapshot releases from a branch.'),
+    'field' => array(
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+      'type' => 'yes-no',
+    ),
+  );
+  $data['project_release_supported_versions']['recommended_release'] = array(
+    'title' => t('Recommended release'),
+    'help' => t('The recommended release from a specific branch of a project.'),
+    'field' => array(
+      'handler' => 'views_handler_field_node',
+      'click sortable' => TRUE,
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_node_nid',
+      'name field' => 'title',
+      'numeric' => TRUE,
+      'validate type' => 'nid',
+    ),
+  );
+  $data['project_release_supported_versions']['latest_release'] = array(
+    'title' => t('Latest release'),
+    'help' => t('The latest release from a specific branch of a project.'),
+    'field' => array(
+      'handler' => 'views_handler_field_node',
+      'click sortable' => TRUE,
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_node_nid',
+      'name field' => 'title',
+      'numeric' => TRUE,
+      'validate type' => 'nid',
+    ),
+  );
+  $data['project_release_supported_versions']['release_type'] = array(
+    'title' => t('Latest or recommended release'),
+    'help' => t('Filter based on the latest or recommended release from a specific branch of a project.'),
+    'filter' => array(
+      'handler' => 'project_release_handler_filter_release_node_nid',
+    ),
+  );
+
   return $data;
 }
 
@@ -156,6 +263,36 @@ function project_release_views_data_alter(&$data) {
       'base' => 'node',
       'field' => 'nid',
       'label' => t('release'),
+    ),
+  );
+
+  // Add a relationship for releases associated with a given project.
+  $data['node']['project_release_rel'] = array(
+    'group' => t('Project'),
+    'title' => t('Releases'),
+    'help' => t('Create a relationship to more information about all releases for a project.'),
+    'real field' => 'nid',
+    'relationship' => array(
+      'base' => 'project_release_nodes',
+      'base field' => 'pid',
+      'relationship field' => 'nid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('releases'),
+    ),
+  );
+
+  // Add a relationship for information and filters about supported releases.
+  $data['project_projects']['supported_releases_rel'] = array(
+    'group' => t('Project'),
+    'title' => t('Supported releases'),
+    'help' => t('Create a relationship to more information about supported releases.'),
+    'real field' => 'nid',
+    'relationship' => array(
+      'base' => 'project_release_supported_versions',
+      'base field' => 'nid',
+      'relationship field' => 'nid',
+      'handler' => 'views_handler_relationship',
+      'label' => t('supported versions'),
     ),
   );
 
@@ -245,7 +382,13 @@ function project_release_views_handlers() {
       'project_release_handler_filter_project_release_api_version' => array(
         'parent' => 'views_handler_filter_term_node_tid',
       ),
+      'project_release_handler_filter_release_node_nid' => array(
+        'parent' => 'views_handler_filter',
+      ),
       'project_release_handler_relationship_project_project_release_node' => array(
+        'parent' => 'views_handler_relationship',
+      ),
+      'project_release_handler_relationship_supported_versions' => array(
         'parent' => 'views_handler_relationship',
       ),
       'project_release_handler_sort_most_recent_release' => array(
