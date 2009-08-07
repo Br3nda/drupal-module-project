@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.5 2009/08/06 00:50:49 dww Exp $
+// $Id: release_node_form.inc,v 1.6 2009/08/07 06:04:43 dww Exp $
 
 /**
  * @file
@@ -325,7 +325,7 @@ function _project_release_node_form_validate(&$form, &$form_state) {
       $tid = $form_state['values'][$vid];
     }
     if (isset($tid) && is_numeric($tid)) {
-      $form_state['values']['version_api_tid'] = $tid;
+      $form_state['values']['project_release']['version_api_tid'] = $tid;
       $project_release['version_api_tid'] = $tid;
     }
   }
@@ -450,7 +450,7 @@ function project_release_db_save($node, $is_new) {
     'tag' => $node->project_release['tag'],
     'rebuild' => $node->project_release['rebuild'],
   );
-  $fields = array('version_major', 'version_minor', 'version_patch');
+  $fields = array('version_major', 'version_minor', 'version_patch', 'version_api_tid');
   foreach ($fields as $field) {
     if (isset($node->project_release[$field]) && is_numeric($node->project_release[$field])) {
       $types[$field] = "%d";
@@ -460,11 +460,6 @@ function project_release_db_save($node, $is_new) {
   if (!empty($node->project_release['version_extra'])) {
     $types['version_extra'] = "'%s'";
     $values['version_extra'] = $node->project_release['version_extra'];
-  }
-  // This is a special case since it doesn't live in $node->project_release[].
-  if (isset($node->version_api_tid)) {
-    $types['version_api_tid'] = "%d";
-    $values['version_api_tid'] = $node->version_api_tid;
   }
 
   if ($is_new) {
