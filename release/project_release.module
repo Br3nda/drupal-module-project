@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.123 2009/08/06 23:35:29 dww Exp $
+// $Id: project_release.module,v 1.124 2009/08/07 06:05:31 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1648,6 +1648,11 @@ function project_release_token_list($type) {
       'project_release_version_patch' => t("A release's patch version number"),
       'project_release_version_extra' => t("A release's extra version identifier"),
     );
+    if (project_release_compatibility_list()) {
+      $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
+      $tokens['node']['project_release_version_api_tid'] = t("A release's %api_compatibility term ID", array('%api_compatibility' => $vocab->name));
+      $tokens['node']['project_release_version_api_term'] = t("A release's %api_compatibility term name", array('%api_compatibility' => $vocab->name));
+    }
     return $tokens;
   }
 }
@@ -1668,6 +1673,8 @@ function project_release_token_values($type = 'all', $object = NULL) {
       'project_release_version_minor' => '',
       'project_release_version_patch' => '',
       'project_release_version_extra' => '',
+      'project_release_version_api_tid' => '',
+      'project_release_version_api_term' => '',
     );
     if ($object->type == 'project_release') {
       if ($project = node_load($object->project_release['pid'])) {
@@ -1681,6 +1688,11 @@ function project_release_token_values($type = 'all', $object = NULL) {
       $values['project_release_version_minor'] = check_plain($object->project_release['version_minor']);
       $values['project_release_version_patch'] = check_plain($object->project_release['version_patch']);
       $values['project_release_version_extra'] = check_plain($object->project_release['version_extra']);
+      if (!empty($object->project_release['version_api_tid'])) {
+        $term = taxonomy_get_term($object->project_release['version_api_tid']);
+        $values['project_release_version_api_tid'] = check_plain($term->tid);
+        $values['project_release_version_api_term'] = check_plain($term->name);
+      }
     }
     return $values;
   }
