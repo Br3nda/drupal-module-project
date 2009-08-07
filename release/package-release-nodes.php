@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.44 2009/08/07 05:28:22 dww Exp $
+// $Id: package-release-nodes.php,v 1.45 2009/08/07 16:02:29 dww Exp $
 
 /**
  * @file
@@ -98,7 +98,7 @@ foreach ($vars as $name => $val) {
     $fatal_err = true;
   }
 }
-if ($fatal_err) {
+if (!empty($fatal_err)) {
   exit(1);
 }
 
@@ -106,7 +106,7 @@ putenv("CVSROOT=$cvs_root");
 $script_name = $argv[0];
 
 // Find what kind of packaging we need to do
-if ($argv[1]) {
+if (!empty($argv[1])) {
   $task = $argv[1];
 }
 else {
@@ -123,7 +123,10 @@ switch($task) {
     exit (1);
 }
 
-$project_id = $argv[2];
+$project_id = 0;
+if (!empty($argv[2])) {
+  $project_id = $argv[2];
+}
 
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
@@ -173,7 +176,7 @@ elseif ($task == 'repair') {
 // Functions: main work
 // ------------------------------------------------------------
 
-function package_releases($type, $project_id) {
+function package_releases($type, $project_id = 0) {
   global $wd_err_msg;
 
   $rel_node_join = '';
