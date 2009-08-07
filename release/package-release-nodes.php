@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.43 2009/03/03 18:53:52 dww Exp $
+// $Id: package-release-nodes.php,v 1.44 2009/08/07 05:28:22 dww Exp $
 
 /**
  * @file
@@ -127,6 +127,7 @@ $project_id = $argv[2];
 
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = $site_name;
+$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 $_SERVER['REQUEST_URI'] = '/' . $script_name;
 $_SERVER['SCRIPT_NAME'] = '/' . $script_name;
 $_SERVER['PHP_SELF'] = '/' . $script_name;

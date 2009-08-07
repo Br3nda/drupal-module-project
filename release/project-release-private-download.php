@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-private-download.php,v 1.2 2009/08/02 23:20:28 dww Exp $
+// $Id: project-release-private-download.php,v 1.3 2009/08/07 05:28:23 dww Exp $
 
 /**
  * @file
@@ -106,6 +106,7 @@ if (!chdir(DRUPAL_ROOT)) {
 // Setup variables for bootstrap.
 $script_name = $argv[0];
 $_SERVER['HTTP_HOST'] = SITE_NAME;
+$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 $_SERVER['REQUEST_URI'] = '/' . $script_name;
 $_SERVER['SCRIPT_NAME'] = '/' . $script_name;
 $_SERVER['PHP_SELF'] = '/' . $script_name;
