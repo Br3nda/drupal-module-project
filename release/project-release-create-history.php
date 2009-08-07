@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.23 2009/08/07 15:22:48 dww Exp $
+// $Id: project-release-create-history.php,v 1.24 2009/08/07 22:35:38 dww Exp $
 
 /**
  * @file
@@ -113,10 +113,10 @@ function project_release_history_generate_all() {
   // Generate XML files based on API compatibility.
   $tids = array_keys($api_terms);
   $placeholders = db_placeholders($tids);
-  $query = db_query("SELECT DISTINCT(prn.pid), tn.tid FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid WHERE tn.tid IN ($placeholders)", $tids);
+  $query = db_query("SELECT DISTINCT(pid), version_api_tid FROM {project_release_nodes} WHERE version_api_tid IN ($placeholders)", $tids);
   $i = 0;
   while ($project = db_fetch_object($query)) {
-    project_release_history_generate_project_xml($project->pid, $project->tid);
+    project_release_history_generate_project_xml($project->pid, $project->version_api_tid);
     $i++;
   }
   if ($i == 1) {
@@ -157,7 +157,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $api_version = $api_terms[$api_tid];
 
     // Get project-wide data:
-    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE prsv.tid = %d AND p.nid = %d";
+    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE prsv.tid = %d AND prsv.nid = %d";
     $query = db_query($sql, $api_tid, $project_nid);
   }
   else {
@@ -258,20 +258,15 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $where[] = "prn.pid = '%d'";
   $parameters[] = $project->nid;
 
-  $joins[] = "INNER JOIN {term_node} tn ON tn.nid = prn.nid";
   // Restrict releases to the specified API version.
   if (isset($api_tid)) {
-    $where[] = 'tn.tid = %d';
+    $where[] = 'prn.version_api_tid = %d';
     $parameters[] = $api_tid;
   }
   else {
     // If we're building a list for all versions, then we also need to sort
-    // our releases based on the API term's weight.  Also, to prevent
-    // duplicate release nodes and ensure we're just looking at the API term,
-    // we need to add a WHERE clause for the API vocabulary id.
-    $joins[] = "INNER JOIN {term_data} td ON tn.tid = td.tid";
-    $where[] = 'td.vid = %d';
-    $parameters[] = _project_release_get_api_vid();
+    // our releases based on the API term's weight.
+    $joins[] = "INNER JOIN {term_data} td ON prn.version_api_tid = td.tid";
     $fields[] = 'td.weight';
   }
 
@@ -472,7 +467,7 @@ function project_list_generate() {
     else {
       $xml .= "  <project_status>published</project_status>\n";
       // Include a list of API terms if available.
-      $term_query = db_query("SELECT DISTINCT(td.tid), td.name AS term_name FROM {project_release_nodes} prn INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE prn.pid = %d AND td.vid = %d ORDER BY td.weight ASC", $project->nid, $api_vid);
+      $term_query = db_query("SELECT DISTINCT(td.tid), td.name AS term_name FROM {project_release_nodes} prn INNER JOIN {term_data} td ON prn.version_api_tid = td.tid WHERE prn.pid = %d AND td.vid = %d ORDER BY td.weight ASC", $project->nid, $api_vid);
       $xml_api_terms = '';
       while ($api_term = db_fetch_object($term_query)) {
         $xml_api_terms .= '   <api_version>'. check_plain($api_term->term_name) ."</api_version>\n";
