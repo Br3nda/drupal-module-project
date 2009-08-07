@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.22 2009/08/07 05:28:23 dww Exp $
+// $Id: project-release-create-history.php,v 1.23 2009/08/07 15:22:48 dww Exp $
 
 /**
  * @file
@@ -18,6 +18,9 @@
 // ------------------------------------------------------------
 // Required customization
 // ------------------------------------------------------------
+
+// Root of the directory tree for the XML history files.
+define('HISTORY_ROOT', '');
 
 // The root of your Drupal installation, so we can properly bootstrap
 // Drupal. This should be the full path to the directory that holds
@@ -71,11 +74,11 @@ umask(022);
 require_once 'includes/bootstrap.inc';
 drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
-define('BASE_DIRECTORY', DRUPAL_ROOT .'/'. file_create_path(variable_get('project_release_history_directory', 'release-history')));
-
-if (!is_dir(BASE_DIRECTORY)) {
-  wd_err(array('message' => "ERROR: History directory (%directory) does not exist, aborting.\n", 'args' => array('%directory' => BASE_DIRECTORY)));
-  exit(1);
+if (!is_dir(HISTORY_ROOT)) {
+  if (!mkdir(HISTORY_ROOT)) {
+    wd_err(array('message' => "ERROR: Could not create history directory (%directory).\n", 'args' => array('%directory' => HISTORY_ROOT)));
+    exit(1);
+  }
 }
 
 /// @todo Add command-line args to only generate a given project/version.
@@ -359,7 +362,7 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
   $dc_namespace = 'xmlns:dc="http://purl.org/dc/elements/1.1/"';
   if (!isset($project)) {
     // We are outputting a global project list.
-    $project_dir = BASE_DIRECTORY .'/project-list';
+    $project_dir = HISTORY_ROOT .'/project-list';
     $filename = $project_dir .'/project-list-all.xml';
     $tmp_filename = $filename .'.new';
     $errors = array(
@@ -387,7 +390,7 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
     // can trust those.  The only one we should be careful of is the
     // taxonomy term for the API compatibility.
     $safe_api_vers = strtr($api_version, '/', '_');
-    $project_dir = BASE_DIRECTORY .'/'. $project->uri;
+    $project_dir = HISTORY_ROOT .'/'. $project->uri;
     $project_id = $project->uri .'-'. $safe_api_vers .'.xml';
     $filename = $project_dir .'/'. $project_id;
     $tmp_filename = $filename .'.new';
