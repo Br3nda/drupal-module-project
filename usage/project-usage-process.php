@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-// $Id: project-usage-process.php,v 1.6 2009/03/17 23:16:13 dww Exp $
+// $Id: project-usage-process.php,v 1.7 2009/08/07 15:42:32 dww Exp $
 
 
 /**
@@ -51,6 +51,7 @@ $script_name = $argv[0];
 
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = SITE_NAME;
+$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 $_SERVER['REQUEST_URI'] = '/' . $script_name;
 $_SERVER['SCRIPT_NAME'] = '/' . $script_name;
 $_SERVER['PHP_SELF'] = '/' . $script_name;
