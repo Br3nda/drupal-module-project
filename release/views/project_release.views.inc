@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.3 2009/08/06 00:53:31 dww Exp $
+// $Id: project_release.views.inc,v 1.4 2009/08/08 01:24:02 dww Exp $
 
 /**
  * @file
@@ -25,13 +25,18 @@ function project_release_views_data() {
       'left_field' => 'nid',
       'field' => 'nid',
     ),
+  );
 
-    'project_projects' => array(
-      'type' => 'INNER',
-      'left_table' => 'project_projects',
-      'left_field' => 'nid',
-      'field' => 'pid',
-    )
+  // nid
+  $data['project_release_nodes']['nid'] = array(
+    'title' => t('Release node'),
+    'help' => t('The node ID of the release node.'),
+    'relationship' => array(
+      'help' => t('Add a relationship to gain access to more node data for releases.'),
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Release node'),
+    ),
   );
 
   // pid
