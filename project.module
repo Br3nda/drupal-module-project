@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.353 2009/08/06 23:35:29 dww Exp $
+// $Id: project.module,v 1.354 2009/08/10 22:50:39 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -317,6 +317,22 @@ function project_find_alias($query, $table) {
 function project_settings_form() {
   $form = array();
 
+  if (module_exists('path')) {
+    $form['project_enable_alias'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enable auto-generated project aliases'),
+      '#default_value' => variable_get('project_enable_alias', TRUE),
+      '#description' => t('If checked, project module will automatically generate path aliases (eg. /project/&lt;shortname&gt;/) for each project. Uncheck if you want to use another module, such as pathauto, to generate aliases.')
+    );
+  }
+  else {
+    $form['project_enable_alias'] = array(
+      '#type' => 'markup',
+      '#value' => t('If you enable the Path module from Drupal core, you can control if the Project module will automatically generate path aliases (eg. /project/&lt;shortname&gt;/) for each project.')
+    );
+    variable_set('project_enable_alias', FALSE);
+  }
+
   return system_settings_form($form);
 }
 
@@ -402,6 +418,9 @@ function project_project_access_any() {
   return user_access('access projects') || user_access('access own projects') || user_access('administer projects');
 }
 
+/**
+ * Implement hook_menu().
+ */
 function project_menu() {
   $items = array();
 
@@ -442,6 +461,14 @@ function project_menu() {
     'access arguments' => array('administer projects'),
     'file' => 'system.admin.inc',
     'file path' => drupal_get_path('module', 'system'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/project/project-settings'] = array(
+    'title' => 'Project settings',
+    'description' => 'Configure settings for the Project module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('project_settings_form'),
+    'access arguments' => array('administer projects'),
     'type' => MENU_NORMAL_ITEM,
   );
 
@@ -565,7 +592,7 @@ function project_form_alter(&$form, &$form_state, $form_id) {
       // If the form has an element for specifying a URL alias, we want
       // to alter it, since we're just going to automatically override
       // the specified value.
-      if (isset($form['path'])) {
+      if (variable_get('project_enable_alias', TRUE) && isset($form['path'])) {
         $url_alias = $form['path']['path']['#default_value'];
         if (empty($url_alias)) {
           unset($form['path']);

@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.26 2009/08/03 18:25:14 dww Exp $
+// $Id: project.install,v 1.27 2009/08/10 22:50:39 dww Exp $
 
 function project_install() {
   // Create the database tables.
@@ -19,6 +19,7 @@ function project_uninstall() {
   $variables = array(
     'project_vocabulary',
     'project_search_block_help_text',
+    'project_enable_alias',
   );
   foreach ($variables as $variable) {
     variable_del($variable);

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.124 2009/08/07 06:05:31 dww Exp $
+// $Id: project_release.module,v 1.125 2009/08/10 22:50:39 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -630,7 +630,12 @@ function project_release_form_alter(&$form, &$form_state, $form_id) {
  * @see project_release_form_alter
  */
 function project_release_alter_project_form(&$form) {
-  $form['project_node']['project']['uri']['#description'] .= ' '. t('This string is also used to generate the name of releases associated with this project.');
+  if (!empty($form['project_node']['project']['uri']['#description'])) {
+    $form['project_node']['project']['uri']['#description'] .= ' ' . t('This string is also used to generate the name of releases associated with this project.');
+  }
+  else {
+    $form['project_node']['project']['uri']['#description'] = t('This string is used to generate the name of releases associated with this project.');
+  }
 }
 
 /**
