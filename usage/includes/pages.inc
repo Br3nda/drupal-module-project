@@ -1,5 +1,5 @@
 <?php
-// $Id: pages.inc,v 1.2 2009/08/08 21:06:05 dww Exp $
+// $Id: pages.inc,v 1.3 2009/08/10 21:02:08 dww Exp $
 
 /**
  * @file
@@ -110,7 +110,7 @@ function project_usage_overview() {
   $where_args[] = 1;  // n.status = 1
   $sql_elements['group_bys']['pieces'] = array('n.nid', 'n.title');
   $headers = array(
-    t('Rank'),
+    t('#'),
     array('field' => 'n.title', 'data' => t('Project')),
   );
 
@@ -147,10 +147,10 @@ function project_usage_overview() {
   $args = array_merge($joins_args, $where_args);
   $result = db_query(project_usage_build_query($sql_elements) . tablesort_sql($headers), $args);
 
-  $rank = 1;
+  $number = 1;
   while ($line = db_fetch_array($result)) {
     $row = array(
-      array('data' => $rank++),
+      array('data' => $number++),
       array('data' => l($line['title'], 'project/usage/'. $line['uri'])),
     );
     foreach ($weeks as $i => $week) {
