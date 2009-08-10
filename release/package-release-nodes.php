@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.45 2009/08/07 16:02:29 dww Exp $
+// $Id: package-release-nodes.php,v 1.46 2009/08/10 21:46:46 dww Exp $
 
 /**
  * @file
@@ -74,9 +74,18 @@ $rm = '/bin/rm';
 $msgcat = 'msgcat';
 $msgattrib = 'msgattrib';
 $msgfmt = 'msgfmt';
+$php = '/usr/bin/php';
+
+// If you are using project-release-create-history.php to generate XML release
+// history files for Update status clients, if you include the full path to
+// your copy of that script here, after all the packages are re(generated),
+// this script will regenerate the XML release history files for any projects
+// with new/updated releases.
+$project_release_create_history = '';
 
 // The taxonomy id (tid) of the "Security update" term on drupal.org
 define('SECURITY_UPDATE_TID', 100);
+
 
 // ------------------------------------------------------------
 // Initialization
@@ -178,6 +187,7 @@ elseif ($task == 'repair') {
 
 function package_releases($type, $project_id = 0) {
   global $wd_err_msg;
+  global $php, $project_release_create_history;
 
   $rel_node_join = '';
   $where_args = array();
@@ -247,7 +257,7 @@ function package_releases($type, $project_id = 0) {
     }
     if ($built) {
       $num_built++;
-      $project_nids[$pid][$tid][$major] = TRUE;
+      $project_nids[$pid] = TRUE;
     }
     $num_considered++;
     if (count($wd_err_msg)) {
@@ -263,15 +273,22 @@ function package_releases($type, $project_id = 0) {
     }
   }
 
-  // Finally, for each project/tid/major triple we packaged, check to see if
-  // the supported/recommended settings are sane now that new tarballs have
-  // been generated and release nodes published.
-  foreach ($project_nids as $pid => $tids) {
-    foreach ($tids as $tid => $majors) {
-      foreach ($majors as $major => $value) {
-        project_release_check_supported_versions($pid, $tid, $major, FALSE);
+  // Finally, regenerate release history XML files for all projects we touched.
+  if (!empty($project_release_create_history)) {
+    wd_msg('Re-generating release history XML files');
+    $i = $fails = 0;
+    foreach ($project_nids as $project_nid => $value) {
+      if (drupal_exec("$php $project_release_create_history $project_nid")) {
+        $i++;
+      }
+      else {
+        $fails++;
       }
     }
+    if (!empty($fails)) {
+      wd_msg('ERROR: Failed to re-generate release history XML files for !num project(s)', array('!num' => $fails)); 
+    }
+    wd_msg('Done re-generating release history XML files for !num project(s)', array('!num' => $i)); 
   }
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.24 2009/08/07 22:35:38 dww Exp $
+// $Id: project-release-create-history.php,v 1.25 2009/08/10 21:46:46 dww Exp $
 
 /**
  * @file
@@ -55,6 +55,12 @@ if ($fatal_err) {
 
 $script_name = $argv[0];
 
+// See if we're being restricted to a single project.
+$project_id = 0;
+if (!empty($argv[1])) {
+  $project_id = $argv[1];
+}
+
 // Setup variables for Drupal bootstrap
 $_SERVER['HTTP_HOST'] = SITE_NAME;
 $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
@@ -81,9 +87,12 @@ if (!is_dir(HISTORY_ROOT)) {
   }
 }
 
-/// @todo Add command-line args to only generate a given project/version.
-project_release_history_generate_all();
-project_list_generate();
+project_release_history_generate_all($project_id);
+if (empty($project_id)) {
+  // If we're operating on all projects, generate the huge list, too.
+  project_list_generate();
+}
+
 
 // ------------------------------------------------------------
 // Functions: main work
@@ -92,17 +101,40 @@ project_list_generate();
 /**
  * Figure out what project and API terms to generate the history for.
  */
-function project_release_history_generate_all() {
-  $api_terms = project_release_compatibility_list();
-  wd_msg(array('message' => 'Generating XML release history files for all projects.', 'args' => array()));
+function project_release_history_generate_all($project_id = 0) {
+  if (!empty($project_id)) {
+    if (is_numeric($project_id)) {
+      $project_nid = $project_id;
+    }
+    else {
+      $project_nid = db_result(db_query("SELECT nid FROM {project_projects} WHERE uri = '%s'", $project_id));
+    }
+    if (empty($project_nid)) {
+      wd_err(array('message' => 'Project ID %id not found', 'args' => array('%id' => $project_id)));
+      return FALSE;
+    }
+    wd_msg(array('message' => 'Generating XML release history files for project: %id.', 'args' => array('%id' => $project_id)));
+  }
+  else {
+    wd_msg(array('message' => 'Generating XML release history files for all projects.', 'args' => array()));
+  }
 
-  // Generate all.xml files for projects with releases.
-  $query = db_query("SELECT DISTINCT(pid) FROM {project_release_nodes}");
+  $api_terms = project_release_compatibility_list();
+
   $i = 0;
-  while ($project = db_fetch_object($query)) {
-    project_release_history_generate_project_xml($project->pid);
+  if (empty($project_nid)) {
+    // Generate all.xml files for projects with releases.
+    $query = db_query("SELECT DISTINCT(pid) FROM {project_release_nodes}");
+    while ($project = db_fetch_object($query)) {
+      project_release_history_generate_project_xml($project->pid);
+      $i++;
+    }
+  }
+  else {
+    project_release_history_generate_project_xml($project_nid);
     $i++;
   }
+
   if ($i == 1) {
     wd_msg(array('message' => 'Generated an XML release history summary for a project.'));
   }
@@ -111,10 +143,15 @@ function project_release_history_generate_all() {
   }
 
   // Generate XML files based on API compatibility.
-  $tids = array_keys($api_terms);
-  $placeholders = db_placeholders($tids);
-  $query = db_query("SELECT DISTINCT(pid), version_api_tid FROM {project_release_nodes} WHERE version_api_tid IN ($placeholders)", $tids);
   $i = 0;
+  $args = array_keys($api_terms);
+  $placeholders = db_placeholders($args);
+  $where = '';
+  if (!empty($project_nid)) {
+    $args[] = $project_nid;
+    $where = 'AND pid = %d';
+  }
+  $query = db_query("SELECT DISTINCT(pid), version_api_tid FROM {project_release_nodes} WHERE version_api_tid IN ($placeholders) $where", $args);
   while ($project = db_fetch_object($query)) {
     project_release_history_generate_project_xml($project->pid, $project->version_api_tid);
     $i++;
