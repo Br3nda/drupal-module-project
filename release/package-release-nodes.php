@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.47 2009/08/10 22:59:29 dww Exp $
+// $Id: package-release-nodes.php,v 1.48 2009/08/11 18:55:13 dww Exp $
 
 /**
  * @file
@@ -414,7 +414,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   $tarball_needs_subdir = TRUE;
   if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
     // Translation projects are packaged differently based on core version.
-    if (intval($version) == 6) {
+    if (intval($version) > 5) {
       if (!($to_tar = package_release_contrib_d6_translation($uri, $version, $view_link))) {
         // Return on error.
         return FALSE;
