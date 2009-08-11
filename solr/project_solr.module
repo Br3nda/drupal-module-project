@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.59 2009/08/11 19:17:46 damz Exp $
+// $Id: project_solr.module,v 1.60 2009/08/11 19:27:13 damz Exp $
 
 //----------------------------------------
 // Core hooks
@@ -181,9 +181,8 @@ function project_solr_browse_summary_page() {
 function project_solr_browse_page($term_name) {
   try {
     $output = '';
-    $vid = _project_get_vid();
 
-    $parent_term = db_fetch_object(db_query("SELECT t.tid, t.name, t.description FROM {term_data} t WHERE LOWER(t.name) = LOWER('%s')", $term_name));
+    $parent_term = db_fetch_object(db_query("SELECT t.tid, t.name, t.description FROM {term_data} t WHERE t.vid = %d AND LOWER(t.name) = LOWER('%s')", _project_get_vid(), $term_name));
 
     if (!$parent_term) {
       // XXX: this is the Drupal 5 way...
