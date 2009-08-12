@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.6 2009/08/07 06:04:43 dww Exp $
+// $Id: release_node_form.inc,v 1.7 2009/08/12 22:34:17 dww Exp $
 
 /**
  * @file
@@ -30,10 +30,6 @@ function _project_release_form(&$release, &$form_state) {
       exit;
     }
     project_project_set_breadcrumb($project, TRUE);
-    $form['project'] = array(
-      '#type' => 'value',
-      '#value' => $project,
-    );
     $format = project_release_get_version_format($project);
     $release->project_release['pid'] = $pid;
   }
@@ -47,6 +43,10 @@ function _project_release_form(&$release, &$form_state) {
     project_project_set_breadcrumb($project, $breadcrumb);
     $format = project_release_get_version_format($project);
   }
+  $form['project'] = array(
+    '#type' => 'value',
+    '#value' => $project,
+  );
 
   $modify = $admin || !$is_edit;
 
