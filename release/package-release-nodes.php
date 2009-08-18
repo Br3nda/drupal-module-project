@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.48 2009/08/11 18:55:13 dww Exp $
+// $Id: package-release-nodes.php,v 1.49 2009/08/18 21:11:37 dww Exp $
 
 /**
  * @file
@@ -257,7 +257,7 @@ function package_releases($type, $project_id = 0) {
     }
     if ($built) {
       $num_built++;
-      $project_nids[$pid] = TRUE;
+      $project_nids[$pid][$tid][$major] = TRUE;
     }
     $num_considered++;
     if (count($wd_err_msg)) {
@@ -270,6 +270,23 @@ function package_releases($type, $project_id = 0) {
     }
     else {
       wd_msg("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
+    }
+  }
+
+  // Next, for each project/tid/major triple we packaged, check to see if
+  // the supported/recommended settings are sane now that new tarballs have
+  // been generated and release nodes published. This should be called during
+  // node_save(), but due to replication delays on drupal.org, it seems that
+  // it doesn't always work, so we do it again here to be safe.
+  foreach ($project_nids as $pid => $tids) {
+    foreach ($tids as $tid => $majors) {
+      foreach ($majors as $major => $value) {
+        // If we can, tell the system to only use the primary DB for this.
+        if (function_exists('db_set_ignore_slave')) {
+          db_set_ignore_slave();
+        }
+        project_release_check_supported_versions($pid, $tid, $major, FALSE);
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.125 2009/08/10 22:50:39 dww Exp $
+// $Id: project_release.module,v 1.126 2009/08/18 21:11:37 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -225,6 +225,13 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
   // Remember if we updated {project_release_supported_versions} so we can
   // return the value to our caller.
   $did_update = FALSE;
+
+  // If we're being called as a release node is being edited and saved, and
+  // the site we're running on is using DB replication, we need to make sure
+  // we're talking to the primary DB so that all of this works.
+  if (function_exists('db_set_ignore_slave')) {
+    db_set_ignore_slave();
+  }
 
   // Regardless of if we're deleting, adding, or editing, we need to know the
   // latest and recommended releases (if any) from the given branch. If
