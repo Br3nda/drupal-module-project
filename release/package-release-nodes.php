@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.49 2009/08/18 21:11:37 dww Exp $
+// $Id: package-release-nodes.php,v 1.50 2009/08/18 21:18:30 dww Exp $
 
 /**
  * @file
@@ -186,7 +186,7 @@ elseif ($task == 'repair') {
 // ------------------------------------------------------------
 
 function package_releases($type, $project_id = 0) {
-  global $wd_err_msg;
+  global $drupal_root, $wd_err_msg;
   global $php, $project_release_create_history;
 
   $rel_node_join = '';
@@ -255,6 +255,8 @@ function package_releases($type, $project_id = 0) {
       $dir = escapeshellcmd($release->directory);
       $built = package_release_contrib($nid, $uri, $version, $rev, $dir);
     }
+    chdir($drupal_root);
+
     if ($built) {
       $num_built++;
       $project_nids[$pid][$tid][$major] = TRUE;
@@ -860,7 +862,7 @@ function fix_info_file_version($file, $uri, $version) {
  * @todo This assumes 1:1 relationship of release nodes to files.
  */
 function package_release_update_node($nid, $file_path) {
-  global $dest_root, $task;
+  global $drupal_root, $dest_root, $task;
   $full_path = $dest_root . '/' . $file_path;
 
   // PHP will cache the results of stat() and give us stale answers
@@ -905,6 +907,10 @@ function package_release_update_node($nid, $file_path) {
   // nodes in RAM, so we reset the node_load() cache each time we call it.
   $status = db_result(db_query("SELECT status from {node} WHERE nid = %d", $nid));
   if (empty($status)) {
+    // Make sure we're back at the webroot so node_load() and node_save()
+    // can always find any files they (and the hooks they invoke) need.
+    chdir($drupal_root);
+
     // If the site is using DB replication, force this node_load() to use the
     // primary database to avoid node_load() failures.
     if (function_exists('db_set_ignore_slave')) {
