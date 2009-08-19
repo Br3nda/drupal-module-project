@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.354 2009/08/10 22:50:39 dww Exp $
+// $Id: project.module,v 1.355 2009/08/19 00:50:35 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -631,7 +631,7 @@ function project_project_access($op, $node, $account) {
       // Since this function is shared for project_release nodes, we have to
       // be careful what node we pass to project_check_admin_access().
       if ($node->type == 'project_release') {
-        $node = node_load($node->project['pid']);
+        $node = node_load($node->project_release['pid']);
       }
       if (project_check_admin_access($node)) {
         return TRUE;
