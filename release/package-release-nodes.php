@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.50 2009/08/18 21:18:30 dww Exp $
+// $Id: package-release-nodes.php,v 1.51 2009/11/18 22:00:34 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -354,9 +354,10 @@ function package_release_core($nid, $uri, $version, $rev) {
   if (!drupal_exec("$tar -c --file=- $id | $gzip -9 --no-name > $full_dest")) {
     return false;
   }
+  $files[] = $file_path;
 
   // As soon as the tarball exists, we want to update the DB about it.
-  package_release_update_node($nid, $file_path);
+  package_release_update_node($nid, $files);
 
   wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
 
@@ -460,9 +461,10 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
   if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $full_dest")) {
     return false;
   }
+  $files[] = $file_path;
 
   // As soon as the tarball exists, update the DB
-  package_release_update_node($nid, $file_path);
+  package_release_update_node($nid, $files);
 
   wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
 
@@ -859,71 +861,75 @@ function fix_info_file_version($file, $uri, $version) {
 /**
  * Update the DB with the new file info for a given release node.
  *
- * @todo This assumes 1:1 relationship of release nodes to files.
+ * @param $nid
+ *   The node ID of the release node to update.
+ * @param $files
+ *   Array of files to add to the release node.
  */
-function package_release_update_node($nid, $file_path) {
+function package_release_update_node($nid, $files) {
   global $drupal_root, $dest_root, $task;
-  $full_path = $dest_root . '/' . $file_path;
 
   // PHP will cache the results of stat() and give us stale answers
   // here, unless we manually tell it otherwise!
   clearstatcache();
 
-  // Now that we have the official file, compute some metadata:
-  $file_name = basename($file_path);
-  $file_date = filemtime($full_path);
-  $file_size = filesize($full_path);
-  $file_hash = md5_file($full_path);
-  $file_mime = file_get_mimetype($full_path);
-  $uid = db_result(db_query("SELECT n.uid FROM {node} n WHERE n.nid = %d", $nid));
-
-  // Finally, save this file to the DB.
-
-  // First, see if we already have a file for this release node
-  $file_data = db_fetch_object(db_query("SELECT * FROM {project_release_file} WHERE nid = %d  GROUP BY nid ORDER BY fid DESC", $nid));
-
-  if (empty($file_data)) {
-    // Don't have an file data for this release, insert a new record.
-    db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', %d, %d, %d)", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date);
-    $fid = db_last_insert_id('files', 'fid');
-    db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d, '%s')", $fid, $nid, $file_hash);
+  // Make sure we're back at the webroot so node_load() and node_save()
+  // can always find any files they (and the hooks they invoke) need.
+  if (!drupal_chdir($drupal_root)) {
+    return FALSE;
   }
-  else {
-    // Already have a file for this release, update it.
-    db_query("UPDATE {files} SET uid = %d, filename = '%s', filepath = '%s', filemime = '%s', filesize = %d, status = %d, timestamp = %d WHERE fid = %d", $uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date, $file_data->fid);
-    db_query("UPDATE {project_release_file} SET filehash = '%s' WHERE fid = %d", $file_hash, $file_data->fid);
+
+  // If the site is using DB replication, force this node_load() to use the
+  // primary database to avoid node_load() failures.
+  if (function_exists('db_set_ignore_slave')) {
+    db_set_ignore_slave();
+  }
+  // We don't want to waste too much RAM by leaving all these loaded nodes
+  // in RAM, so we reset the node_load() cache each time we call it.
+  $node = node_load($nid, NULL, TRUE);
+  if (empty($node->nid)) {
+    wd_err('node_load(@nid) failed', array('@nid' => $nid));
+    return FALSE;
+  }
+
+  foreach ($files as $file_path) {
+    // Compute the metadata for this file that we care about.
+    $full_path = $dest_root . '/' . $file_path;
+    $file_name = basename($file_path);
+    $file_date = filemtime($full_path);
+    $file_size = filesize($full_path);
+    $file_hash = md5_file($full_path);
+    $file_mime = file_get_mimetype($full_path);
+
+    // First, see if we already have this file for this release node
+    $file_data = db_fetch_object(db_query("SELECT prf.* FROM {project_release_file} prf INNER JOIN {files} f ON prf.fid = f.fid WHERE prf.nid = %d AND f.filename = '%s'", $node->nid, $file_name));
+
+    // Insert or update the record in the DB as need.
+    if (empty($file_data)) {
+      // Don't have this file, insert a new record.
+      db_query("INSERT INTO {files} (uid, filename, filepath, filemime, filesize, status, timestamp) VALUES (%d, '%s', '%s', '%s', %d, %d, %d)", $node->uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date);
+      $fid = db_last_insert_id('files', 'fid');
+      db_query("INSERT INTO {project_release_file} (fid, nid, filehash) VALUES (%d, %d, '%s')", $fid, $node->nid, $file_hash);
+    }
+    else {
+      // Already have this file for this release, update it.
+      db_query("UPDATE {files} SET uid = %d, filename = '%s', filepath = '%s', filemime = '%s', filesize = %d, status = %d, timestamp = %d WHERE fid = %d", $node->uid, $file_name, $file_path, $file_mime, $file_size, FILE_STATUS_PERMANENT, $file_date, $file_data->fid);
+      db_query("UPDATE {project_release_file} SET filehash = '%s' WHERE fid = %d", $file_hash, $file_data->fid);
+    }
   }
 
   // Don't auto-publish security updates.
-  if ($task == 'tag' && db_result(db_query("SELECT COUNT(*) FROM {term_node} WHERE nid = %d AND tid = %d", $nid, SECURITY_UPDATE_TID))) {
-    watchdog('package_security', "Not auto-publishing security update release.", array(), WATCHDOG_NOTICE, l(t('view'), 'node/'. $nid));
+  if ($task == 'tag' && !empty($node->taxonomy[SECURITY_UPDATE_TID])) {
+    watchdog('package_security', 'Not auto-publishing security update release.', array(), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->nid));
     return;
   }
 
   // Finally publish the node if it is currently unpublished.  Instead of
   // directly updating {node}.status, we use node_save() so that other modules
   // which implement hook_nodeapi() will know that this node is now published.
-  // However, we don't want to waste too much RAM by leaving all these loaded
-  // nodes in RAM, so we reset the node_load() cache each time we call it.
-  $status = db_result(db_query("SELECT status from {node} WHERE nid = %d", $nid));
-  if (empty($status)) {
-    // Make sure we're back at the webroot so node_load() and node_save()
-    // can always find any files they (and the hooks they invoke) need.
-    chdir($drupal_root);
-
-    // If the site is using DB replication, force this node_load() to use the
-    // primary database to avoid node_load() failures.
-    if (function_exists('db_set_ignore_slave')) {
-      db_set_ignore_slave();
-    }
-    $node = node_load($nid, NULL, TRUE);
-    if (!empty($node->nid)) {
-      $node->status = 1;
-      node_save($node);
-    }
-    else {
-      wd_err('node_load(@nid) failed', array('@nid' => $nid));
-    }
+  if (empty($node->status)) {
+    $node->status = 1;
+    node_save($node);
   }
 }
 
