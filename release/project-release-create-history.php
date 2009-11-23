@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.25 2009/08/10 21:46:46 dww Exp $
+// $Id: project-release-create-history.php,v 1.26 2009/11/23 20:17:06 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -329,6 +329,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $xml .= "<releases>\n";
   foreach ($releases as $release) {
     $xml .= " <release>\n";
+    $xml .= '<nid>'. $release->nid ."</nid>\n";
     $xml .= '  <name>'. check_plain($release->title) ."</name>\n";
     $xml .= '  <version>'. check_plain($release->version) ."</version>\n";
     if (!empty($release->tag) && $tag = check_plain($release->tag)) {
