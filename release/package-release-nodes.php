@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.53 2009/11/24 23:29:58 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.54 2009/11/24 23:50:16 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -519,7 +519,7 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
 
           // See the stage_one_make_file() function for an explanation of this
           // variable.
-          $build_run_key = md5(time());
+          $build_run_key = md5(uniqid(mt_rand(), true)) . md5(uniqid(mt_rand(), true));
 
           // Generate the stage one make file for this distribution.
           $distro_id = "$id-$distro";
