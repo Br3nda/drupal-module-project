@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.52 2009/11/23 20:17:06 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.53 2009/11/24 23:29:58 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -505,10 +505,6 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
       }
       // Only proceed if a core release was found.
       if (isset($core_release)) {
-        // Calculate a core version to use with the stage one .make files.
-        preg_match('/^(\d+\.x)-.*/', $version, $matches);
-        $core_version = $matches[1];
-
         $distro_types = array('no-core', 'core');
         foreach($distro_types as $distro) {
           // Prepare the build root.
@@ -528,7 +524,7 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
           // Generate the stage one make file for this distribution.
           $distro_id = "$id-$distro";
           $distro_dir = "$uri-$distro";
-          $stage_one_makefile = stage_one_make_file($distro, $core_version, $info['core_release'], $uri, $tag, $build_run_key);
+          $stage_one_makefile = stage_one_make_file($distro, $info['core_release'], $uri, $tag, $build_run_key);
           $stage_one_makefile_filename = "$distro_id.make";
           file_put_contents($stage_one_makefile_filename, $stage_one_makefile);
 
@@ -1180,8 +1176,6 @@ function translation_number_of_strings($dir, $version) {
  *
  * @param $distro
  *   The distribution to be packaged.
- * @param $core_version
- *   The major version of core.
  * @param $core_release
  *   The core release to package with the profile.
  * @param $profile
@@ -1191,8 +1185,12 @@ function translation_number_of_strings($dir, $version) {
  * @param $build_run_key
  *   See code notes for explanation.
  */
-function stage_one_make_file($distro, $core_version, $core_release, $profile, $profile_tag, $build_run_key) {
+function stage_one_make_file($distro, $core_release, $profile, $profile_tag, $build_run_key) {
   global $cvs_root;
+
+  // Calculate a core version to use with the stage one .make files.
+  preg_match('/^(\d+)\.(\d+)$/', $core_release, $matches);
+  $core_version = $matches[1] . ".x";
 
   $output = '';
   $output .= "core = $core_version\n";
