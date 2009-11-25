@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.127 2009/11/25 21:39:09 dww Exp $
+// $Id: project_release.module,v 1.128 2009/11/25 23:32:05 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -917,46 +917,13 @@ function project_release_get_current_recommended($project_nid, $api_tid, $recomm
  * @return
  *  An array containing the node ID (nid) of both the latest and recommended
  *  releases from the given branch.
+ *
+ * @see project_release_query_releases_by_branch()
  */
 function project_release_find_latest_releases($project_nid, $api_tid, $major, $access = FALSE) {
   $latest_release = $recommended_release = 0;
-  $params = $orderby = array();
-
-  $join = ' INNER JOIN {term_node} tn ON n.nid = tn.nid AND tn.tid = %d';
-  $params[] = $api_tid;
-
-  $where = 'WHERE (r.pid = %d) AND (r.version_major = %d) AND (n.status = %d)';
-  $params[] = $project_nid;
-  $params[] = $major;
-  $params[] = 1;
-
-  // We always want the dev snapshots to show up last.
-  $orderby[] = 'r.rebuild';
-  $orderby[] = 'r.version_major DESC';
-  $orderby[] = 'r.version_minor DESC';
-  $orderby[] = 'r.version_patch DESC';
-  // Since we can't really be sure of the relative ordering of versions with
-  // extra, and since there's no good way to do something like
-  // version_compare() directly in the SQL query, for all releases at the same
-  // patch level, we'll order things by the latest file timestamp instead of
-  // trying to do a string comparison based on version_extra.
-  $orderby[] = 'f.timestamp DESC';
-  $order_by = 'ORDER BY '. implode(', ', $orderby);
-
-  $sql = "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
-    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
-    "INNER JOIN {project_release_file} prf on n.nid = prf.nid ".
-    "INNER JOIN {files} f ON prf.fid = f.fid $join ".
-    "$where $order_by";
-
-  // Only enforce node access via db_rewrite_sql() if the caller specifically
-  // requested that behavior.
-  if ($access) {
-    $sql = db_rewrite_sql($sql);
-  }
-
-  $result = db_query($sql, $params);
-  while ($release = db_fetch_object($result)) {
+  $query = project_release_query_releases_by_branch($project_nid, $api_tid, $major, $access);
+  while ($release = db_fetch_object($query)) {
     if (empty($latest_release)) {
       $latest_release = $release->nid;
     }
@@ -969,6 +936,72 @@ function project_release_find_latest_releases($project_nid, $api_tid, $major, $a
     $recommended_release = $latest_release;
   }
   return array($latest_release, $recommended_release);
+}
+
+/**
+ * Build a query for releases on a given branch, ordered by version.
+ *
+ * @param $pid
+ *   The project ID.
+ * @param $api_tid
+ *   The API compatibility term ID.
+ * @param $major
+ *   The major version that defines the branch for the project and API term.
+ * @param $access
+ *   Optional boolean to indicate if node access checks should be enforced.
+ *   Defaults to FALSE since the caller might not actually have access to all
+ *   the releases or projects. However, this function usually has to compute
+ *   the accurate values regardless of access, and consumers of this data are
+ *   responsible for ensuring access.
+ *
+ * @return
+ *   A database query result resource, as returned by db_query().
+ *
+ * @see db_query()
+ * @see project_release_find_latest_releases()
+ */
+function project_release_query_releases_by_branch($pid, $api_tid, $major, $access = FALSE) {
+  $wheres = $params = $orderby = array();
+
+  $wheres[] = '(r.pid = %d)';
+  $params[] = $project_nid;
+
+  $wheres[] = '(r.version_api_tid = %d)';
+  $params[] = $api_tid;
+
+  $wheres[] = '(r.version_major = %d)';
+  $params[] = $major;
+
+  $wheres[] = '(n.status = %d)';
+  $params[] = 1;
+
+  $where = 'WHERE ' . implode(' AND ', $wheres);
+
+  // We always want the dev snapshots to show up last.
+  $orderby[] = 'r.rebuild';
+  $orderby[] = 'r.version_minor DESC';
+  $orderby[] = 'r.version_patch DESC';
+  // Since we can't be sure of the relative ordering of versions with
+  // extra, and since there's no good way to do something like
+  // version_compare() directly in the SQL query, for all releases at the same
+  // patch level, we'll order things by the latest file timestamp instead of
+  // trying to do a string comparison based on version_extra.
+  $orderby[] = 'f.timestamp DESC';
+  $order_by = 'ORDER BY '. implode(', ', $orderby);
+
+  $sql = "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
+    "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
+    "INNER JOIN {project_release_file} prf on n.nid = prf.nid ".
+    "INNER JOIN {files} f ON prf.fid = f.fid ".
+    "$where $order_by";
+
+  // Only enforce node access via db_rewrite_sql() if the caller specifically
+  // requested that behavior.
+  if ($access) {
+    $sql = db_rewrite_sql($sql);
+  }
+
+  return db_query($sql, $params);
 }
 
 /**
