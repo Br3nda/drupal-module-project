@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.8 2009/08/18 21:02:30 dww Exp $
+// $Id: release_node_form.inc,v 1.9 2009/11/25 21:47:16 dww Exp $
 
 /**
  * @file
@@ -457,19 +457,26 @@ function project_release_db_save($node, $is_new) {
       $values[$field] = $node->project_release[$field];
     }
   }
-  // version_api_tid might not be where we think it is, so if we don't have a
-  // real value by now, look in $node->taxonomy
-  if (empty($types['version_api_tid'])) {
-    $vid = _project_release_get_api_vid();
-    if (isset($node->taxonomy[$vid])) {
-      if (is_array($node->taxonomy[$vid])) {
-        $api_tid = reset($node->taxonomy[$vid]);
+  if (module_exists('taxonomy')) {
+    // version_api_tid might not be where we think it is, so if we don't have
+    // a real value by now, look in $node->taxonomy
+    if (empty($types['version_api_tid'])) {
+      $vid = _project_release_get_api_vid();
+      if (isset($node->taxonomy[$vid])) {
+        if (is_array($node->taxonomy[$vid])) {
+          $api_tid = reset($node->taxonomy[$vid]);
+        }
+        else {
+          $api_tid = (int)$node->taxonomy[$vid];
+        }
+        $types['version_api_tid'] = '%d';
+        $values['version_api_tid'] = $api_tid;
       }
-      else {
-        $api_tid = (int)$node->taxonomy[$vid];
-      }
-      $types['version_api_tid'] = '%d';
-      $values['version_api_tid'] = $api_tid;
+    }
+
+    if (($type_vid = _project_release_get_release_type_vid()) && ($security_tid = variable_get('project_release_security_update_tid', 0))) {
+      $types['security_update'] = '%d';
+      $values['security_update'] = !empty($node->taxonomy[$type_vid][$security_tid]);
     }
   }
 

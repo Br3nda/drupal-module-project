@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.25 2009/08/06 00:50:49 dww Exp $
+// $Id: project_release.install,v 1.26 2009/11/25 21:47:16 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -109,6 +109,14 @@ function project_release_schema() {
         'unsigned' => TRUE,
         'not null' => FALSE,
         'default' => NULL,
+      ),
+      'security_update' => array(
+        'description' => 'Denormalized flag to record if this release has the "project_release_security_update_tid" taxonomy term set or not',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
     'primary key' => array('nid'),
@@ -313,6 +321,19 @@ function project_release_schema() {
 }
 
 /**
+ * Populate the {project_release_nodes}.security_update field.
+ *
+ * @param $ret
+ *   Reference to an array for hook_update_N() return values.
+ */
+function _project_release_check_security_updates(&$ret) {
+  $security_update_tid = variable_get('project_release_security_update_tid', 0);
+  if (!empty($security_update_tid)) {
+    $ret[] = update_sql("UPDATE {project_release_nodes} SET security_update = (SELECT tn.tid IS NOT NULL FROM node n LEFT JOIN term_node tn ON n.vid = tn.vid AND tn.tid = $security_update_tid WHERE n.nid = {project_release_nodes}.nid)");
+  }
+}
+
+/**
  * Add the 'serialized' field to the {cache_project_release} table.
  */
 function project_release_update_6000() {
@@ -444,6 +465,30 @@ function project_release_update_6005() {
   // Populate the new column from {term_node}.
   $api_vid = _project_release_get_api_vid();
   $ret[] = update_sql("UPDATE {project_release_nodes} SET version_api_tid = (SELECT tn.tid FROM {node} n INNER JOIN {term_node} tn ON n.vid = tn.vid INNER JOIN {term_data} td ON tn.tid = td.tid WHERE n.nid = {project_release_nodes}.nid AND td.vid = $api_vid)");
+
+  return $ret;
+}
+
+/**
+ * Add the 'security_update' column to {project_release_nodes}.
+ */
+function project_release_update_6006() {
+  $ret = array();
+
+  $spec = array(
+    'description' => 'Denormalized flag to record if this release has the "project_release_security_update_tid" taxonomy term set or not',
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'project_release_nodes', 'security_update', $spec);
+
+  if (module_exists('taxonomy')) {
+    // Populate the new column from {term_node}.
+    _project_release_check_security_updates($ret);
+  }
 
   return $ret;
 }
