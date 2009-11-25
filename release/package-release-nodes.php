@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.54 2009/11/24 23:50:16 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.55 2009/11/25 00:14:11 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -559,9 +559,6 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
         // contents of the core distribution, as this is the most comprehensive.
         $package_contents_file = "$project_build_root/drush_make/core/package_contents.txt";
         if (file_exists($package_contents_file)) {
-          // We retrieved the install profile via CVS, so it won't be listed
-          // in the package contents file -- add it here manually.
-          $package_contents[] = $nid;
           $lines = file($package_contents_file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
           foreach ($lines as $line) {
             if (is_numeric($line)) {
