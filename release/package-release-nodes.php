@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.55 2009/11/25 00:14:11 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.56 2009/11/25 00:58:58 dww Exp $
 
 /**
  * @file
@@ -31,7 +31,7 @@ $drupal_root = '';
 $site_name = '';
 
 // The CVSROOT for the repository this script will be packaging
-// releases from.  For example, on drupal.org:
+// releases from. For example, on drupal.org:
 // $cvs_root = ':pserver:anonymous@cvs.drupal.org:/cvs/drupal';
 $cvs_root = '';
 
@@ -51,7 +51,7 @@ $trans_install = '';
 // -------------------------
 // Full path to the drush executable.
 $drush = '';
-// Full path to the directory where drush_make is located.  This is needed to
+// Full path to the directory where drush_make is located. This is needed to
 // manually include it as a searchable path for drush extensions, as this
 // script's owner will not likely have a home directory to search.
 $drush_make_dir = '';
@@ -483,8 +483,8 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
   // Start with no package contents, since this is only valid for profiles.
   $package_contents = array();
 
-  // This is a profile, so invoke the drush_make routines to package core and/or
-  // any other contrib releases specified in the profile's .make file.
+  // This is a profile, so invoke the drush_make routines to package core
+  // and/or any other contrib releases specified in the profile's .make file.
   if ($contrib_type == 'profiles') {
     // In order for extended packaging to take place, the profile must have a
     // file with .make extension somewhere in it's directory structure.
@@ -494,8 +494,8 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
       wd_msg("No makefile for %profile profile -- skipping extended packaging.", array('%profile' => $id), $view_link);
     }
     else {
-      // Search all found .make files for the required 'core_release' attribute.
-      // First found instance of this attribute wins.
+      // Search all found .make files for the required 'core_release'
+      // attribute. First found instance of this attribute wins.
       foreach ($profile_makefiles as $makefile) {
         $info = drupal_parse_info_file($makefile->filename);
         if (isset($info['core_release'])) {
@@ -506,7 +506,7 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
       // Only proceed if a core release was found.
       if (isset($core_release)) {
         $distro_types = array('no-core', 'core');
-        foreach($distro_types as $distro) {
+        foreach ($distro_types as $distro) {
           // Prepare the build root.
           $drush_make_distro_build_root = "$project_build_root/drush_make/$distro";
           if (!mkdir($drush_make_distro_build_root, 0777, TRUE)) {
@@ -555,8 +555,8 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
           $files[] = $distro_file_path;
         }
 
-        // Retrieve the package contents for the release.  We'll get the
-        // contents of the core distribution, as this is the most comprehensive.
+        // Retrieve the package contents for the release. We use the contents
+        // of the core distribution, as this is the most comprehensive.
         $package_contents_file = "$project_build_root/drush_make/core/package_contents.txt";
         if (file_exists($package_contents_file)) {
           $lines = file($package_contents_file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
@@ -981,7 +981,7 @@ function fix_info_file_version($file, $uri, $version) {
  * @param $files
  *   Array of files to add to the release node.
  * @param $package_contents
- *   Optional.  Array of nids of releases contained in a release package.
+ *   Optional. Array of nids of releases contained in a release package.
  */
 function package_release_update_node($nid, $files, $package_contents = array()) {
   global $drupal_root, $dest_root, $task;
@@ -1037,7 +1037,7 @@ function package_release_update_node($nid, $files, $package_contents = array()) 
 
   // Store package contents if necessary.
   if (!empty($package_contents) && module_exists('project_package')) {
-    foreach($package_contents as $item_nid) {
+    foreach ($package_contents as $item_nid) {
       db_query("INSERT INTO {project_package_local_release_item} (package_nid, item_nid) VALUES (%d, %d)", $nid, $item_nid);
     }
   }
@@ -1048,7 +1048,7 @@ function package_release_update_node($nid, $files, $package_contents = array()) 
     return;
   }
 
-  // Finally publish the node if it is currently unpublished.  Instead of
+  // Finally publish the node if it is currently unpublished. Instead of
   // directly updating {node}.status, we use node_save() so that other modules
   // which implement hook_nodeapi() will know that this node is now published.
   if (empty($node->status)) {
@@ -1195,9 +1195,9 @@ function stage_one_make_file($distro, $core_release, $profile, $profile_tag, $bu
   if ($distro == 'core') {
     $output .= "projects[drupal] = $core_release\n";
   }
-  // Normally, a profile would be fetched via it's update XML data.  However,
+  // Normally, a profile would be fetched via it's update XML data. However,
   // since we're still in the process of building the package we're declaring
-  // a .make file for, there is no update XML data available.  Instead, instruct
+  // a .make file for, there is no update XML data available. Instead, instruct
   // drush_make to export the profile directly from CVS.
   $output .= "projects[$profile][type] = profile\n";
   $output .= "projects[$profile][download][type] = cvs\n";
@@ -1206,11 +1206,11 @@ function stage_one_make_file($distro, $core_release, $profile, $profile_tag, $bu
   $output .= "projects[$profile][download][revision] = $profile_tag\n";
 
   // Because of the way drush_make does custom validation on .make files, the
-  // validation gets called for all .make files in the build.  For the stage one
+  // validation gets called for all .make files in the build. For the stage one
   // .make file, we don't want any validation at all, since we're using
   // drush_make options there that the profile authors may be restricted from
-  // using.  So, we need a way to distinguish between the stage one .make file
-  // and the profile .make file.  We can't do that with a hard-coded custom
+  // using. So, we need a way to distinguish between the stage one .make file
+  // and the profile .make file. We can't do that with a hard-coded custom
   // attribute in the stage one .make file, because the profile authors could
   // bypass the validation by using the same attribute in their .make file.
   // Instead, a build run key is generated for each call to drush, and passed
