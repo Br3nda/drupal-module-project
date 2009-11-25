@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.126 2009/08/18 21:11:37 dww Exp $
+// $Id: project_release.module,v 1.127 2009/11/25 21:39:09 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1381,8 +1381,13 @@ function theme_project_release_download_text_unsupported($release, $text_type) {
  * Implementation of hook_taxonomy().
  */
 function project_release_taxonomy($op, $type, $array = NULL) {
-  if ($op == 'delete' && $type == 'vocabulary' && $array['vid'] == _project_release_get_api_vid()) {
-    variable_del('project_release_api_vocabulary');
+  if ($op == 'delete' && $type == 'vocabulary') {
+    if ($array['vid'] == _project_release_get_api_vid()) {
+      variable_del('project_release_api_vocabulary');
+    }
+    elseif ($array['vid'] == _project_release_get_release_type_vid()) {
+      variable_del('project_release_release_type_vid');
+    }
   }
   elseif ($type == 'term' && $array['vid'] == _project_release_get_api_vid()) {
     menu_rebuild();
@@ -1404,24 +1409,26 @@ function project_release_get_api_taxonomy() {
  * Returns the vocabulary id for project release API
  */
 function _project_release_get_api_vid() {
-  $vid = variable_get('project_release_api_vocabulary', '');
-  if (empty($vid)) {
-    // Check to see if a project release module vocabulary exists.
-    $vid = db_result(db_query("SELECT vid FROM {vocabulary} WHERE module='%s'", 'project_release'));
-    if (!$vid) {
-      $edit = array('name' => t('Project release API compatibility'), 'multiple' => 0, 'hierarchy' => 1, 'relations' => 0, 'module' => 'project_release', 'nodes' => array('project_release' => 1));
-      // If there is already a vocabulary assigned to 'project_project' nodes, use it.
-      $vocabularies = taxonomy_get_vocabularies('project_release');
-      if (count($vocabularies)) {
-        $vocabulary = reset($vocabularies);
-        $edit['vid'] = $vocabulary->vid;
-      }
-      taxonomy_save_vocabulary($edit);
-      $vid = $edit['vid'];
-    }
-    variable_set('project_release_api_vocabulary', $vid);
+  return variable_get('project_release_api_vocabulary', '');
+}
+
+/**
+ * Return the taxonomy tree for the release type vocabulary (if any).
+ *
+ * If taxonomy is disabled, this returns false.
+ */
+function project_release_get_release_type_vocabulary() {
+  if (!module_exists('taxonomy')) {
+    return false;
   }
-  return $vid;
+  return taxonomy_get_tree(_project_release_get_release_type_vid());
+}
+
+/**
+ * Return the vocabulary id for project release type.
+ */
+function _project_release_get_release_type_vid() {
+  return variable_get('project_release_release_type_vid', '');
 }
 
 function project_release_exists($version) {
