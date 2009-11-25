@@ -21,7 +21,7 @@
 define('DRUSH_MAKE_DO_DOCUMENTATION_LINK', 'http://drupal.org/node/642116');
 
 /**
- * Implement COMMAND_drush_make_init().
+ * Implement EXTENSION_drush_make_init().
  */
 function drush_make_d_o_drush_init($makefile, $base_path) {
   if (drush_get_option('drupal-org')) {
@@ -37,7 +37,7 @@ function drush_make_d_o_drush_init($makefile, $base_path) {
 }
 
 /**
- * Implement COMMAND_drush_make_command().
+ * Implement EXTENSION_drush_make_command().
  */
 function drush_make_d_o_drush_make_command(&$function, &$parameters, &$dependencies, $id, &$queue) {
   if (drush_get_option('drupal-org')) {
@@ -45,20 +45,22 @@ function drush_make_d_o_drush_make_command(&$function, &$parameters, &$dependenc
       // No libraries on d.o.
       case 'drush_make_add_libraries':
         return FALSE;
+
       // Custom drupal.org validation for .make files.
       case 'drush_make_validate_info_file':
         $function = 'drush_make_d_o_validate_info_file';
         break;
+
       // Custom drupal.org processing for loading update XML files.
       case 'drush_make_updatexml':
         $function = 'drush_make_d_o_updatexml';
+        break;
     }
   }
 }
 
 /**
- * Validates .make files to ensure they adhere to the restricted standards for
- * drupal.org.
+ * Provide additional drupal.org specific validation for .make files.
  */
 function drush_make_d_o_validate_info_file($info) {
 
@@ -92,9 +94,8 @@ function drush_make_d_o_validate_info_file($info) {
     drush_make_error('BUILD_ERROR', dt('No Drupal core version specified.'));
     $errors = TRUE;
   }
-  // Check for bad core value.
-  // It seems too brittle to make this check always current with the current
-  // supported versions of core, so just do a basic format check.
+  // Check for a valid core value.
+  // This is just a basic sanity check for a properly formatted value.
   elseif (!preg_match('/^\d+\.x$/', $info['core'])) {
     drush_make_error('BUILD_ERROR', dt('Bad Drupal core version specified.'));
     $errors = TRUE;
@@ -104,27 +105,30 @@ function drush_make_d_o_validate_info_file($info) {
     drush_make_error('BUILD_ERROR', dt('No Drupal core_release attribute specified.'));
     $errors = TRUE;
   }
-  // Check for bad core release value.
-  // It seems too brittle to make this check always current with the current
-  // supported versions of core, so just do a basic format check.
-  elseif (drush_make_d_o_check_bad_tag(dt('Drupal core'), $info['core_release'])) {
+  // Check for a valid core_release value.
+  // This is just a basic sanity check for a properly formatted value.
+  elseif (!drush_make_d_o_check_valid_version(dt('Drupal core'), $info['core_release'])) {
     $errors = TRUE;
   }
   if (!empty($info['projects'])) {
     // Bad projects definition.
     if (!is_array($info['projects'])) {
-      drush_make_error('BUILD_ERROR', dt("'projects' attribute incorrectly specified."));
+      drush_make_error('BUILD_ERROR', dt("'projects' attribute must be an array."));
       $errors = TRUE;
     }
     else {
       foreach ($info['projects'] as $project => $project_data) {
         // No specifying just project name.
         if (is_numeric($project)) {
-          drush_make_error('BUILD_ERROR', dt('Automatic best release support for project %project is not supported -- you must specifiy a version.', array('%project' => $project_data)));
+          drush_make_error('BUILD_ERROR', dt('Automatic best release support for project %project is not supported -- you must specify a version.', array('%project' => $project_data)));
           $errors = TRUE;
         }
         else {
           // Convert the shorthand for version declarations.
+          // TODO: We need this here now because drush_make doesn't perform
+          // this conversion until it's assembling projects, and we need it
+          // sooner. Should we move this conversion to drush_make's
+          // validation code so it doesn't have to be done here?
           if (!is_array($project_data)) {
             $project_data = array('version' => $project_data);
           }
@@ -142,8 +146,8 @@ function drush_make_d_o_validate_info_file($info) {
               }
             }
           }
-          // Check for bad project tag.
-          if (drush_make_d_o_check_bad_tag($project, $project_data['version'])) {
+          // Check for bad project version.
+          if (!drush_make_d_o_check_valid_version($project, $project_data['version'])) {
             $errors = TRUE;
           }
         }
@@ -155,40 +159,42 @@ function drush_make_d_o_validate_info_file($info) {
     drush_make_error('BUILD_ERROR', dt('A .make file in your profile failed the <a href="@doc_link">drupal.org validation checks</a>.', array('@doc_link' => DRUSH_MAKE_DO_DOCUMENTATION_LINK)));
     return FALSE;
   }
-  else {
-    return $info;
-  }
+  return $info;
 }
 
 /**
- * Checks for bad release tags.
+ * Validate release versions.
  *
  * @param $name
  *   The display name of the project.
- * @param $tag
- *   The tag to test.
+ * @param $version_string
+ *   The version string to test.
  * @return
- * TRUE if the tag is bad, FALSE otherwise.
+ * TRUE if the version string is bad, FALSE otherwise.
  */
-function drush_make_d_o_check_bad_tag($name, $tag) {;
+function drush_make_d_o_check_valid_version($name, $version_string) {;
   // Development snapshots not allowed.
-  if (preg_match('/^\d+\..*-dev/', $tag)) {
+  if (preg_match('/.*-dev$/', $version_string)) {
     drush_make_error('BUILD_ERROR', dt('%project branch releases not allowed.', array('%project' => $name)));
-    return TRUE;
+    return FALSE;
   }
-  // Basic sanity checking on release tags. At this point we can't easily know
-  // if the release is valid, but it's better than nothing.
-  elseif (!preg_match('/^\d+\.\d+(-[a-z0-9]+)?$/', $tag)) {
-    drush_make_error('BUILD_ERROR', dt('%project release format incorrect.', array('%project' => $name)));
-    return TRUE;
+  // Basic sanity checking on release version strings. We need this because
+  // drush_make supports projects[foo][version] = 1, which downloads the latest
+  // stable release on the major version 1 branch. We require a specific
+  // release.
+  elseif (!preg_match('/^\d+\.\d+(-[a-z0-9]+)?$/', $version_string)) {
+    drush_make_error('BUILD_ERROR', dt('%project version format incorrect -- specifying an official release version is required.', array('%project' => $name)));
+    return FALSE;
   }
-  return FALSE;
+  return TRUE;
 }
 
 /**
- * Custom implementation of drush_make_updatexml() -- only allows loading
- * update XML files from the default location, which for our purposes is
- * updates.drupal.org.
+ * Custom implementation of drush_make_updatexml().
+ *
+ * Only allows loading update XML files from the default location, which for
+ * our purposes is updates.drupal.org. This is also the place where package
+ * items are collected for the package.
  */
 function drush_make_d_o_updatexml($project, $queue) {
   // Only stage one .make files should be able to bypass the update XML code
@@ -198,7 +204,6 @@ function drush_make_d_o_updatexml($project, $queue) {
   }
   // First, get the release history.
   @$release_history = simplexml_load_file(DRUSH_MAKE_UPDATE_DEFAULT_URL . '/' . $project['name'] . '/' . $project['core']);
-  print_r($release_history);
   if (!$release_history) {
     drush_make_error('XML_ERROR', dt("Could not retrieve version information for %project.", array('%project' => $project['name'])));
     return FALSE;
@@ -232,12 +237,10 @@ function drush_make_d_o_updatexml($project, $queue) {
 }
 
 /**
- * Finds the item nid of the release that's being included in the package, and
- * stores it in the package contents file.
- *
- * Release/version logic ripped off from drush_make_update_xml_download().
+ * Store a package item in a package summary file.
  */
 function drush_make_d_o_write_package_item_nid($project) {
+  // Release/version logic ripped off from drush_make_update_xml_download().
   // Make an array of releases.
   foreach ($project['release_history']->releases->release as $release) {
     $version = (string) $release->version_major;
@@ -250,6 +253,7 @@ function drush_make_d_o_write_package_item_nid($project) {
     if ($extra_version = (string) $release->version_extra) {
       $version .= '-' . $extra_version;
     }
+    // Grab the release nid from the release node link.
     $releases[$version] = basename($release->release_link);
   }
 
@@ -264,9 +268,12 @@ function drush_make_d_o_write_package_item_nid($project) {
 }
 
 /**
- * Custom logging function for packaging errors. Logs all error messages to a
- * build_errors.txt file in the root of the package build.  See drush_log()
- * for a description of the $entry array.
+ * Custom logging function for packaging errors.
+ *
+ * Logs all error messages to a build_errors.txt file in the root of the
+ * package build.
+ *
+ * @see drush_log() for a description of the $entry array.
  */
 function drush_make_d_o_log_errors_to_file($entry) {
   $package_build_path = dirname(drush_get_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', NULL));
@@ -276,7 +283,7 @@ function drush_make_d_o_log_errors_to_file($entry) {
 }
 
 /**
- * Inspects an attribute array for a matching build run key.
+ * Inspect an attribute array for a matching build run key.
  *
  * @param $attribute_data
  *   The array of attribute data to inspect.
@@ -285,9 +292,6 @@ function drush_make_d_o_log_errors_to_file($entry) {
  *   key passed into drush, FALSE otherwise.
  */
 function drush_make_d_o_check_build_run_key($attribute_data) {
-  if (isset($attribute_data['build_run_key']) && $attribute_data['build_run_key'] == drush_get_context('DRUSH_MAKE_DO_BUILD_RUN_KEY', NULL)) {
-    return TRUE;
-  }
-  return FALSE;
+  return (isset($attribute_data['build_run_key']) && $attribute_data['build_run_key'] == drush_get_context('DRUSH_MAKE_DO_BUILD_RUN_KEY', NULL));
 }
 
