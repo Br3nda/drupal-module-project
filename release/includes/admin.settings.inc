@@ -1,5 +1,5 @@
 <?php
-// $Id: admin.settings.inc,v 1.2 2009/06/22 05:35:45 dww Exp $
+// $Id: admin.settings.inc,v 1.3 2009/11/26 15:13:51 dww Exp $
 
 /**
  * @file
@@ -43,7 +43,7 @@ function project_release_settings_form() {
       $terms[$term->tid] = check_plain($term->name);
     }
     $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
-    $tids = variable_get('project_release_active_compatibility_tids', '');
+    $tids = variable_get('project_release_active_compatibility_tids', array());
     $form['project_release_active_compatibility_tids'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Active @vocab terms', array('@vocab' => $vocab->name)),
