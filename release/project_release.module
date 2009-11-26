@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.130 2009/11/26 02:34:13 dww Exp $
+// $Id: project_release.module,v 1.131 2009/11/26 04:31:24 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -236,14 +236,14 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
   // Regardless of if we're deleting, adding, or editing, we need to know the
   // latest and recommended releases (if any) from the given branch. If
   // there's no published release, these values will be 0.
-  list($latest_release, $recommended_release) = project_release_find_latest_releases($pid, $tid, $major);
+  list($latest_release, $recommended_release, $latest_security_release) = project_release_find_latest_releases($pid, $tid, $major);
 
   if ($delete) {
     // Make sure this isn't the last release node for the given major.
     if (!empty($latest_release)) {
       // Since the node we just deleted might have been the latest or
       // recommended on the branch, update our record with the real values.
-      db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $pid, $tid, $major);
+      db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d, latest_security_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $latest_security_release, $pid, $tid, $major);
       $did_update = TRUE;
     }
     else {
@@ -294,13 +294,13 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
       }
       if (isset($recommended_branch)) {
         // This is a branch new branch, so add a new record to the table.
-        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot, recommended_release, latest_release) VALUES (%d, %d, %d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, $recommended_branch, 0, $recommended_release, $latest_release);
+        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot, recommended_release, latest_release, latest_security_release) VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, $recommended_branch, 0, $recommended_release, $latest_release, $latest_security_release);
       }
       else {
         // We already have this branch in the table, but the latest_release
         // and recommended_release fields might be stale based on whatever
         // node was just added or edited.
-        db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $pid, $tid, $major);
+        db_query("UPDATE {project_release_supported_versions} SET recommended_release = %d, latest_release = %d, latest_security_release = %d WHERE nid = %d AND tid = %d AND major = %d", $recommended_release, $latest_release, $latest_security_release, $pid, $tid, $major);
       }
       $did_update = TRUE;
     }
@@ -915,27 +915,45 @@ function project_release_get_current_recommended($project_nid, $api_tid, $recomm
  *   responsible for ensuring access.
  *
  * @return
- *  An array containing the node ID (nid) of both the latest and recommended
- *  releases from the given branch.
+ *  An array containing the node ID (nid) of the latest and recommended
+ *  releases, and latest security update (if any) from the given branch.
  *
  * @see project_release_query_releases_by_branch()
  */
 function project_release_find_latest_releases($project_nid, $api_tid, $major, $access = FALSE) {
-  $latest_release = $recommended_release = 0;
+  $latest_release = $recommended_release = $latest_security_release = 0;
+
   $query = project_release_query_releases_by_branch($project_nid, $api_tid, $major, $access);
   while ($release = db_fetch_object($query)) {
     if (empty($latest_release)) {
       $latest_release = $release->nid;
     }
-    if (empty($release->version_extra)) {
+    if (empty($recommended_release) && empty($release->version_extra)) {
       $recommended_release = $release->nid;
+    }
+    if (empty($latest_security_release) && !empty($release->security_update)) {
+      $latest_security_release = $release->nid;
+    }
+
+    // If we've found everything we're looking for, break out of the loop and
+    // stop inspecting release from this branch. $latest_release can't
+    // possibly be empty here, so don't bother testing for it.
+    if (!empty($recommended_release) && !empty($latest_security_release)) {
       break;
     }
   }
+
+  // If we found no releases without extra (e.g. a new branch that only has
+  // betas), just call the latest release the recommended one).
   if (empty($recommended_release)) {
     $recommended_release = $latest_release;
   }
-  return array($latest_release, $recommended_release);
+
+  return array(
+    $latest_release,
+    $recommended_release,
+    $latest_security_release,
+  );
 }
 
 /**

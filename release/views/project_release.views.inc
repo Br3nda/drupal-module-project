@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.5 2009/11/26 02:34:13 dww Exp $
+// $Id: project_release.views.inc,v 1.6 2009/11/26 04:31:24 dww Exp $
 
 /**
  * @file
@@ -228,6 +228,11 @@ function project_release_views_data() {
       'numeric' => TRUE,
       'validate type' => 'nid',
     ),
+    'relationship' => array(
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Recommended release node'),
+    ),
   );
   $data['project_release_supported_versions']['latest_release'] = array(
     'title' => t('Latest release'),
@@ -241,6 +246,30 @@ function project_release_views_data() {
       'name field' => 'title',
       'numeric' => TRUE,
       'validate type' => 'nid',
+    ),
+    'relationship' => array(
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Latest release node'),
+    ),
+  );
+  $data['project_release_supported_versions']['latest_security_release'] = array(
+    'title' => t('Latest security release'),
+    'help' => t('The latest security release from a specific branch of a project (if any).'),
+    'field' => array(
+      'handler' => 'views_handler_field_node',
+      'click sortable' => TRUE,
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_node_nid',
+      'name field' => 'title',
+      'numeric' => TRUE,
+      'validate type' => 'nid',
+    ),
+    'relationship' => array(
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Latest security release node'),
     ),
   );
   $data['project_release_supported_versions']['release_type'] = array(
