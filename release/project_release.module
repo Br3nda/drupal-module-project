@@ -1,8 +1,15 @@
 <?php
-// $Id: project_release.module,v 1.132 2009/11/26 15:13:51 dww Exp $
+// $Id: project_release.module,v 1.133 2009/11/26 22:41:06 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
+
+/**
+ * Constants for the possible values of {project_release_nodes}.update_status.
+ */
+define('PROJECT_RELEASE_UPDATE_STATUS_CURRENT', 0);
+define('PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT', 1);
+define('PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE', 2);
 
 /**
  * @defgroup project_release_core Core Drupal hooks
@@ -306,12 +313,119 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
     }
   }
 
+  // Regardless of insert/edit/delete, we want to go through and recompute
+  // {project_release_nodes}.update_status for all records on this branch.
+  // Note: we end up doing the same query in here that we performed in
+  // project_release_find_latest_releases(), we just need to process the
+  // results differently. However, to keep the code sane, we invoke the query
+  // again. If this becomes a performance problem, we can always refactor.
+  project_release_compute_update_status($pid, $tid, $major);
+
   // Either way, clear the cache for the release table, since what we want to
   // display might have changed, too.
   $cid = 'table:'. $pid .':';
   cache_clear_all($cid, 'cache_project_release', TRUE);
 
   return $did_update;
+}
+
+/**
+ * Compute the {project_release_nodes}.update_status values for a given branch.
+ *
+ * For any given release node, there are three possible status values for if
+ * if the release needs an update or not:
+ * - 'current': It's the currently recommended release (without extra), or the
+ *   latest possible release (including betas, rcs, etc). There is no need to
+ *   upgrade this release at this time, it's the most up-to-date available.
+ * - 'not-current': Any release older than the recommended release, or any
+ *   older release with extra from the same major/minor/patch as the latest
+ *   release.
+ * - 'not-secure': Any release older than the latest security update on this
+ *   branch is considered not secure. Releases are only marked 'not-secure' on
+ *   sites that define the 'project_release_security_update_tid' variable.
+ *
+ *  For example, if 1.2.2 is the recommended release, 1.2.1 was a security
+ *  update, and 1.2.2-beta2 is the latest release, here would be the following
+ *  update status values for various releases:
+ *  - 1.2.2-beta2: 'current'     (since it's the latest release)
+ *  - 1.2.2-beta1: 'not-current' (since beta2 is available)
+ *  - 1.2.2: 'current'           (recommended release, latest without "extra")
+ *  - 1.2.2-rc1: 'not-current'   (since 1.2.2 official is out)
+ *  - 1.2.1: 'not-current'
+ *  - 1.2.1-beta1: 'not-secure'  (since 1.2.1 official was a security update)
+ *  - 1.2.0: 'not-secure'
+ *
+ * This status is recorded in the {project_release_nodes}.update_status column
+ * in the database. Whenever a release is created, updated, or deleted, we
+ * need to inspect all the other releases on the same branch to potentially
+ * modify the update_status column as needed. Once a release is 'not-secure',
+ * it can never change its update status again, so we don't need to look at
+ * those. However, a new security update can move releases that were
+ * 'not-current' or 'current' into 'not-secure'.
+ *
+ * This function walks through all the records in the {project_release_nodes}
+ * table matching the given branch (API compatibility term ID and major
+ * version) for a specified project that are not already classified as
+ * 'not-secure' in version order (minor, patch, and then using timestamps to
+ * compare releases with 'extra'), and compares them with that branch's latest
+ * release, recommended release, and latest security release to compute their
+ * update status.
+ *
+ * @param $pid
+ *   The project ID.
+ * @param $api_tid
+ *   The API compatibility term ID.
+ * @param $major
+ *   The major version of the new/modified/deleted release.
+ *
+ * @return
+ *   Void. This function directly updates the {project_release_nodes} table
+ *   with the appropriate values.
+ *
+ * @see project_release_check_supported_versions()
+ * @see project_release_release_nodeapi()
+ */
+function project_release_compute_update_status($pid, $api_tid, $major) {
+  $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
+  $latest_release = $recommended_release = $latest_security_release = 0;  
+  while ($release = db_fetch_object($query)) {
+    // Clear out the status so we always start fresh with each release.
+    unset($update_status);
+    if (empty($latest_release)) {
+      $latest_release = $release->nid;
+      // If this is the latest release, it's current.
+      $update_status = PROJECT_RELEASE_UPDATE_STATUS_CURRENT;
+    }
+    if (empty($recommended_release) && empty($release->version_extra)) {
+      $recommended_release = $release->nid;
+      // If this is the recommended release, it's current.
+      $update_status = PROJECT_RELEASE_UPDATE_STATUS_CURRENT;
+    }
+    if (empty($latest_security_release) && !empty($release->security_update)) {
+      $latest_security_release = $release->nid;
+    }
+
+    // Based on what we've already seen, figure out the status. The only
+    // possible releases that can be "CURRENT" are the latest and recommended
+    // releases, and we already set the status for those. So, if we're here,
+    // we know it's not current, we just need to know if it's also not secure.
+    if (!isset($update_status)) {
+      // If we haven't found a security release yet, or the release we're on
+      // is the latest security update, this is just 'not_current'.
+      if (empty($latest_security_release) || $latest_security_release == $release->nid) {
+        $update_status = PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT;
+      }
+      // Otherwise, we're past the latest security release, this is insecure.
+      else {
+        $update_status = PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE;
+      }
+    }
+
+    // If the status is different than what we have in the DB, update the DB.
+    if ($update_status != $release->update_status) {
+      db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid = %d", $update_status, $release->nid);
+    }
+  }
 }
 
 /**

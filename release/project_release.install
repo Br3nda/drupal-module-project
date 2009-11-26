@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.28 2009/11/26 04:31:24 dww Exp $
+// $Id: project_release.install,v 1.29 2009/11/26 22:41:06 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -122,6 +122,13 @@ function project_release_schema() {
         'type' => 'int',
         'size' => 'tiny',
         'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'update_status' => array(
+        'description' => 'Denormalized flag to record the update status for this release. Allowed values: PROJECT_RELEASE_UPDATE_STATUS_CURRENT (0), PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT (1), PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE (2)',
+        'type' => 'int',
+        'size' => 'tiny',
         'not null' => TRUE,
         'default' => 0,
       ),
@@ -511,7 +518,7 @@ function project_release_update_6005() {
 }
 
 /**
- * Add the 'security_update' column to {project_release_nodes}.
+ * Add security_update and update_status columns to {project_release_nodes}.
  */
 function project_release_update_6006() {
   $ret = array();
@@ -530,6 +537,17 @@ function project_release_update_6006() {
     // Populate the new column from {term_node}.
     _project_release_check_security_updates($ret);
   }
+
+  $spec = array(
+    'description' => 'Denormalized flag to record the update status for this release. Allowed values: PROJECT_RELEASE_UPDATE_STATUS_CURRENT (0), PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT (1), PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE (2)',
+    'type' => 'int',
+    'size' => 'tiny',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'project_release_nodes', 'update_status', $spec);
+  // This will be initialized by project_release_check_supported_versions()
+  // in project_release_update_6008(), so we don't need to do that here.
 
   return $ret;
 }
@@ -585,6 +603,9 @@ function project_release_update_6008() {
     // branch again.
     if (!project_release_check_supported_versions($item['nid'], $item['tid'], $item['major'], FALSE)) {
       db_query("UPDATE {project_release_supported_versions} SET latest_security_release = %d WHERE nid = %d AND tid = %d AND major = %d", 0, $item['nid'], $item['tid'], $item['major']);
+      // If project_release_check_supported_versions() returned FALSE, there
+      // are no releases on this branch, so there's nothing to initialize
+      // {project_release_nodes}.update_status for.
     }
     $_SESSION['project_release_update_6008']++;
   }
