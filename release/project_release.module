@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.133 2009/11/26 22:41:06 dww Exp $
+// $Id: project_release.module,v 1.134 2009/11/26 22:42:55 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1804,6 +1804,11 @@ function project_release_theme() {
         'form' => NULL,
       ),
     ),
+    'project_release_update_status_icon' => array(
+      'arguments' => array(
+        'status' => NULL,
+      ),
+    ),
   );
 }
 
@@ -1969,5 +1974,54 @@ function project_release_get_version_extra_weight_map() {
     // Anything that doesn't match will remain at weight 0, the default.
   );
   return variable_get('project_release_version_extra_weights', $default_map);
+}
+
+/**
+ * Get the human-readable update status string, or an array of all statuses.
+ *
+ * @param $status
+ *   Optional status code to get the human-readable string for. If NULL, the
+ *   whole mapping of status codes to strings is returned.
+ *
+ * @return
+ *   If $status is defined, the human-readable string for that status,
+ *   otherwise, an associative array of status strings keyed by status code.
+ */
+function project_release_update_status($status = NULL) {
+  $status_map = array(
+    PROJECT_RELEASE_UPDATE_STATUS_CURRENT => t('Up to date'),
+    PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT => t('Update available'),
+    PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE => t('Not secure!'),
+  );
+  return isset($status) ? $status_map[$status] : $status_map;
+}
+
+/**
+ * Render HTML for an icon approrpriate for the given release update status.
+ *
+ * @param $status
+ *   Update status code to get the icon for.
+ *
+ * @return
+ *   Icon to use for the given update status code.
+ */
+function theme_project_release_update_status_icon($status) {
+  $label = project_release_update_status($status);
+  $icon = '';
+  switch ($status) {
+    case PROJECT_RELEASE_UPDATE_STATUS_CURRENT:
+      $icon = theme('image', 'misc/watchdog-ok.png', $label, $label);
+      break;
+
+    case PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT:
+      $icon = theme('image', 'misc/watchdog-warning.png', $label, $label);
+      break;
+
+    case PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE:
+      $icon = theme('image', 'misc/watchdog-error.png', $label, $label);
+      break;
+  }
+
+  return $icon;
 }
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.6 2009/11/26 04:31:24 dww Exp $
+// $Id: project_release.views.inc,v 1.7 2009/11/26 22:42:55 dww Exp $
 
 /**
  * @file
@@ -144,6 +144,25 @@ function project_release_views_data() {
   // @TODO:  version_patch
   // @TODO:  version_extra
   // @TODO:  version_extra_weight
+
+  $data['project_release_nodes']['update_status'] = array(
+    'title' => t('Update status'),
+    'help' => t('The status of this release for updates.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'project_release_handler_field_release_update_status',
+      'click sortable' => TRUE,
+     ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'project_release_handler_filter_release_update_status',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
 
   $data['project_release_file']['table']['group']  = t('Project release');
   $data['project_release_file']['table']['join'] = array(
@@ -414,11 +433,17 @@ function project_release_views_handlers() {
       'project_release_handler_field_most_recent_release' => array(
         'parent' => 'views_handler_field_date',
       ),
+      'project_release_handler_field_release_update_status' => array(
+        'parent' => 'views_handler_field',
+      ),
       'project_release_handler_filter_project_release_api_version' => array(
         'parent' => 'views_handler_filter_term_node_tid',
       ),
       'project_release_handler_filter_release_node_nid' => array(
         'parent' => 'views_handler_filter',
+      ),
+      'project_release_handler_filter_release_update_status' => array(
+        'parent' => 'views_handler_filter_in_operator',
       ),
       'project_release_handler_relationship_project_project_release_node' => array(
         'parent' => 'views_handler_relationship',
