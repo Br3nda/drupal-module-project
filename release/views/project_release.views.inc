@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.7 2009/11/26 22:42:55 dww Exp $
+// $Id: project_release.views.inc,v 1.8 2009/11/26 23:37:49 dww Exp $
 
 /**
  * @file
@@ -138,13 +138,149 @@ function project_release_views_data() {
     ),
   );
 
-  // @TODO:  rebuild
-  // @TODO:  version_major
-  // @TODO:  version_minor
-  // @TODO:  version_patch
-  // @TODO:  version_extra
-  // @TODO:  version_extra_weight
+  // rebuild
+  $data['project_release_nodes']['rebuild'] = array(
+    'title' => t('Development snapshot'),
+    'help' => t('Is this release a development snapshot (rebuilds automatically).'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+      'type' => 'yes-no',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
 
+  // verison_major
+  $data['project_release_nodes']['version_major'] = array(
+    'title' => t('Major version'),
+    'help' => t('The major version number for this release.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // verison_minor
+  $data['project_release_nodes']['version_minor'] = array(
+    'title' => t('Minor version'),
+    'help' => t('The minor version number for this release.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // verison_patch
+  $data['project_release_nodes']['version_patch'] = array(
+    'title' => t('Patch version'),
+    'help' => t('The patch version number for this release.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // version_extra
+  $data['project_release_nodes']['version_extra'] = array(
+    'title' => t('Extra version info'),
+    'help' => t("The 'extra' version information for this release (e.g. 'alpha1', 'beta3', etc."),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // version_extra_weight
+  $data['project_release_nodes']['version_extra_weight'] = array(
+    'title' => t('Extra version weight code'),
+    'help' => t('The weight sorting number for the extra version information for this release.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // security_update
+  $data['project_release_nodes']['security_update'] = array(
+    'title' => t('Security update'),
+    'help' => t('Is this release a security update.'),
+    'field' => array(
+      'group' => t('Project release'),
+      'handler' => 'views_handler_field_boolean',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_boolean_operator',
+      'type' => 'yes-no',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // update_status
   $data['project_release_nodes']['update_status'] = array(
     'title' => t('Update status'),
     'help' => t('The status of this release for updates.'),
