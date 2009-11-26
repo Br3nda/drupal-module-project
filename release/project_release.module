@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.128 2009/11/25 23:32:05 dww Exp $
+// $Id: project_release.module,v 1.129 2009/11/26 00:25:49 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -941,8 +941,8 @@ function project_release_find_latest_releases($project_nid, $api_tid, $major, $a
 /**
  * Build a query for releases on a given branch, ordered by version.
  *
- * @param $pid
- *   The project ID.
+ * @param $project_nid
+ *   The project node ID.
  * @param $api_tid
  *   The API compatibility term ID.
  * @param $major
@@ -960,7 +960,7 @@ function project_release_find_latest_releases($project_nid, $api_tid, $major, $a
  * @see db_query()
  * @see project_release_find_latest_releases()
  */
-function project_release_query_releases_by_branch($pid, $api_tid, $major, $access = FALSE) {
+function project_release_query_releases_by_branch($project_nid, $api_tid, $major, $access = FALSE) {
   $wheres = $params = $orderby = array();
 
   $wheres[] = '(r.pid = %d)';
