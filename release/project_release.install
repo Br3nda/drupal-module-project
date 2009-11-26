@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.16.2.3 2009/01/07 20:48:21 dww Exp $
+// $Id: project_release.install,v 1.16.2.4 2009/11/26 15:15:57 dww Exp $
 
 function project_release_install() {
   switch ($GLOBALS['db_type']) {
@@ -185,7 +185,7 @@ function project_release_update_1() {
 
   // Now, add in values for any other distinct branches we know about
   // for each project, for all active compatibility terms.
-  $tids = variable_get('project_release_active_compatibility_tids', '');
+  $tids = variable_get('project_release_active_compatibility_tids', array());
   if (!empty($tids)) {
     $where_tid = 'AND tn.tid IN (' . implode(',', array_filter($tids)) . ') ';
   }

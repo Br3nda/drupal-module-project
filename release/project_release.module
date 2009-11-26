@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.20 2009/04/04 19:32:41 dww Exp $
+// $Id: project_release.module,v 1.66.2.21 2009/11/26 15:15:57 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -145,7 +145,7 @@ function project_release_settings_form() {
       $terms[$term->tid] = check_plain($term->name);
     }
     $vocab = taxonomy_get_vocabulary(_project_release_get_api_vid());
-    $tids = variable_get('project_release_active_compatibility_tids', '');
+    $tids = variable_get('project_release_active_compatibility_tids', array());
     $form['project_release_active_compatibility_tids'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Active @vocab terms', array('@vocab' => $vocab->name)),
@@ -1055,7 +1055,7 @@ function project_release_feed($project) {
 function project_release_compatibility_list() {
   static $terms = array();
   if (empty($terms) && $tree = project_release_get_api_taxonomy()) {
-    $tids = variable_get('project_release_active_compatibility_tids', '');
+    $tids = variable_get('project_release_active_compatibility_tids', array());
     $terms[-1] = '<'. t('all') .'>';
     foreach ($tree as $term) {
       if (($tids && !empty($tids[$term->tid])) || !$tids) {
@@ -1513,7 +1513,7 @@ function project_release_alter_release_form(&$form) {
           }
           $form['taxonomy'][$vid]['#default_value'] = $tid;
         }
-        elseif ($tids = variable_get('project_release_active_compatibility_tids', '')) {
+        elseif ($tids = variable_get('project_release_active_compatibility_tids', array())) {
           // We don't have the term since we're adding a new release.
           // Restrict to the active terms (if any).
           foreach (array_filter($tids) as $tid) {
