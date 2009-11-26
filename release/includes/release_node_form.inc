@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.9 2009/11/25 21:47:16 dww Exp $
+// $Id: release_node_form.inc,v 1.10 2009/11/26 02:34:13 dww Exp $
 
 /**
  * @file
@@ -480,9 +480,28 @@ function project_release_db_save($node, $is_new) {
     }
   }
 
+  $version_extra_weight_map = project_release_get_version_extra_weight_map();
   if (!empty($node->project_release['version_extra'])) {
     $types['version_extra'] = "'%s'";
     $values['version_extra'] = $node->project_release['version_extra'];
+    // Since we have a version_extra defined, see what the weight should be,
+    // based on our current mapping of version_extra prefixes to weights.
+    foreach ($version_extra_weight_map as $prefix => $weight) {
+      // If the $prefix exists inside version_extra, we have a match. We use
+      // === 0 to tell the difference between the prefix being at position 0
+      // (start of the string) vs. strpos() returning FALSE (not found).
+      if (strpos($node->project_release['version_extra'], $prefix) === 0) {
+        $types['version_extra_weight'] = "%d";
+        $values['version_extra_weight'] = $weight;
+        break;
+      }
+    }
+  }
+  // If there's no version_extra, but our mapping defines a weight for 'NULL',
+  // specify save that weight into the version_extra_weight column.
+  elseif (!empty($version_extra_weight_map['NULL'])) {
+    $types['version_extra_weight'] = "%d";
+    $values['version_extra_weight'] = $version_extra_weight_map['NULL'];
   }
 
   if ($is_new) {

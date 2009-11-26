@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.4 2009/08/08 01:24:02 dww Exp $
+// $Id: project_release.views.inc,v 1.5 2009/11/26 02:34:13 dww Exp $
 
 /**
  * @file
@@ -143,6 +143,7 @@ function project_release_views_data() {
   // @TODO:  version_minor
   // @TODO:  version_patch
   // @TODO:  version_extra
+  // @TODO:  version_extra_weight
 
   $data['project_release_file']['table']['group']  = t('Project release');
   $data['project_release_file']['table']['join'] = array(

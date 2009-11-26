@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.129 2009/11/26 00:25:49 dww Exp $
+// $Id: project_release.module,v 1.130 2009/11/26 02:34:13 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -961,7 +961,7 @@ function project_release_find_latest_releases($project_nid, $api_tid, $major, $a
  * @see project_release_find_latest_releases()
  */
 function project_release_query_releases_by_branch($project_nid, $api_tid, $major, $access = FALSE) {
-  $wheres = $params = $orderby = array();
+  $wheres = $params = $order_bys = array();
 
   $wheres[] = '(r.pid = %d)';
   $params[] = $project_nid;
@@ -978,21 +978,19 @@ function project_release_query_releases_by_branch($project_nid, $api_tid, $major
   $where = 'WHERE ' . implode(' AND ', $wheres);
 
   // We always want the dev snapshots to show up last.
-  $orderby[] = 'r.rebuild';
-  $orderby[] = 'r.version_minor DESC';
-  $orderby[] = 'r.version_patch DESC';
-  // Since we can't be sure of the relative ordering of versions with
-  // extra, and since there's no good way to do something like
-  // version_compare() directly in the SQL query, for all releases at the same
-  // patch level, we'll order things by the latest file timestamp instead of
-  // trying to do a string comparison based on version_extra.
-  $orderby[] = 'f.timestamp DESC';
-  $order_by = 'ORDER BY '. implode(', ', $orderby);
+  $order_bys[] = 'r.rebuild';
+  // Sort by the obvious integer values along the branch (minor and patch).
+  $order_bys[] = 'r.version_minor DESC';
+  $order_bys[] = 'r.version_patch DESC';
+  // To reliably sort release with version_extra, use version_extra_weight.
+  $order_bys[] = 'r.version_extra_weight DESC';
+  // Within releases of the same version_extra_weight (e.g. rc1 vs. rc2) just
+  // sort alphabetically, so that rc2 shows up first in the query.
+  $order_bys[] = 'r.version_extra DESC';
+  $order_by = 'ORDER BY '. implode(', ', $order_bys);
 
   $sql = "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".
     "INNER JOIN {project_release_nodes} r ON r.nid = n.nid ".
-    "INNER JOIN {project_release_file} prf on n.nid = prf.nid ".
-    "INNER JOIN {files} f ON prf.fid = f.fid ".
     "$where $order_by";
 
   // Only enforce node access via db_rewrite_sql() if the caller specifically
@@ -1806,5 +1804,38 @@ function project_release_views_api() {
     'api' => 2,
     'path' => drupal_get_path('module', 'project_release') .'/views',
   );
+}
+
+/**
+ * Return the mapping of version_extra prefixes to version_extra_weight values.
+ *
+ * This mapping allows project_release to use SQL to sort releases by version,
+ * even though direct string comparison doesn't work for the kinds of version
+ * strings people might use (for example "1.0-unstable1" should be lower than
+ * "1.0-alpha3", even though "u" comes higher in the alphabet than "a"). This
+ * is similar to the logic version_compare() performs, only using this weight
+ * field, we can do the comparison in SQL instead of in PHP.
+ *
+ * @return
+ *   Associative array mapping version_extra prefixes into weights. The
+ *   prefixes should be lowercase, since the query uses LOWER(version_extra)
+ *   inside _project_release_update_version_extra_weights(). The special-case
+ *   is the record with the key 'NULL' (should be uppercase) which doesn't
+ *   correspond to a literal version_extra field, but is used for releases
+ *   that do not define version_extra where the value is NULL in the database.
+ *
+ * @see version_compare()
+ * @see _project_release_update_version_extra_weights()
+ */
+function project_release_get_version_extra_weight_map() {
+  $default_map = array(
+    'NULL' => 10, // Official releases without extra are always highest.
+    'rc' => 4,
+    'beta' => 3,
+    'alpha' => 2,
+    'unstable' => 1,
+    // Anything that doesn't match will remain at weight 0, the default.
+  );
+  return variable_get('project_release_version_extra_weights', $default_map);
 }
 
