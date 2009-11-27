@@ -1,0 +1,18 @@
+<?php
+// $Id: project_package.module,v 1.1 2009/11/27 20:06:51 dww Exp $
+
+/**
+ * @file project_package.module
+ * Provides packages made up of releases of other projects.
+ */
+
+/**
+ * Implement hook_views_api().
+ */
+function project_package_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'project_package') .'/views',
+  );
+}
+

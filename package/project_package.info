@@ -1,0 +1,8 @@
+; $Id: project_package.info,v 1.1 2009/11/27 20:06:51 dww Exp $
+name = Project package
+description = Provides support for packages made up of releases from separate projects.
+package = Project
+dependencies[] = project
+dependencies[] = project_release
+dependencies[] = views
+core = 6.x
