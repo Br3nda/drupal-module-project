@@ -17,22 +17,32 @@
  */
 
 // URI of the 'drush_make on drupal.org' handbook page.
-// TODO: fill in this constant with the nid when it's written.
 define('DRUSH_MAKE_DO_DOCUMENTATION_LINK', 'http://drupal.org/node/642116');
+// Name of the package contents file used by the packaging script.
+define('DRUSH_MAKE_DO_PACKAGE_CONTENTS_FILE', 'package_contents.txt');
+// Name of the build errors file used by the packaging script.
+define('DRUSH_MAKE_DO_BUILD_ERRORS_FILE', 'build_errors.txt');
 
 /**
  * Implement EXTENSION_drush_make_init().
  */
 function drush_make_d_o_drush_init($makefile, $base_path) {
-  if (drush_get_option('drupal-org')) {
+  // Since we're building the profile contents in place, the files written by
+  // this script should go in the main build directory. This switch provides
+  // the script with it's location.
+  if ($drupal_org_build_root = drush_get_option('drupal-org-build-root')) {
+    // Create the package contents file. We always check for it's existence
+    // in the packaging script, so make sure it exists even if no package
+    // items get added.
+    if (!touch($drupal_org_build_root . '/' . DRUSH_MAKE_DO_PACKAGE_CONTENTS_FILE)) {
+      drush_make_error('FILE_ERROR', dt('Unable to write package contents file to %build_root', array('%build_root' => $drupal_org_build_root)));
+    }
     // Remember the build path for this run.
-    drush_set_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', $base_path);
+    drush_set_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', $drupal_org_build_root);
+  }
+  if (drush_get_option('drupal-org')) {
     // Set up a custom error logger.
     drush_set_context('DRUSH_LOG_CALLBACK', 'drush_make_d_o_log_errors_to_file');
-  }
-  // If a build run key was passed, save it.
-  if ($build_run_key = drush_get_option('build-run-key')) {
-    drush_set_context('DRUSH_MAKE_DO_BUILD_RUN_KEY', $build_run_key);
   }
 }
 
@@ -64,19 +74,16 @@ function drush_make_d_o_drush_make_command(&$function, &$parameters, &$dependenc
  */
 function drush_make_d_o_validate_info_file($info) {
 
+  // Run the regular validation first.
+  if (!($info = drush_make_validate_info_file($info))) {
+    return FALSE;
+  }
+
   // The list of currently allowed top-leval attributes.
   $top_level_attribute_whitelist = array('core', 'core_release', 'projects');
 
   // The list of currently allowed project-level attributes.
   $project_attribute_whitelist = array('version', 'subdir');
-
-  // This function is called to validate all .make files.  Since we don't want
-  // to validate the .make file we auto-generate for stage one, check for the
-  // special 'build_run_key' attribute, and skip if no validation is
-  // required.
-  if (drush_make_d_o_check_build_run_key($info)) {
-    return $info;
-  }
 
   // Assume no errors to start.
   $errors = FALSE;
@@ -89,67 +96,34 @@ function drush_make_d_o_validate_info_file($info) {
     }
   }
 
-  // Missing core definition.
-  if (empty($info['core'])) {
-    drush_make_error('BUILD_ERROR', dt('No Drupal core version specified.'));
-    $errors = TRUE;
-  }
   // Check for a valid core value.
   // This is just a basic sanity check for a properly formatted value.
-  elseif (!preg_match('/^\d+\.x$/', $info['core'])) {
-    drush_make_error('BUILD_ERROR', dt('Bad Drupal core version specified.'));
-    $errors = TRUE;
-  }
-  // Missing core_release definition.
-  if (empty($info['core_release'])) {
-    drush_make_error('BUILD_ERROR', dt('No Drupal core_release attribute specified.'));
-    $errors = TRUE;
-  }
-  // Check for a valid core_release value.
-  // This is just a basic sanity check for a properly formatted value.
-  elseif (!drush_make_d_o_check_valid_version(dt('Drupal core'), $info['core_release'])) {
+  if (!drush_make_d_o_check_valid_version(dt('Drupal core'), $info['core_release'])) {
     $errors = TRUE;
   }
   if (!empty($info['projects'])) {
-    // Bad projects definition.
-    if (!is_array($info['projects'])) {
-      drush_make_error('BUILD_ERROR', dt("'projects' attribute must be an array."));
-      $errors = TRUE;
-    }
-    else {
-      foreach ($info['projects'] as $project => $project_data) {
-        // No specifying just project name.
-        if (is_numeric($project)) {
-          drush_make_error('BUILD_ERROR', dt('Automatic best release support for project %project is not supported -- you must specify a version.', array('%project' => $project_data)));
+    foreach ($info['projects'] as $project => $project_data) {
+      // No specifying just project name.
+      if (is_numeric($project)) {
+        drush_make_error('BUILD_ERROR', dt('Automatic best release support for project %project is not supported -- you must specify a version.', array('%project' => $project_data)));
+        $errors = TRUE;
+      }
+      else {
+        // Version must be set.
+        if (!isset($project_data['version'])) {
+          drush_make_error('BUILD_ERROR', dt('No version specified for project %project -- version is required.', array('%project' => $project)));
           $errors = TRUE;
         }
-        else {
-          // Convert the shorthand for version declarations.
-          // TODO: We need this here now because drush_make doesn't perform
-          // this conversion until it's assembling projects, and we need it
-          // sooner. Should we move this conversion to drush_make's
-          // validation code so it doesn't have to be done here?
-          if (!is_array($project_data)) {
-            $project_data = array('version' => $project_data);
-          }
-          else {
-            // Version must be set.
-            if (!isset($project_data['version'])) {
-              drush_make_error('BUILD_ERROR', dt('No version specified for project %project -- version is required.', array('%project' => $project)));
-              $errors = TRUE;
-            }
-            // Check for disallowed project-level attributes.
-            foreach ($project_data as $attribute => $attribute_data) {
-              if (!in_array($attribute, $project_attribute_whitelist)) {
-                drush_make_error('BUILD_ERROR', dt("The project-level attribute '%attribute' is not allowed in drupal.org .make files", array('%attribute' => $attribute)));
-                $errors = TRUE;
-              }
-            }
-          }
-          // Check for bad project version.
-          if (!drush_make_d_o_check_valid_version($project, $project_data['version'])) {
+        // Check for disallowed project-level attributes.
+        foreach ($project_data as $attribute => $attribute_data) {
+          if (!in_array($attribute, $project_attribute_whitelist)) {
+            drush_make_error('BUILD_ERROR', dt("The project-level attribute '%attribute' is not allowed in drupal.org .make files", array('%attribute' => $attribute)));
             $errors = TRUE;
           }
+        }
+        // Check for bad project version.
+        if (!drush_make_d_o_check_valid_version($project, $project_data['version'])) {
+          $errors = TRUE;
         }
       }
     }
@@ -196,15 +170,11 @@ function drush_make_d_o_check_valid_version($name, $version_string) {;
  * our purposes is updates.drupal.org. This is also the place where package
  * items are collected for the package.
  */
-function drush_make_d_o_updatexml($project, $queue) {
-  // Only stage one .make files should be able to bypass the update XML code
-  // below, so check for the build_run_key here as well.
-  if (drush_make_d_o_check_build_run_key($project) && isset($project['download']) && isset($project['type'])) {
-    return $project;
-  }
+function drush_make_d_o_updatexml($project) {
+  $xml = file_get_contents(DRUSH_MAKE_UPDATE_DEFAULT_URL . '/' . $project['name'] . '/' . $project['core']);
   // First, get the release history.
-  @$release_history = simplexml_load_file(DRUSH_MAKE_UPDATE_DEFAULT_URL . '/' . $project['name'] . '/' . $project['core']);
-  if (!$release_history) {
+  $release_history = simplexml_load_string($xml);
+  if (!is_object($release_history) || !$release_history->title) {
     drush_make_error('XML_ERROR', dt("Could not retrieve version information for %project.", array('%project' => $project['name'])));
     return FALSE;
   }
@@ -212,10 +182,16 @@ function drush_make_d_o_updatexml($project, $queue) {
   $project['release_history'] = $release_history;
   if (!isset($project['type'])) {
     // Determine the project type.
-    $term_map = array('Modules' => 'module', 'Themes' => 'theme', 'Drupal project' => 'core', 'Installation profiles' => 'profile');
+    $term_map = array(
+      'Modules' => 'module',
+      'Themes' => 'theme',
+      'Drupal project' => 'core',
+      'Installation profiles' => 'profile',
+      'Translations' => 'translation'
+    );
     // Iterate through all terms related to this project.
     foreach ($release_history->terms->term as $term) {
-      // If the term is eather 'Modules' or 'Themes', add it.
+      // If we find a term from the term map, add it.
       if (in_array((string) $term->value, array_keys($term_map))) {
         $project['type'] = $term_map[(string)$term->value];
         break;
@@ -226,7 +202,6 @@ function drush_make_d_o_updatexml($project, $queue) {
       return FALSE;
     }
   }
-
   // Process the file download data, and record the item_nid for the package.
   if ($project = drush_make_update_xml_download($project)) {
     if ($project = drush_make_d_o_write_package_item_nid($project)) {
@@ -256,11 +231,10 @@ function drush_make_d_o_write_package_item_nid($project) {
     // Grab the release nid from the release node link.
     $releases[$version] = basename($release->release_link);
   }
-
   // Write the item's nid to the package contents file.
   if ($project['version'] && ($item_nid = $releases[$project['version']])) {
-    $package_build_path = dirname(drush_get_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', NULL));
-    if (file_put_contents("$package_build_path/package_contents.txt", "$item_nid\n", FILE_APPEND)) {
+    $package_build_path = drush_get_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', NULL);
+    if (file_put_contents($package_build_path . '/' . DRUSH_MAKE_DO_PACKAGE_CONTENTS_FILE, "$item_nid\n", FILE_APPEND)) {
       return $project;
     }
   }
@@ -276,22 +250,8 @@ function drush_make_d_o_write_package_item_nid($project) {
  * @see drush_log() for a description of the $entry array.
  */
 function drush_make_d_o_log_errors_to_file($entry) {
-  $package_build_path = dirname(drush_get_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', NULL));
+  $package_build_path = drush_get_context('DRUSH_MAKE_DO_PACKAGE_BUILD_PATH', NULL);
   if ($entry['type'] == 'error' || $entry['type'] == 'failed') {
-    file_put_contents("$package_build_path/build_errors.txt", $entry['message'] . "\n", FILE_APPEND);
+    file_put_contents($package_build_path . '/' . DRUSH_MAKE_DO_BUILD_ERRORS_FILE, $entry['message'] . "\n", FILE_APPEND);
   }
 }
-
-/**
- * Inspect an attribute array for a matching build run key.
- *
- * @param $attribute_data
- *   The array of attribute data to inspect.
- * @return
- *   TRUE if a build run key attribute exists, and it matches the build run
- *   key passed into drush, FALSE otherwise.
- */
-function drush_make_d_o_check_build_run_key($attribute_data) {
-  return (isset($attribute_data['build_run_key']) && $attribute_data['build_run_key'] == drush_get_context('DRUSH_MAKE_DO_BUILD_RUN_KEY', NULL));
-}
-

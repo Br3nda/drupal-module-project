@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.56 2009/11/25 00:58:58 dww Exp $
+// $Id: package-release-nodes.php,v 1.57 2009/11/27 10:01:06 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -96,9 +96,6 @@ $project_release_create_history = '';
 // The repository ID's for core and contributions.
 define('DRUPAL_CORE_REPOSITORY_ID', 1);
 define('DRUPAL_CONTRIB_REPOSITORY_ID', 2);
-
-// The taxonomy id (tid) of the "Security update" term on drupal.org
-define('SECURITY_UPDATE_TID', 100);
 
 
 // ------------------------------------------------------------
@@ -254,23 +251,23 @@ function package_releases($type, $project_id = 0) {
   foreach ($releases as $release) {
     $wd_err_msg = array();
     $version = $release->version;
-    $uri = $release->uri;
+    $project_short_name = $release->uri;
     $tag = $release->tag;
     $nid = $release->nid;
     $pid = $release->pid;
     $tid = $release->tid;
     $major = $release->version_major;
     $tag = ($tag == 'TRUNK') ? 'HEAD' : $tag;
-    $uri = escapeshellcmd($uri);
+    $project_short_name = escapeshellcmd($project_short_name);
     $version = escapeshellcmd($version);
     $tag = escapeshellcmd($tag);
     db_query("DELETE FROM {project_release_package_errors} WHERE nid = %d", $nid);
     if ($release->rid == DRUPAL_CORE_REPOSITORY_ID) {
-      $built = package_release_core($nid, $uri, $version, $tag);
+      $built = package_release_core($nid, $project_short_name, $version, $tag);
     }
     else {
-      $dir = escapeshellcmd($release->directory);
-      $built = package_release_contrib($nid, $uri, $version, $tag, $dir);
+      $release_dir = escapeshellcmd($release->directory);
+      $built = package_release_contrib($nid, $project_short_name, $version, $tag, $release_dir);
     }
     chdir($drupal_root);
 
@@ -285,7 +282,7 @@ function package_releases($type, $project_id = 0) {
   }
   if ($num_built || $type == 'branch') {
     if (!empty($project_id)) {
-      wd_msg("Done packaging releases for @uri from !plural: !num_built built, !num_considered considered.", array('@uri' => $uri, '!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
+      wd_msg("Done packaging releases for @project_short_name from !plural: !num_built built, !num_considered considered.", array('@project_short_name' => $project_short_name, '!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
     }
     else {
       wd_msg("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
@@ -328,7 +325,7 @@ function package_releases($type, $project_id = 0) {
   }
 }
 
-function package_release_core($nid, $uri, $version, $tag) {
+function package_release_core($nid, $project_short_name, $version, $tag) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
 
@@ -336,24 +333,24 @@ function package_release_core($nid, $uri, $version, $tag) {
     return false;
   }
 
-  $id = $uri . '-' . $version;
-  $view_link = l(t('view'), 'node/' . $nid);
-  $file_name = $id . '.tar.gz';
-  $file_path = $dest_rel . '/' . $file_name;
-  $full_dest = $dest_root . '/' . $file_path;
+  $release_file_id = $project_short_name . '-' . $version;
+  $release_node_view_link = l(t('view'), 'node/' . $nid);
+  $release_file_name = $release_file_id . '.tar.gz';
+  $drupal_file_path = $dest_rel . '/' . $release_file_name;
+  $destination_file_path = $dest_root . '/' . $drupal_file_path;
 
   // Don't use drupal_exec or return if this fails, we expect it to be empty.
-  exec("$rm -rf $tmp_dir/$id");
+  exec("$rm -rf $tmp_dir/$release_file_id");
 
   // Actually generate the tarball:
-  if (!drupal_exec("$cvs -q export -r $tag -d $id drupal")) {
+  if (!drupal_exec("$cvs -q export -r $tag -d $release_file_id drupal")) {
     return false;
   }
 
   $info_files = array();
   $exclude = array('.', '..', 'LICENSE.txt');
-  $youngest = file_find_youngest($id, 0, $exclude, $info_files);
-  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+  $youngest = file_find_youngest($release_file_id, 0, $exclude, $info_files);
+  if (is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
@@ -361,28 +358,28 @@ function package_release_core($nid, $uri, $version, $tag) {
 
   // Fix any .info files
   foreach ($info_files as $file) {
-    if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $view_link);
+    if (!fix_info_file_version($file, $project_short_name, $version)) {
+      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
       return false;
     }
   }
 
-  if (!drupal_exec("$tar -c --file=- $id | $gzip -9 --no-name > $full_dest")) {
+  if (!drupal_exec("$tar -c --file=- $release_file_id | $gzip -9 --no-name > $destination_file_path")) {
     return false;
   }
-  $files[] = $file_path;
+  $files[] = $drupal_file_path;
 
   // As soon as the tarball exists, we want to update the DB about it.
   package_release_update_node($nid, $files);
 
-  wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
+  wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $release_node_view_link);
 
   // Don't consider failure to remove this directory a build failure.
-  drupal_exec("$rm -rf $tmp_dir/$id");
+  drupal_exec("$rm -rf $tmp_dir/$release_file_id");
   return true;
 }
 
-function package_release_contrib($nid, $uri, $version, $tag, $dir) {
+function package_release_contrib($nid, $project_short_name, $version, $tag, $release_dir) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
   global $drush, $drush_make_dir;
@@ -391,45 +388,41 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
   // Files to ignore when checking timestamps:
   $exclude = array('.', '..', 'LICENSE.txt');
 
-  $parts = split('/', $dir);
+  $parts = split('/', $release_dir);
   // modules, themes, theme-engines, profiles, or translations
   $contrib_type = $parts[1];
   // specific directory (same as uri)
-  $uri = $parts[2];
+  $project_short_name = $parts[2];
 
-  $id = $uri . '-' . $version;
-  $view_link = l(t('view'), 'node/' . $nid);
-  $basedir = $repositories[DRUPAL_CONTRIB_REPOSITORY_ID]['modules'] . '/' . $contrib_type;
-  $fulldir = $basedir . '/' . $uri;
-  $file_name = $id . '.tar.gz';
-  $file_path = $dest_rel . '/' . $file_name;
-  $full_dest = $dest_root . '/' . $file_path;
-  $project_build_root = "$tmp_dir/$fulldir";
+  $release_file_id = $project_short_name . '-' . $version;
+  $release_node_view_link = l(t('view'), 'node/' . $nid);
+  $cvs_export_dir = "{$repositories[DRUPAL_CONTRIB_REPOSITORY_ID]['modules']}/$contrib_type/$project_short_name";
+  $release_file_name = $release_file_id . '.tar.gz';
+  $drupal_file_path = $dest_rel . '/' . $release_file_name;
+  $destination_file_path = $dest_root . '/' . $drupal_file_path;
+  $project_build_root = "$tmp_dir/$project_short_name";
 
-  if (!drupal_chdir($tmp_dir)) {
-    return false;
-  }
-
+  // Clean up any old build directory if it exists.
   // Don't use drupal_exec or return if this fails, we expect it to be empty.
   exec("$rm -rf $project_build_root");
 
+  // Make a fresh build directory and move inside it.
+  if (!mkdir($project_build_root) || !drupal_chdir($project_build_root)) {
+    return false;
+  }
+
   // Checkout this release from CVS, and see if we need to rebuild it
-  if (!drupal_exec("$cvs -q export -r $tag $fulldir")) {
+  if (!drupal_exec("$cvs -q export -r $tag -d $project_short_name $cvs_export_dir")) {
     return false;
   }
-  if (!is_dir($fulldir)) {
-    wd_err("ERROR: %dir does not exist after cvs export -r %tag", array('%dir' => $fulldir, '%rev' =>  $tag), $view_link);
-    return false;
-  }
-  if (!drupal_chdir($basedir)) {
-    // TODO: try to clean up the cvs export we just did?
-    // seems scary if we can't even chdir($basedir)...
+  if (!is_dir("$project_build_root/$project_short_name")) {
+    wd_err("ERROR: %dir does not exist after cvs export -r %tag -d %dir %cvs_export_dir", array('%dir' => $project_short_name, '%rev' =>  $tag, '%cvs_export_dir' => $cvs_export_dir), $release_node_view_link);
     return false;
   }
 
   $info_files = array();
-  $youngest = file_find_youngest($uri, 0, $exclude, $info_files);
-  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+  $youngest = file_find_youngest($project_short_name, 0, $exclude, $info_files);
+  if (is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
@@ -437,48 +430,48 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
 
   // Fix any .info files
   foreach ($info_files as $file) {
-    if (!fix_info_file_version($file, $uri, $version)) {
-      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $view_link);
+    if (!fix_info_file_version($file, $project_short_name, $version)) {
+      wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
       return false;
     }
   }
 
   // Link not copy, since we want to preserve the date...
-  if (!drupal_exec("$ln -sf $license $uri/LICENSE.txt")) {
+  if (!drupal_exec("$ln -sf $license $project_short_name/LICENSE.txt")) {
     return false;
   }
   // Do we want a subdirectory in the tarball or not?
   $tarball_needs_subdir = TRUE;
-  if ($contrib_type == 'translations' && $uri != 'drupal-pot') {
+  if ($contrib_type == 'translations' && $project_short_name != 'drupal-pot') {
     // Translation projects are packaged differently based on core version.
     if (intval($version) > 5) {
-      if (!($to_tar = package_release_contrib_d6_translation($uri, $version, $view_link))) {
+      if (!($to_tar = package_release_contrib_d6_translation($project_short_name, $version, $release_node_view_link))) {
         // Return on error.
         return FALSE;
       }
       $tarball_needs_subdir = FALSE;
     }
-    elseif (!($to_tar = package_release_contrib_pre_d6_translation($uri, $version, $view_link))) {
+    elseif (!($to_tar = package_release_contrib_pre_d6_translation($project_short_name, $version, $release_node_view_link))) {
       // Return on error.
       return FALSE;
     }
   }
   else {
     // Not a translation: just grab the whole directory.
-    $to_tar = $uri;
+    $to_tar = $project_short_name;
   }
 
   if (!$tarball_needs_subdir) {
-    if (!drupal_chdir($uri)) {
+    if (!drupal_chdir($project_short_name)) {
       return false;
     }
   }
 
   // 'h' is for dereference, we want to include the files, not the links
-  if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $full_dest")) {
+  if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $destination_file_path")) {
     return false;
   }
-  $files[] = $file_path;
+  $files[] = $drupal_file_path;
 
   // Start with no package contents, since this is only valid for profiles.
   $package_contents = array();
@@ -486,78 +479,146 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
   // This is a profile, so invoke the drush_make routines to package core
   // and/or any other contrib releases specified in the profile's .make file.
   if ($contrib_type == 'profiles') {
-    // In order for extended packaging to take place, the profile must have a
-    // file with .make extension somewhere in it's directory structure.
-    $profile_makefiles = file_scan_directory($project_build_root, '\.make$');
+    // Move inside the profile directory.
+    if (!drupal_chdir("$project_build_root/$project_short_name")) {
+      return false;
+    }
 
-    if (empty($profile_makefiles)) {
-      wd_msg("No makefile for %profile profile -- skipping extended packaging.", array('%profile' => $id), $view_link);
+    // In order for extended packaging to take place, the profile must have a
+    // file with .make extension.  The packaging script searches for special
+    // .make files in the following order:
+    //   1. [project_short_name]-drupalorg.make
+    //   2. [project_short_name].make
+    // This allows profile authors to have a primary .make file that fully
+    // supports drush_make's features, while maintaining a reduced .make file
+    // that works on drupal.org.
+    $drupalorg_makefile = "$project_short_name-drupalorg.make";
+    $full_makefile = "$project_short_name.make";
+
+    if (file_exists($drupalorg_makefile)) {
+      $profile_makefile = $drupalorg_makefile;
+    }
+    elseif (file_exists($full_makefile)) {
+      $profile_makefile = $full_makefile;
+    }
+
+    if (!isset($profile_makefile)) {
+      wd_msg("No makefile for %profile profile -- skipping extended packaging.", array('%profile' => $release_file_id), $release_node_view_link);
     }
     else {
-      // Search all found .make files for the required 'core_release'
-      // attribute. First found instance of this attribute wins.
-      foreach ($profile_makefiles as $makefile) {
-        $info = drupal_parse_info_file($makefile->filename);
-        if (isset($info['core_release'])) {
-          $core_release = $info['core_release'];
-          break;
-        }
-      }
+    // Search the .make file for the required 'core' attribute.
+      $info = drupal_parse_info_file($profile_makefile);
+
       // Only proceed if a core release was found.
-      if (isset($core_release)) {
-        $distro_types = array('no-core', 'core');
-        foreach ($distro_types as $distro) {
-          // Prepare the build root.
-          $drush_make_distro_build_root = "$project_build_root/drush_make/$distro";
-          if (!mkdir($drush_make_distro_build_root, 0777, TRUE)) {
-            wd_err("ERROR: Unable to generate directory structure in %build_root, not packaging", array('%build_root' => $project_build_root), $view_link);
+      if (!isset($info['core'])) {
+        wd_err("ERROR: %profile does not have the required 'core' attribute.", array('%profile' => $release_file_id), $release_node_view_link);
+        return FALSE;
+      }
+      else {
+
+        // Basic sanity check for the format of the attribute. The CVS checkout
+        // attempt of core will handle the rest of the validation (ie, it will
+        // fail if a non-existant tag is specified.
+        if (!preg_match("/^(\d+)\.(\d+)$/", $info['core'], $matches)) {
+          wd_err("ERROR: %profile specified an invalid 'core' attribute -- both API version and release are required.", array('%profile' => $release_file_id), $release_node_view_link);
+          return FALSE;
+        }
+        else {
+          // Compare the Drupal API version in the profile's version string with
+          // the API version of core specificed in the .make file -- these should
+          // match.
+          $profile_api_version = $matches[1];
+          $parts = explode('.', $version);
+          $release_api_version = $parts[0];
+          if ($profile_api_version != $release_api_version) {
+            wd_err("ERROR: %profile specified an invalid 'core' attribute -- the API version must match the API version of the release.", array('%profile' => $release_file_id), $release_node_view_link);
             return FALSE;
           }
-          if (!drupal_chdir($drush_make_distro_build_root)) {
-            return FALSE;
-          }
-
-          // See the stage_one_make_file() function for an explanation of this
-          // variable.
-          $build_run_key = md5(uniqid(mt_rand(), true)) . md5(uniqid(mt_rand(), true));
-
-          // Generate the stage one make file for this distribution.
-          $distro_id = "$id-$distro";
-          $distro_dir = "$uri-$distro";
-          $stage_one_makefile = stage_one_make_file($distro, $info['core_release'], $uri, $tag, $build_run_key);
-          $stage_one_makefile_filename = "$distro_id.make";
-          file_put_contents($stage_one_makefile_filename, $stage_one_makefile);
-
-          // Run drush_make.
-          if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --tar --build-run-key=$build_run_key $stage_one_makefile_filename ./$distro_dir")) {
-            // The build failed, get any output error messages and include them
-            // in the packaging error report.
-            $build_errors_file = 'build_errors.txt';
-            if (file_exists($build_errors_file)) {
-              $lines = file($build_errors_file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
-              foreach ($lines as $line) {
-              	wd_err("ERROR: $line");
-              }
-            }
-            wd_err("ERROR: Build for %distro failed.", array('%profile' => $distro_id), $view_link);
-            return FALSE;
-          }
-
-          // Build the drupal file path and the full file path.
-          $distro_file_path = "$dest_rel/$distro_id.tar.gz";
-          $distro_full_dest = "$dest_root/$distro_file_path";
-
-          // Move the built package to the project file directory.
-          if (!drupal_exec("mv $distro_dir.tar.gz $distro_full_dest")) {
-            return false;
-          }
-
-          $files[] = $distro_file_path;
         }
 
-        // Retrieve the package contents for the release. We use the contents
-        // of the core distribution, as this is the most comprehensive.
-        $package_contents_file = "$project_build_root/drush_make/core/package_contents.txt";
+        // NO-CORE DISTRIBUTION.
+
+        $no_core_id = "$release_file_id-no-core";
+        // Build the drupal file path and the full file path.
+        $no_core_file_path = "$dest_rel/$no_core_id.tar.gz";
+        $no_core_full_dest = "$dest_root/$no_core_file_path";
+
+        // Run drush_make to build the profile's contents.
+        // --drupal-org: invoke drupal.org specific validation/processing.
+        // --drupal-org-build-root: let the script know where to place it's
+        //                          buld-related files.
+        // --contrib-destination=.: install the contents of the build in the
+        //                          current directory.
+        // --no-core: build without Drupal core.
+        if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --drupal-org-build-root=$project_build_root --contrib-destination=. --no-core $profile_makefile .")) {
+          // The build failed, get any output error messages and include them
+          // in the packaging error report.
+          $build_errors_file = "$project_build_root/build_errors.txt";
+          if (file_exists($build_errors_file)) {
+            $lines = file($build_errors_file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+            	wd_err("ERROR: $line");
+            }
+          }
+          wd_err("ERROR: Build for %profile failed.", array('%profile' => $no_core_id), $release_node_view_link);
+          return FALSE;
+        }
+
+        // Change into the profile build directory.
+        if (!drupal_chdir($project_build_root)) {
+          return FALSE;
+        }
+
+        // Package the no-core distribution.
+        // 'h' is for dereference, we want to include the files, not the links
+        if (!drupal_exec("$tar -ch --file=- $project_short_name | $gzip -9 --no-name > $no_core_full_dest")) {
+          return false;
+        }
+        $files[] = $no_core_file_path;
+
+        // CORE DISTRIBUTION.
+
+        // Write a small .make file used to build core.
+        $core_version = $info['core'];
+        $core_build_dir = "drupal-$core_version";
+        $core_makefile = "$core_build_dir.make";
+        file_put_contents($core_makefile, core_make_file($core_version));
+
+        // Run drush_make to build core.
+        if (!drupal_exec("$drush --include=$drush_make_dir make $core_makefile $core_build_dir")) {
+          // The build failed, bail out.
+          wd_err("ERROR: Build for %core failed.", array('%core' => $core_build_dir), $release_node_view_link);
+          return FALSE;
+        }
+
+        // Move the profile into place inside core.
+        if (!rename($project_short_name, "$core_build_dir/profiles/$project_short_name")) {
+          return FALSE;
+        }
+
+        $core_id = "$release_file_id-core";
+        // Build the drupal file path and the full file path.
+        $core_file_path = "$dest_rel/$core_id.tar.gz";
+        $core_full_dest = "$dest_root/$core_file_path";
+
+        // Package the core distribution.
+        // 'h' is for dereference, we want to include the files, not the links
+        if (!drupal_exec("$tar -ch --file=- $core_build_dir | $gzip -9 --no-name > $core_full_dest")) {
+          return FALSE;
+        }
+        $files[] = $core_file_path;
+
+        // Core was built without the drupal.org drush extension, so the
+        // package item for core isn't in the package contents file. Retrieve
+        // it manually.
+        $core_tag = 'DRUPAL-'. str_replace('.', '-', $core_version);
+        if (!($core_release_nid = db_result(db_query("SELECT nid FROM {project_release_nodes} WHERE tag = '%s'", $core_tag)))) {
+          return FALSE;
+        }
+        $package_contents[] = $core_release_nid;
+
+        // Retrieve the package contents for the release.
+        $package_contents_file = "$project_build_root/package_contents.txt";
         if (file_exists($package_contents_file)) {
           $lines = file($package_contents_file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
           foreach ($lines as $line) {
@@ -567,13 +628,9 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
           }
         }
         else {
-          wd_err("ERROR: %file does not exist for %profile release.", array('%file' => $package_contents_file, '%profile' => $id), $view_link);
+          wd_err("ERROR: %file does not exist for %profile release.", array('%file' => $package_contents_file, '%profile' => $release_file_id), $release_node_view_link);
           return FALSE;
         }
-      }
-      else {
-        wd_err("ERROR: %profile does not have the required 'core_release' attribute.", array('%profile' => $id), $view_link);
-        return FALSE;
       }
     }
   }
@@ -581,17 +638,17 @@ function package_release_contrib($nid, $uri, $version, $tag, $dir) {
   // As soon as the tarball exists, update the DB
   package_release_update_node($nid, $files, $package_contents);
 
-  wd_msg("%id has changed, re-packaged.", array('%id' => $id), $view_link);
+  wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $release_node_view_link);
 
   // Don't consider failure to remove this directory a build failure.
-  drupal_exec("$rm -rf $tmp_dir/$basedir/$uri");
+  drupal_exec("$rm -rf $project_build_root");
   return true;
 }
 
-function package_release_contrib_pre_d6_translation($uri, $version, $view_link) {
+function package_release_contrib_pre_d6_translation($project_short_name, $version, $release_node_view_link) {
   global $msgcat, $msgattrib, $msgfmt;
 
-  if ($handle = opendir($uri)) {
+  if ($handle = opendir($project_short_name)) {
     $po_files = array();
     while ($file = readdir($handle)) {
       if ($file == 'general.po') {
@@ -601,29 +658,29 @@ function package_release_contrib_pre_d6_translation($uri, $version, $view_link) 
         $found_installer_po = TRUE;
       }
       elseif (preg_match('/.*\.po/', $file)) {
-        $po_files[] = "$uri/$file";
+        $po_files[] = "$project_short_name/$file";
       }
     }
     if ($found_general_po) {
-      @unlink("$uri/$uri.po");
-      $po_targets = "$uri/general.po ";
+      @unlink("$project_short_name/$project_short_name.po");
+      $po_targets = "$project_short_name/general.po ";
       $po_targets .= implode(' ', $po_files);
-      if (!drupal_exec("$msgcat --use-first $po_targets | $msgattrib --no-fuzzy -o $uri/$uri.po")) {
+      if (!drupal_exec("$msgcat --use-first $po_targets | $msgattrib --no-fuzzy -o $project_short_name/$project_short_name.po")) {
         return FALSE;
       }
     }
   }
-  if (is_file("$uri/$uri.po")) {
-    if (!drupal_exec("$msgfmt --statistics $uri/$uri.po 2>> $uri/STATUS.txt")) {
+  if (is_file("$project_short_name/$project_short_name.po")) {
+    if (!drupal_exec("$msgfmt --statistics $project_short_name/$project_short_name.po 2>> $project_short_name/STATUS.txt")) {
       return FALSE;
     }
-    $to_tar = "$uri/*.txt $uri/$uri.po";
+    $to_tar = "$project_short_name/*.txt $project_short_name/$project_short_name.po";
     if ($found_installer_po) {
-      $to_tar .= " $uri/installer.po";
+      $to_tar .= " $project_short_name/installer.po";
     }
   }
   else {
-    wd_err("ERROR: %uri translation does not contain a %uri_po file for version %version, not packaging", array('%uri' => $uri, '%uri_po' => "$uri.po", '%version' => $version), $view_link);
+    wd_err("ERROR: %project_short_name translation does not contain a %project_short_name_po file for version %version, not packaging", array('%project_short_name' => $project_short_name, '%project_short_name_po' => "$project_short_name.po", '%version' => $version), $release_node_view_link);
     return FALSE;
   }
 
@@ -631,25 +688,25 @@ function package_release_contrib_pre_d6_translation($uri, $version, $view_link) 
   return $to_tar;
 }
 
-function package_release_contrib_d6_translation($uri, $version, $view_link) {
+function package_release_contrib_d6_translation($project_short_name, $version, $release_node_view_link) {
   global $msgattrib, $msgfmt;
 
-  if ($handle = opendir($uri)) {
+  if ($handle = opendir($project_short_name)) {
     $po_files = array();
     while ($file = readdir($handle)) {
-      if (preg_match('!(.*)\.txt$!', $file, $name) && ($file != "STATUS.$uri.txt")) {
-        // Rename text files to $name[1].$uri.txt so there will be no conflict
+      if (preg_match('!(.*)\.txt$!', $file, $name) && ($file != "STATUS.$project_short_name.txt")) {
+        // Rename text files to $name[1].$project_short_name.txt so there will be no conflict
         // with core text files when the package is deployed.
-        if (!rename("$uri/$file", "$uri/$name[1].$uri.txt")) {
-          wd_err("ERROR: Unable to rename text files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
+        if (!rename("$project_short_name/$file", "$project_short_name/$name[1].$project_short_name.txt")) {
+          wd_err("ERROR: Unable to rename text files in %project_short_name translation in version %version, not packaging", array('%project_short_name' => $project_short_name, '%version' => $version), $release_node_view_link);
           return FALSE;
         }
       }
       elseif (preg_match('!.*\.po$!', $file)) {
 
         // Generate stats information about the .po file handled.
-        if (!drupal_exec("$msgfmt --statistics $uri/$file 2>> $uri/STATUS.$uri.txt")) {
-          wd_err("ERROR: Unable to generate statistics for %file in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version, '%file' => $file), $view_link);
+        if (!drupal_exec("$msgfmt --statistics $project_short_name/$file 2>> $project_short_name/STATUS.$project_short_name.txt")) {
+          wd_err("ERROR: Unable to generate statistics for %file in %project_short_name translation in version %version, not packaging", array('%project_short_name' => $project_short_name, '%version' => $version, '%file' => $file), $release_node_view_link);
           return FALSE;
         }
 
@@ -663,27 +720,27 @@ function package_release_contrib_d6_translation($uri, $version, $view_link) {
         if (!strpos($file, '-')) {
           if ($file == 'installer.po') {
             // Special file, goes to install profile.
-            $target = 'profiles/default/translations/'. $uri .'.po';
+            $target = 'profiles/default/translations/'. $project_short_name .'.po';
           }
           else {
             // 'Root' files go to system module.
-            $target = 'modules/system/translations/'. str_replace('.po', '.'. $uri .'.po', $file);
+            $target = 'modules/system/translations/'. str_replace('.po', '.'. $project_short_name .'.po', $file);
           }
         }
         else {
           // Other files go to their module or theme folder.
-          $target = str_replace(array('-', '.po'), array('/', ''), $file) .'/translations/'. str_replace('.po', '.'. $uri .'.po', $file);
+          $target = str_replace(array('-', '.po'), array('/', ''), $file) .'/translations/'. str_replace('.po', '.'. $project_short_name .'.po', $file);
         }
-        $uri_target = "$uri/$target";
+        $project_short_name_target = "$project_short_name/$target";
 
         // Create target folder and copy file there, while removing fuzzies.
-        $target_dir = dirname($uri_target);
+        $target_dir = dirname($project_short_name_target);
         if (!is_dir($target_dir) && !mkdir($target_dir, 0777, TRUE)) {
-          wd_err("ERROR: Unable to generate directory structure in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
+          wd_err("ERROR: Unable to generate directory structure in %project_short_name translation in version %version, not packaging", array('%project_short_name' => $project_short_name, '%version' => $version), $release_node_view_link);
           return FALSE;
         }
-        if (!drupal_exec("$msgattrib --no-fuzzy $uri/$file -o $uri_target")) {
-          wd_err("ERROR: Unable to filter fuzzy strings and copying the translation files in %uri translation in version %version, not packaging", array('%uri' => $uri, '%version' => $version), $view_link);
+        if (!drupal_exec("$msgattrib --no-fuzzy $project_short_name/$file -o $project_short_name_target")) {
+          wd_err("ERROR: Unable to filter fuzzy strings and copying the translation files in %project_short_name translation in version %version, not packaging", array('%project_short_name' => $project_short_name, '%version' => $version), $release_node_view_link);
           return FALSE;
         }
 
@@ -734,7 +791,7 @@ function verify_packages($task, $project_id) {
     $valid_date = TRUE;
     $num_considered++;
     $nid = $release->nid;
-    $view_link = l(t('view'), 'node/' . $nid);
+    $release_node_view_link = l(t('view'), 'node/' . $nid);
     $file_path = $release->filepath;
     $full_path = $dest_root . '/' . $file_path;
     $db_date = (int)$release->timestamp;
@@ -742,7 +799,7 @@ function verify_packages($task, $project_id) {
 
     if (!is_file($full_path)) {
       $num_not_exist++;
-      wd_err('WARNING: %file does not exist.', array('%file' => $full_path), $view_link);
+      wd_err('WARNING: %file does not exist.', array('%file' => $full_path), $release_node_view_link);
       continue;
     }
     $real_date = filemtime($full_path);
@@ -770,13 +827,13 @@ function verify_packages($task, $project_id) {
     }
 
     if (!$valid_date && !$valid_hash) {
-      wd_check('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables, $view_link);
+      wd_check('All file meta data for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw); saved md5hash: @db_hash, real md5hash: @real_hash', $variables, $release_node_view_link);
     }
     else if (!$valid_date) {
-      wd_check('File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)', $variables, $view_link);
+      wd_check('File date for %file is incorrect: saved date: !db_date (!db_date_raw), real date: !real_date (!real_date_raw)', $variables, $release_node_view_link);
     }
     else { // !$valid_hash
-      wd_check('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables, $view_link);
+      wd_check('File md5hash for %file is incorrect: saved: @db_hash, real: @real_hash', $variables, $release_node_view_link);
     }
 
     if (!$do_repair) {
@@ -794,7 +851,7 @@ function verify_packages($task, $project_id) {
         $num_repaired++;
       }
       else {
-        wd_err('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path), $view_link);
+        wd_err('ERROR: db_query() failed trying to update metadata for %file', array('%file' => $file_path), $release_node_view_link);
         $num_failed++;
       }
     }
@@ -941,7 +998,7 @@ function initialize_repository_info() {
 /**
  * Fix the given .info file with the specified version string
  */
-function fix_info_file_version($file, $uri, $version) {
+function fix_info_file_version($file, $project_short_name, $version) {
   global $site_name;
 
   $info = "\n; Information added by $site_name packaging script on " . date('Y-m-d') . "\n";
@@ -954,7 +1011,7 @@ function fix_info_file_version($file, $uri, $version) {
   if (preg_match('/^((\d+)\.x)-.*/', $version, $matches) && $matches[2] >= 6) {
     $info .= "core = \"$matches[1]\"\n";
   }
-  $info .= "project = \"$uri\"\n";
+  $info .= "project = \"$project_short_name\"\n";
   $info .= 'datestamp = "'. time() ."\"\n";
   $info .= "\n";
 
@@ -1043,7 +1100,8 @@ function package_release_update_node($nid, $files, $package_contents = array()) 
   }
 
   // Don't auto-publish security updates.
-  if ($task == 'tag' && !empty($node->taxonomy[SECURITY_UPDATE_TID])) {
+  $security_update_tid = variable_get('project_release_security_update_tid', 0);
+  if ($task == 'tag' && !empty($node->taxonomy[$security_update_tid])) {
     watchdog('package_security', 'Not auto-publishing security update release.', array(), WATCHDOG_NOTICE, l(t('view'), 'node/' . $node->nid));
     return;
   }
@@ -1163,63 +1221,21 @@ function translation_number_of_strings($dir, $version) {
 }
 
 /**
- * Builds a stage one .make file for use with drush_make.
+ * Construct a .make file which will build Drupal core.
  *
  * This is a very simple 'bootstrap' .make file, which should only ever include
- * the minimal package metadata to build the profile, and optionally metadata
- * for a specified core release.
+ * the minimal package metadata to build core.
  *
  * All arguments should be in a format that drush_make can understand.
  *
- * @param $distro
- *   The distribution to be packaged.
- * @param $core_release
+ * @param $core
  *   The core release to package with the profile.
- * @param $profile
- *   The project short name of the profile.
- * @param $profile_tag
- *   The CVS tag for the profile.
- * @param $build_run_key
- *   See code notes for explanation.
  */
-function stage_one_make_file($distro, $core_release, $profile, $profile_tag, $build_run_key) {
-  global $cvs_root;
-
-  // Calculate a core version to use with the stage one .make files.
-  preg_match('/^(\d+)\.(\d+)$/', $core_release, $matches);
-  $core_version = $matches[1] . ".x";
+function core_make_file($core) {
 
   $output = '';
-  $output .= "core = $core_version\n";
-  // Drupal is only packaged for the core distribution.
-  if ($distro == 'core') {
-    $output .= "projects[drupal] = $core_release\n";
-  }
-  // Normally, a profile would be fetched via it's update XML data. However,
-  // since we're still in the process of building the package we're declaring
-  // a .make file for, there is no update XML data available. Instead, instruct
-  // drush_make to export the profile directly from CVS.
-  $output .= "projects[$profile][type] = profile\n";
-  $output .= "projects[$profile][download][type] = cvs\n";
-  $output .= "projects[$profile][download][root] = $cvs_root\n";
-  $output .= "projects[$profile][download][module] = contributions/profiles/$profile\n";
-  $output .= "projects[$profile][download][revision] = $profile_tag\n";
-
-  // Because of the way drush_make does custom validation on .make files, the
-  // validation gets called for all .make files in the build. For the stage one
-  // .make file, we don't want any validation at all, since we're using
-  // drush_make options there that the profile authors may be restricted from
-  // using. So, we need a way to distinguish between the stage one .make file
-  // and the profile .make file. We can't do that with a hard-coded custom
-  // attribute in the stage one .make file, because the profile authors could
-  // bypass the validation by using the same attribute in their .make file.
-  // Instead, a build run key is generated for each call to drush, and passed
-  // into the stage one .make file as a custom attribute, and to drush as a
-  // command line option. .make files that declare this custom attribute are
-  // checked to see if that attribute's value matches the value of the key
-  // passed to drush. this is a simple way to provide the security we need.
-  $output .= "projects[$profile][build_run_key] = $build_run_key\n";
-  $output .= "build_run_key = $build_run_key\n";
+  $output .= "core = $core\n";
+  $output .= "projects[drupal] = $core\n";
 
   return $output;
 }
