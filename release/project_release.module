@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.134 2009/11/26 22:42:55 dww Exp $
+// $Id: project_release.module,v 1.135 2009/11/27 06:04:00 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -334,15 +334,17 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  *
  * For any given release node, there are three possible status values for if
  * if the release needs an update or not:
- * - 'current': It's the currently recommended release (without extra), or the
- *   latest possible release (including betas, rcs, etc). There is no need to
- *   upgrade this release at this time, it's the most up-to-date available.
- * - 'not-current': Any release older than the recommended release, or any
- *   older release with extra from the same major/minor/patch as the latest
- *   release.
- * - 'not-secure': Any release older than the latest security update on this
- *   branch is considered not secure. Releases are only marked 'not-secure' on
- *   sites that define the 'project_release_security_update_tid' variable.
+ * - 'current' (PROJECT_RELEASE_UPDATE_STATUS_CURRENT): It's the currently
+ *   recommended release (without extra), or the latest possible release
+ *   (including betas, rcs, etc). There is no need to upgrade this release at
+ *   this time, it's the most up-to-date available.
+ * - 'not-current' (PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT): Any release
+ *   older than the recommended release, or any older release with extra from
+ *   the same major/minor/patch as the latest release.
+ * - 'not-secure' (PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE): Any release
+ *   older than the latest security update on this branch is considered not
+ *   secure. Releases are only marked 'not-secure' on sites that define the
+ *   'project_release_security_update_tid' variable.
  *
  *  For example, if 1.2.2 is the recommended release, 1.2.1 was a security
  *  update, and 1.2.2-beta2 is the latest release, here would be the following
@@ -358,18 +360,18 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  * This status is recorded in the {project_release_nodes}.update_status column
  * in the database. Whenever a release is created, updated, or deleted, we
  * need to inspect all the other releases on the same branch to potentially
- * modify the update_status column as needed. Once a release is 'not-secure',
- * it can never change its update status again, so we don't need to look at
- * those. However, a new security update can move releases that were
- * 'not-current' or 'current' into 'not-secure'.
+ * modify the update_status column as needed.
  *
  * This function walks through all the records in the {project_release_nodes}
  * table matching the given branch (API compatibility term ID and major
- * version) for a specified project that are not already classified as
- * 'not-secure' in version order (minor, patch, and then using timestamps to
- * compare releases with 'extra'), and compares them with that branch's latest
- * release, recommended release, and latest security release to compute their
- * update status.
+ * version) for a specified project in version order (as determined by
+ * project_release_query_releases_by_branch() which sorts by version_minor,
+ * version_patch, version_extra_weight and finally version_extra), and
+ * compares them with that branch's latest release, recommended release, and
+ * latest security release to compute their update status. If the release is
+ * the latest or recommended, it's 'current'. Otherwise, it's 'not-current'
+ * if we haven't passed a security update yet, or 'not-secure' once we find a
+ * security update.
  *
  * @param $pid
  *   The project ID.
@@ -383,11 +385,12 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  *   with the appropriate values.
  *
  * @see project_release_check_supported_versions()
+ * @see project_release_query_releases_by_branch()
  * @see project_release_release_nodeapi()
  */
 function project_release_compute_update_status($pid, $api_tid, $major) {
-  $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
   $latest_release = $recommended_release = $latest_security_release = 0;  
+  $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
   while ($release = db_fetch_object($query)) {
     // Clear out the status so we always start fresh with each release.
     unset($update_status);
