@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.9 2009/11/28 06:02:46 dww Exp $
+// $Id: project_release.views.inc,v 1.10 2009/11/28 21:11:47 dww Exp $
 
 /**
  * @file
@@ -254,19 +254,19 @@ function project_release_views_data() {
   if (module_exists('taxonomy')) {
     $vocabulary = taxonomy_vocabulary_load(_project_release_get_api_vid());
     $data['project_release_nodes']['version_api_tid'] = array(
-      'title' => check_plain($vocabulary->name),
+      // We don't want to use the vocabulary name in the title here, since
+      // that will show up in the labels of exported views and get confusing.
+      'title' => t('API compatibility term'),
       'help' => t('The term from the %vocabulary vocabulary for this release.', array('%vocabulary' => $vocabulary->name)),
       'field' => array(
-        'handler' => 'views_handler_field_numeric',
+        'handler' => 'project_release_handler_field_version_api_tid',
         'click sortable' => TRUE,
       ),
       'filter' => array(
-        'handler' => 'views_handler_filter_term_node_tid',
-        'hierarchy table' => 'term_hierarchy',
-        'numeric' => TRUE,
-        'skip base' => array('node', 'node_revision'),
+        'handler' => 'project_release_handler_filter_version_api_tid',
       ),
       'sort' => array(
+        // TODO: Add a custom handler that can sort by taxonomy weight?
         'handler' => 'views_handler_sort',
       ),
       'argument' => array(
@@ -275,7 +275,8 @@ function project_release_views_data() {
       'relationship' => array(
         'base' => 'term_data',
         'field' => 'tid',
-        'label' => t('!vocabulary term', array('!vocabulary' => $vocabulary->name)),
+        // Again, dynamic labels here make exported views yucky.
+        'label' => t('API compatibility term'),
       ),
     );
   }
@@ -591,6 +592,9 @@ function project_release_views_handlers() {
       'project_release_handler_field_release_update_status' => array(
         'parent' => 'views_handler_field',
       ),
+      'project_release_handler_field_version_api_tid' => array(
+        'parent' => 'views_handler_field',
+      ),
       'project_release_handler_filter_project_release_api_version' => array(
         'parent' => 'views_handler_filter_term_node_tid',
       ),
@@ -598,6 +602,9 @@ function project_release_views_handlers() {
         'parent' => 'views_handler_filter',
       ),
       'project_release_handler_filter_release_update_status' => array(
+        'parent' => 'views_handler_filter_in_operator',
+      ),
+      'project_release_handler_filter_version_api_tid' => array(
         'parent' => 'views_handler_filter_in_operator',
       ),
       'project_release_handler_relationship_project_project_release_node' => array(
