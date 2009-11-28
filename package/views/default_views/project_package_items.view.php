@@ -1,8 +1,8 @@
 <?php
-// $Id: project_package_items.view.php,v 1.1 2009/11/27 20:06:51 dww Exp $
+// $Id: project_package_items.view.php,v 1.2 2009/11/28 00:05:44 dww Exp $
 
 $view = new view;
-$view->name = 'project_package_items_per_package';
+$view->name = 'project_package_items';
 $view->description = 'View of all release items included in a given package release';
 $view->tag = 'Project package';
 $view->view_php = '';
@@ -27,6 +27,22 @@ $handler->override_option('relationships', array(
     'table' => 'project_release_nodes',
     'field' => 'pid',
     'relationship' => 'none',
+  ),
+  'supported_releases_rel' => array(
+    'label' => 'supported versions',
+    'required' => 1,
+    'id' => 'supported_releases_rel',
+    'table' => 'project_release_nodes',
+    'field' => 'supported_releases_rel',
+    'relationship' => 'none',
+  ),
+  'recommended_release' => array(
+    'label' => 'Recommended release node',
+    'required' => 1,
+    'id' => 'recommended_release',
+    'table' => 'project_release_supported_versions',
+    'field' => 'recommended_release',
+    'relationship' => 'supported_releases_rel',
   ),
 ));
 $handler->override_option('fields', array(
@@ -61,7 +77,7 @@ $handler->override_option('fields', array(
     'relationship' => 'pid',
   ),
   'version' => array(
-    'label' => 'Release',
+    'label' => 'Included release',
     'alter' => array(
       'alter_text' => 0,
       'text' => '',
@@ -90,8 +106,8 @@ $handler->override_option('fields', array(
     'field' => 'version',
     'relationship' => 'none',
   ),
-  'security_update' => array(
-    'label' => 'Security update',
+  'version_1' => array(
+    'label' => 'Recommended release',
     'alter' => array(
       'alter_text' => 0,
       'text' => '',
@@ -113,13 +129,12 @@ $handler->override_option('fields', array(
     'empty' => '',
     'hide_empty' => 0,
     'empty_zero' => 0,
-    'type' => 'yes-no',
-    'not' => 0,
+    'link_to_node' => 1,
     'exclude' => 0,
-    'id' => 'security_update',
+    'id' => 'version_1',
     'table' => 'project_release_nodes',
-    'field' => 'security_update',
-    'relationship' => 'none',
+    'field' => 'version',
+    'relationship' => 'recommended_release',
   ),
   'update_status' => array(
     'label' => 'Update status',
@@ -256,7 +271,7 @@ $handler->override_option('style_options', array(
   'columns' => array(
     'title' => 'title',
     'version' => 'version',
-    'security_update' => 'security_update',
+    'version_1' => 'version_1',
     'update_status' => 'update_status',
     'update_status_1' => 'update_status',
   ),
@@ -269,7 +284,7 @@ $handler->override_option('style_options', array(
       'sortable' => 1,
       'separator' => '',
     ),
-    'security_update' => array(
+    'version_1' => array(
       'sortable' => 1,
       'separator' => '',
     ),
@@ -299,3 +314,4 @@ $handler->override_option('tab_options', array(
   'description' => '',
   'weight' => 0,
 ));
+
