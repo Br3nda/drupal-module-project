@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.135 2009/11/27 06:04:00 dww Exp $
+// $Id: project_release.module,v 1.136 2009/11/28 20:30:05 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1568,7 +1568,11 @@ function project_release_get_api_taxonomy() {
   if (!module_exists('taxonomy')) {
     return false;
   }
-  return taxonomy_get_tree(_project_release_get_api_vid());
+  static $tree = NULL;
+  if (!isset($tree)) {
+    $tree = taxonomy_get_tree(_project_release_get_api_vid());
+  }
+  return $tree;
 }
 
 /**
@@ -1587,7 +1591,11 @@ function project_release_get_release_type_vocabulary() {
   if (!module_exists('taxonomy')) {
     return false;
   }
-  return taxonomy_get_tree(_project_release_get_release_type_vid());
+  static $tree = NULL;
+  if (!isset($tree)) {
+    $tree = taxonomy_get_tree(_project_release_get_release_type_vid());
+  }
+  return $tree;
 }
 
 /**
