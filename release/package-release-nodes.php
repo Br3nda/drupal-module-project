@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.57 2009/11/27 10:01:06 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.58 2009/11/28 01:18:38 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -544,13 +544,13 @@ function package_release_contrib($nid, $project_short_name, $version, $tag, $rel
         $no_core_full_dest = "$dest_root/$no_core_file_path";
 
         // Run drush_make to build the profile's contents.
-        // --drupal-org: invoke drupal.org specific validation/processing.
-        // --drupal-org-build-root: let the script know where to place it's
-        //                          buld-related files.
-        // --contrib-destination=.: install the contents of the build in the
-        //                          current directory.
-        // --no-core: build without Drupal core.
-        if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --drupal-org-build-root=$project_build_root --contrib-destination=. --no-core $profile_makefile .")) {
+        // --drupal-org: Invoke drupal.org specific validation/processing.
+        // --drupal-org-build-root: Let the script know where to place it's
+        //   build-related files.
+        // --drupal-org-log-errors-to-file: Store build errors for later output.
+        // --drupal-org-log-package-items-to-file: Store package items for
+        //   later recording in the database.
+        if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --drupal-org-build-root=$project_build_root --drupal-org-log-errors-to-file --drupal-org-log-package-items-to-file $profile_makefile .")) {
           // The build failed, get any output error messages and include them
           // in the packaging error report.
           $build_errors_file = "$project_build_root/build_errors.txt";
