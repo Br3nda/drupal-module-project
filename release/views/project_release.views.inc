@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.8 2009/11/26 23:37:49 dww Exp $
+// $Id: project_release.views.inc,v 1.9 2009/11/28 06:02:46 dww Exp $
 
 /**
  * @file
@@ -66,7 +66,6 @@ function project_release_views_data() {
   );
   // Add a relationship for information and filters about supported releases.
   $data['project_release_nodes']['supported_releases_rel'] = array(
-    'group' => t('Project release'),
     'title' => t('Supported releases'),
     'help' => t('Create a relationship to more information about supported releases.'),
     'real field' => 'pid',
@@ -83,7 +82,6 @@ function project_release_views_data() {
     'title' => t('Version string'),
     'help' => t('The full version string of a release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_node',
       'click sortable' => TRUE,
      ),
@@ -103,7 +101,6 @@ function project_release_views_data() {
     'title' => t('Tag'),
     'help' => t('The tag associated with a release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_node',
       'click sortable' => TRUE,
      ),
@@ -143,7 +140,6 @@ function project_release_views_data() {
     'title' => t('Development snapshot'),
     'help' => t('Is this release a development snapshot (rebuilds automatically).'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,
     ),
@@ -164,7 +160,6 @@ function project_release_views_data() {
     'title' => t('Major version'),
     'help' => t('The major version number for this release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
     ),
@@ -184,7 +179,6 @@ function project_release_views_data() {
     'title' => t('Minor version'),
     'help' => t('The minor version number for this release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
     ),
@@ -204,7 +198,6 @@ function project_release_views_data() {
     'title' => t('Patch version'),
     'help' => t('The patch version number for this release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
     ),
@@ -224,7 +217,6 @@ function project_release_views_data() {
     'title' => t('Extra version info'),
     'help' => t("The 'extra' version information for this release (e.g. 'alpha1', 'beta3', etc."),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
     ),
@@ -244,7 +236,6 @@ function project_release_views_data() {
     'title' => t('Extra version weight code'),
     'help' => t('The weight sorting number for the extra version information for this release.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
     ),
@@ -259,12 +250,41 @@ function project_release_views_data() {
     ),
   );
 
+  // version_api_tid
+  if (module_exists('taxonomy')) {
+    $vocabulary = taxonomy_vocabulary_load(_project_release_get_api_vid());
+    $data['project_release_nodes']['version_api_tid'] = array(
+      'title' => check_plain($vocabulary->name),
+      'help' => t('The term from the %vocabulary vocabulary for this release.', array('%vocabulary' => $vocabulary->name)),
+      'field' => array(
+        'handler' => 'views_handler_field_numeric',
+        'click sortable' => TRUE,
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_term_node_tid',
+        'hierarchy table' => 'term_hierarchy',
+        'numeric' => TRUE,
+        'skip base' => array('node', 'node_revision'),
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument_numeric',
+      ),
+      'relationship' => array(
+        'base' => 'term_data',
+        'field' => 'tid',
+        'label' => t('!vocabulary term', array('!vocabulary' => $vocabulary->name)),
+      ),
+    );
+  }
+
   // security_update
   $data['project_release_nodes']['security_update'] = array(
     'title' => t('Security update'),
     'help' => t('Is this release a security update.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,
     ),
@@ -285,7 +305,6 @@ function project_release_views_data() {
     'title' => t('Update status'),
     'help' => t('The status of this release for updates.'),
     'field' => array(
-      'group' => t('Project release'),
       'handler' => 'project_release_handler_field_release_update_status',
       'click sortable' => TRUE,
      ),
