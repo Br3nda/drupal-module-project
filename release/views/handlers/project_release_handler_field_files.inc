@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_handler_field_files.inc,v 1.1 2009/08/04 18:03:37 dww Exp $
+// $Id: project_release_handler_field_files.inc,v 1.2 2009/11/29 07:30:41 dww Exp $
 
 /**
  * Field handler to provide a list of files associated with a release node.
@@ -19,6 +19,9 @@ class project_release_handler_field_files extends views_handler_field_prerender_
   function option_definition() {
     $options = parent::option_definition();
     $options['link_to_file'] = array('default' => FALSE);
+    $options['max_files'] = array('default' => 0);
+    $options['file_sort'] = array('default' => 'filename');
+    $options['file_sort_order'] = array('default' => 'DESC');
     return $options;
   }
 
@@ -29,6 +32,36 @@ class project_release_handler_field_files extends views_handler_field_prerender_
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_file']),
     );
+    $max_options[0] = t('Show all');
+    for ($n = 1; $n <= 10; $n++) {
+      $max_options[$n] = $n;
+    }
+    $form['max_files'] = array(
+      '#title' => t('Maximum number of files to display'),
+      '#type' => 'select',
+      '#options' => $max_options,
+      '#default_value' => $this->options['max_files'],
+    );
+    $form['file_sort'] = array(
+      '#title' => t('Sort files by'),
+      '#type' => 'select',
+      '#options' => array(
+        'filename' => t('File name'),
+        'filesize' => t('File size'),
+        'timestamp' => t('File timestamp'),
+        'fid' => t('File ID'),
+      ),
+      '#default_value' => $this->options['file_sort'],
+    );
+    $form['file_sort_order'] = array(
+      '#title' => t('Sort file direction'),
+      '#type' => 'select',
+      '#options' => array(
+        'ASC' => t('Ascending'),
+        'DESC' => t('Descending'),
+      ),
+      '#default_value' => $this->options['file_sort_order'],
+    );
   }
 
   function pre_render($values) {
@@ -38,8 +71,9 @@ class project_release_handler_field_files extends views_handler_field_prerender_
       $nids[] = $result->{$this->field_alias};
     }
     if (!empty($nids)) {
-      // TODO: better ORDER BY?  Should we have a {prf}.weight field?
-      $result = db_query("SELECT prf.nid, prf.fid, prf.filehash, f.uid, f.filename, f.filepath, f.filesize, f.filemime, f.timestamp FROM {project_release_file} prf LEFT JOIN {files} f ON prf.fid = f.fid WHERE prf.nid IN (" . implode(', ', $nids) . ") ORDER BY f.filename");
+      $order_by = 'f.' . $this->options['file_sort'];
+      $order_by .= ' ' . $this->options['file_sort_order'];
+      $result = db_query("SELECT prf.nid, prf.fid, prf.filehash, f.uid, f.filename, f.filepath, f.filesize, f.filemime, f.timestamp FROM {project_release_file} prf LEFT JOIN {files} f ON prf.fid = f.fid WHERE prf.nid IN (" . implode(', ', $nids) . ") ORDER BY $order_by");
       while ($file = db_fetch_array($result)) {
         $file['filename'] = check_plain($file['filename']);
         $file['filemime'] = check_plain($file['filemime']);
@@ -50,6 +84,10 @@ class project_release_handler_field_files extends views_handler_field_prerender_
         if (!empty($this->options['link_to_file']) ) {
           $file['make_link'] = TRUE;
           $file['path'] = $file['filepath'];
+        }
+        // Enforce the maximum # of files per node as configured in the field.
+        if (!empty($this->options['max_files']) && !empty($this->items[$file['nid']]) && (count($this->items[$file['nid']]) >= $this->options['max_files'])) {
+          continue;
         }
         $this->items[$file['nid']][$file['fid']] = $file;
       }
