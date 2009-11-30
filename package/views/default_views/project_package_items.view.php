@@ -1,5 +1,5 @@
 <?php
-// $Id: project_package_items.view.php,v 1.4 2009/11/30 11:09:17 dww Exp $
+// $Id: project_package_items.view.php,v 1.5 2009/11/30 23:34:25 dww Exp $
 
 $view = new view;
 $view->name = 'project_package_items';
@@ -27,22 +27,6 @@ $handler->override_option('relationships', array(
     'table' => 'project_release_nodes',
     'field' => 'pid',
     'relationship' => 'none',
-  ),
-  'supported_releases_rel' => array(
-    'label' => 'supported versions',
-    'required' => 1,
-    'id' => 'supported_releases_rel',
-    'table' => 'project_release_nodes',
-    'field' => 'supported_releases_rel',
-    'relationship' => 'none',
-  ),
-  'recommended_release' => array(
-    'label' => 'Recommended release node',
-    'required' => 1,
-    'id' => 'recommended_release',
-    'table' => 'project_release_supported_versions',
-    'field' => 'recommended_release',
-    'relationship' => 'supported_releases_rel',
   ),
 ));
 $handler->override_option('fields', array(
@@ -106,36 +90,6 @@ $handler->override_option('fields', array(
     'field' => 'version',
     'relationship' => 'none',
   ),
-  'version_1' => array(
-    'label' => 'Recommended',
-    'alter' => array(
-      'alter_text' => 0,
-      'text' => '',
-      'make_link' => 0,
-      'path' => '',
-      'link_class' => '',
-      'alt' => '',
-      'prefix' => '',
-      'suffix' => '',
-      'target' => '',
-      'help' => '',
-      'trim' => 0,
-      'max_length' => '',
-      'word_boundary' => 1,
-      'ellipsis' => 1,
-      'strip_tags' => 0,
-      'html' => 0,
-    ),
-    'empty' => '',
-    'hide_empty' => 0,
-    'empty_zero' => 0,
-    'link_to_node' => 1,
-    'exclude' => 0,
-    'id' => 'version_1',
-    'table' => 'project_release_nodes',
-    'field' => 'version',
-    'relationship' => 'recommended_release',
-  ),
   'update_status' => array(
     'label' => 'Status',
     'alter' => array(
@@ -162,36 +116,6 @@ $handler->override_option('fields', array(
     'update_status_icon' => 0,
     'exclude' => 0,
     'id' => 'update_status',
-    'table' => 'project_release_nodes',
-    'field' => 'update_status',
-    'relationship' => 'none',
-  ),
-  'update_status_1' => array(
-    'label' => '',
-    'alter' => array(
-      'alter_text' => 0,
-      'text' => '',
-      'make_link' => 0,
-      'path' => '',
-      'link_class' => '',
-      'alt' => '',
-      'prefix' => '',
-      'suffix' => '',
-      'target' => '',
-      'help' => '',
-      'trim' => 0,
-      'max_length' => '',
-      'word_boundary' => 1,
-      'ellipsis' => 1,
-      'strip_tags' => 0,
-      'html' => 0,
-    ),
-    'empty' => '',
-    'hide_empty' => 0,
-    'empty_zero' => 0,
-    'update_status_icon' => 1,
-    'exclude' => 0,
-    'id' => 'update_status_1',
     'table' => 'project_release_nodes',
     'field' => 'update_status',
     'relationship' => 'none',
@@ -287,9 +211,7 @@ $handler->override_option('style_options', array(
   'columns' => array(
     'title' => 'title',
     'version' => 'version',
-    'version_1' => 'version_1',
     'update_status' => 'update_status',
-    'update_status_1' => 'update_status',
   ),
   'info' => array(
     'title' => array(
@@ -300,16 +222,8 @@ $handler->override_option('style_options', array(
       'sortable' => 1,
       'separator' => '',
     ),
-    'version_1' => array(
-      'sortable' => 1,
-      'separator' => '',
-    ),
     'update_status' => array(
       'sortable' => 1,
-      'separator' => ' ',
-    ),
-    'update_status_1' => array(
-      'sortable' => 0,
       'separator' => '',
     ),
   ),
