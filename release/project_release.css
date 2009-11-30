@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.11 2009/11/30 10:31:32 dww Exp $ */
+/* $Id: project_release.css,v 1.12 2009/11/30 23:38:33 dww Exp $ */
 
 .node-form .version-elements .form-item {
   float: left;
@@ -37,9 +37,12 @@ table.releases .release-icon {
   width: 2%;
 }
 
+.download-table-ok tr.odd,
+.download-table-ok tr.odd td.active,
+.download-table-ok tr.even,
+.download-table-ok tr.even td.active,
 table.releases tr.ok {
   background-color: #dfd;
-  border-color: #beb;
 }
 
 .download-table-warning tr.odd,
@@ -55,7 +58,7 @@ table.releases tr.warning {
 .download-table-error tr.even,
 .download-table-error tr.even td.active,
 table.releases tr.error {
-  background-color: #fcc;
+  background-color: #fdd;
 }
 
 .view-project-release-download-table table {
