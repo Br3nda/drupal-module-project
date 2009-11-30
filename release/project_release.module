@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.138 2009/11/30 09:40:25 dww Exp $
+// $Id: project_release.module,v 1.139 2009/11/30 10:09:59 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -589,12 +589,29 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   if (module_exists('project_usage') && user_access('view project usage')) {
-    $output .= '<small>'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</small><br />';
+    $output .= '<div class="usage-statistics-link">'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</div>';
   }
   $node->content['release_info'] = array(
     '#value' => '<div class="project-release-info">'. $output .'</div>',
     '#weight' => -2,
   );
+
+  if (module_exists('project_package')) {
+    $output = '';
+    // TODO need a better solution for this.
+    if ($item_count = db_result(db_query("SELECT COUNT(*) FROM {project_package_local_release_item} WHERE package_nid = %d", $node->nid))) {
+      $view_info = variable_get('project_package_release_items_view', 'project_package_items:default');
+      list($view_name, $display_name) = split(':', $view_info);
+      $output .= '<h3>' . t('Releases included in this package') . '</h3>';
+      $output .= views_embed_view($view_name, $display_name, $node->nid);
+    }
+    if (!empty($output)) {
+      $node->content['release_package_items'] = array(
+        '#value' => '<div class="project-release-package-items">'. $output .'</div>',
+        '#weight' => -2,
+      );
+    }
+  }
 
   // Display packaging errors to admins.
   if (project_check_admin_access($node->project_release['pid'])) {
@@ -2006,7 +2023,7 @@ function project_release_update_status($status = NULL) {
   $status_map = array(
     PROJECT_RELEASE_UPDATE_STATUS_CURRENT => t('Up to date'),
     PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT => t('Update available'),
-    PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE => t('Not secure!'),
+    PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE => t('Not secure'),
   );
   return isset($status) ? $status_map[$status] : $status_map;
 }
@@ -2025,8 +2042,8 @@ function theme_project_release_update_status_icon($status) {
   $icon = '';
   switch ($status) {
     case PROJECT_RELEASE_UPDATE_STATUS_CURRENT:
-      $icon = theme('image', 'misc/watchdog-ok.png', $label, $label);
-      break;
+      // No need for a special icon if it the release is current.
+      return '';
 
     case PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT:
       $icon = theme('image', 'misc/watchdog-warning.png', $label, $label);
