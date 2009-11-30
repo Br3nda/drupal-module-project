@@ -1,5 +1,5 @@
 <?php
-// $Id: project_package_items.view.php,v 1.3 2009/11/30 10:09:59 dww Exp $
+// $Id: project_package_items.view.php,v 1.4 2009/11/30 11:09:17 dww Exp $
 
 $view = new view;
 $view->name = 'project_package_items';
@@ -77,7 +77,7 @@ $handler->override_option('fields', array(
     'relationship' => 'pid',
   ),
   'version' => array(
-    'label' => 'Included release',
+    'label' => 'Version',
     'alter' => array(
       'alter_text' => 0,
       'text' => '',
@@ -107,7 +107,7 @@ $handler->override_option('fields', array(
     'relationship' => 'none',
   ),
   'version_1' => array(
-    'label' => 'Recommended release',
+    'label' => 'Recommended',
     'alter' => array(
       'alter_text' => 0,
       'text' => '',
@@ -137,7 +137,7 @@ $handler->override_option('fields', array(
     'relationship' => 'recommended_release',
   ),
   'update_status' => array(
-    'label' => 'Update status',
+    'label' => 'Status',
     'alter' => array(
       'alter_text' => 0,
       'text' => '',

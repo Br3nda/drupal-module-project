@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.141 2009/11/30 10:41:43 dww Exp $
+// $Id: project_release.module,v 1.142 2009/11/30 11:09:17 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -602,7 +602,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
     if ($item_count = db_result(db_query("SELECT COUNT(*) FROM {project_package_local_release_item} WHERE package_nid = %d", $node->nid))) {
       $view_info = variable_get('project_package_release_items_view', 'project_package_items:default');
       list($view_name, $display_name) = split(':', $view_info);
-      $output .= '<h3>' . t('Releases included in this package') . '</h3>';
+      $output .= '<h3>' . t('Included in this package') . '</h3>';
       $output .= views_embed_view($view_name, $display_name, $node->nid);
     }
     if (!empty($output)) {
