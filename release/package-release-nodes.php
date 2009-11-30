@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.58 2009/11/28 01:18:38 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.59 2009/11/30 16:23:23 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -123,6 +123,7 @@ if (!empty($fatal_err)) {
 }
 
 putenv("CVSROOT=$cvs_root");
+putenv("TERM=vt100");  // drush requires a terminal.
 $script_name = $argv[0];
 
 // Find what kind of packaging we need to do
