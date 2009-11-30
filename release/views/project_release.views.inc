@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.10 2009/11/28 21:11:47 dww Exp $
+// $Id: project_release.views.inc,v 1.11 2009/11/30 09:40:25 dww Exp $
 
 /**
  * @file
@@ -331,6 +331,50 @@ function project_release_views_data() {
       'field' => 'fid',
     ),
   );
+  $data['project_release_file']['fid'] = array(
+    'title' => t('Release file ID'),
+    'relationship' => array(
+      'base' => 'files',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Release file'),
+      'help' => t('Add a relationship to gain access to file data for the files attached to releases.'),
+    ),
+  );
+  $data['project_release_file']['file_name'] = array(
+    'real field' => 'fid',
+    'title' => t('Release file name'),
+    'help' => t('The name of a file attached to a release node.'),
+    'field' => array(
+      'handler' => 'project_release_handler_field_release_file_name',
+      'click sortable' => TRUE,
+    ),
+  );
+  $data['project_release_file']['nid'] = array(
+    'title' => t('Release node ID'),
+    'relationship' => array(
+      'base' => 'node',
+      'handler' => 'views_handler_relationship',
+      'label' => t('Release node'),
+      'help' => t('Add a relationship to gain access to node data for the releases that files are attached to.'),
+    ),
+  );
+  $data['project_release_file']['filehash'] = array(
+    'title' => t('Release file hash'),
+    'help' => t('The file hash (e.g. md5) of a file attached to a release node.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_string',
+    ),
+  );
 
   $data['project_release_supported_versions']['table']['group']  = t('Project release');
   // We only want to JOIN on this table via explicit relationships.
@@ -588,6 +632,9 @@ function project_release_views_handlers() {
       ),
       'project_release_handler_field_most_recent_release' => array(
         'parent' => 'views_handler_field_date',
+      ),
+      'project_release_handler_field_release_file_name' => array(
+        'parent' => 'views_handler_field_file',
       ),
       'project_release_handler_field_release_update_status' => array(
         'parent' => 'views_handler_field',

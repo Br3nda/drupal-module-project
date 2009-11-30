@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.137 2009/11/28 22:42:51 dww Exp $
+// $Id: project_release.module,v 1.138 2009/11/30 09:40:25 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -560,6 +560,21 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   $output = '';
+  $max_file_timestamp = 0;
+  if (!empty($node->project_release['files'])) {
+    $view_info = variable_get('project_release_files_view', 'project_release_files:default');
+    list($view_name, $display_name) = split(':', $view_info);
+    $output .= views_embed_view($view_name, $display_name, $node->nid);
+    foreach ($node->project_release['files'] as $file) {
+      $max_file_timestamp = max($max_file_timestamp, $file->timestamp);
+    }
+    $node->content['release_file_info'] = array(
+      '#value' => '<div class="project-release-files">'. $output .'</div>',
+      '#weight' => -3,
+    );
+  }
+
+  $output = '';
   if (project_use_cvs($project) && isset($node->project_release['tag'])) {
     if (!empty($node->project_release['rebuild'])) {
       $output .= t('Nightly development snapshot from CVS branch: @tag', array('@tag' => $node->project_release['tag'])) .'<br />';
@@ -568,31 +583,16 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
       $output .= t('Official release from CVS tag: @tag', array('@tag' => $node->project_release['tag'])) .'<br />';
     }
   }
-  if ($node->created) {
-    $output .= '<small>'. t('First released: !created', array('!created' => format_date($node->created))) .'</small><br />';
-  }
-  if (!empty($node->project_release['files'])) {
-    foreach ($node->project_release['files'] as $fid => $file) {
-      // In the case of previews, we only have the fid of the file,
-      // so check for that and load the file object if necessary.
-      if (is_numeric($file)) {
-        $file = project_release_load_file($file);
-      }
-      // In the case of previews, if the file has been marked for deletion,
-      // then don't display.
-      if (empty($node->project_release_files[$fid]['delete'])) {
-        $output .= '<div class="project-release-download-file">';
-        $output .= theme('project_release_download_file', $file);
-        $output .= '</div>';
-      }
-    }
+
+  if (!empty($max_file_timestamp)) {
+    $output .= '<div class="last-updated">' . t('Last updated: !changed', array('!changed' => format_date($max_file_timestamp))) . '</div>';
   }
 
   if (module_exists('project_usage') && user_access('view project usage')) {
     $output .= '<small>'. l(t('View usage statistics for this release'), 'project/usage/'. $node->nid) .'</small><br />';
   }
   $node->content['release_info'] = array(
-    '#value' => '<div class="project-release">'. $output .'</div>',
+    '#value' => '<div class="project-release-info">'. $output .'</div>',
     '#weight' => -2,
   );
 

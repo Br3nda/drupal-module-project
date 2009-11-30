@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.9 2009/03/02 04:55:31 dww Exp $ */
+/* $Id: project_release.css,v 1.10 2009/11/30 09:40:25 dww Exp $ */
 
 .node-form .version-elements .form-item {
   float: left;
@@ -51,4 +51,8 @@ table.releases tr.error {
   background-color: #fcc;
   border-color: #ebb;
   color: #200;
+}
+
+.project-release-files .views-field-filehash {
+  color: #999;
 }
