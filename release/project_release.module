@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.140 2009/11/30 10:31:32 dww Exp $
+// $Id: project_release.module,v 1.141 2009/11/30 10:41:43 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -570,7 +570,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
     }
     $node->content['release_file_info'] = array(
       '#value' => '<div class="project-release-files">'. $output .'</div>',
-      '#weight' => -3,
+      '#weight' => -4,
     );
   }
 
@@ -593,7 +593,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
   $node->content['release_info'] = array(
     '#value' => '<div class="project-release-info">'. $output .'</div>',
-    '#weight' => -2,
+    '#weight' => -3,
   );
 
   if (module_exists('project_package')) {
