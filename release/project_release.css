@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.10 2009/11/30 09:40:25 dww Exp $ */
+/* $Id: project_release.css,v 1.11 2009/11/30 10:31:32 dww Exp $ */
 
 .node-form .version-elements .form-item {
   float: left;
@@ -42,15 +42,43 @@ table.releases tr.ok {
   border-color: #beb;
 }
 
+.download-table-warning tr.odd,
+.download-table-warning tr.odd td.active,
+.download-table-warning tr.even,
+.download-table-warning tr.even td.active,
 table.releases tr.warning {
   background-color: #ffd;
-  border-color: #eeb;
 }
 
+.download-table-error tr.odd,
+.download-table-error tr.odd td.active,
+.download-table-error tr.even,
+.download-table-error tr.even td.active,
 table.releases tr.error {
   background-color: #fcc;
-  border-color: #ebb;
-  color: #200;
+}
+
+.view-project-release-download-table table {
+  width: 95%;
+}
+
+.view-project-release-download-table td.views-field-version {
+  width: 25%;
+}
+
+.view-project-release-download-table td.views-field-files {
+  width: 30%;
+}
+.view-project-release-download-table td.views-field-files span.filesize {
+  font-size: 80%;
+}
+
+.view-project-release-download-table td.views-field-changed {
+  width: 20%;
+}
+
+.view-project-release-download-table td.views-field-view-node {
+  width: 25%;
 }
 
 .project-release-files .views-field-filehash {
