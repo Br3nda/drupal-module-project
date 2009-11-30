@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.59 2009/11/30 16:23:23 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.60 2009/11/30 19:32:25 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -486,29 +486,12 @@ function package_release_contrib($nid, $project_short_name, $version, $tag, $rel
     }
 
     // In order for extended packaging to take place, the profile must have a
-    // file with .make extension.  The packaging script searches for special
-    // .make files in the following order:
-    //   1. [project_short_name]-drupalorg.make
-    //   2. [project_short_name].make
-    // This allows profile authors to have a primary .make file that fully
-    // supports drush_make's features, while maintaining a reduced .make file
-    // that works on drupal.org.
-    $drupalorg_makefile = "$project_short_name-drupalorg.make";
-    $full_makefile = "$project_short_name.make";
+    // file named drupal-org.make in the main directory of their profile.
+    $drupalorg_makefile = 'drupal-org.make';
 
     if (file_exists($drupalorg_makefile)) {
-      $profile_makefile = $drupalorg_makefile;
-    }
-    elseif (file_exists($full_makefile)) {
-      $profile_makefile = $full_makefile;
-    }
-
-    if (!isset($profile_makefile)) {
-      wd_msg("No makefile for %profile profile -- skipping extended packaging.", array('%profile' => $release_file_id), $release_node_view_link);
-    }
-    else {
     // Search the .make file for the required 'core' attribute.
-      $info = drupal_parse_info_file($profile_makefile);
+      $info = drupal_parse_info_file($drupalorg_makefile);
 
       // Only proceed if a core release was found.
       if (!isset($info['core'])) {
@@ -551,7 +534,7 @@ function package_release_contrib($nid, $project_short_name, $version, $tag, $rel
         // --drupal-org-log-errors-to-file: Store build errors for later output.
         // --drupal-org-log-package-items-to-file: Store package items for
         //   later recording in the database.
-        if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --drupal-org-build-root=$project_build_root --drupal-org-log-errors-to-file --drupal-org-log-package-items-to-file $profile_makefile .")) {
+        if (!drupal_exec("$drush --include=$drush_make_dir make --drupal-org --drupal-org-build-root=$project_build_root --drupal-org-log-errors-to-file --drupal-org-log-package-items-to-file $drupalorg_makefile .")) {
           // The build failed, get any output error messages and include them
           // in the packaging error report.
           $build_errors_file = "$project_build_root/build_errors.txt";
@@ -633,6 +616,9 @@ function package_release_contrib($nid, $project_short_name, $version, $tag, $rel
           return FALSE;
         }
       }
+    }
+    else {
+      wd_msg("No makefile for %profile profile -- skipping extended packaging.", array('%profile' => $release_file_id), $release_node_view_link);
     }
   }
 
