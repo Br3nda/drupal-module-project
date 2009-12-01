@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.13 2009/12/01 01:02:02 dww Exp $ */
+/* $Id: project_release.css,v 1.14 2009/12/01 09:19:31 dww Exp $ */
 
 .node-form .version-elements .form-item {
   float: left;
@@ -79,7 +79,7 @@ table.releases tr.error {
   font-size: 80%;
 }
 
-.view-project-release-download-table td.views-field-changed {
+.view-project-release-download-table td.views-field-file-timestamp {
   width: 15%;
 }
 

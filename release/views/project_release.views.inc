@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.12 2009/12/01 01:02:02 dww Exp $
+// $Id: project_release.views.inc,v 1.13 2009/12/01 09:19:32 dww Exp $
 
 /**
  * @file
@@ -115,6 +115,7 @@ function project_release_views_data() {
     ),
   );
 
+  // Custom field for a list of files attached to a release.
   $data['project_release_nodes']['files'] = array(
     'title' => t('Project release files'),
     'help' => t('All files attached to a release node.'),
@@ -133,6 +134,17 @@ function project_release_views_data() {
       'handler' => 'views_handler_relationship',
       'label' => t('Release files'),
     ),
+  );
+
+  // Custom field for aggregate file timestamp
+  $data['project_release_nodes']['file_timestamp'] = array(
+    'title' => t('File timestamp'),
+    'help' => t('The maximum or minimum timestamp for any files attached to this release.'),
+    'real field' => 'nid',
+    'field' => array(
+      'handler' => 'project_release_handler_field_release_file_timestamp',
+      'click sortable' => FALSE,
+     ),
   );
 
   // rebuild
@@ -635,6 +647,9 @@ function project_release_views_handlers() {
       ),
       'project_release_handler_field_release_file_name' => array(
         'parent' => 'views_handler_field_file',
+      ),
+      'project_release_handler_field_release_file_timestamp' => array(
+        'parent' => 'views_handler_field_date',
       ),
       'project_release_handler_field_release_update_status' => array(
         'parent' => 'views_handler_field',

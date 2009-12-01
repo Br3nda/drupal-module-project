@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_download_table.view.php,v 1.2 2009/12/01 01:02:02 dww Exp $
+// $Id: project_release_download_table.view.php,v 1.3 2009/12/01 09:19:32 dww Exp $
 
 $view = new view;
 $view->name = 'project_release_download_table';
@@ -87,7 +87,7 @@ $handler->override_option('fields', array(
     'field' => 'files',
     'relationship' => 'none',
   ),
-  'changed' => array(
+  'file_timestamp' => array(
     'label' => 'Date',
     'alter' => array(
       'alter_text' => 0,
@@ -112,10 +112,11 @@ $handler->override_option('fields', array(
     'empty_zero' => 0,
     'date_format' => 'custom',
     'custom_date_format' => 'Y-M-d',
+    'file_order' => 'MAX',
     'exclude' => 0,
-    'id' => 'changed',
-    'table' => 'node',
-    'field' => 'changed',
+    'id' => 'file_timestamp',
+    'table' => 'project_release_nodes',
+    'field' => 'file_timestamp',
     'relationship' => 'none',
   ),
   'view_node' => array(
@@ -343,7 +344,7 @@ $handler->override_option('style_options', array(
   'columns' => array(
     'version' => 'version',
     'files' => 'files',
-    'changed' => 'changed',
+    'file_timestamp' => 'file_timestamp',
     'view_node' => 'view_node',
     'edit_node' => 'view_node',
   ),
@@ -355,8 +356,7 @@ $handler->override_option('style_options', array(
     'files' => array(
       'separator' => '',
     ),
-    'changed' => array(
-      'sortable' => 0,
+    'file_timestamp' => array(
       'separator' => '',
     ),
     'view_node' => array(
@@ -366,7 +366,7 @@ $handler->override_option('style_options', array(
       'separator' => '',
     ),
   ),
-  'default' => 'version',
+  'default' => '-1',
 ));
 $handler->override_option('row_options', array(
   'inline' => array(),
@@ -439,7 +439,7 @@ $handler->override_option('fields', array(
     'field' => 'files',
     'relationship' => 'none',
   ),
-  'changed' => array(
+  'file_timestamp' => array(
     'label' => 'Date',
     'alter' => array(
       'alter_text' => 0,
@@ -464,10 +464,14 @@ $handler->override_option('fields', array(
     'empty_zero' => 0,
     'date_format' => 'custom',
     'custom_date_format' => 'Y-M-d',
+    'file_order' => 'MAX',
     'exclude' => 0,
-    'id' => 'changed',
-    'table' => 'node',
-    'field' => 'changed',
+    'id' => 'file_timestamp',
+    'table' => 'project_release_nodes',
+    'field' => 'file_timestamp',
+    'override' => array(
+      'button' => 'Use default',
+    ),
     'relationship' => 'none',
   ),
   'view_node' => array(
@@ -687,7 +691,7 @@ $handler->override_option('style_options', array(
   'columns' => array(
     'version' => 'version',
     'files' => 'files',
-    'changed' => 'changed',
+    'file_timestamp' => 'file_timestamp',
     'view_node' => 'view_node',
     'edit_node' => 'view_node',
     'update_status' => 'update_status',
@@ -700,8 +704,7 @@ $handler->override_option('style_options', array(
     'files' => array(
       'separator' => '',
     ),
-    'changed' => array(
-      'sortable' => 0,
+    'file_timestamp' => array(
       'separator' => '',
     ),
     'view_node' => array(
