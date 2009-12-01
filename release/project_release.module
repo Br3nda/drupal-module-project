@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.144 2009/12/01 01:02:02 dww Exp $
+// $Id: project_release.module,v 1.145 2009/12/01 02:39:20 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -390,6 +390,8 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  */
 function project_release_compute_update_status($pid, $api_tid, $major) {
   $latest_release = $recommended_release = $latest_security_release = 0;  
+  $not_current_nids = array();
+  $not_secure_nids = array();
   $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
   while ($release = db_fetch_object($query)) {
     // Clear out the status so we always start fresh with each release.
@@ -426,7 +428,24 @@ function project_release_compute_update_status($pid, $api_tid, $major) {
 
     // If the status is different than what we have in the DB, update the DB.
     if ($update_status != $release->update_status) {
-      db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid = %d", $update_status, $release->nid);
+      if ($update_status == PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT) {
+        $not_current_nids[] = $release->nid;
+      }
+      else {
+        $not_secure_nids[] = $release->nid;
+      }
+    }
+  }
+
+  if (!empty($not_current_nids)) {
+    $placeholders = db_placeholders($not_current_nids);
+    db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid IN ($placeholders)", array_merge(array(PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT), $not_current_nids));
+  }
+  if (!empty($not_secure_nids)) {
+    $placeholders = db_placeholders($not_secure_nids);
+    db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid IN ($placeholders)", array_merge(array(PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE), $not_secure_nids));
+    if (module_exists('project_package')) {
+      project_package_check_update_status($not_secure_nids);
     }
   }
 }
@@ -598,8 +617,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
 
   if (module_exists('project_package')) {
     $output = '';
-    // TODO need a better solution for this.
-    if ($item_count = db_result(db_query("SELECT COUNT(*) FROM {project_package_local_release_item} WHERE package_nid = %d", $node->nid))) {
+    if (!empty($node->project_package['count'])) {
       $view_info = variable_get('project_package_release_items_view', 'project_package_items:default');
       list($view_name, $display_name) = split(':', $view_info);
       $output .= '<h3>' . t('In this package') . '</h3>';
