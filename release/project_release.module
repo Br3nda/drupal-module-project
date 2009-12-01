@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.143 2009/11/30 23:34:25 dww Exp $
+// $Id: project_release.module,v 1.144 2009/12/01 01:02:02 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -2079,5 +2079,33 @@ function theme_project_release_update_status_icon($status) {
   }
 
   return $icon;
+}
+
+/**
+ * Implement hook_preprocess_views_view_table().
+ *
+ * Handles the logic for conditionally adding row classes based on release
+ * update_status, and has a hack for hiding the update_status column entirely
+ * on the project_release_download_table view if there's nothing to see.
+ */
+function project_release_preprocess_views_view_table($variables) {
+  $view = $variables['view'];
+  if ($view->plugin_name == 'project_release_table') {  
+    // TODO: this is a hack, we want something more flexible.
+    $needs_status_column = FALSE;
+    foreach ($view->result as $num => $result) {
+      $variables['row_classes'][$num][] = "release-update-status-$result->project_release_nodes_update_status";
+      if (!empty($variables['rows'][$num]['update_status'])) {
+        $needs_status_column = TRUE;
+      }
+    }
+    if ($view->name == 'project_release_download_table' && !$needs_status_column) {
+      unset($variables['header']['update_status']);
+      foreach ($variables['rows'] as &$row) {
+        unset($row['update_status']);
+      }
+    }
+    $variables['class'] .= " project-release";
+  }
 }
 

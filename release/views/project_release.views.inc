@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.11 2009/11/30 09:40:25 dww Exp $
+// $Id: project_release.views.inc,v 1.12 2009/12/01 01:02:02 dww Exp $
 
 /**
  * @file
@@ -662,6 +662,32 @@ function project_release_views_handlers() {
       ),
       'project_release_handler_sort_most_recent_release' => array(
         'parent' => 'views_handler_sort_date',
+      ),
+    ),
+  );
+}
+
+/**
+ * Implement hook_views_plugins().
+ */
+function project_release_views_plugins() {
+  $path = drupal_get_path('module', 'project_release') . '/views/plugins';
+  $views_path = drupal_get_path('module', 'views');
+  return array(
+    'style' => array(
+      'project_release_table' => array(
+        'title' => t('Project release table'),
+        'help' => t('Table with colored rows depending on release update status.'),
+        'handler' => 'project_release_table_plugin_style',
+        'parent' => 'table',
+        'path' => $path,
+        'theme' => 'views_view_table',
+        'theme file' => 'theme.inc',
+        'theme path' => "$views_path/theme",
+        'uses row plugin' => FALSE,
+        'uses fields' => TRUE,
+        'uses options' => TRUE,
+        'type' => 'normal',
       ),
     ),
   );

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_package_items.view.php,v 1.5 2009/11/30 23:34:25 dww Exp $
+// $Id: project_package_items.view.php,v 1.6 2009/12/01 01:02:02 dww Exp $
 
 $view = new view;
 $view->name = 'project_package_items';
@@ -202,7 +202,7 @@ $handler->override_option('cache', array(
   'type' => 'none',
 ));
 $handler->override_option('items_per_page', 0);
-$handler->override_option('style_plugin', 'table');
+$handler->override_option('style_plugin', 'project_release_table');
 $handler->override_option('style_options', array(
   'grouping' => '',
   'override' => 1,
