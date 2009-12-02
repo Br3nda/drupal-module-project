@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.60 2009/11/30 19:32:25 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.61 2009/12/02 21:08:43 dww Exp $
 
 /**
  * @file
@@ -264,11 +264,11 @@ function package_releases($type, $project_id = 0) {
     $tag = escapeshellcmd($tag);
     db_query("DELETE FROM {project_release_package_errors} WHERE nid = %d", $nid);
     if ($release->rid == DRUPAL_CORE_REPOSITORY_ID) {
-      $built = package_release_core($nid, $project_short_name, $version, $tag);
+      $built = package_release_core($type, $nid, $project_short_name, $version, $tag);
     }
     else {
       $release_dir = escapeshellcmd($release->directory);
-      $built = package_release_contrib($nid, $project_short_name, $version, $tag, $release_dir);
+      $built = package_release_contrib($type, $nid, $project_short_name, $version, $tag, $release_dir);
     }
     chdir($drupal_root);
 
@@ -326,7 +326,7 @@ function package_releases($type, $project_id = 0) {
   }
 }
 
-function package_release_core($nid, $project_short_name, $version, $tag) {
+function package_release_core($type, $nid, $project_short_name, $version, $tag) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm;
 
@@ -351,7 +351,7 @@ function package_release_core($nid, $project_short_name, $version, $tag) {
   $info_files = array();
   $exclude = array('.', '..', 'LICENSE.txt');
   $youngest = file_find_youngest($release_file_id, 0, $exclude, $info_files);
-  if (is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
+  if ($type == 'branch' && is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
@@ -380,7 +380,7 @@ function package_release_core($nid, $project_short_name, $version, $tag) {
   return true;
 }
 
-function package_release_contrib($nid, $project_short_name, $version, $tag, $release_dir) {
+function package_release_contrib($type, $nid, $project_short_name, $version, $tag, $release_dir) {
   global $tmp_dir, $repositories, $dest_root, $dest_rel;
   global $cvs, $tar, $gzip, $rm, $ln;
   global $drush, $drush_make_dir;
@@ -423,7 +423,7 @@ function package_release_contrib($nid, $project_short_name, $version, $tag, $rel
 
   $info_files = array();
   $youngest = file_find_youngest($project_short_name, 0, $exclude, $info_files);
-  if (is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
+  if ($type == 'branch' && is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
