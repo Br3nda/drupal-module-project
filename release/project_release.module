@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.145 2009/12/01 02:39:20 dww Exp $
+// $Id: project_release.module,v 1.146 2009/12/03 02:12:27 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1199,19 +1199,34 @@ function theme_project_release_project_download_table($node) {
       'header' => t('Development releases'),
     ),
   );
+  $number_of_tables = 0;
+  $views_output = array();
   foreach ($displays as $display => $info) {
     $view = views_get_view('project_release_download_table');
     $view_output = $view->preview($display, $view_args);
     if (!empty($view->result)) {
-      $classes = 'download-table download-table-' . $info['class'];
-      $output .= '<div class="' . $classes . '">';
-      $icon_file = 'misc/watchdog-' . $info['class'] . '.png';
-      $icon = theme('image', $icon_file);
-      $output .= '<h4>' . $icon . ' ' . $info['header'] . "</h4>\n";
-      $output .= $view_output;
-      $output .= "</div> <!-- .download-table -->\n";
+      $views_output[$display] = $view_output;
+      $number_of_tables++;
     }
   }
+
+  if ($number_of_tables > 0) {
+    foreach ($displays as $display => $info) {
+      if (!empty($views_output[$display])) {
+        $classes = 'download-table download-table-' . $info['class'];
+        $output .= '<div class="' . $classes . '">';
+        if ($number_of_tables > 1) {
+          $output .= '<h4>';
+          $icon_file = 'misc/watchdog-' . $info['class'] . '.png';
+          $output .= theme('image', $icon_file) . ' ';
+          $output .= $info['header'] . "</h4>\n";
+        }
+        $output .= $views_output[$display];
+        $output .= "</div> <!-- .download-table -->\n";
+      }
+    }
+  }
+
   return $output;
 }
 
