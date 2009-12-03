@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.61 2009/12/02 21:08:43 dww Exp $
+// $Id: package-release-nodes.php,v 1.62 2009/12/03 01:51:26 dww Exp $
 
 /**
  * @file
@@ -51,6 +51,7 @@ $trans_install = '';
 // -------------------------
 // Full path to the drush executable.
 $drush = '';
+
 // Full path to the directory where drush_make is located. This is needed to
 // manually include it as a searchable path for drush extensions, as this
 // script's owner will not likely have a home directory to search.
@@ -223,18 +224,17 @@ function package_releases($type, $project_id = 0) {
   }
   else {
     wd_err("ERROR: package_releases() called with unknown type: %type", array('%type' => $type));
-    return;
+    return FALSE;
   }
   $args = array();
   $args[] = 1;    // Account for np.status = 1.
   $args[] = 1;    // Account for prp.releases = 1.
-  $args[] = (int)_project_release_get_api_vid();
   if (!empty($project_id)) {
     $where .= ' AND prn.pid = %d';
     $where_args[] = $project_id;
   }
   $args = array_merge($args, $where_args);
-  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, prn.version_major, td.tid, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join LEFT JOIN {project_release_file} prf ON prn.nid = prf.nid LEFT JOIN {files} f ON prf.fid = f.fid INNER JOIN {term_node} tn ON prn.nid = tn.nid INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d AND td.vid = %d " . $where . ' ORDER BY pp.uri', $args);
+  $query = db_query("SELECT pp.uri, prn.nid, prn.pid, prn.tag, prn.version, c.directory, c.rid FROM {project_release_nodes} prn $rel_node_join LEFT JOIN {project_release_file} prf ON prn.nid = prf.nid LEFT JOIN {files} f ON prf.fid = f.fid INNER JOIN {project_projects} pp ON prn.pid = pp.nid INNER JOIN {node} np ON prn.pid = np.nid INNER JOIN {project_release_projects} prp ON prp.nid = prn.pid INNER JOIN {cvs_projects} c ON prn.pid = c.nid WHERE np.status = %d AND prp.releases = %d " . $where . ' ORDER BY pp.uri', $args);
 
   $num_built = 0;
   $num_considered = 0;
@@ -256,8 +256,6 @@ function package_releases($type, $project_id = 0) {
     $tag = $release->tag;
     $nid = $release->nid;
     $pid = $release->pid;
-    $tid = $release->tid;
-    $major = $release->version_major;
     $tag = ($tag == 'TRUNK') ? 'HEAD' : $tag;
     $project_short_name = escapeshellcmd($project_short_name);
     $version = escapeshellcmd($version);
@@ -274,7 +272,7 @@ function package_releases($type, $project_id = 0) {
 
     if ($built) {
       $num_built++;
-      $project_nids[$pid][$tid][$major] = TRUE;
+      $project_nids[$pid] = TRUE;
     }
     $num_considered++;
     if (count($wd_err_msg)) {
@@ -287,23 +285,6 @@ function package_releases($type, $project_id = 0) {
     }
     else {
       wd_msg("Done packaging releases from !plural: !num_built built, !num_considered considered.", array('!plural' => $plural, '!num_built' => $num_built, '!num_considered' => $num_considered));
-    }
-  }
-
-  // Next, for each project/tid/major triple we packaged, check to see if
-  // the supported/recommended settings are sane now that new tarballs have
-  // been generated and release nodes published. This should be called during
-  // node_save(), but due to replication delays on drupal.org, it seems that
-  // it doesn't always work, so we do it again here to be safe.
-  foreach ($project_nids as $pid => $tids) {
-    foreach ($tids as $tid => $majors) {
-      foreach ($majors as $major => $value) {
-        // If we can, tell the system to only use the primary DB for this.
-        if (function_exists('db_set_ignore_slave')) {
-          db_set_ignore_slave();
-        }
-        project_release_check_supported_versions($pid, $tid, $major, FALSE);
-      }
     }
   }
 
@@ -336,9 +317,11 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
 
   $release_file_id = $project_short_name . '-' . $version;
   $release_node_view_link = l(t('view'), 'node/' . $nid);
-  $release_file_name = $release_file_id . '.tar.gz';
-  $drupal_file_path = $dest_rel . '/' . $release_file_name;
-  $destination_file_path = $dest_root . '/' . $drupal_file_path;
+  $file_path_tgz = $dest_rel . '/' . $release_file_id . '.tar.gz';
+  $full_dest_tgz = $dest_root . '/' . $file_path_tgz;
+
+  // Remember if the tar.gz version of this release file already exists.
+  $tgz_exists = is_file($full_dest_tgz);
 
   // Don't use drupal_exec or return if this fails, we expect it to be empty.
   exec("$rm -rf $tmp_dir/$release_file_id");
@@ -351,13 +334,13 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
   $info_files = array();
   $exclude = array('.', '..', 'LICENSE.txt');
   $youngest = file_find_youngest($release_file_id, 0, $exclude, $info_files);
-  if ($type == 'branch' && is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
+  if ($type == 'branch' && $tgz_exists && filectime($full_dest_tgz) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
   }
 
-  // Fix any .info files
+  // Update any .info files with packaging metadata.
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $project_short_name, $version)) {
       wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
@@ -365,15 +348,20 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
     }
   }
 
-  if (!drupal_exec("$tar -c --file=- $release_file_id | $gzip -9 --no-name > $destination_file_path")) {
+  if (!drupal_exec("$tar -c --file=- $release_file_id | $gzip -9 --no-name > $full_dest_tgz")) {
     return false;
   }
-  $files[] = $drupal_file_path;
+  $files[] = $file_path_tgz;
 
   // As soon as the tarball exists, we want to update the DB about it.
   package_release_update_node($nid, $files);
 
-  wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $release_node_view_link);
+  if ($tgz_exists) {
+    wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $view_link);
+  }
+  else {
+    wd_msg("Packaged %id.", array('%id' => $release_file_id), $view_link);
+  }
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$release_file_id");
@@ -395,13 +383,16 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
   // specific directory (same as uri)
   $project_short_name = $parts[2];
 
+  $project_build_root = "$tmp_dir/$project_short_name";
+  $cvs_export_dir = "{$repositories[DRUPAL_CONTRIB_REPOSITORY_ID]['modules']}/$contrib_type/$project_short_name";
+
   $release_file_id = $project_short_name . '-' . $version;
   $release_node_view_link = l(t('view'), 'node/' . $nid);
-  $cvs_export_dir = "{$repositories[DRUPAL_CONTRIB_REPOSITORY_ID]['modules']}/$contrib_type/$project_short_name";
-  $release_file_name = $release_file_id . '.tar.gz';
-  $drupal_file_path = $dest_rel . '/' . $release_file_name;
-  $destination_file_path = $dest_root . '/' . $drupal_file_path;
-  $project_build_root = "$tmp_dir/$project_short_name";
+  $file_path_tgz = $dest_rel . '/' . $release_file_id . '.tar.gz';
+  $full_dest_tgz = $dest_root . '/' . $file_path_tgz;
+
+  // Remember if the tar.gz version of this release file already exists.
+  $tgz_exists = is_file($full_dest_tgz);
 
   // Clean up any old build directory if it exists.
   // Don't use drupal_exec or return if this fails, we expect it to be empty.
@@ -423,13 +414,13 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
 
   $info_files = array();
   $youngest = file_find_youngest($project_short_name, 0, $exclude, $info_files);
-  if ($type == 'branch' && is_file($destination_file_path) && filectime($destination_file_path) + 300 > $youngest) {
+  if ($type == 'branch' && $tgz_exists && filectime($full_dest_tgz) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
   }
 
-  // Fix any .info files
+  // Update any .info files with packaging metadata.
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $project_short_name, $version)) {
       wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
@@ -469,10 +460,10 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
   }
 
   // 'h' is for dereference, we want to include the files, not the links
-  if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $destination_file_path")) {
+  if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $full_dest_tgz")) {
     return false;
   }
-  $files[] = $drupal_file_path;
+  $files[] = $file_path_tgz;
 
   // Start with no package contents, since this is only valid for profiles.
   $package_contents = array();
@@ -625,7 +616,12 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
   // As soon as the tarball exists, update the DB
   package_release_update_node($nid, $files, $package_contents);
 
-  wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $release_node_view_link);
+  if ($tgz_exists) {
+    wd_msg("%id has changed, re-packaged.", array('%id' => $release_file_id), $view_link);
+  }
+  else {
+    wd_msg("Packaged %id.", array('%id' => $release_file_id), $view_link);
+  }
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $project_build_root");
@@ -952,12 +948,15 @@ function wd_check($msg, $variables = array(), $link = NULL) {
 function initialize_tmp_dir($task) {
   global $tmp_dir, $tmp_root, $rm;
 
-  if (!is_dir($tmp_root)) {
-    wd_err("ERROR: tmp_root: @dir is not a directory", array('@dir' => $tmp_root));
+  if (!is_dir($tmp_root) && !@mkdir($tmp_root, 0777, TRUE)) {
+    wd_err("ERROR: mkdir(@dir) (tmp_root) failed", array('@dir' => $tmp_root));
     exit(1);
   }
 
-  $tmp_dir = $tmp_root . '/' . $task;
+  // Use a tmp directory *specific* to this invocation, so that we don't
+  // clobber other runs if the script is invoked twice (e.g. via cron and
+  // manually, etc).
+  $tmp_dir = $tmp_root . '/' . $task . '.' . getmypid();
   if (is_dir($tmp_dir)) {
     // Make sure we start with a clean slate
     drupal_exec("$rm -rf $tmp_dir/*");
