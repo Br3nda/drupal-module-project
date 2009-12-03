@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_download_table.view.php,v 1.3 2009/12/01 09:19:32 dww Exp $
+// $Id: project_release_download_table.view.php,v 1.4 2009/12/03 01:53:10 dww Exp $
 
 $view = new view;
 $view->name = 'project_release_download_table';
@@ -18,6 +18,14 @@ $handler->override_option('relationships', array(
     'id' => 'supported_releases_rel',
     'table' => 'project_release_nodes',
     'field' => 'supported_releases_rel',
+    'relationship' => 'none',
+  ),
+  'version_api_tid' => array(
+    'label' => 'API compatibility term',
+    'required' => 1,
+    'id' => 'version_api_tid',
+    'table' => 'project_release_nodes',
+    'field' => 'version_api_tid',
     'relationship' => 'none',
   ),
 ));
@@ -181,6 +189,13 @@ $handler->override_option('fields', array(
   ),
 ));
 $handler->override_option('sorts', array(
+  'weight' => array(
+    'order' => 'ASC',
+    'id' => 'weight',
+    'table' => 'term_data',
+    'field' => 'weight',
+    'relationship' => 'version_api_tid',
+  ),
   'version_major' => array(
     'order' => 'DESC',
     'id' => 'version_major',
