@@ -1,4 +1,4 @@
-/* $Id: project_release.css,v 1.15 2009/12/08 17:26:46 dww Exp $ */
+/* $Id: project_release.css,v 1.16 2009/12/08 17:27:47 dww Exp $ */
 
 .node-form .version-elements .form-item {
   float: left;
@@ -37,7 +37,6 @@ table.releases .release-icon {
   width: 2%;
 }
 
-.project-release tr.release-update-status-0,
 .download-table-ok tr.odd,
 .download-table-ok tr.odd td.active,
 .download-table-ok tr.even,
