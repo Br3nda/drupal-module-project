@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.146 2009/12/03 02:12:27 dww Exp $
+// $Id: project_release.module,v 1.147 2009/12/09 00:08:46 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1216,10 +1216,7 @@ function theme_project_release_project_download_table($node) {
         $classes = 'download-table download-table-' . $info['class'];
         $output .= '<div class="' . $classes . '">';
         if ($number_of_tables > 1) {
-          $output .= '<h4>';
-          $icon_file = 'misc/watchdog-' . $info['class'] . '.png';
-          $output .= theme('image', $icon_file) . ' ';
-          $output .= $info['header'] . "</h4>\n";
+          $output .= '<h4>' . $info['header'] . "</h4>\n";
         }
         $output .= $views_output[$display];
         $output .= "</div> <!-- .download-table -->\n";
