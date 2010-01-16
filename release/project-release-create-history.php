@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.27 2009/11/24 23:02:36 thehunmonkgroup Exp $
+// $Id: project-release-create-history.php,v 1.28 2010/01/16 22:18:20 dww Exp $
 
 /**
  * @file
@@ -194,13 +194,13 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     $api_version = $api_terms[$api_tid];
 
     // Get project-wide data:
-    $sql = "SELECT DISTINCT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE prsv.tid = %d AND prsv.nid = %d";
+    $sql = "SELECT DISTINCT n.title, n.nid, n.vid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {project_release_supported_versions} prsv ON prsv.nid = n.nid INNER JOIN {users} u ON n.uid = u.uid WHERE prsv.tid = %d AND prsv.nid = %d";
     $query = db_query($sql, $api_tid, $project_nid);
   }
   else {
     // Consider all API compatibility terms.
     $api_version = 'all';
-    $sql = "SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid WHERE p.nid = %d";
+    $sql = "SELECT n.title, n.nid, n.vid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid WHERE p.nid = %d";
     $query = db_query($sql, $project_nid);
   }
 
@@ -257,7 +257,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
 
   // To prevent the update(_status) module from having problems parsing the XML,
   // the terms need to be at the end of the information for the project.
-  $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
+  $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.vid = %d", $project->vid);
   $xml_terms = '';
   while ($term = db_fetch_object($term_query)) {
     $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
@@ -273,7 +273,8 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
   $parameters = array();
   // TODO: This is broken for N files per release node.
   $fields = array(
-    'prn.nid',
+    'n.nid',
+    'n.vid',
     'f.filepath',
     'f.filesize',
     'f.timestamp',
@@ -362,7 +363,7 @@ function project_release_history_generate_project_xml($project_nid, $api_tid = N
     if (isset($release->filesize)) {
       $xml .= '  <filesize>'. check_plain($release->filesize) ."</filesize>\n";
     }
-    $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d AND v.vid != %d", $release->nid, $api_vid);
+    $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.vid = %d AND v.vid != %d", $release->vid, $api_vid);
     $xml_terms = '';
     while ($term = db_fetch_object($term_query)) {
       $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
@@ -479,7 +480,7 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
 function project_list_generate() {
   $api_vid = _project_release_get_api_vid();
   
-  $query = db_query("SELECT n.title, n.nid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid");
+  $query = db_query("SELECT n.title, n.nid, n.vid, n.status, p.uri, u.name AS username FROM {node} n INNER JOIN {project_projects} p ON n.nid = p.nid INNER JOIN {users} u ON n.uid = u.uid");
 
   $xml = '';
   while ($project = db_fetch_object($query)) {
@@ -488,7 +489,7 @@ function project_list_generate() {
     $xml .= '  <short_name>'. check_plain($project->uri) ."</short_name>\n";
     $xml .= '  <link>'. prch_url("node/$project->nid") ."</link>\n";
     $xml .= '  <dc:creator>'. check_plain($project->username). "</dc:creator>\n";
-    $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.nid = %d", $project->nid);
+    $term_query = db_query("SELECT v.name AS vocab_name, v.vid, td.name AS term_name, td.tid FROM {term_node} tn INNER JOIN {term_data} td ON tn.tid = td.tid INNER JOIN {vocabulary} v ON td.vid = v.vid WHERE tn.vid = %d", $project->vid);
     $xml_terms = '';
     while ($term = db_fetch_object($term_query)) {
       $xml_terms .= '   <term><name>'. check_plain($term->vocab_name) .'</name>';
