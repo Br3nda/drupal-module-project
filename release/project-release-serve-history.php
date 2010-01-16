@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-serve-history.php,v 1.13 2009/08/07 06:58:51 dww Exp $
+// $Id: project-release-serve-history.php,v 1.14 2010/01/16 19:59:13 dww Exp $
 
 /**
  * @file
@@ -89,9 +89,12 @@ header("Cache-Control: store, no-cache, must-revalidate");
 header("Cache-Control: post-check=0, pre-check=0", FALSE);
 
 // Serve the contents.
-echo '<?xml version="1.0" encoding="utf-8"?>' ."\n";
-echo file_get_contents($full_path);
-
+$file = file_get_contents($full_path);
+// Old release xml files are missing the encoding. Prepend one if necessary.
+if (substr($file, 0, 5) != '<?xml') {
+  echo '<?xml version="1.0" encoding="utf-8"?>' ."\n";
+}
+echo $file;
 
 // Record usage statistics.
 if (isset($_GET['site_key'])) {
