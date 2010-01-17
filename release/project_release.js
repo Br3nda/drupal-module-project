@@ -1,73 +1,54 @@
-/* $Id: project_release.js,v 1.3 2009/01/14 06:13:57 dww Exp $ */
+/* $Id: project_release.js,v 1.4 2010/01/17 01:03:58 dww Exp $ */
+
+// IE doesn't support hiding or disabling select options, so we have to rebuild the list. :(
+Drupal.projectReleaseRebuildSelect = function() {
+  // Remove everything
+  recommended = this.value;
+  while (this.length > 1) {
+    this.remove(1);
+  }
+
+  // Now add the choices back.
+  choices = this;
+  $(this).parents('table:eq(0)').find('input.form-checkbox.supported:checked').each(function () {
+    $(this).parents('tr:eq(0)').find('td:first-child').each(function () {
+      choices.appendChild(new Option(this.innerHTML, this.innerHTML));
+      if (this.innerHTML == recommended) {
+        choices.selectedIndex = choices.length-1;
+      }
+    });
+  });
+
+  // If removing a supported version changes the recommended version then highlight it.
+  if (this.selectedIndex == 0 && recommended != -1) {
+    $(this).parents('table:eq(0)').find('tr:last').css('background-color', '#FFFFAA');
+  }
+}
 
 Drupal.behaviors.projectReleaseAutoAttach = function () {
   // Set handler for clicking a radio to change the recommended version.
-  $('form#project-release-project-edit-form input.form-radio.recommended').click(function () {
-    Drupal.projectReleaseSetRecommended( this );
+  $('form#project-release-project-edit-form select.recommended').change(function () {
+    $(this).parents('table:eq(0)').find('tr:last').css('background-color', '#FFFFAA');
   });
   
   // Set handler for clicking checkbox to toggle a version supported/unsupported.
   $('form#project-release-project-edit-form input.form-checkbox.supported').click(function() {
+    $(this).parents('table:eq(0)').find('select').each(Drupal.projectReleaseRebuildSelect);
+
     if (this.checked) {
       // Marking this version as supported.
-      $(this).parents('tr:eq(0)').find('.recommended, .snapshot').removeAttr('disabled');
-      // If there are no recommended versions, make this newly supported version recommended.
-      if (!Drupal.projectReleaseIsRecommendedSet($(this).parents('table:eq(0)'))) {
-        Drupal.projectReleaseSetRecommended($(this).parents('tr:eq(0)').find('.recommended'));
-      }
+      $(this).parents('tr:eq(0)').find('.snapshot').removeAttr('disabled');
     }
     else {
       // Marking this version as unsupported, so disable row.
-      $(this).parents('tr:eq(0)').find('.recommended, .snapshot')
-        .attr('disabled','true')
-        .removeAttr('checked');
-
-      // Handle case were there are now no recommended versions.
-      if (!Drupal.projectReleaseIsRecommendedSet($(this).parents('table:eq(0)'))) {
-        // See if there is at least one supported versions.
-        var recommendable = null;
-        $(this).parents('table:eq(0)').find(".recommended").each( function(i) {
-          if (!this.disabled) {
-            recommendable = this;
-          }
-        });
-        if (recommendable) {
-          // There is a supported version, so recommend it.
-          Drupal.projectReleaseSetRecommended( recommendable );
-        }
-        else {
-          // There are no supported versions.
-          Drupal.projectReleaseUnsetRecommended( $(this).parents('table:eq(0)') );
-        }
-      }
+      $(this).parents('tr:eq(0)').find('.snapshot').attr('disabled','true').removeAttr('checked');
     }
   }).each( function() { // Disable unsupported versions on initial page load.
     if (!this.checked) {
-      $(this).parents('tr:eq(0)').find('.recommended, .snapshot').attr('disabled','true');
+      $(this).parents('tr:eq(0)').find('.snapshot').attr('disabled','true');
     }
   });
-};
 
-Drupal.projectReleaseIsRecommendedSet = function (table) {
-  var recommended = false;
-  $(table).find(".recommended").each( function(i) {
-    if (this.checked) {
-      recommended = true;
-    }
-  });
-  return recommended;
-};
-
-Drupal.projectReleaseSetRecommended = function (radio) {
-  $(radio).attr('checked','true');
-  var recommended = $(radio).parents('tr:eq(0)').find('.version-name').val();
-  $(radio).parents('table:eq(0)').find('tr:last span')
-    .html(recommended)
-    .css('background-color', '#FFFFAA');
-};
-
-Drupal.projectReleaseUnsetRecommended = function (table) {
-    $(table).find('tr:last span')
-      .html('n/a')
-      .css('background-color', '#FFFFAA');
+  // Go ahead and remove the unavailable choices from the recommended list.
+  $('select.recommended').each(Drupal.projectReleaseRebuildSelect);
 };

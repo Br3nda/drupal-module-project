@@ -1,5 +1,5 @@
 <?php
-// $Id: project_edit_releases.inc,v 1.2 2009/08/06 01:32:57 dww Exp $
+// $Id: project_edit_releases.inc,v 1.3 2010/01/17 01:03:58 dww Exp $
 
 /**
  * @file
@@ -33,7 +33,7 @@ function project_release_project_edit_form($form_state, $node) {
     $vocab = taxonomy_vocabulary_load(_project_release_get_api_vid());
     $form['help'] = array(
       '#type' => 'markup',
-      '#value' => t('For each term in the %api_vocabulary_name vocabulary, the following tables allow you to define which major versions are supported. If there are releases from more than one major version number, you can select which major version should be recommended for new users to download. You can also control if the development snapshot releases should be displayed on the front page of the project. Finally, for each term in the %api_vocabulary_name vocabulary, the current recommended release is shown. If no official releases have been made, the development snapshot from the corresponding branch will be listed. Otherwise, the most recent official release will be listed.', array('%api_vocabulary_name' => $vocab->name)),
+      '#value' => t('For each term in the %api_vocabulary_name vocabulary, the following tables allow you to define which major versions are supported. You can also control if the development snapshot releases should be displayed on the front page of the project. Finally, for each term in the %api_vocabulary_name vocabulary, you can select which major version (if any) should be recommended for new users to download.', array('%api_vocabulary_name' => $vocab->name)),
     );
   }
 
@@ -122,15 +122,18 @@ function _project_release_edit_version_major_form($data) {
       'major' => array(),
     );
     $recommended_version = -1;
-    $recommended_options = array();
+    $recommended_options = array(-1 => t('None'));
     foreach ($api_data['majors'] as $major_version => $major_data) {
       if ($major_data['#recommended'] == TRUE) {
         $recommended_version = $major_version;
       }
-      $recommended_options[$major_version] = '';
-      $current = project_release_get_current_recommended($node->nid, $api_tid, $major_version);
-      $version_name = (!empty($current)) ? $current->version : t('n/a');
+
+      $recommended_options[$major_version] = $major_version;
       $form['api'][$api_tid]['major'][$major_version] = array(
+        'current' => array(
+          '#type' => 'markup',
+          '#value' => project_release_get_current_recommended($node->nid, $api_tid, $major_version)->version,
+        ),
         'supported' => array(
           '#type' => 'checkbox',
           '#title' => t('Supported'),
@@ -158,22 +161,13 @@ function _project_release_edit_version_major_form($data) {
       );
     }
     $form['api'][$api_tid]['recommended'] = array(
-      '#type' => 'radios',
-      '#title' => t('Recommended'),
+      '#title' => t('Recommended major version'),
+      '#type' => 'select',
       '#options' => $recommended_options,
       '#default_value' => $recommended_version,
-      '#attributes' => array('class'=>'recommended'),
-    );
-    $recommended_major = db_result(db_query("SELECT major FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d AND recommended = %d", $node->nid, $api_tid, 1));
-    if ($recommended_major !== FALSE) {
-      $current_recommended = $form['api'][$api_tid]['major'][$recommended_major]['version_name']['#value'];
-    }
-    else {
-      $current_recommended = t('n/a');
-    }
-    $form['api'][$api_tid]['currently_recommended'] = array(
-      '#type' => 'markup',
-      '#value' => '<label>'. t('Currently recommended') .':</label> <span>'. $current_recommended .'</span>',
+      '#prefix' => '<div class="container-inline">',
+      '#suffix' => '</div>',
+      '#attributes' => array('class' => 'recommended'),
     );
   }
   return $form;
@@ -191,14 +185,13 @@ function theme_project_release_project_edit_form($form) {
 
     $header = array(
       t('Major version'),
+      t('Current Release'),
       t('Supported'),
-      t('Recommended'),
       array(
         'data' => t('Show snapshot release'),
         'colspan' => 2,
       ),
     );
-
     foreach (element_children($form['api']) as $tid) {
       $output .= '<h3>'. $form['api'][$tid]['#api_term_name'] .'</h3>';
       $rows = array();
@@ -206,21 +199,19 @@ function theme_project_release_project_edit_form($form) {
       foreach (element_children($form['api'][$tid]['major']) as $major) {
         $row = array();
         $row[] = $major;
+        $row[] = drupal_render($form['api'][$tid]['major'][$major]['current']);
         // We want to unset the titles for each element, since we already have
         // table headers to label each column.
         unset($form['api'][$tid]['major'][$major]['supported']['#title']);
         $row[] = drupal_render($form['api'][$tid]['major'][$major]['supported']);
-        unset($form['api'][$tid]['recommended'][$major]['#title']);
-        $row[] = drupal_render($form['api'][$tid]['recommended'][$major]);
         unset($form['api'][$tid]['major'][$major]['snapshot']['#title']);
-        $row[] = drupal_render($form['api'][$tid]['major'][$major]['snapshot']).
-          drupal_render($form['api'][$tid]['major'][$major]['version_name']);
+        $row[] = drupal_render($form['api'][$tid]['major'][$major]['snapshot']);
         $rows[] = $row;
       }
       // Finally, add a row for the currently recommended version.
       $row = array();
       $row[] = array(
-        'data' => drupal_render($form['api'][$tid]['currently_recommended']),
+        'data' => drupal_render($form['api'][$tid]['recommended']),
         'colspan' => 5,
       );
       $rows[] = $row;
@@ -249,24 +240,12 @@ function project_release_project_edit_form_validate($form, &$form_state) {
       $supported = FALSE;
       // First, we just iterate through to see if *any* majors are supported.
       foreach ($api_info['major'] as $major => $flags) {
-        if (!empty($flags['supported'])) {
-          $supported = TRUE;
-          break;
-        }
-      }
-      if ($supported) {
         // At least 1 major is supported, so validate the settings.
-        foreach ($api_info['major'] as $major => $flags) {
-          if (empty($flags['supported']) && !empty($flags['snapshot'])) {
-            $element = 'api]['. $tid .'][major]['. $major .'][snapshot';
-            form_set_error($element, t('You can not show a snapshot release for a major version that is not supported for %api_term_name.', array('%api_term_name' => $form_state['values']['api'][$tid]['#api_term_name'])));
-          }
+        if ($flags['supported'] == FALSE && $flags['snapshot'] == TRUE) {
+          $element = 'api]['. $tid .'][major]['. $major .'][snapshot';
+          form_set_error($element, t('You can not show a snapshot release for a major version that is not supported for %api_term_name.', array('%api_term_name' => $form_state['values']['api'][$tid]['#api_term_name'])));
         }
-        $recommended = $api_info['recommended'];
-        if ($recommended < 0) {
-          form_set_error("api][$tid][recommended", t('You must select a recommended major version for %api_term_name.', array('%api_term_name' => $form_state['values']['api'][$tid]['#api_term_name'])));
-        }
-        elseif (empty($api_info['major'][$recommended]['supported'])) {
+        if ($flags['supported'] == FALSE && $api_info['recommended'] == $major) {
           form_set_error("api][$tid][recommended", t('You can not recommend a major version that is not supported for %api_term_name.', array('%api_term_name' => $form_state['values']['api'][$tid]['#api_term_name'])));
         }
       }
@@ -285,13 +264,9 @@ function project_release_project_edit_form_submit($form, &$form_state) {
 
   if (!empty($form_state['values']['api'])) {
     foreach ($form_state['values']['api'] as $tid => $values) {
-      if (isset($values['recommended'])) {
-        $recommended_major = $values['recommended'];
-      }
       if (!empty($values['major'])) {
         foreach ($values['major'] as $major => $major_values) {
-          $major_values['recommended'] = ($major_values['supported'] && $recommended_major == $major) ? 1 : 0;
-          $major_values['snapshot'] = ($major_values['supported'] && $major_values['snapshot']) ? 1 : 0;
+          $major_values['recommended'] = ($values['recommended'] == $major) ? 1 : 0;
           if ($obj = db_fetch_object(db_query("SELECT * FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d AND major = %d", $nid, $tid, $major))) {
             if ($obj->supported != $major_values['supported']
                 || $obj->recommended != $major_values['recommended']

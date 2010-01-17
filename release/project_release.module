@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.147 2009/12/09 00:08:46 dww Exp $
+// $Id: project_release.module,v 1.148 2010/01/17 01:03:58 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -263,16 +263,6 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
         db_query("UPDATE {project_release_supported_versions} SET recommended = %d WHERE nid = %d AND tid = %d", 0, $pid, $tid);
         $num_recommended = 0;
       }
-
-      if ($num_recommended == 0) {
-        // We no longer have a recommended major for this API/tid, so select a
-        // sensible default, if possible. Find the lowest supported major
-        // number that has a published release.
-        $lowest_major = db_result(db_query("SELECT MIN(r.version_major) FROM {project_release_nodes} r INNER JOIN {project_release_supported_versions} prsv ON r.pid = prsv.nid INNER JOIN {node} n ON n.nid = r.nid INNER JOIN {term_node} tn ON tn.nid = n.nid WHERE r.pid = %d AND tn.tid = %d AND prsv.supported = %d AND n.status = %d", $pid, $tid, 1, 1));
-        if ($lowest_major !== NULL && $lowest_major !== FALSE) {
-          db_query("UPDATE {project_release_supported_versions} SET supported = %d, recommended = %d WHERE nid = %d AND tid = %d AND major = %d", 1, 1, $pid, $tid, $lowest_major);
-        }
-      }
     }
   }
   else {
@@ -290,18 +280,10 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
           break;
         }
       }
-      if ($num_branches == 0) {
-        // First entry for this API tid. Add it as supported and recommended.
-        $recommended_branch = 1;
-      }
-      elseif (!$have_current_branch) {
-        // We've already got some branches (num_branches > 0), but not the
-        // current branch, so add it as supported but not recommended.
-        $recommended_branch = 0;
-      }
-      if (isset($recommended_branch)) {
-        // This is a branch new branch, so add a new record to the table.
-        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot, recommended_release, latest_release, latest_security_release) VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, $recommended_branch, 0, $recommended_release, $latest_release, $latest_security_release);
+      if ($num_branches == 0 || !$have_current_branch) {
+        // First entry for this API tid/major version pair, so add a new
+        // record to the table as supported but not recommended.
+        db_query("INSERT INTO {project_release_supported_versions} (nid, tid, major, supported, recommended, snapshot, recommended_release, latest_release, latest_security_release) VALUES (%d, %d, %d, %d, %d, %d, %d, %d, %d)", $pid, $tid, $major, 1, 0, 0, $recommended_release, $latest_release, $latest_security_release);
       }
       else {
         // We already have this branch in the table, but the latest_release
