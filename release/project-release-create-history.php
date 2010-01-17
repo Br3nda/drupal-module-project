@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.28 2010/01/16 22:18:20 dww Exp $
+// $Id: project-release-create-history.php,v 1.29 2010/01/17 00:00:11 dww Exp $
 
 /**
  * @file
@@ -412,7 +412,8 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
         'args' => array('@old' => $tmp_filename, '@new' => $filename),
       ),
     );
-    $full_xml = '<projects '. $dc_namespace .">\n". $xml ."</projects>\n";
+    $full_xml = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+    $full_xml .= '<projects '. $dc_namespace .">\n" . $xml . "</projects>\n";
   }
   else {
     // Setup the filenames we'll be using.  Normally, we'd have to be
@@ -441,7 +442,8 @@ function project_release_history_write_xml($xml, $project = NULL, $api_version =
         'args' => array('@old' => $tmp_filename, '@new' => $filename, '%project' => $project->title),
       ),
     );
-    $full_xml = '<project '. $dc_namespace .">\n". $xml ."</project>\n";
+    $full_xml = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+    $full_xml .= '<project '. $dc_namespace .">\n" . $xml . "</project>\n";
   }
 
   // Make sure we've got the right project-specific subdirectory.
