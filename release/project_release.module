@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.21 2009/11/26 15:15:57 dww Exp $
+// $Id: project_release.module,v 1.66.2.22 2010/01/29 23:41:25 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -736,7 +736,7 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
       $current_branches = db_query("SELECT major FROM {project_release_supported_versions} WHERE nid = %d AND tid = %d", $pid, $tid);
       $have_current_branch = FALSE;
       $num_branches = 0;
-      while ($branch = db_fetch_object($current_branches)) {
+      while (($branch = db_fetch_object($current_branches)) !== FALSE) {
         $num_branches++;
         if ($branch->major == $major) {
           $have_current_branch = TRUE;
