@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.355 2009/08/19 00:50:35 dww Exp $
+// $Id: project.module,v 1.356 2010/01/30 02:43:23 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -614,7 +614,7 @@ function project_form_alter(&$form, &$form_state, $form_id) {
       // possible to detect if this vocabulary was set to be
       // a free tagging vocabulary, and if so then throw an error.
       $project_type_vid = _project_get_vid();
-      if (isset($project_type_vid) && $form['vid']['#value'] == $project_type_vid) {
+      if (isset($project_type_vid) && !empty($form['vid']['#value']) && $form['vid']['#value'] == $project_type_vid) {
         $form['#validate'][] = 'project_project_type_vocabulary_validate';
         
       }
