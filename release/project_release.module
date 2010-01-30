@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.150 2010/01/30 02:30:54 dww Exp $
+// $Id: project_release.module,v 1.151 2010/01/30 02:33:40 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1135,9 +1135,15 @@ function project_release_query_releases_by_branch($project_nid, $api_tid, $major
   $order_bys[] = 'r.version_patch DESC';
   // To reliably sort release with version_extra, use version_extra_weight.
   $order_bys[] = 'r.version_extra_weight DESC';
-  // Within releases of the same version_extra_weight (e.g. rc1 vs. rc2) just
-  // sort alphabetically, so that rc2 shows up first in the query.
+  // Within releases of the same version_extra_weight (e.g. rc1 vs. rc2),
+  // sort by version_extra_delta.
+  $order_bys[] = 'r.version_extra_delta DESC';
+  // Within releases of the same version_extra_weight and version_extra_delta,
+  // sort alphabetically. This shouldn't normally happen, but just in case you
+  // have multiple releases with the same delta (e.g. "alpha-one", "alpha-two"
+  // etc), at least you'll get deterministic results.
   $order_bys[] = 'r.version_extra DESC';
+
   $order_by = 'ORDER BY '. implode(', ', $order_bys);
 
   $sql = "SELECT n.nid, n.title, n.created, r.* FROM {node} n ".

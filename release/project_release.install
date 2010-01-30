@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.29 2009/11/26 22:41:06 dww Exp $
+// $Id: project_release.install,v 1.30 2010/01/30 02:33:40 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -106,6 +106,12 @@ function project_release_schema() {
       ),
       'version_extra_weight' => array(
         'description' => 'Numeric code for ordering releases that define "version_extra".',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'version_extra_delta' => array(
+        'description' => 'The first span of digits found in version_extra. This is needed because we cannot natural sort natively without a stored procedure.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -623,3 +629,62 @@ function project_release_update_6008() {
   return $ret;
 }
 
+/**
+ * Add the {project_release_nodes}.version_extra_delta field.
+ *
+ * Also recompute the latest and recommended releases on each branch, and
+ * therefore the update_status field, since version_extra_delta is needed
+ * to properly order alpha10 vs. alpha9, etc.
+ */
+function project_release_update_6009() {
+  $ret = array('#finished' => 0);
+  if (!isset($_SESSION['project_release_update_6009'])) {
+    $spec = array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'The first span of digits found in version_extra. This is needed because we cannot natural sort natively without a stored procedure.',
+    );
+
+    db_add_field($ret, 'project_release_nodes', 'version_extra_delta', $spec);
+
+    // Initialize version_extra_delta to -1 to identify the rows to process.
+    db_query('UPDATE {project_release_nodes} SET version_extra_delta = -1 WHERE version_extra IS NOT NULL');
+
+    $_SESSION['project_release_update_6009'] = 0;
+    $_SESSION['project_release_update_6009_max'] = db_result(db_query("SELECT COUNT(*) FROM {project_release_nodes} WHERE version_extra IS NOT NULL"));
+  }
+
+  // Number of rows to convert per batch.
+  $limit = 20;
+  while ($limit-- && $item = db_fetch_array(db_query_range("SELECT nid, pid, version_major, version_api_tid, version_extra FROM {project_release_nodes} WHERE version_extra_delta = -1", 0, 1))) {
+    // Due to the new sorting method, the "recommended" and "latest" releases
+    // will change on any releases affected by http://drupal.org/node/649254.
+
+    // Determine the correct version_extra_delta and update it.
+    $match = array();
+    $nmatch = preg_match('/(\d+)/', $item['version_extra'], $match);
+    db_query('UPDATE {project_release_nodes} SET version_extra_delta = %d WHERE nid = %d', ($nmatch) ? $match[1] : 0, $item['nid']);
+
+    // Finally, recheck the branch.
+    // Note: this is ineffecient: we only really need to call this
+    // once per unique branch we're touching, not for every single
+    // release, but optimizing this isn't worth the effort, and would
+    // potentially require an enormous array in $_SESSION that could
+    // cause its own problems.
+    project_release_check_supported_versions($item['pid'], $item['version_api_tid'], $item['version_major'], FALSE);
+
+    $_SESSION['project_release_update_6009']++;
+  }
+
+  if ($_SESSION['project_release_update_6009'] >= $_SESSION['project_release_update_6009_max']) {
+    // Done. Clean up.
+    unset($_SESSION['project_release_update_6009']);
+    unset($_SESSION['project_release_update_6009_max']);
+    $ret['#finished'] = 1;
+  }
+  else {
+    $ret['#finished'] = $_SESSION['project_release_update_6009'] / $_SESSION['project_release_update_6009_max'];
+  }
+  return $ret;
+}

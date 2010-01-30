@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.10 2009/11/26 02:34:13 dww Exp $
+// $Id: release_node_form.inc,v 1.11 2010/01/30 02:33:40 dww Exp $
 
 /**
  * @file
@@ -496,6 +496,13 @@ function project_release_db_save($node, $is_new) {
         break;
       }
     }
+    // If version_extra contains any digits, save them as version_extra_delta.
+    // This is used to ensure that alpha10 is considered "newer" than alpha9.
+    $match = array();
+    if (preg_match('/(\d+)/', $node->project_release['version_extra'], $match)) {
+      $types['version_extra_delta'] = "%d";
+      $values['version_extra_delta'] = $match[1];
+    }
   }
   // If there's no version_extra, but our mapping defines a weight for 'NULL',
   // specify save that weight into the version_extra_weight column.
@@ -569,4 +576,3 @@ function project_release_pick_project_form_validate($form, &$form_state) {
 function project_release_pick_project_form_submit($form, &$form_state) {
   $form_state['redirect'] = 'node/add/project-release/'. $form_state['values']['pid'];
 }
-
