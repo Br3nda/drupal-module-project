@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.149 2010/01/29 23:41:29 dww Exp $
+// $Id: project_release.module,v 1.150 2010/01/30 02:30:54 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -372,8 +372,7 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  */
 function project_release_compute_update_status($pid, $api_tid, $major) {
   $latest_release = $recommended_release = $latest_security_release = 0;  
-  $not_current_nids = array();
-  $not_secure_nids = array();
+  $nid_update_map = array();
   $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
   while ($release = db_fetch_object($query)) {
     // Clear out the status so we always start fresh with each release.
@@ -408,26 +407,22 @@ function project_release_compute_update_status($pid, $api_tid, $major) {
       }
     }
 
-    // If the status is different than what we have in the DB, update the DB.
+    // If the status is different than what we have in the DB, remember that
+    // we need to update this nid in the DB.
     if ($update_status != $release->update_status) {
-      if ($update_status == PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT) {
-        $not_current_nids[] = $release->nid;
-      }
-      else {
-        $not_secure_nids[] = $release->nid;
-      }
+      $nid_update_map[$update_status][] = $release->nid;
     }
   }
 
-  if (!empty($not_current_nids)) {
-    $placeholders = db_placeholders($not_current_nids);
-    db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid IN ($placeholders)", array_merge(array(PROJECT_RELEASE_UPDATE_STATUS_NOT_CURRENT), $not_current_nids));
-  }
-  if (!empty($not_secure_nids)) {
-    $placeholders = db_placeholders($not_secure_nids);
-    db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid IN ($placeholders)", array_merge(array(PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE), $not_secure_nids));
-    if (module_exists('project_package')) {
-      project_package_check_update_status($not_secure_nids);
+  if (!empty($nid_update_map)) {
+    foreach ($nid_update_map as $update_status => $nids) {
+      if (!empty($nids)) {
+        $placeholders = db_placeholders($nids);
+        db_query("UPDATE {project_release_nodes} SET update_status = %d WHERE nid IN ($placeholders)", array_merge(array($update_status), $nids));
+        if ($update_status == PROJECT_RELEASE_UPDATE_STATUS_NOT_SECURE && module_exists('project_package')) {
+          project_package_check_update_status($nids);
+        }
+      }
     }
   }
 }
