@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.13 2009/12/01 09:19:32 dww Exp $
+// $Id: project_release.views.inc,v 1.14 2010/02/09 04:19:29 dww Exp $
 
 /**
  * @file
@@ -247,6 +247,25 @@ function project_release_views_data() {
   $data['project_release_nodes']['version_extra_weight'] = array(
     'title' => t('Extra version weight code'),
     'help' => t('The weight sorting number for the extra version information for this release.'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+  );
+
+  // version_extra_delta
+  $data['project_release_nodes']['version_extra_delta'] = array(
+    'title' => t('Extra version delta value'),
+    'help' => t('The sorting number for the extra version information for this release.'),
     'field' => array(
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
