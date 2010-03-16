@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.62 2009/12/03 01:51:26 dww Exp $
+// $Id: package-release-nodes.php,v 1.63 2010/03/16 05:49:59 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -582,6 +582,12 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
           return FALSE;
         }
         $files[] = $core_file_path;
+
+        // Development releases may have changed package contents -- clear out
+        // their package item summary so a fresh item summary will be inserted.
+        if ($type == 'branch' && module_exists('project_package')) {
+          db_query("DELETE FROM {project_package_local_release_item} WHERE package_nid = %d", $nid);
+        }
 
         // Core was built without the drupal.org drush extension, so the
         // package item for core isn't in the package contents file. Retrieve
