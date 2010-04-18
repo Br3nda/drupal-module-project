@@ -1,0 +1,102 @@
+<?php
+
+class ProjectWebTestCase extends DrupalWebTestCase {
+  /**
+   * Setup basic tasks for all project issue tests.
+   */
+  function setUp() {
+    // Setup the required modules for all tests.
+    $modules = func_get_args();
+    $modules = array_merge(array('project', 'path'), $modules);
+    // We can't call parent::setUp() with a single array argument, so we need
+    // this ugly call_user_func_array().
+    call_user_func_array(array($this, 'parent::setUp'), $modules);
+  }
+
+  /**
+   * Helper function for creating a new project.
+   *
+   * @param $edit array
+   *   An array of form values to be passed to DrupalWebTestCase::drupalPost().
+   */
+  function createProject($edit = array()) {
+    if (empty($edit)) {
+      $edit['title'] = $this->randomName();
+      $edit['project[uri]'] = $this->randomName(8);
+      $edit['body'] = $this->randomString(128);
+      $edit['project[homepage]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[documentation]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[license]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[screenshots]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[changelog]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[cvs]'] = 'http://example.com/' . $this->randomName();
+      $edit['project[demo]'] = 'http://example.com/' . $this->randomName();
+    }
+
+    $this->drupalPost('node/add/project-project', $edit, t('Save'));
+    $this->assertRaw(t('!post %title has been created.', array('!post' => 'Project', '%title' => $edit["title"])), t('Project created.'));
+
+    return $edit['project[uri]'];
+  }
+}
+
+
+class ProjectTestCase extends ProjectWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Project functionality',
+      'description' => 'Test Project module functionality.',
+      'group' => 'Project'
+    );
+  }
+
+  function setUp() {
+    parent::setUp();
+
+    $maintain_user = $this->drupalCreateUser(array('maintain projects'));
+    $this->drupalLogin($maintain_user);
+  }
+
+  /**
+   * Test the creation of projects and the display of project properties.
+   */
+  function testProjectCreation() {
+    // Test project node form fields.
+    $this->drupalGet('node/add/project-project');
+    $this->assertText(t('Create Project'));
+
+    // Create a project and verify that all fields are shown.
+    $edit = array();
+    $edit['title'] = $this->randomName();
+    $edit['project[uri]'] = $this->randomName(8);
+    $edit['body'] = $this->randomName(128);
+    $edit['project[homepage]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[documentation]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[license]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[screenshots]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[changelog]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[cvs]'] = 'http://example.com/' . $this->randomName();
+    $edit['project[demo]'] = 'http://example.com/' . $this->randomName();
+    $this->createProject($edit);
+
+    // Check that all links show up properly.
+    $this->drupalGet('project/'. $edit['project[uri]']);
+    $this->assertText($edit['title'], t('Project found using project URI.'));
+    $this->assertLink(t('Home page'));
+    $this->assertRaw($edit['project[homepage]'], t('Project homepage displayed properly.'));
+    $this->assertLink(t('Read documentation'));
+    $this->assertRaw($edit['project[documentation]'], t('Project documentation displayed properly.'));
+    $this->assertLink(t('Read license'));
+    $this->assertRaw($edit['project[license]'], t('Project license displayed properly.'));
+    $this->assertLink(t('Look at screenshots'));
+    $this->assertRaw($edit['project[screenshots]'], t('Project screenshots displayed properly.'));
+    $this->assertLink(t('Read complete log of changes'));
+    $this->assertRaw($edit['project[changelog]'], t('Project changelog displayed properly.'));
+    $this->assertLink(t('Browse the CVS repository'));
+    $this->assertRaw($edit['project[cvs]'], t('Project changelog displayed properly.'));
+    $this->assertLink(t('Try out a demonstration'));
+    $this->assertRaw($edit['project[demo]'], t('Project changelog displayed properly.'));
+    $this->assertText($edit['body'], t('Project description found.'));
+  }
+}
+
