@@ -1,5 +1,5 @@
 <?php
-// $Id: pages.inc,v 1.3 2009/08/10 21:02:08 dww Exp $
+// $Id: pages.inc,v 1.4 2010/04/19 07:07:25 dww Exp $
 
 /**
  * @file
@@ -25,10 +25,10 @@ function _project_usage_help($key) {
   }
   switch ($node->type) {
     case 'project_project':
-      return '<p>'. t('This page provides information about the usage of the %project_title project, including summaries across all versions and details for each release. For each week beginning on the given date the figures show the number of sites that reported they are using a given version of the project. ', array('%project_title' => $node->title)) .'</p>'; 
+      return '<p>'. t('This page provides information about the usage of the %project_title project, including summaries across all versions and details for each release. For each week beginning on the given date the figures show the number of sites that reported they are using a given version of the project. ', array('%project_title' => $node->title)) .'</p>';
 
     case 'project_release':
-      return '<p>'. t('For each week beginning on a given date, the figures show the number of sites that reported they are using the %release_title release. ', array('%release_title' => $node->title)) .'</p>'; 
+      return '<p>'. t('For each week beginning on a given date, the figures show the number of sites that reported they are using the %release_title release. ', array('%release_title' => $node->title)) .'</p>';
 
   }
 }
@@ -512,13 +512,10 @@ function theme_project_usage_chart_by_release($title, $header, $rows) {
     }
   }
 
-  // Now convert the series into strings with the data. Along the way figure
-  // out the range of data.
+  // Determine the range of the data.
   $min = $max = 0;
-  $data = array();
-  foreach ($series as $s) {
-    $data[] = implode(',', $s);
-    $max = max($max, max($s));
+  foreach ($series as $values) {
+    $max = max($max, max($values));
   }
 
   // Round the max up to the next decimal place (3->10, 19->20, 8703->9000) so
@@ -530,6 +527,31 @@ function theme_project_usage_chart_by_release($title, $header, $rows) {
   $zeros = strlen($max) - 1;
   $max = ($zeros > 0) ? (substr($max, 0, 1) + 1 . str_repeat('0', $zeros)) : 10;
   $value_axis = range($min, $max, '1'. str_repeat('0', $zeros));
+
+  $data = array();
+
+  // Use Google's extended encoding to keep the URLs under 2048 characters.
+  $encoding_map = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-.';
+  $encoding_length = strlen($encoding_map);
+  $encoding_max = $encoding_length * $encoding_length;
+  foreach ($series as $i => $values) {
+    $data[$i] = '';
+    foreach ($values as $value) {
+      $scaled = floor($encoding_max * $value / $max);
+      if ($scaled > $encoding_max - 1) {
+        $data[$i] .= '..';
+      }
+      else if ($scaled < 0) {
+        $data[$i] .= '__';
+      }
+      else {
+        // Calculate first and second digits and add them to the output.
+        $quotient = floor($scaled / $encoding_length);
+        $remainder = $scaled - ($encoding_length * $quotient);
+        $data[$i] .= $encoding_map[$quotient] . $encoding_map[$remainder];
+      }
+    }
+  }
 
   // Might need more colors than this.
   $colors = array('EDAA00', '0062A0', 'A17300', 'ED8200', '38B4BA', '215D6E');
@@ -545,7 +567,7 @@ function theme_project_usage_chart_by_release($title, $header, $rows) {
     'cht' => 'lc',
     // Pick some colors.
     'chco' => implode(',', array_slice($colors, 0, count($series))),
-    'chd' =>  't:'. implode('|', $data),
+    'chd' => 'e:' . implode(',', $data),
     // Set the range of the chart
     'chds' => implode(',', array_fill(0, count($series), $min .','. $max)),
      // Legend is the header titles after excluding the date.
