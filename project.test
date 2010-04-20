@@ -1,4 +1,5 @@
 <?php
+// $Id: project.test,v 1.2 2010/04/20 09:06:10 dww Exp $
 
 class ProjectWebTestCase extends DrupalWebTestCase {
   /**
@@ -7,7 +8,7 @@ class ProjectWebTestCase extends DrupalWebTestCase {
   function setUp() {
     // Setup the required modules for all tests.
     $modules = func_get_args();
-    $modules = array_merge(array('project', 'path'), $modules);
+    $modules = array_merge(array('project'), $modules);
     // We can't call parent::setUp() with a single array argument, so we need
     // this ugly call_user_func_array().
     call_user_func_array(array($this, 'parent::setUp'), $modules);
@@ -36,7 +37,7 @@ class ProjectWebTestCase extends DrupalWebTestCase {
     $this->drupalPost('node/add/project-project', $edit, t('Save'));
     $this->assertRaw(t('!post %title has been created.', array('!post' => 'Project', '%title' => $edit["title"])), t('Project created.'));
 
-    return $edit['project[uri]'];
+    return node_load(array('title' => $edit['title']));
   }
 }
 
@@ -51,7 +52,7 @@ class ProjectTestCase extends ProjectWebTestCase {
   }
 
   function setUp() {
-    parent::setUp();
+    parent::setUp('path');
 
     $maintain_user = $this->drupalCreateUser(array('maintain projects'));
     $this->drupalLogin($maintain_user);
@@ -100,3 +101,212 @@ class ProjectTestCase extends ProjectWebTestCase {
   }
 }
 
+class ProjectDrupalOrgWebTestCase extends ProjectWebTestCase {
+  /**
+   * Admin level user that can access all necessary pages.
+   *
+   * @var object
+   */
+  protected $admin_user;
+
+  /**
+   * List of project nodes created for testing.
+   *
+   * @var array
+   */
+  protected $projects = array();
+
+  /**
+   * List of release nodes created for testing.
+   *
+   * @var array
+   */
+  protected $releases = array();
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Project suite setup',
+      'description' => 'Setup functionality similar to Drupal.org for testing functionaltiy of the Project suite.',
+      'group' => 'Project'
+    );
+  }
+
+  function setUp() {
+    parent::setUp(
+      'taxonomy',
+      'project',
+      'project_issue',
+      'project_release',
+      'views',
+      'comment_upload',
+      'upload'
+    );
+
+
+    // Create administrator user which can access all necessary pages.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'access projects',
+      'administer projects',
+      'maintain projects',
+      'access project issues',
+      'create project issues',
+      'administer content types',
+      'upload files',
+      'upload files to comments',
+      'view uploaded files',
+      'view files uploaded to comments',
+      'administer site configuration',
+      'administer taxonomy',
+    ));
+
+    // Temporarily set vocabulary to remove notices during login.
+    _project_get_vid();
+    variable_set('project_release_api_vocabulary', 1);
+
+    // Login and setup environment.
+    $this->drupalLogin($this->admin_user);
+
+    $this->setUpTaxonomy();
+    $this->setUpProject();
+  }
+
+  /**
+   * Create project and release taxonomy.
+   */
+  protected function setUpTaxonomy() {
+    // Project types
+    $vid = _project_get_vid();
+    $this->setUpTaxonomyTerms($vid, array('Drupal project', 'Modules'));
+
+    // Release type.
+    $edit = array(
+      'name' => t('Release type'),
+      'multiple' => 1,
+      'hierarchy' => 1,
+      'relations' => 0,
+      'module' => 'project',
+      'nodes' => array('project_release' => 1),
+    );
+    taxonomy_save_vocabulary($edit);
+    $vid = $edit['vid'];
+
+    $this->setUpTaxonomyTerms($vid, array('Bug fixes', 'New features', 'Security release'));
+
+    // Core compatibility.
+    $edit = array(
+      'name' => t('Core compatibility'),
+      'multiple' => 1,
+      'hierarchy' => 1,
+      'relations' => 0,
+      'required' => 1,
+      'module' => 'project_release',
+      'nodes' => array('project_release' => 1),
+    );
+    taxonomy_save_vocabulary($edit);
+    $vid = $edit['vid'];
+    
+    // Set the variable to ensure that _project_release_get_api_vid() works.
+    variable_set('project_release_api_vocabulary', $vid);
+
+    $this->setUpTaxonomyTerms($vid, array('5.x', '6.x', '7.x', '8.x'));
+  }
+
+  /**
+   * Create taxonomy terms for given vocabulary ID.
+   *
+   * @param integer $vid Vocabulary ID.
+   * @param array $terms List of terms to add to vocabulary.
+   */
+  protected function setUpTaxonomyTerms($vid, array $terms) {
+    // Visit taxonomy page ahead of time to remove all get requests from loop.
+    $this->drupalGet('admin/content/taxonomy/' . $vid . '/add/term');
+
+    foreach ($terms as $term) {
+      $edit = array(
+        'name' => $term,
+      );
+      $this->drupalPost(NULL, $edit, t('Save'));
+    }
+  }
+
+  /**
+   * Setup project related information and create dummy projects/releases.
+   *
+   * Projects:
+   *   - Drupal: 7.x-dev
+   *   - Foo: 7.x-1.x-dev
+   *   - Bar: 7.x-1.x-dev
+   */
+  protected function setUpProject() {
+    // Set project settings, required for auto-followups to function.
+    $edit = array(
+      'project_issue_followup_user' => $this->admin_user->name,
+    );
+    $this->drupalPost('admin/project/project-issue-settings', $edit, t('Save configuration'));
+    $this->assertText(t('The configuration options have been saved.'));
+
+    // Set project release to work with 6.x and 7.x compatibility terms and use
+    // the drupal.org style version format.
+    $edit = array(
+      'project_release_default_version_format' => '!api#major%patch#extra',
+      'project_release_active_compatibility_tids[7]' => TRUE, // 6.x.
+      'project_release_active_compatibility_tids[8]' => TRUE, // 7.x.
+    );
+    $this->drupalPost('admin/project/project-release-settings', $edit, t('Save configuration'));
+    $this->assertText(t('The configuration options have been saved.'));
+
+    // Enable attachments on project issues.
+    $edit = array(
+      'upload' => 1,
+      'comment_preview' => 0, // Optional.
+      'comment_form_location' => 1, // Display below post or comments.
+    );
+    $this->drupalPost('admin/content/node-type/project-issue', $edit, t('Save content type'));
+    $this->assertRaw(t('The content type %type has been added.', array('%type' => 'Issue')));
+
+    // Allow uploading of .patch and .diff files.
+    $edit = array(
+      'upload_extensions_default' => 'txt patch diff',
+    );
+    $this->drupalPost('admin/settings/uploads', $edit, t('Save configuration'));
+    $this->assertText(t('The configuration options have been saved.'));
+
+    // Setup Drupal core and contrib projects.
+    foreach (array('drupal', 'foo', 'bar') as $project) {
+      // Drupal core must be treated differently.
+      $core = ($project == 'drupal') ? TRUE : FALSE;
+
+      // Create project and load project node for later use.
+      $edit = array(
+        'project_type' => $core ? 1 : 2,
+        'title' => ucfirst($project),
+        'project[uri]' => $project,
+        'body' => $this->randomString(64),
+      );
+      $this->projects[$project] = $this->createProject($edit);
+    }
+
+    foreach ($this->projects as $project) {
+      $core = ($project->title == 'Drupal') ? TRUE : FALSE;
+      // Drupal core requires a special version format string.
+      if ($core) {
+        $edit = array(
+          'version_format' => '!major%minor%patch#extra',
+        );
+        $this->drupalPost('node/' . $project->nid . '/edit/releases', $edit, t('Save'));
+      }
+
+      // Create 7.x release for project.
+      $edit = array(
+        'taxonomy[3][]' => 8, // 7.x.
+        'project_release[version_major]' => $core ? '7' : '1',
+        'project_release[version_patch]' => 'x',
+        'project_release[version_extra]' => 'dev',
+        'body' => $this->randomString(64),
+      );
+      $this->drupalPost('node/add/project-release/' . $project->nid, $edit, t('Save'));
+
+      $this->releases[$project->title] = node_load(array('title' => $project->title . ' 7.x' . ($core ? '' : ' -1.x') . '-dev'));
+    }
+  }
+}
