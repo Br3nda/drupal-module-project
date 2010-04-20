@@ -1,5 +1,5 @@
 <?php
-// $Id: project.test,v 1.2 2010/04/20 09:06:10 dww Exp $
+// $Id: project.test,v 1.3 2010/04/20 18:25:18 dww Exp $
 
 class ProjectWebTestCase extends DrupalWebTestCase {
   /**
@@ -37,7 +37,7 @@ class ProjectWebTestCase extends DrupalWebTestCase {
     $this->drupalPost('node/add/project-project', $edit, t('Save'));
     $this->assertRaw(t('!post %title has been created.', array('!post' => 'Project', '%title' => $edit["title"])), t('Project created.'));
 
-    return node_load(array('title' => $edit['title']));
+    return $this->drupalGetNodeByTitle($edit['title']);
   }
 }
 
@@ -306,7 +306,7 @@ class ProjectDrupalOrgWebTestCase extends ProjectWebTestCase {
       );
       $this->drupalPost('node/add/project-release/' . $project->nid, $edit, t('Save'));
 
-      $this->releases[$project->title] = node_load(array('title' => $project->title . ' 7.x' . ($core ? '' : ' -1.x') . '-dev'));
+      $this->releases[$project->title] = $this->drupalGetNodeByTitle($project->title . ' 7.x' . ($core ? '' : ' -1.x') . '-dev');
     }
   }
 }
