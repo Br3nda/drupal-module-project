@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.64 2010/04/17 00:16:48 dww Exp $
+// $Id: package-release-nodes.php,v 1.65 2010/04/22 22:12:23 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -494,7 +494,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         // Basic sanity check for the format of the attribute. The CVS checkout
         // attempt of core will handle the rest of the validation (ie, it will
         // fail if a non-existant tag is specified.
-        if (!preg_match("/^(\d+)\.(\d+)$/", $info['core'], $matches)) {
+        if (!preg_match("/^(\d+)\.(\d+)(-[a-z0-9]+)?$/", $info['core'], $matches)) {
           wd_err("ERROR: %profile specified an invalid 'core' attribute -- both API version and release are required.", array('%profile' => $release_file_id), $release_node_view_link);
           return FALSE;
         }
