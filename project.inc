@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.147 2009/11/25 16:38:15 dww Exp $
+// $Id: project.inc,v 1.148 2010/04/22 06:10:24 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_form().
@@ -79,15 +79,28 @@ function project_project_form($node, $form_state) {
       '#required' => TRUE,
     );
     $select_size = max(5, 2*count($top_level));
-    foreach ($options as $tid => $values) {
-      $form['project_taxonomy']["tid_$tid"] = array(
-        '#title' => t('!type categories', array('!type' => $top_level[$tid])),
-        '#type' => 'select',
-        '#multiple' => TRUE,
-        '#options' => $values,
-        '#default_value' => $current_options,
-        '#attributes' => array('size' => min($select_size, count($values))),
-      );
+    foreach (array_keys($top_level) as $tid) {
+      if (isset($options[$tid])) {
+        $values = $options[$tid];
+        $form['project_taxonomy']["tid_$tid"] = array(
+          '#title' => t('@type categories', array('@type' => $top_level[$tid])),
+          '#type' => 'select',
+          '#multiple' => TRUE,
+          '#options' => $values,
+          '#default_value' => $current_options,
+          '#attributes' => array('size' => min($select_size, count($values))),
+        );
+      }
+      else {
+        // provide a div for all top-level terms so that outside elements
+        // (vocabularies) can be shifted into the project taxonomy fieldset
+        // in the same paradigm as the modules sub-terms
+        $form['project_taxonomy']["tid_$tid"] = array(
+          '#type' => 'item',
+          '#value' => '',
+          '#id' => 'edit-tid-' . $tid,
+        );
+      }
     }
   }
 
@@ -255,25 +268,6 @@ function project_project_validate(&$node) {
       form_set_error("project][$uri", t('The %field field is not a valid URL.', array('%field' => $name)));
     }
   }
-
-  // Validate the project-specific sub-categories, if any...
-  if (project_use_taxonomy() && isset($node->project_type)) {
-    $tree = taxonomy_get_tree(_project_get_vid());
-    $top_level = array();
-    foreach ($tree as $i => $term) {
-      if ($term->parents[0] == 0) {
-        $top_level[$term->tid] = $term->name;
-      }
-    }
-    foreach ($top_level as $tid => $name) {
-      if ($node->project_type != $tid) {
-        $tid_field = 'tid_' . $tid;
-        if (!empty($node->$tid_field)) {
-          form_set_error($tid, t('Project type %project_type was selected, you can not use values from %invalid_type categories', array('%project_type' => $top_level[$node->project_type], '%invalid_type' => $top_level[$tid])));
-        }
-      }
-    }
-  }
 }
 
 function project_project_set_breadcrumb($node = NULL, $extra = NULL) {
@@ -381,6 +375,16 @@ function project_project_view($node, $teaser = false, $page = false) {
 function project_project_nodeapi(&$node, $op, $arg) {
   $language = isset($node->language) ? $node->language : '';
   switch ($op) {
+    case 'presave':
+      // Remove terms from vocabularies that have associations for other project_types.
+      foreach ($node->taxonomy as $vid => $terms) {
+        $associated = variable_get('project_type_associated_tid_' . $vid, FALSE);
+        if ($associated && $associated != $node->project_type) {
+          unset($node->taxonomy[$vid]);
+        }
+      }
+      break;
+
     case 'insert':
       _project_save_taxonomy($node);
       if (module_exists('path') && variable_get('project_enable_alias', TRUE)) {

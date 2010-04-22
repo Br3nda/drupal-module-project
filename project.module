@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.356 2010/01/30 02:43:23 dww Exp $
+// $Id: project.module,v 1.357 2010/04/22 06:10:24 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_init().
@@ -310,9 +310,6 @@ function project_find_alias($query, $table) {
 
 /**
  * Callback for the main settings page.
- *
- * @TODO:  This function is probably one we can delete, since there are no settings
- * to be set anymore.
  */
 function project_settings_form() {
   $form = array();
@@ -331,6 +328,25 @@ function project_settings_form() {
       '#value' => t('If you enable the Path module from Drupal core, you can control if the Project module will automatically generate path aliases (eg. /project/&lt;shortname&gt;/) for each project.')
     );
     variable_set('project_enable_alias', FALSE);
+  }
+
+  $vocabs = taxonomy_get_vocabularies('project_project');
+  $tree = taxonomy_get_tree(_project_get_vid(), 0, -1, 1);
+  $top_level = array(t('- None -'));
+  foreach ($tree as $term) {
+    $top_level[$term->tid] = $term->name;
+  }
+  foreach ($vocabs as $vid => $vocab) {
+    // Skip freetagging vocabularies.
+    if (!$vocab->tags) {
+      $form['project_type_associated_tid_' . $vid] = array(
+        '#title' => t('Associated Project type taxonomy term for @vocab', array('@vocab' => $vocab->name)),
+        '#type' => 'select',
+        '#options' => $top_level,
+        '#default_value' => variable_get('project_type_associated_tid_' . $vid, NULL),
+        '#description' => t('If this vocabulary is specific to a project type, set the term here to allow Project to automatically show and hide the form as necessary.'),
+      );
+    }
   }
 
   return system_settings_form($form);
@@ -406,8 +422,11 @@ function project_term_path($term) {
  * Implementation of hook_taxonomy().
  */
 function project_taxonomy($op, $type, $array = NULL) {
-  if ($op == 'delete' && $type == 'vocabulary' && $array['vid'] == _project_get_vid())  {
-    variable_del('project_vocabulary');
+  if ($op == 'delete' && $type == 'vocabulary') {
+    if ($array['vid'] == _project_get_vid())  {
+      variable_del('project_vocabulary');
+    }
+    variable_del('project_type_associated_tid_' . $array['vid']);
   }
 }
 
@@ -568,14 +587,29 @@ function project_check_admin_access($project, $cvs_access = NULL) {
 function project_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     case 'project_project_node_form':
-      $vid = _project_get_vid();
-      if (isset($form['taxonomy'][$vid])) {
-        unset($form['taxonomy'][$vid]);
+      // Totally redo the form for the project vocabulary.
+      // Use the top level terms as the project types (which get their own radio)
+      // Use the subterms as a separate select/multiselect that appears when the
+      // radio button is selected.
+      $project_vid = _project_get_vid();
+      if (isset($form['taxonomy'][$project_vid])) {
+        unset($form['taxonomy'][$project_vid]);
       }
-      // If there are no children elements, we should unset the entire
-      // thing so we don't end up with an empty fieldset.
-      if (!empty($form['taxonomy']) && (!element_children($form['taxonomy']))) {
-        unset($form['taxonomy']);
+      if (!empty($form['taxonomy'])) {
+        $unhandled_vocabs = 0;
+        foreach (element_children($form['taxonomy']) as $vid) {
+          $associated_tid = variable_get('project_type_associated_tid_' . $vid, FALSE);
+          if (is_numeric($vid) && $associated_tid) {
+            $form['taxonomy'][$vid]['#attributes']['class'] = 'related-tid-' . $associated_tid;
+          }
+          else {
+            $unhandled_vocabs++;
+          }
+        }
+        if ($unhandled_vocabs <= 1) {
+          // If there is at most one unhandled vocabulary, hide the fieldset.
+          unset($form['taxonomy']['#type']);
+        }
       }
   
       // In D6, FAPI changed in such a way that completely unsetting
@@ -588,7 +622,7 @@ function project_form_alter(&$form, &$form_state, $form_id) {
       if (isset($form['buttons']['preview'])) {
         $form['buttons']['preview']['#submit'][] = 'project_project_form_preview_submit';
       }
-  
+
       // If the form has an element for specifying a URL alias, we want
       // to alter it, since we're just going to automatically override
       // the specified value.
@@ -616,7 +650,10 @@ function project_form_alter(&$form, &$form_state, $form_id) {
       $project_type_vid = _project_get_vid();
       if (isset($project_type_vid) && !empty($form['vid']['#value']) && $form['vid']['#value'] == $project_type_vid) {
         $form['#validate'][] = 'project_project_type_vocabulary_validate';
-        
+      }
+      // Do the same for any vocabularies with a helpful link.
+      if (variable_get('project_type_associated_tid_' . $form['vid']['#value'], FALSE)) {
+        $form['#validate'][] = 'project_associated_vocabulary_validate';
       }
       break;
   }
@@ -1139,6 +1176,16 @@ function project_project_form_preview_submit($form, &$form_state) {
 function project_project_type_vocabulary_validate($form, &$form_state) {
   if (!empty($form_state['values']['tags'])) {
     form_set_error('tags', t('The %name vocabulary does not support tags.', array('%name' => $form_state['values']['name'])));
+  }
+}
+
+/**
+ * Present a validation error if the user tries to make a vocabulary
+ * being used for association with a project type a free tagging vocabulary.
+ */
+function project_associated_vocabulary_validate($form, &$form_state) {
+  if (!empty($form_state['values']['tags'])) {
+    form_set_error('tags', t('The %name vocabulary is currently being associated with a project type. This is incompatible with tags. Please visit the <a href="!url">settings page</a> and change this if you wish to use freetagging on this vocabulary.', array('%name' => $form_state['values']['name'], '!url' => url('admin/project/project-settings'))));
   }
 }
 

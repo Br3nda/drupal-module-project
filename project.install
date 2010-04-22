@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.27 2009/08/10 22:50:39 dww Exp $
+// $Id: project.install,v 1.28 2010/04/22 06:10:24 thehunmonkgroup Exp $
 
 function project_install() {
   // Create the database tables.
@@ -24,6 +24,8 @@ function project_uninstall() {
   foreach ($variables as $variable) {
     variable_del($variable);
   }
+  db_query("DELETE FROM {variable} WHERE name LIKE 'project_type_associated_tid_%'");
+  cache_clear_all('variables', 'cache');
 }
 
 /**
