@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.357 2010/04/22 06:10:24 thehunmonkgroup Exp $
+// $Id: project.module,v 1.358 2010/04/22 07:20:43 bdragon Exp $
 
 /**
  * Implementation of hook_init().
@@ -330,15 +330,17 @@ function project_settings_form() {
     variable_set('project_enable_alias', FALSE);
   }
 
+  $project_vid = _project_get_vid();
   $vocabs = taxonomy_get_vocabularies('project_project');
-  $tree = taxonomy_get_tree(_project_get_vid(), 0, -1, 1);
+  $tree = taxonomy_get_tree($project_vid, 0, -1, 1);
   $top_level = array(t('- None -'));
   foreach ($tree as $term) {
     $top_level[$term->tid] = $term->name;
   }
   foreach ($vocabs as $vid => $vocab) {
-    // Skip freetagging vocabularies.
-    if (!$vocab->tags) {
+    // Skip freetagging vocabularies, and the hard-coded project type
+    // vocabulary, since things will go crazy if you set this for itself.
+    if (!$vocab->tags && $vid != $project_vid) {
       $form['project_type_associated_tid_' . $vid] = array(
         '#title' => t('Associated Project type taxonomy term for @vocab', array('@vocab' => $vocab->name)),
         '#type' => 'select',
