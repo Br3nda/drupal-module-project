@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.148 2010/04/22 06:10:24 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.149 2010/04/23 23:23:58 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -376,11 +376,14 @@ function project_project_nodeapi(&$node, $op, $arg) {
   $language = isset($node->language) ? $node->language : '';
   switch ($op) {
     case 'presave':
-      // Remove terms from vocabularies that have associations for other project_types.
-      foreach ($node->taxonomy as $vid => $terms) {
-        $associated = variable_get('project_type_associated_tid_' . $vid, FALSE);
-        if ($associated && $associated != $node->project_type) {
-          unset($node->taxonomy[$vid]);
+      // Remove terms from vocabularies that have associations for other
+      // project types.
+      if (!empty($node->taxonomy)) {
+        foreach ($node->taxonomy as $vid => $terms) {
+          $associated = variable_get('project_type_associated_tid_' . $vid, FALSE);
+          if ($associated && $associated != $node->project_type) {
+            unset($node->taxonomy[$vid]);
+          }
         }
       }
       break;
