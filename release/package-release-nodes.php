@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.65 2010/04/22 22:12:23 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.66 2010/04/24 02:16:23 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -260,6 +260,7 @@ function package_releases($type, $project_id = 0) {
     $project_short_name = escapeshellcmd($project_short_name);
     $version = escapeshellcmd($version);
     $tag = escapeshellcmd($tag);
+    $release_dir = '';
     db_query("DELETE FROM {project_release_package_errors} WHERE nid = %d", $nid);
     if ($release->rid == DRUPAL_CORE_REPOSITORY_ID) {
       $built = package_release_core($type, $nid, $project_short_name, $version, $tag);
@@ -273,6 +274,10 @@ function package_releases($type, $project_id = 0) {
     if ($built) {
       $num_built++;
       $project_nids[$pid] = TRUE;
+    }
+    // Perform cleanup of failed builds.
+    else {
+      cleanup_failed_build($type, $nid, $project_short_name, $version, $tag, $release_dir);
     }
     $num_considered++;
     if (count($wd_err_msg)) {
@@ -1230,4 +1235,47 @@ function core_make_file($core) {
   $output .= "projects[drupal] = $core\n";
 
   return $output;
+}
+
+/**
+ * Clean up any junk from failed builds.
+ *
+ * @param $type
+ *   The type of release, 'branch' or 'tag'.
+ * @param $nid
+ *   The node ID of the release.
+ * @param $project_short_name
+ *   {project_projects}.uri
+ * @param $version
+ *   Version string for the release.
+ * @param $tag
+ *   CVS tag for the release.
+ * @param $release_dir
+ *   The CVS directory path for the project (contrib only).
+ */
+function cleanup_failed_build($type, $nid, $project_short_name, $version, $tag, $release_dir) {
+  global $dest_root, $dest_rel;
+
+  $release_file_base_name = $dest_root . '/' . $dest_rel . '/' . $project_short_name . '-' . $version;
+  $base_tarball = $release_file_base_name . '.tar.gz';
+
+  // Remove the tarball generated from the CVS checkout.
+  if (file_exists($base_tarball)) {
+    unlink($base_tarball);
+  }
+
+  // For profiles, clean up any other profile-specific tarballs.
+  if (!empty($release_dir)) {
+    $parts = split('/', $release_dir);
+    // modules, themes, theme-engines, profiles, or translations
+    $contrib_type = $parts[1];
+    if ($contrib_type == 'profiles') {
+      foreach (array('no-core', 'core') as $type) {
+        $profile_tarball = "$release_file_base_name-$type.tar.gz";
+        if (file_exists($profile_tarball)) {
+          unlink($profile_tarball);
+        }
+      }
+    }
+  }
 }
