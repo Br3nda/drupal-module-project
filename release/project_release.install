@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.30 2010/01/30 02:33:40 dww Exp $
+// $Id: project_release.install,v 1.31 2010/06/07 22:45:39 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -7,6 +7,13 @@ function project_release_install() {
 
   // Make this module heavier than the default module weight.
   db_query("UPDATE {system} SET weight = %d WHERE name = 'project_release'", 2);
+}
+
+/**
+ * Implement hook_enable().
+ */
+function project_release_enable() {
+  project_release_add_missing_projects();
 }
 
 /**
@@ -345,6 +352,17 @@ function project_release_schema() {
     ),
   );
   return $schema;
+}
+
+/**
+ * Check for existing project nodes that do not have an entry in the
+ * {project_release_projects} table, and add them.
+ */
+function project_release_add_missing_projects() {
+  $projects = db_query("SELECT n.nid FROM {node} n LEFT JOIN {project_release_projects} prp ON n.nid = prp.nid WHERE n.type = 'project_project' AND prp.nid IS NULL");
+  while ($project = db_fetch_object($projects)) {
+    db_query("INSERT INTO {project_release_projects} (nid) VALUES (%d)", $project->nid);
+  }
 }
 
 /**

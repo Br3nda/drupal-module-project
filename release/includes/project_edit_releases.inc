@@ -1,5 +1,5 @@
 <?php
-// $Id: project_edit_releases.inc,v 1.3 2010/01/17 01:03:58 dww Exp $
+// $Id: project_edit_releases.inc,v 1.4 2010/06/07 22:45:39 dww Exp $
 
 /**
  * @file
@@ -261,6 +261,11 @@ function project_release_project_edit_form_validate($form, &$form_state) {
 function project_release_project_edit_form_submit($form, &$form_state) {
   $nid = $form_state['values']['nid'];
   db_query("UPDATE {project_release_projects} SET releases = %d, version_format = '%s' WHERE nid = %d", $form_state['values']['releases'], $form_state['values']['version_format'], $nid);
+  if (!db_affected_rows()) {
+    // It's possible there's no record in {project_release_projects} if this
+    // particular project was created before project_issue.module was enabled.
+    db_query("INSERT INTO {project_release_projects} (nid, releases, version_format) VALUES (%d, %d, '%s')", $nid, $form_values['releases'], $form_values['version_format']);
+  }
 
   if (!empty($form_state['values']['api'])) {
     foreach ($form_state['values']['api'] as $tid => $values) {
