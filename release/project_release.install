@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.16.2.4 2009/11/26 15:15:57 dww Exp $
+// $Id: project_release.install,v 1.16.2.5 2010/06/07 22:45:51 dww Exp $
 
 function project_release_install() {
   switch ($GLOBALS['db_type']) {
@@ -117,6 +117,13 @@ function project_release_install() {
 }
 
 /**
+ * Implement hook_enable().
+ */
+function project_release_enable() {
+  project_release_add_missing_projects();
+}
+
+/**
  * Implementation of hook_uninstall().
  */
 function project_release_uninstall() {
@@ -145,6 +152,17 @@ function project_release_uninstall() {
   );
   foreach ($variables as $variable) {
     variable_del($variable);
+  }
+}
+
+/**
+ * Check for existing project nodes that do not have an entry in the
+ * {project_release_projects} table, and add them.
+ */
+function project_release_add_missing_projects() {
+  $projects = db_query("SELECT n.nid FROM {node} n LEFT JOIN {project_release_projects} prp ON n.nid = prp.nid WHERE n.type = 'project_project' AND prp.nid IS NULL");
+  while ($project = db_fetch_object($projects)) {
+    db_query("INSERT INTO {project_release_projects} (nid) VALUES (%d)", $project->nid);
   }
 }
 

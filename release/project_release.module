@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.66.2.22 2010/01/29 23:41:25 dww Exp $
+// $Id: project_release.module,v 1.66.2.23 2010/06/07 22:45:51 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define ('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -1444,6 +1444,11 @@ function project_release_project_edit_form_validate($form_id, $form_values, $for
 function project_release_project_edit_form_submit($form_id, $form_values) {
   $nid = $form_values['nid'];
   db_query("UPDATE {project_release_projects} SET releases = %d, version_format = '%s' WHERE nid = %d", $form_values['releases'], $form_values['version_format'], $nid);
+  if (!db_affected_rows()) {
+    // It's possible there's no record in {project_release_projects} if this
+    // particular project was created before project_issue.module was enabled.
+    db_query("INSERT INTO {project_release_projects} (nid, releases, version_format) VALUES (%d, %d, '%s')", $nid, $form_values['releases'], $form_values['version_format']);
+  }
 
   if (!empty($form_values['api'])) {
     foreach ($form_values['api'] as $tid => $values) {
