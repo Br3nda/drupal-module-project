@@ -1,5 +1,5 @@
 <?php
-// $Id: project-views-view-row-project-fields.tpl.php,v 1.1 2009/01/12 20:34:07 dww Exp $
+// $Id: project-views-view-row-project-fields.tpl.php,v 1.2 2010/07/08 23:15:18 dww Exp $
 /**
  * @file project-views-view-row-project-fields.tpl.php
  * View template to display available project fields in a row.
