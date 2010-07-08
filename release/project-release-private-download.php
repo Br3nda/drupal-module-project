@@ -1,6 +1,6 @@
 <?php
 
-// $Id: project-release-private-download.php,v 1.3 2009/08/07 05:28:23 dww Exp $
+// $Id: project-release-private-download.php,v 1.4 2010/07/08 23:16:17 dww Exp $
 
 /**
  * @file
@@ -52,7 +52,7 @@
  *   XSendFileAllowAbove on
  * </IfModule>
  * # End .htaccess
- * 
+ *
  * 5. Configure the FILE_ROOT, DRUPAL_ROOT and SITE_NAME constants below.
  * - FILE_ROOT should point to whatever you set $dest_root in step 1.
  * - DRUPAL_ROOT should point to the web root for your site.
@@ -94,7 +94,7 @@ define('USE_XSENDFILE', FALSE);
 
 /*
  * --------------------------------------------------
- * Real work begins, nothing to configure below this. 
+ * Real work begins, nothing to configure below this.
  * --------------------------------------------------
  */
 
@@ -155,9 +155,9 @@ $file_mtime = $stat[9];
 header('Expires: 0');
 header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
 header('Last-Modified: '. gmdate('D, d M Y H:i:s', $file_mtime) .' GMT');
-header('Content-Type: application/octet-stream'); 
+header('Content-Type: application/octet-stream');
 header('Content-Description: File Transfer');
-header('Content-Disposition: attachment; filename="' . basename($path) . '"'); 
+header('Content-Disposition: attachment; filename="' . basename($path) . '"');
 header('Content-Length: ' . $file_size);
 
 if (USE_XSENDFILE) {

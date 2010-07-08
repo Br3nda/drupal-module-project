@@ -1,5 +1,5 @@
 <?php
-// $Id: project_legacy_paths.module,v 1.1 2009/01/12 22:57:50 dww Exp $
+// $Id: project_legacy_paths.module,v 1.2 2010/07/08 23:16:17 dww Exp $
 
 /**
  * @file Redirect project browsing paths from the Drupal 5 form to the Drupal 6 form.
@@ -85,7 +85,7 @@ function project_legacy_paths_page_callback($top_level_term, $sort_method = NULL
     return MENU_NOT_FOUND;
   }
 
-  // Validate $category_tid. 
+  // Validate $category_tid.
   if (isset($category_tid)) {
     if (!is_numeric($category_tid)) {
       return MENU_NOT_FOUND;

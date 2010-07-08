@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.358 2010/04/22 07:20:43 bdragon Exp $
+// $Id: project.module,v 1.359 2010/07/08 23:16:17 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -103,7 +103,7 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
       case 'project_search':
         if (user_access('search content')) {
           $block = array(
-            'subject' => t('Search projects'), 
+            'subject' => t('Search projects'),
             'content' => drupal_get_form('project_search_block_form', 'project_project'),
           );
         }
@@ -498,7 +498,7 @@ function project_menu() {
     'page callback' => 'node_page',
     'page arguments' => array(1),
     'access callback' => 'node_access',
-    'access arguments' => array('update', 1), 
+    'access arguments' => array('update', 1),
     'weight' => -5, 'type' => MENU_DEFAULT_LOCAL_TASK,
   );
   return $items;

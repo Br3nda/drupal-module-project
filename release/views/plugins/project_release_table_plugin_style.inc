@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release_table_plugin_style.inc,v 1.1 2009/12/01 01:02:02 dww Exp $
+// $Id: project_release_table_plugin_style.inc,v 1.2 2010/07/08 23:16:17 dww Exp $
 
 /**
  * @file
@@ -11,6 +11,6 @@
  *
  */
 
-class project_release_table_plugin_style extends views_plugin_style_table { 
+class project_release_table_plugin_style extends views_plugin_style_table {
 }
 

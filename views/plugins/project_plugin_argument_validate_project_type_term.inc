@@ -35,7 +35,7 @@ class project_plugin_argument_validate_project_type_term extends views_plugin_ar
       '#dependency' => array('edit-options-validate-type' => array($this->id)),
     );
 
-    // @TODO:  Project term actions fieldset/grouping?    
+    // @TODO:  Project term actions fieldset/grouping?
 
     $project_term_actions = array(
       'pass' => t('Pass validation'),

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.152 2010/01/30 02:43:24 dww Exp $
+// $Id: project_release.module,v 1.153 2010/07/08 23:16:17 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -371,7 +371,7 @@ function project_release_check_supported_versions($pid, $tid, $major, $delete) {
  * @see project_release_release_nodeapi()
  */
 function project_release_compute_update_status($pid, $api_tid, $major) {
-  $latest_release = $recommended_release = $latest_security_release = 0;  
+  $latest_release = $recommended_release = $latest_security_release = 0;
   $nid_update_map = array();
   $query = project_release_query_releases_by_branch($pid, $api_tid, $major);
   while ($release = db_fetch_object($query)) {
@@ -1033,7 +1033,7 @@ function project_release_get_current_recommended($project_nid, $api_tid, $recomm
  * with the highest version string that doesn't have a "version_extra" field
  * (e.g. "beta1"). If all releases on the given branch have "extra", then the
  * recommended release will be the same as the latest release.
- * 
+ *
  * @param $project_nid
  *   The node ID of the project to find the latest and recommended releases of.
  * @param $api_tid
@@ -2106,7 +2106,7 @@ function theme_project_release_update_status_icon($status) {
  */
 function project_release_preprocess_views_view_table($variables) {
   $view = $variables['view'];
-  if ($view->plugin_name == 'project_release_table') {  
+  if ($view->plugin_name == 'project_release_table') {
     // TODO: this is a hack, we want something more flexible.
     $needs_status_column = FALSE;
     foreach ($view->result as $num => $result) {

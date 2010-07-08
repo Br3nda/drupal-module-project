@@ -1,5 +1,5 @@
 <?php
-// $Id: project-views-view-row-project-node.tpl.php,v 1.1 2009/01/12 20:34:07 dww Exp $
+// $Id: project-views-view-row-project-node.tpl.php,v 1.2 2010/07/08 23:16:17 dww Exp $
 /**
  * @file project-views-view-row-project-node.tpl.php
  * Default view template to display a single project node.
@@ -26,7 +26,7 @@
  */
 ?>
 <?php if (!empty($project->new_date)) { ?>
-  <h3><?php print format_date($project->new_date, 'custom', 'F j, Y'); ?></h3>  
+  <h3><?php print format_date($project->new_date, 'custom', 'F j, Y'); ?></h3>
 <?php } ?>
 
 <div class="<?php print $project->class; ?>">

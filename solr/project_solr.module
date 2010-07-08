@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.62 2009/09/22 21:52:30 dww Exp $
+// $Id: project_solr.module,v 1.63 2010/07/08 23:16:17 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -521,7 +521,7 @@ function project_sort_freetext_submit($form, &$form_state) {
 //----------------------------------------
 
 /**
- * Perform the business logic to 
+ * Perform the business logic to
  */
 function project_solr_render_search_result($result) {
   $project = node_load($result->nid);

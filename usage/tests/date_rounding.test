@@ -1,5 +1,5 @@
 <?php
-// $Id: date_rounding.test,v 1.1 2007/09/14 16:17:55 dww Exp $
+// $Id: date_rounding.test,v 1.2 2010/07/08 23:16:17 dww Exp $
 
 class ProjectUsageGetDateTests extends DrupalTestCase {
   function get_info() {
@@ -14,9 +14,9 @@ class ProjectUsageGetDateTests extends DrupalTestCase {
     $time = time();
     $parts = project_usage_gmgetdate($time);
     
-    // PHP's getdate() takes the timezone into account. project_usage_gmgetdate() 
+    // PHP's getdate() takes the timezone into account. project_usage_gmgetdate()
     // should subtract the timezone from the timestamp to cancel it out. We
-    // can compare the input to the timestamp in the returned array and make 
+    // can compare the input to the timestamp in the returned array and make
     // sure they differ by the timezone offset.
     $offset = date('Z', $time);
     $expected = $time - $offset;
@@ -31,9 +31,9 @@ class ProjectUsageGetDateTests extends DrupalTestCase {
     $time = time();
     $parts = project_usage_gmgetdate();
     
-    // PHP's getdate() takes the timezone into account. project_usage_gmgetdate() 
+    // PHP's getdate() takes the timezone into account. project_usage_gmgetdate()
     // should subtract the timezone from the timestamp to cancel it out. We
-    // can compare the input to the timestamp in the returned array and make 
+    // can compare the input to the timestamp in the returned array and make
     // sure they differ by the timezone offset.
     $offset = date('Z', $time);
     $expected = $time - $offset;
@@ -64,7 +64,7 @@ class ProjectUsageUsageDailyTimestampTests extends DrupalTestCase {
     $actual = project_usage_daily_timestamp();
 
     $this->assertEqual($expected, $actual, $this->format_date($time) .' should round to '. $this->format_date($expected) .' got '. $this->format_date($actual));
-  }  
+  }
   function test_timestamp_param() {
     $time = 1189700682;
     $expected = 1189641600;

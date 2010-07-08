@@ -1,4 +1,4 @@
-/* $Id: project.js,v 1.5 2010/04/22 20:55:55 bdragon Exp $ */
+/* $Id: project.js,v 1.6 2010/07/08 23:16:17 dww Exp $ */
 
 Drupal.behaviors.projectAuto = function (context) {
   // The initially selected term, if any.
@@ -23,7 +23,7 @@ Drupal.projectMoveElement = function(tid) {
   // project taxonomy fieldset (similar to module sub-terms)
   $('.related-tid-' + tid).each(function() {
     $('#edit-tid-' + tid + '-wrapper').append($(this).parent().remove());
-  }); 
+  });
 }
 
 Drupal.projectSetTaxonomy = function (tid) {

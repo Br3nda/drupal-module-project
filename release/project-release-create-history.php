@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: project-release-create-history.php,v 1.29 2010/01/17 00:00:11 dww Exp $
+// $Id: project-release-create-history.php,v 1.30 2010/07/08 23:16:17 dww Exp $
 
 /**
  * @file
@@ -511,7 +511,7 @@ function project_list_generate() {
       $xml_api_terms = '';
       while ($api_term = db_fetch_object($term_query)) {
         $xml_api_terms .= '   <api_version>'. check_plain($api_term->term_name) ."</api_version>\n";
-      }      
+      }
       if (!empty($xml_api_terms)) {
         $xml .= "  <api_versions>\n". $xml_api_terms ."  </api_versions>\n";
       }
@@ -532,7 +532,7 @@ function project_list_generate() {
 
 /**
  * Wrapper function for watchdog() to log notice messages.
- * 
+ *
  * @param $notice
  *   An associative array with 'message' and 'args' keys for the notice message
  *   and any arguments respectively.
