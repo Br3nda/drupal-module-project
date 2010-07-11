@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.66 2010/04/24 02:16:23 thehunmonkgroup Exp $
+// $Id: package-release-nodes.php,v 1.67 2010/07/11 03:00:33 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -271,12 +271,12 @@ function package_releases($type, $project_id = 0) {
     }
     chdir($drupal_root);
 
-    if ($built) {
+    if ($built == 'success') {
       $num_built++;
       $project_nids[$pid] = TRUE;
     }
     // Perform cleanup of failed builds.
-    else {
+    else if ($built == 'error') {
       cleanup_failed_build($type, $nid, $project_short_name, $version, $tag, $release_dir);
     }
     $num_considered++;
@@ -317,7 +317,7 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
   global $cvs, $tar, $gzip, $rm;
 
   if (!drupal_chdir($tmp_dir)) {
-    return false;
+    return 'error';
   }
 
   $release_file_id = $project_short_name . '-' . $version;
@@ -333,7 +333,7 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
 
   // Actually generate the tarball:
   if (!drupal_exec("$cvs -q export -r $tag -d $release_file_id drupal")) {
-    return false;
+    return 'error';
   }
 
   $info_files = array();
@@ -342,19 +342,19 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
   if ($type == 'branch' && $tgz_exists && filectime($full_dest_tgz) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    return false;
+    return 'no-op';
   }
 
   // Update any .info files with packaging metadata.
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $project_short_name, $version)) {
       wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
-      return false;
+      return 'error';
     }
   }
 
   if (!drupal_exec("$tar -c --file=- $release_file_id | $gzip -9 --no-name > $full_dest_tgz")) {
-    return false;
+    return 'error';
   }
   $files[] = $file_path_tgz;
 
@@ -370,7 +370,7 @@ function package_release_core($type, $nid, $project_short_name, $version, $tag) 
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $tmp_dir/$release_file_id");
-  return true;
+  return 'success';
 }
 
 function package_release_contrib($type, $nid, $project_short_name, $version, $tag, $release_dir) {
@@ -405,16 +405,16 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
 
   // Make a fresh build directory and move inside it.
   if (!mkdir($project_build_root) || !drupal_chdir($project_build_root)) {
-    return false;
+    return 'error';
   }
 
   // Checkout this release from CVS, and see if we need to rebuild it
   if (!drupal_exec("$cvs -q export -r $tag -d $project_short_name $cvs_export_dir")) {
-    return false;
+    return 'error';
   }
   if (!is_dir("$project_build_root/$project_short_name")) {
     wd_err("ERROR: %dir does not exist after cvs export -r %tag -d %dir %cvs_export_dir", array('%dir' => $project_short_name, '%rev' =>  $tag, '%cvs_export_dir' => $cvs_export_dir), $release_node_view_link);
-    return false;
+    return 'error';
   }
 
   $info_files = array();
@@ -422,20 +422,20 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
   if ($type == 'branch' && $tgz_exists && filectime($full_dest_tgz) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
-    return false;
+    return 'no-op';
   }
 
   // Update any .info files with packaging metadata.
   foreach ($info_files as $file) {
     if (!fix_info_file_version($file, $project_short_name, $version)) {
       wd_err("ERROR: Failed to update version in %file, aborting packaging", array('%file' => $file), $release_node_view_link);
-      return false;
+      return 'error';
     }
   }
 
   // Link not copy, since we want to preserve the date...
   if (!drupal_exec("$ln -sf $license $project_short_name/LICENSE.txt")) {
-    return false;
+    return 'error';
   }
   // Do we want a subdirectory in the tarball or not?
   $tarball_needs_subdir = TRUE;
@@ -444,13 +444,13 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
     if (intval($version) > 5) {
       if (!($to_tar = package_release_contrib_d6_translation($project_short_name, $version, $release_node_view_link))) {
         // Return on error.
-        return FALSE;
+        return 'error';
       }
       $tarball_needs_subdir = FALSE;
     }
     elseif (!($to_tar = package_release_contrib_pre_d6_translation($project_short_name, $version, $release_node_view_link))) {
       // Return on error.
-      return FALSE;
+      return 'error';
     }
   }
   else {
@@ -460,13 +460,13 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
 
   if (!$tarball_needs_subdir) {
     if (!drupal_chdir($project_short_name)) {
-      return false;
+      return 'error';
     }
   }
 
   // 'h' is for dereference, we want to include the files, not the links
   if (!drupal_exec("$tar -ch --file=- $to_tar | $gzip -9 --no-name > $full_dest_tgz")) {
-    return false;
+    return 'error';
   }
   $files[] = $file_path_tgz;
 
@@ -478,7 +478,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
   if ($contrib_type == 'profiles') {
     // Move inside the profile directory.
     if (!drupal_chdir("$project_build_root/$project_short_name")) {
-      return false;
+      return 'error';
     }
 
     // In order for extended packaging to take place, the profile must have a
@@ -492,7 +492,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
       // Only proceed if a core release was found.
       if (!isset($info['core'])) {
         wd_err("ERROR: %profile does not have the required 'core' attribute.", array('%profile' => $release_file_id), $release_node_view_link);
-        return FALSE;
+        return 'error';
       }
       else {
 
@@ -501,7 +501,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         // fail if a non-existant tag is specified.
         if (!preg_match("/^(\d+)\.(\d+)(-[a-z0-9]+)?$/", $info['core'], $matches)) {
           wd_err("ERROR: %profile specified an invalid 'core' attribute -- both API version and release are required.", array('%profile' => $release_file_id), $release_node_view_link);
-          return FALSE;
+          return 'error';
         }
         else {
           // Compare the Drupal API version in the profile's version string with
@@ -512,7 +512,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
           $release_api_version = $parts[0];
           if ($profile_api_version != $release_api_version) {
             wd_err("ERROR: %profile specified an invalid 'core' attribute -- the API version must match the API version of the release.", array('%profile' => $release_file_id), $release_node_view_link);
-            return FALSE;
+            return 'error';
           }
         }
 
@@ -541,18 +541,18 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
             }
           }
           wd_err("ERROR: Build for %profile failed.", array('%profile' => $no_core_id), $release_node_view_link);
-          return FALSE;
+          return 'error';
         }
 
         // Change into the profile build directory.
         if (!drupal_chdir($project_build_root)) {
-          return FALSE;
+          return 'error';
         }
 
         // Package the no-core distribution.
         // 'h' is for dereference, we want to include the files, not the links
         if (!drupal_exec("$tar -ch --file=- $project_short_name | $gzip -9 --no-name > $no_core_full_dest")) {
-          return false;
+          return 'error';
         }
         $files[] = $no_core_file_path;
 
@@ -568,12 +568,12 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         if (!drupal_exec("$drush --include=$drush_make_dir make $core_makefile $core_build_dir")) {
           // The build failed, bail out.
           wd_err("ERROR: Build for %core failed.", array('%core' => $core_build_dir), $release_node_view_link);
-          return FALSE;
+          return 'error';
         }
 
         // Move the profile into place inside core.
         if (!rename($project_short_name, "$core_build_dir/profiles/$project_short_name")) {
-          return FALSE;
+          return 'error';
         }
 
         $core_id = "$release_file_id-core";
@@ -584,7 +584,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         // Package the core distribution.
         // 'h' is for dereference, we want to include the files, not the links
         if (!drupal_exec("$tar -ch --file=- $core_build_dir | $gzip -9 --no-name > $core_full_dest")) {
-          return FALSE;
+          return 'error';
         }
         $files[] = $core_file_path;
 
@@ -599,7 +599,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         // it manually.
         $core_tag = 'DRUPAL-'. str_replace('.', '-', $core_version);
         if (!($core_release_nid = db_result(db_query("SELECT nid FROM {project_release_nodes} WHERE tag = '%s'", $core_tag)))) {
-          return FALSE;
+          return 'error';
         }
         $package_contents[] = $core_release_nid;
 
@@ -615,7 +615,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
         }
         else {
           wd_err("ERROR: %file does not exist for %profile release.", array('%file' => $package_contents_file, '%profile' => $release_file_id), $release_node_view_link);
-          return FALSE;
+          return 'error';
         }
       }
     }
@@ -636,7 +636,7 @@ function package_release_contrib($type, $nid, $project_short_name, $version, $ta
 
   // Don't consider failure to remove this directory a build failure.
   drupal_exec("$rm -rf $project_build_root");
-  return true;
+  return 'success';
 }
 
 function package_release_contrib_pre_d6_translation($project_short_name, $version, $release_node_view_link) {
