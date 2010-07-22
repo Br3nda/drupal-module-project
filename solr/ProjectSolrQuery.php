@@ -21,6 +21,11 @@ class ProjectSolrQuery extends Solr_Base_Query {
     if (module_exists('project_release')) {
       $sorts['ds_project_latest_release'] = array('title' => t('Last release'), 'default' => 'desc');
       $sorts['ds_project_latest_activity'] = array('title' => t('Recent activity'), 'default' => 'desc');
+      $active_terms = project_release_compatibility_list();
+      foreach ($active_terms as $tid => $term_name) {
+        $sorts['ds_project_latest_release_' . $tid] = array('title' => t('Last release'), 'default' => 'desc');
+        $sorts['ds_project_latest_activity_' . $tid] = array('title' => t('Recent activity'), 'default' => 'desc');
+      }
     }
     if (module_exists('project_usage')) {
       $sorts['sis_project_release_usage'] = array('title' => t('Usage statistics'), 'default' => 'desc');

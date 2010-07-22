@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.359 2010/07/08 23:16:17 dww Exp $
+// $Id: project.module,v 1.360 2010/07/22 23:47:39 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_init().
@@ -330,28 +330,53 @@ function project_settings_form() {
     variable_set('project_enable_alias', FALSE);
   }
 
+  $vocabs = project_get_related_tids_map();
   $project_vid = _project_get_vid();
-  $vocabs = taxonomy_get_vocabularies('project_project');
   $tree = taxonomy_get_tree($project_vid, 0, -1, 1);
   $top_level = array(t('- None -'));
   foreach ($tree as $term) {
     $top_level[$term->tid] = $term->name;
   }
   foreach ($vocabs as $vid => $vocab) {
+    $form['project_type_associated_tid_' . $vid] = array(
+      '#title' => t('Associated Project type taxonomy term for @vocab', array('@vocab' => $vocab->name)),
+      '#type' => 'select',
+      '#options' => $top_level,
+      '#default_value' => variable_get('project_type_associated_tid_' . $vid, NULL),
+      '#description' => t('If this vocabulary is specific to a project type, set the term here to allow Project to automatically show and hide the form as necessary.'),
+    );
+  }
+  if (module_exists('project_solr') && module_exists('project_release')) {
+    $form['project_solr_project_release_api_tids_alias'] = array(
+      '#title' => t('Alias for the Project Release API tid for use with Solr'),
+      '#type' => 'textfield',
+      '#default_value' => variable_get('project_solr_project_release_api_tids_alias', 'drupal_core'),
+    );
+  }
+  return system_settings_form($form);
+}
+
+/**
+ * Helper function for getting vocabularies related to top-level project terms.
+ *
+ * @param $active 
+ *   Boolean. TRUE to return only vocabularies actively associated with a term.
+ *   Defaults to FALSE.
+ * @return
+ *   An array of vocabulary objects, keyed on vocabulary ID.
+ */
+function project_get_related_tids_map($active = FALSE) {
+  $related_vocabs = array();
+  $project_vid = _project_get_vid();
+  $vocabs = taxonomy_get_vocabularies('project_project');
+  foreach ($vocabs as $vid => $vocab) {
     // Skip freetagging vocabularies, and the hard-coded project type
     // vocabulary, since things will go crazy if you set this for itself.
-    if (!$vocab->tags && $vid != $project_vid) {
-      $form['project_type_associated_tid_' . $vid] = array(
-        '#title' => t('Associated Project type taxonomy term for @vocab', array('@vocab' => $vocab->name)),
-        '#type' => 'select',
-        '#options' => $top_level,
-        '#default_value' => variable_get('project_type_associated_tid_' . $vid, NULL),
-        '#description' => t('If this vocabulary is specific to a project type, set the term here to allow Project to automatically show and hide the form as necessary.'),
-      );
+    if (!$vocab->tags && $vid != $project_vid && (!$active || variable_get('project_type_associated_tid_' . $vid, NULL))) {
+      $related_vocabs[$vid] = $vocab;
     }
   }
-
-  return system_settings_form($form);
+  return $related_vocabs;
 }
 
 /**
