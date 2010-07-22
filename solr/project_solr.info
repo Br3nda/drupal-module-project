@@ -1,8 +1,8 @@
-; $Id: project_solr.info,v 1.1 2009/01/30 15:08:38 dww Exp $
+; $Id: project_solr.info,v 1.2 2010/07/22 01:00:30 thehunmonkgroup Exp $
 name = Project Solr
 description = Provides integration with ApacheSolr for facet-based project browsing
 package = Project
 dependencies[] = project
 dependencies[] = taxonomy
-;dependencies[] = apachesolr
+dependencies[] = apachesolr
 core = 6.x
