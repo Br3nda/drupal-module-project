@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.360 2010/07/22 23:47:39 thehunmonkgroup Exp $
+// $Id: project.module,v 1.361 2010/07/23 04:12:12 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_init().
@@ -1222,9 +1222,9 @@ function project_associated_vocabulary_validate($form, &$form_state) {
 function theme_project_type($term) {
   $link = l($term->name, check_url('project/'. drupal_strtolower($term->name)));
   $link = str_replace('%20', '+', $link);
-  $output = "<div>$link</div>\n";
+  $output = "<div class=\"project-type-link\">$link</div>\n";
   if ($term->description) {
-    $output .= '<p>' . filter_xss($term->description) . '</p>';
+    $output .= '<div class="project-type-description"><p>' . filter_xss($term->description) . '</p></div>';
   }
   return $output;
 }
@@ -1235,7 +1235,7 @@ function theme_project_type($term) {
 function theme_project_type_description($term) {
   $output = '';
   if ($term->description) {
-    $output .= '<p>' . filter_xss($term->description) . '</p>';
+    $output .= '<div class="project-type-description"><p>' . filter_xss($term->description) . '</p></div>';
   }
   return $output;
 }

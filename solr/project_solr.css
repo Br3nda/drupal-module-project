@@ -1,0 +1,21 @@
+/* $Id: project_solr.css,v 1.1 2010/07/23 04:12:12 thehunmonkgroup Exp $ */
+
+#project-solr-browse-projects-form {
+  margin-top: 1em;
+}
+
+#project-solr-browse-projects-form .form-item {
+  float: left;
+  padding-right: 1em;
+  margin-top: 0em;
+}
+
+#project-solr-browse-projects-form .form-submit {
+  clear: both;
+  float: left;
+  margin-bottom: 1em;
+}
+
+.project-type-description {
+  clear: both;
+}

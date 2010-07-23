@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.65 2010/07/22 23:47:39 thehunmonkgroup Exp $
+// $Id: project_solr.module,v 1.66 2010/07/23 04:12:12 thehunmonkgroup Exp $
 
 //----------------------------------------
 // Core hooks
@@ -484,6 +484,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
  * Build project browsing navigation form.
  */
 function project_solr_browse_projects_form(&$form_state, $parent_term) {
+  drupal_add_css(drupal_get_path('module', 'project_solr') .'/project_solr.css');
   $response = apachesolr_static_response_cache();
   $query = apachesolr_current_query();
 
