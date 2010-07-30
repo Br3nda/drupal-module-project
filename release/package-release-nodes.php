@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 
-// $Id: package-release-nodes.php,v 1.28.2.2 2008/10/29 00:19:52 dww Exp $
+// $Id: package-release-nodes.php,v 1.28.2.3 2010/07/30 21:13:59 thehunmonkgroup Exp $
 
 /**
  * @file
@@ -286,7 +286,7 @@ function package_release_core($nid, $uri, $version, $rev) {
   $info_files = array();
   $exclude = array('.', '..', 'LICENSE.txt');
   $youngest = file_find_youngest($id, 0, $exclude, $info_files);
-  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+  if (is_file($full_dest) && filemtime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
@@ -360,7 +360,7 @@ function package_release_contrib($nid, $uri, $version, $rev, $dir) {
 
   $info_files = array();
   $youngest = file_find_youngest($uri, 0, $exclude, $info_files);
-  if (is_file($full_dest) && filectime($full_dest) + 300 > $youngest) {
+  if (is_file($full_dest) && filemtime($full_dest) + 300 > $youngest) {
     // The existing tarball for this release is newer than the youngest
     // file in the directory, we're done.
     return false;
