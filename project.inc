@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.149 2010/04/23 23:23:58 dww Exp $
+// $Id: project.inc,v 1.150 2010/07/30 21:59:28 thehunmonkgroup Exp $
 
 /**
  * Implementation of hook_form().
@@ -138,6 +138,23 @@ function project_project_form($node, $form_state) {
     '#description' => (variable_get('project_enable_alias', TRUE)) ? t('This will be used to generate a /project/&lt;shortname&gt;/ URL for your project.') : '',
     '#required' => TRUE,
   );
+  // Updating of the uri has been disabled.
+  if (!variable_get('project_allow_uri_update', TRUE)) {
+    // For new projects, allow editing for initial submission, and warn the
+    // user that the field will not be editable afterwards.
+    if (empty($node->nid)) {
+      $form['project_node']['project']['uri']['#description'] .= ' '. t('You may not edit this value after your project has been saved.');
+    }
+    // Convert the form element to an item so it's not editable.  #value
+    // and #input need to be set explicitly so the uri value will be passed
+    // to the submit handler.
+    else {
+      $form['project_node']['project']['uri']['#type'] = 'item';
+      $form['project_node']['project']['uri']['#value'] = $node->project['uri'];
+      $form['project_node']['project']['uri']['#input'] = TRUE;
+    }
+  }
+
   $form['project_node']['body_field'] = node_body_field($node, t('Full description'), 1);
 
   $form['project'] = array(
