@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.67 2010/07/23 18:33:19 thehunmonkgroup Exp $
+// $Id: project_solr.module,v 1.68 2010/08/02 18:33:06 thehunmonkgroup Exp $
 
 //----------------------------------------
 // Core hooks
@@ -85,6 +85,23 @@ function project_solr_reindex_projects($form, $form_state) {
 //----------------------------------------
 // Solr-related hooks
 //----------------------------------------
+
+/**
+ * Implementation of hook_apachesolr_facets().
+ */
+function project_solr_apachesolr_facets() {
+  $facets = array();
+  if (module_exists('project_usage')) {
+    $facets = array(
+      'sort_most_installed' => array(
+        'info' => t('Most installed'),
+        'facet_field' => 'sis_project_release_usage',
+        'direction' => 'desc',
+      ),
+    );
+  }
+  return $facets;
+}
 
 /**
  * Implementation of hook_apachesolr_update_index().
