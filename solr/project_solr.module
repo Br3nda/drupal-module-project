@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.70 2010/08/06 08:29:56 dww Exp $
+// $Id: project_solr.module,v 1.71 2010/08/06 08:49:38 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -537,7 +537,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
   if (!empty($terms)) {
     $vocab = taxonomy_vocabulary_load(_project_get_vid());
     asort($terms);
-    $terms = array('' => '') + $terms;
+    $terms = array('' => t('- Any -')) + $terms;
     $form['tid'] = array(
       '#type' => 'select',
       '#options' => $terms,
@@ -547,7 +547,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
   }
 
   if (module_exists('project_release')) {
-    $terms = array('' => '');
+    $terms = array();
     $active_terms = project_release_compatibility_list();
     foreach ($active_terms as $tid => $term_name) {
       $active = $query->has_filter('im_project_release_api_tids', $tid);
@@ -557,6 +557,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
       $terms[$tid] = $term_name;
     }
     if (!empty($terms)) {
+      $terms = array('' => t('- Any -')) + $terms;
       $form['api_version'] = array(
         '#title' => t('Filter by compatibility'),
         '#type' => 'select',
