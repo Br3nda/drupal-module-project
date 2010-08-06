@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.69 2010/08/06 06:54:14 dww Exp $
+// $Id: project_solr.module,v 1.70 2010/08/06 08:29:56 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -198,6 +198,16 @@ function project_solr_apachesolr_modify_query(&$query, &$params) {
   }
 }
 
+/**
+ * Implementation of hook_apachesolr_prepare_query().
+ */
+function project_solr_apachesolr_prepare_query(&$query, &$params) {
+  if (module_exists('project_release')) {
+    // Add a human-readable alias for the release filter.
+    $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'drupal_core')));
+  }
+}
+
 //----------------------------------------
 // Page callbacks
 //----------------------------------------
@@ -248,8 +258,6 @@ function project_solr_browse_page($term_name) {
       throw new Exception(t('Could not construct a Solr query.'));
     }
 
-    $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'drupal_core')));
-
     $params = array(
       'fl' => 'id,nid,title,body,format,comment_count,type,created,changed,score,url,uid,name,sis_project_release_usage,ds_project_latest_release,ds_project_latest_activity',
       'rows' => variable_get('apachesolr_rows', 10),
@@ -269,6 +277,13 @@ function project_solr_browse_page($term_name) {
     // This is the object that does the communication with the solr server.
     $solr = apachesolr_get_solr();
 
+    // Allow modules to alter the query prior to statically caching it.
+    // This can e.g. be used to add available sorts.
+    foreach (module_implements('apachesolr_prepare_query') as $module) {
+      $function_name = $module . '_apachesolr_prepare_query';
+      $function_name($query, $params, 'project_solr_browse_page');
+    }
+  
     // Cache the built query. Since all the built queries go through
     // this process, all the hook_invocations will happen later.
     apachesolr_current_query($query);
