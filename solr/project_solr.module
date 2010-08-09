@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.72 2010/08/09 22:09:39 dww Exp $
+// $Id: project_solr.module,v 1.73 2010/08/09 23:02:36 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -204,7 +204,7 @@ function project_solr_apachesolr_modify_query(&$query, &$params) {
 function project_solr_apachesolr_prepare_query(&$query, &$params) {
   if (module_exists('project_release')) {
     // Add a human-readable alias for the release filter.
-    $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'drupal_core')));
+    $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'api_version')));
   }
 }
 
@@ -652,7 +652,7 @@ function project_solr_browse_projects_form_submit($form, &$form_state) {
   }
 
   if (!empty($form_state['values']['api_version'])) {
-    $query->add_filter(variable_get('project_solr_project_release_api_tids_alias', 'drupal_core'), $form_state['values']['api_version']);
+    $query->add_filter(variable_get('project_solr_project_release_api_tids_alias', 'api_version'), $form_state['values']['api_version']);
   }
 
   // Loop over all project-related vocabularies and create filters
