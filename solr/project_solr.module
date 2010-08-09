@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.71 2010/08/06 08:49:38 dww Exp $
+// $Id: project_solr.module,v 1.72 2010/08/09 22:09:39 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -230,15 +230,15 @@ function project_solr_browse_page($term_name) {
   try {
     $output = '';
 
-    $parent_term = db_fetch_object(db_query("SELECT t.tid, t.name, t.description FROM {term_data} t WHERE t.vid = %d AND LOWER(t.name) = LOWER('%s')", _project_get_vid(), $term_name));
+    $project_type = db_fetch_object(db_query("SELECT t.tid, t.name, t.description FROM {term_data} t WHERE t.vid = %d AND LOWER(t.name) = LOWER('%s')", _project_get_vid(), $term_name));
 
-    if (!$parent_term) {
+    if (!$project_type) {
       // XXX: this is the Drupal 5 way...
       return drupal_not_found();
     }
-    drupal_set_title(check_plain($parent_term->name));
-    if (!empty($parent_term->description)) {
-      $output .= theme('project_type_description', $parent_term);
+    drupal_set_title(check_plain($project_type->name));
+    if (!empty($project_type->description)) {
+      $output .= theme('project_type_description', $project_type);
     }
 
     $text_query = isset($_GET['text']) ? $_GET['text'] : '';
@@ -253,7 +253,7 @@ function project_solr_browse_page($term_name) {
 
     include_once drupal_get_path('module', 'project_solr') .'/ProjectSolrQuery.php';
 
-    $query = new ProjectSolrQuery(apachesolr_get_solr(), $text_query, $filters, $sort, 'project/' . drupal_strtolower($parent_term->name));
+    $query = new ProjectSolrQuery(apachesolr_get_solr(), $text_query, $filters, $sort, 'project/' . drupal_strtolower($project_type->name));
     if (is_null($query)) {
       throw new Exception(t('Could not construct a Solr query.'));
     }
@@ -306,7 +306,7 @@ function project_solr_browse_page($term_name) {
     // filters for the query -- project nodes of the given top-level type that
     // have releases (if project_release is enabled).
     $params['fq'][] = 'type:project_project';
-    $params['fq'][] = 'im_vid_'. _project_get_vid() .':'. $parent_term->tid;
+    $params['fq'][] = 'im_vid_'. _project_get_vid() .':'. $project_type->tid;
     if (module_exists('project_release')) {
       $params['fq'][] = 'is_project_has_releases:1';
     }
@@ -338,7 +338,7 @@ function project_solr_browse_page($term_name) {
 
     $output .= '</div>'; // id="project-overview"
     $output .= theme('pager', NULL, $params['rows'], 0);
-    $output = drupal_get_form('project_solr_browse_projects_form', $parent_term) . $output;
+    $output = drupal_get_form('project_solr_browse_projects_form', $project_type) . $output;
   }
   catch (Exception $e) {
     watchdog('Apache Solr', $e->getMessage(), NULL, WATCHDOG_ERROR);
@@ -383,14 +383,14 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
             $tid = trim($matches[1]);
             $term = taxonomy_get_term($tid);
             if ($term->vid == $project_vid) {
-              $parent_term = $term;
+              $project_type = $term;
               break;
             }
           }
         }
       }
 
-      if (!isset($parent_term)) {
+      if (!isset($project_type)) {
         // This facet cannot process generic queries.
         return;
       }
@@ -399,7 +399,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
       $terms = array();
 
       // Get the terms at the current depth.
-      $current_tid = $parent_term->tid;
+      $current_tid = $project_type->tid;
       foreach ($query->get_filters() as $filter) {
         if ($filter['#name'] == 'tid') {
           $current_tid = $filter['#value'];
@@ -515,7 +515,7 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 /**
  * Build project browsing navigation form.
  */
-function project_solr_browse_projects_form(&$form_state, $parent_term) {
+function project_solr_browse_projects_form(&$form_state, $project_type) {
   drupal_add_css(drupal_get_path('module', 'project_solr') .'/project_solr.css');
   $response = apachesolr_static_response_cache();
   $query = apachesolr_current_query();
@@ -530,7 +530,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
   }
 
   // Create a drop-down for sub-terms of primary project terms.
-  $tree = taxonomy_get_tree(_project_get_vid(), $parent_term->tid, -1, 1);
+  $tree = taxonomy_get_tree(_project_get_vid(), $project_type->tid, -1, 1);
   foreach ($tree as $term) {
     $terms[$term->tid] = $term->name;
   }
@@ -541,7 +541,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
     $form['tid'] = array(
       '#type' => 'select',
       '#options' => $terms,
-      '#title' => t('@type categories', array('@type' => $parent_term->name)),
+      '#title' => t('@type categories', array('@type' => $project_type->name)),
       '#default_value' => $current_tid,
     );
   }
@@ -570,7 +570,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
   // Retrieve all the vocabularies related to project so that the facets can be built.
   $vocabs = project_get_related_tids_map(TRUE);
   foreach ($vocabs as $vid => $vocab) {
-    if ($parent_term->tid == variable_get('project_type_associated_tid_' . $vid, NULL)) {
+    if ($project_type->tid == variable_get('project_type_associated_tid_' . $vid, NULL)) {
       $selected = array();
       // Extract selected values from our filters.
       foreach ($query->get_filters() as $filter) {
@@ -597,7 +597,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
   }
 
   $form['text'] = array(
-    '#title' => t('Search @project_type', array('@project_type' => $parent_term->name)),
+    '#title' => t('Search @project_type', array('@project_type' => $project_type->name)),
     '#type' => 'textfield',
     '#default_value' => isset($_GET['text']) ? $_GET['text'] : '',
     '#size' => 20,
@@ -634,7 +634,7 @@ function project_solr_browse_projects_form(&$form_state, $parent_term) {
 
   $form['path'] = array(
     '#type' => 'value',
-    '#value' => 'project/' . drupal_strtolower($parent_term->name),
+    '#value' => 'project/' . drupal_strtolower($project_type->name),
   );
   $form['submit'] = array(
     '#type' => 'submit',
