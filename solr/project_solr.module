@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.74 2010/08/10 22:31:36 dww Exp $
+// $Id: project_solr.module,v 1.75 2010/08/16 17:57:34 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -222,6 +222,7 @@ function project_solr_apachesolr_prepare_query(&$query, &$params) {
     // Add a human-readable alias for the release filter.
     $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'api_version')));
   }
+  project_solr_add_sorts($query);
 }
 
 //----------------------------------------
@@ -576,6 +577,8 @@ function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
   $response = apachesolr_static_response_cache();
   $query = apachesolr_current_query();
 
+  $text = $query->get_keys();
+
   // Get the terms at the current depth.
   $current_tid = '';
   foreach ($query->get_filters() as $field) {
@@ -637,7 +640,7 @@ function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
   $form['text'] = array(
     '#title' => t('Search @project_type', array('@project_type' => $project_type->name)),
     '#type' => 'textfield',
-    '#default_value' => isset($_GET['text']) ? $_GET['text'] : '',
+    '#default_value' => $text,
     '#size' => 20,
   );
 
@@ -659,7 +662,7 @@ function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
   $solrsort = explode(' ', $solrsort);
   $solrsort[0] = preg_replace('/_[0-9]+$/', '', $solrsort[0]);
   $solrsort = implode(' ', $solrsort);
-  if (empty($solrsort) && empty($form['text']['#default_value'])) {    
+  if (empty($solrsort) && empty($text)) {    
     $solrsort = variable_get('project_solr_default_sort', 'sort_title asc');
   }
 
@@ -717,6 +720,9 @@ function project_solr_browse_projects_form_submit($form, &$form_state) {
     drupal_set_message(t('No search text submitted for a relevancy sort.  The default sorting method was used instead.'));
   }
 
+  // Add all project-specific sorts so that the sort set in set_solrsort() will
+  // work as intended.
+  project_solr_add_sorts($query);
   $query->set_solrsort($solrsort[0], $solrsort[1]);
   $query_values = $query->get_url_queryvalues();
   if (!empty($form_state['values']['text'])) {
@@ -772,6 +778,34 @@ function project_sort_freetext_submit($form, &$form_state) {
   $queryvalues['text'] = $form_state['values']['text'];
   unset($queryvalues['solrsort']);
   $form_state['redirect'] = array($form_state['values']['path'], $queryvalues);
+}
+
+/**
+ * Adds project-specific sorts to the query object
+ * 
+ * Adds project-specific sorts to the query object to allow all queries to 
+ * leverage project-specific sorting if relevant. This is necessary to allow
+ * site-wide search to sort by any project-specific sorting method. This is
+ * called by hook_prepare_query() to add the sorts into all queries, but
+ * separated out so that a hook_prepare_query() invocation is not necessary
+ * if only the project sorts are desired.
+ * 
+ * @param object &$query
+ *   An existing query object to add sorts into.
+ */
+function project_solr_add_sorts(&$query) {
+  if (module_exists('project_release')) {
+    $query->set_available_sort('ds_project_latest_release', array('title' => t('Last release'), 'default' => 'desc'));
+    $query->set_available_sort('ds_project_latest_activity', array('title' => t('Recent activity'), 'default' => 'desc'));
+    $active_terms = project_release_compatibility_list();
+    foreach ($active_terms as $tid => $term_name) {
+      $query->set_available_sort('ds_project_latest_release_' . $tid, array('title' => t('Last release'), 'default' => 'desc'));
+      $query->set_available_sort('ds_project_latest_activity_' . $tid, array('title' => t('Recent activity'), 'default' => 'desc'));
+    }
+  }
+  if (module_exists('project_usage')) {
+    $query->set_available_sort('sis_project_release_usage', array('title' => t('Usage statistics'), 'default' => 'desc'));
+  }
 }
 
 //----------------------------------------
