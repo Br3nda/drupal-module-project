@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.install,v 1.31 2010/06/07 22:45:39 dww Exp $
+// $Id: project_release.install,v 1.32 2010/08/19 16:31:17 dww Exp $
 
 function project_release_install() {
   // Create the database tables.
@@ -351,6 +351,35 @@ function project_release_schema() {
       'expire' => array('expire')
     ),
   );
+
+  $schema['project_release_project_maintainer'] = array(
+    'description' => t('Users who have various per-project maintainer permissions.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Foreign key: {project_projects}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => t('Foreign key: {users}.uid of a user with any project maintainer permissions.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'administer_releases' => array(
+        'description' => t('Can this user create and administer releases for the given project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'uid'),
+  );
+
   return $schema;
 }
 
@@ -704,5 +733,54 @@ function project_release_update_6009() {
   else {
     $ret['#finished'] = $_SESSION['project_release_update_6009'] / $_SESSION['project_release_update_6009_max'];
   }
+  return $ret;
+}
+
+/**
+ * Add the {project_release_project_maintainer} table.
+ */
+function project_release_update_6010() {
+  $ret = array();
+
+  $table = array(
+    'description' => t('Users who have various per-project maintainer permissions.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Foreign key: {project_projects}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => t('Foreign key: {users}.uid of a user with any project maintainer permissions.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'administer_releases' => array(
+        'description' => t('Can this user create and administer releases for the given project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'uid'),
+  );
+  db_create_table($ret, 'project_release_project_maintainer', $table);
+
+  // Initially populate the table so that every project owner has full
+  // powers on their own projects.
+  $ret[] = update_sql("INSERT INTO {project_release_project_maintainer} (nid, uid, administer_releases) SELECT nid, uid, 1 FROM {node} WHERE type = 'project_project'");
+
+  // If CVS module is enabled, also populate the table from the
+  // {cvs_project_maintainers} table so that anyone with CVS access
+  // who is not the project owner can administer releases.
+  if (module_exists('cvs')) {
+    $ret[] = update_sql("INSERT INTO {project_release_project_maintainer} (nid, uid, administer_releases) SELECT cpm.nid, cpm.uid, 1 FROM {cvs_project_maintainers} cpm INNER JOIN {node} n ON cpm.nid = n.nid WHERE cpm.uid != n.uid");
+  }
+
   return $ret;
 }

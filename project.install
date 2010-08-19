@@ -1,5 +1,5 @@
 <?php
-// $Id: project.install,v 1.28 2010/04/22 06:10:24 thehunmonkgroup Exp $
+// $Id: project.install,v 1.29 2010/08/19 16:31:16 dww Exp $
 
 function project_install() {
   // Create the database tables.
@@ -104,6 +104,41 @@ function project_schema() {
       'project_projects_uri' => array(array('uri', 8)),
     ),
   );
+  $schema['project_maintainer'] = array(
+    'description' => t('Users who have various per-project maintainer permissions.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Foreign key: {project_projects}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => t('Foreign key: {users}.uid of a user with any project maintainer permissions.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'edit_project' => array(
+        'description' => t('Can this user edit the given project and modify its settings.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'administer_maintainers' => array(
+        'description' => t('Can this user manipulate the maintainers for the given project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'uid'),
+  );
+
   return $schema;
 }
 
@@ -137,3 +172,58 @@ function project_update_6001() {
   return $ret;
 }
 
+/**
+ * Add the {project_maintainer} table.
+ */
+function project_update_6002() {
+  $ret = array();
+  $table = array(
+    'description' => t('Users who have various per-project maintainer permissions.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('Foreign key: {project_projects}.nid of the project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => t('Foreign key: {users}.uid of a user with any project maintainer permissions.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'edit_project' => array(
+        'description' => t('Can this user edit the given project and modify its settings.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'administer_maintainers' => array(
+        'description' => t('Can this user manipulate the maintainers for the given project.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('nid', 'uid'),
+  );
+  db_create_table($ret, 'project_maintainer', $table);
+
+  // Initially populate the table so that every project owner has full
+  // powers on their own projects.
+  $ret[] = update_sql("INSERT INTO {project_maintainer} (nid, uid, edit_project, administer_maintainers) SELECT nid, uid, 1, 1 FROM {node} WHERE type = 'project_project'");
+
+  // If CVS module is enabled, also populate the table from the
+  // {cvs_project_maintainers} table so that anyone with CVS access who is
+  // not the project owner can edit the project but not manipulate the
+  // per-project permissions.
+  if (module_exists('cvs')) {
+    $ret[] = update_sql("INSERT INTO {project_maintainer} (nid, uid, edit_project, administer_maintainers) SELECT cpm.nid, cpm.uid, 1, 0 FROM {cvs_project_maintainers} cpm INNER JOIN {node} n ON cpm.nid = n.nid WHERE cpm.uid != n.uid");
+  }
+
+  return $ret;
+}

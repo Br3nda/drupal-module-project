@@ -1,5 +1,5 @@
 <?php
-// $Id: project.inc,v 1.150 2010/07/30 21:59:28 thehunmonkgroup Exp $
+// $Id: project.inc,v 1.151 2010/08/19 16:31:16 dww Exp $
 
 /**
  * Implementation of hook_form().
@@ -425,11 +425,15 @@ function project_project_nodeapi(&$node, $op, $arg) {
 function project_project_insert($node) {
   db_query("INSERT INTO {project_projects} (nid, uri, homepage, changelog, cvs, demo, screenshots, documentation, license) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')", $node->nid, $node->project['uri'], $node->project['homepage'], $node->project['changelog'], $node->project['cvs'], $node->project['demo'], $node->project['screenshots'], $node->project['documentation'], $node->project['license']);
 //  project_release_scan_directory($node->project['uri']);
+  $perms = array_fill_keys(array_keys(project_permission_load()), 1);
+  project_maintainer_save($node->nid, $node->uid, $perms);
 }
 
 function project_project_update($node) {
   db_query("UPDATE {project_projects} SET uri = '%s', homepage = '%s', changelog = '%s', cvs = '%s', demo = '%s', screenshots = '%s', documentation = '%s', license = '%s' WHERE nid = %d", $node->project['uri'], $node->project['homepage'], $node->project['changelog'], $node->project['cvs'], $node->project['demo'], $node->project['screenshots'], $node->project['documentation'], $node->project['license'], $node->nid);
 //  project_release_scan_directory($node->project['uri']);
+  $perms = array_fill_keys(array_keys(project_permission_load()), 1);
+  project_maintainer_save($node->nid, $node->uid, $perms);
 }
 
 function project_project_delete($node) {

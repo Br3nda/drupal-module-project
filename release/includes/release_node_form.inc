@@ -1,5 +1,5 @@
 <?php
-// $Id: release_node_form.inc,v 1.11 2010/01/30 02:33:40 dww Exp $
+// $Id: release_node_form.inc,v 1.12 2010/08/19 16:31:17 dww Exp $
 
 /**
  * @file
@@ -24,7 +24,7 @@ function _project_release_form(&$release, &$form_state) {
     }
     // Make sure this user should have permissions to add releases for
     // the requested project
-    if (!project_check_admin_access($project)) {
+    if (!project_user_access($project, 'administer releases')) {
       drupal_access_denied();
       module_invoke_all('exit');
       exit;

@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.153 2010/07/08 23:16:17 dww Exp $
+// $Id: project_release.module,v 1.154 2010/08/19 16:31:17 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -40,8 +40,8 @@ function project_release_menu() {
     'title' => 'Releases',
     'page callback' => 'project_release_project_edit_releases',
     'page arguments' => array(1),
-    'access callback' => 'node_access',
-    'access arguments' => array('update', 1),
+    'access callback' => 'project_user_access',
+    'access arguments' => array(1, 'administer releases'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'includes/project_edit_releases.inc',
   );
@@ -120,7 +120,7 @@ function project_release_access($op, $node, $account) {
       // We can't just use project_project_access() here, since we
       // need to check access to the project itself, not the release
       // node, so we use the helper method and pass the project id.
-      return project_check_admin_access($node->project_release['pid']);
+      return project_user_access($node->project_release['pid'], 'administer releases');
     case 'delete':
       // No one should ever delete a release node, only unpublish it.
       return FALSE;
@@ -139,6 +139,49 @@ function project_release_node_info() {
       'description' => t('A release of a project with a specific version number.'),
      ),
   );
+}
+
+/**
+ * Implement hook_project_permission_info()
+ */
+function project_release_project_permission_info() {
+  return array(
+    'administer releases' => array(
+      'title' => t('Administer releases'),
+      'description' => t('Allows a user to create and update releases, and to control which branches are recommended or supported.'),
+    ),
+  );
+}
+
+/**
+ * Implement hook_project_maintainer_save()
+ */
+function project_release_project_maintainer_save($nid, $uid, $permissions = array()) {
+  db_query("UPDATE {project_release_project_maintainer} SET administer_releases = %d WHERE nid = %d AND uid = %d", !empty($permissions['administer releases']), $nid, $uid);
+  if (!db_affected_rows()) {
+    // If we didn't have a record to update, add this as a new maintainer.
+    db_query("INSERT INTO {project_release_project_maintainer} (nid, uid, administer_releases) VALUES (%d, %d, %d)", $nid, $uid, !empty($permissions['administer releases']));
+  }
+}
+
+/**
+ * Implement hook_project_maintainer_remove()
+ */
+function project_release_project_maintainer_remove($nid, $uid) {
+  db_query("DELETE FROM {project_release_project_maintainer} WHERE nid = %d and uid = %d", $nid, $uid);
+}
+
+/**
+ * Implement hook_project_maintainer_project_load()
+ */
+function project_release_project_maintainer_project_load($nid, &$maintainers) {
+  $query = db_query('SELECT u.uid, u.name, prpm.administer_releases FROM {project_release_project_maintainer} prpm INNER JOIN {users} u ON prpm.uid = u.uid WHERE prpm.nid = %d', $nid);
+  while ($maintainer = db_fetch_object($query)) {
+    if (empty($maintainers[$maintainer->uid])) {
+      $maintainers[$maintainer->uid]['name'] = $maintainer->name;
+    }
+    $maintainers[$maintainer->uid]['permissions']['administer releases'] = $maintainer->administer_releases;
+  }
 }
 
 /**
@@ -609,7 +652,7 @@ function project_release_view($node, $teaser = FALSE, $page = FALSE) {
   }
 
   // Display packaging errors to admins.
-  if (project_check_admin_access($node->project_release['pid'])) {
+  if (project_user_access($node->project_release['pid'], 'administer releases')) {
     $rows = array();
     $result = db_query('SELECT * FROM {project_release_package_errors} WHERE nid = %d', $node->nid);
     $error = db_fetch_object($result);
@@ -690,7 +733,7 @@ function project_release_get_releases($project, $nodes = TRUE, $sort_by = 'versi
   $where = '';
   $join = '';
   $args = array($project->nid);
-  if (!project_check_admin_access($project)) {
+  if (!project_user_access($project, 'administer releases')) {
     if (!empty($rids)) {
       $where = "AND (n.status = %d OR n.nid IN (". db_placeholders($rids) ."))";
       $args[] = 1;
@@ -1230,7 +1273,7 @@ function project_release_project_page_link_alter(&$links, $node) {
     ),
   );
 
-  if (project_check_admin_access($node->nid)) {
+  if (project_user_access($node->nid, 'administer releases')) {
     $links['project_release']['links']['add_new_release'] = l(t('Add new release'), 'node/add/project_release/'. $node->nid);
     $links['project_release']['links']['administer_releases'] = l(t('Administer releases'), 'node/'. $node->nid .'/edit/releases');
   }

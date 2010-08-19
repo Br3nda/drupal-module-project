@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.361 2010/07/23 04:12:12 thehunmonkgroup Exp $
+// $Id: project.module,v 1.362 2010/08/19 16:31:16 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -518,6 +518,25 @@ function project_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
+  $items['node/%project_node/maintainers'] = array(
+    'title' => 'Maintainers',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('project_maintainers_form', 1),
+    'access callback' => 'project_user_access',
+    'access arguments' => array(1, 'administer maintainers'),
+    'file' => 'includes/project_maintainers.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 4,
+  );
+  $items['node/%project_node/maintainers/delete/%user'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('project_maintainer_delete_confirm', 1, 4),
+    'access callback' => 'project_user_access',
+    'access arguments' => array(1, 'administer maintainers'),
+    'file' => 'includes/project_maintainers.inc',
+    'type' => MENU_CALLBACK,
+  );
+
   $items['node/%project_edit_project/edit/project'] = array(
     'title' => 'Project',
     'page callback' => 'node_page',
@@ -567,7 +586,16 @@ function project_edit_project_load($nid) {
   return project_node_load($nid);
 }
 
-function project_check_admin_access($project, $cvs_access = NULL) {
+/**
+ * See if the current user has the given permission on a given project.
+ *
+ * @param $project
+ *   The project to check access against. Can be either a numeric node ID
+ *   (nid) or a fully-loaded $node object.
+ * @param $permission
+ *   The string representing the permission to check access for.
+ */
+function project_user_access($project, $permission) {
   global $user;
   if (empty($user->uid)) {
     return FALSE;
@@ -578,31 +606,22 @@ function project_check_admin_access($project, $cvs_access = NULL) {
     return FALSE;
   }
 
+  // If the user has the site-wide admin permission, always grant access.
   if (user_access('administer projects')) {
      return TRUE;
   }
 
-  // If $cvs_access is not defined, check to make sure the user has cvs access
-  // and that the user's cvs account is approved.
-  if (project_use_cvs($project_obj) && !isset($cvs_access)) {
-    if (db_result(db_query("SELECT COUNT(*) FROM {cvs_accounts} WHERE uid = %d AND status = %d", $user->uid, CVS_APPROVED))) {
-      $cvs_access = TRUE;
-    }
-    else {
-      $cvs_access = FALSE;
-    }
-  }
-
   if (user_access('maintain projects')) {
+    // Project owners are treated as super users and can always access.
     if ($user->uid == $project_obj->uid) {
        return TRUE;
     }
-    if (project_use_cvs($project_obj) && $cvs_access) {
-      if (db_result(db_query("SELECT COUNT(*) FROM {cvs_project_maintainers} WHERE uid = %d AND nid = %d", $user->uid, $project_obj->nid))) {
-        return TRUE;
-      }
-    }
+
+    // Otherwise, see if the user has the right permission for this project.
+    return !empty($project_obj->project['maintainers'][$user->uid]['permissions'][$permission]);
   }
+
+  // If we haven't granted access yet, deny it.
   return FALSE;
 }
 
@@ -693,11 +712,11 @@ function project_project_access($op, $node, $account) {
   switch ($op) {
     case 'view':
       // Since this function is shared for project_release nodes, we have to
-      // be careful what node we pass to project_check_admin_access().
+      // be careful what node we pass to project_user_access().
       if ($node->type == 'project_release') {
         $node = node_load($node->project_release['pid']);
       }
-      if (project_check_admin_access($node)) {
+      if (project_user_access($node, 'edit project')) {
         return TRUE;
       }
       if (!user_access('access projects')) {
@@ -717,7 +736,7 @@ function project_project_access($op, $node, $account) {
       }
       break;
     case 'update':
-      if (project_check_admin_access($node)) {
+      if (project_user_access($node, 'edit project')) {
         return TRUE;
       }
       break;
@@ -730,12 +749,136 @@ function project_project_access($op, $node, $account) {
 }
 
 /**
+ * Load all per-project permission information and return it.
+ *
+ * This invokes hook_project_permission_info() and
+ * hook_project_permission_alter(), and caches the results in RAM.
+ *
+ * @see hook_project_permission_info()
+ * @see hook_project_permission_alter()
+ * @see drupal_alter()
+ */
+function project_permission_load() {
+  static $project_permissions = array();
+  if (empty($project_permissions)) {
+    $project_permissions = module_invoke_all('project_permission_info');
+    drupal_alter('project_permission', $project_permissions);
+  }
+  return $project_permissions;
+}
+
+/**
+ * Implement hook_project_permission_info()
+ */
+function project_project_permission_info() {
+  return array(
+    'edit project' => array(
+      'title' => t('Edit project'),
+      'description' => t('Allows a user to edit a project and modify its settings.'),
+    ),
+    'administer maintainers' => array(
+      'title' => t('Administer maintainers'),
+      'description' => t('Allows a user to add and remove other project maintainers and to modify their permissions.'),
+    ),
+  );
+}
+
+/**
+ * Save the permissions associated with a maintainer for a given project.
+ *
+ * This creates a new maintainer record if none currently exists. Furthermore,
+ * it invokes hook_project_maintainer_save() to give other modules a chance to
+ * act on the fact that a maintainer is being saved.
+ *
+ * @param $nid
+ *   The Project NID to update the maintainer for.
+ * @param $uid
+ *   The user ID of the maintainer to update.
+ * @param array $permissions
+ *   Associative array of which project-level permissions the maintainer
+ *   should have. The keys are permission names, and the values are if the
+ *   permission should be granted or not.
+ *
+ * @see hook_project_maintainer_save()
+ * @see hook_project_permission_info()
+ */
+function project_maintainer_save($nid, $uid, $permissions = array()) {
+  // Try to update an existing record, if any.
+  db_query("UPDATE {project_maintainer} SET edit_project = %d, administer_maintainers = %d WHERE nid = %d AND uid = %d", !empty($permissions['edit project']), !empty($permissions['administer maintainers']), $nid, $uid);
+  if (!db_affected_rows()) {
+    // Didn't update anything, add this as a new maintainer, instead.
+    db_query("INSERT INTO {project_maintainer} (nid, uid, edit_project, administer_maintainers) VALUES (%d, %d, %d, %d)", $nid, $uid, !empty($permissions['edit project']), !empty($permissions['administer maintainers']));
+  }
+
+  // Invoke hook_project_maintainer_save() to let other modules know this
+  // maintainer is being saved so they can take any actions or record any
+  // data they need to.
+  module_invoke_all('project_maintainer_save', $nid, $uid, $permissions);
+}
+
+/**
+ * Remove a maintainer from a given project.
+ *
+ * @param $nid
+ *   The Project NID to remove the maintainer from.
+ * @param $uid
+ *   The user ID of the maintainer to remove.
+ */
+function project_maintainer_remove($nid, $uid) {
+  db_query("DELETE FROM {project_maintainer} WHERE nid = %d and uid = %d", $nid, $uid);
+
+  // Invoke hook_project_maintainer_remove() to let other modules know this
+  // maintainer is being removed so they can take any actions or record any
+  // data they need to.
+  module_invoke_all('project_maintainer_remove', $nid, $uid);
+}
+
+/**
+ * Load all the per-project maintainer info for a given project.
+ *
+ * @param $nid
+ *   Node ID of the project to load maintainer info about.
+ *
+ * @return
+ *   Array of maintainer info for the given project.
+ *
+ * @see hook_project_maintainer_project_load().
+ */
+function project_maintainer_project_load($nid) {
+  $maintainers = array();
+
+  // We don't want to load all the permissions here, just the ones that
+  // Project itself is responsible for, so we use our implementation of the
+  // hook, instead of the global load function.
+  $project_perms = project_project_permission_info();
+  $query = db_query('SELECT u.name, pm.* FROM {project_maintainer} pm INNER JOIN {users} u ON pm.uid = u.uid WHERE pm.nid = %d ORDER BY u.name', $nid);
+  while ($maintainer = db_fetch_object($query)) {
+    $maintainers[$maintainer->uid]['name'] = $maintainer->name;
+    foreach ($project_perms as $perm_name => $perm_info) {
+      $db_field = str_replace(' ', '_', $perm_name);
+      $maintainers[$maintainer->uid]['permissions'][$perm_name] = $maintainer->$db_field;
+    }
+  }
+
+  // Invoke hook_project_maintainer_project_load(). We can't use
+  // module_invoke_all() since we want a reference to the $maintainers array.
+  foreach (module_implements('project_maintainer_project_load') as $module) {
+    $function_name = $module . '_project_maintainer_project_load';
+    $function_name($nid, $maintainers);
+  }
+
+  return $maintainers;
+}
+
+/**
  * Implement hook_load().
  */
 function project_project_load($node) {
   $additions = db_fetch_array(db_query('SELECT * FROM {project_projects} WHERE nid = %d', $node->nid));
   $project = new stdClass;
   $project->project = $additions;
+  $project->project['maintainers'] = project_maintainer_project_load($node->nid);
+
   return $project;
 }
 
@@ -994,6 +1137,12 @@ function project_theme() {
       'arguments' => array(
         'url' => NULL,
         'title' => NULL,
+      ),
+    ),
+    'project_maintainers_form' => array(
+      'file' => 'includes/project_maintainers.inc',
+      'arguments' => array(
+        'form' => NULL,
       ),
     ),
     'project_project_node_form_taxonomy' => array(
