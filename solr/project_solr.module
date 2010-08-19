@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.78 2010/08/19 18:12:44 dww Exp $
+// $Id: project_solr.module,v 1.79 2010/08/19 20:10:20 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -395,27 +395,70 @@ function project_solr_browse_page($term_name) {
 
 /**
  * Implementation of hook_block().
+ *
+ * @see project_solr_block_info()
+ * @see project_solr_block_view()
  */
 function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
-  if ($op == 'list') {
-    return array(
-      'project_solr_categories' => array(
-        'info' => t('Project: categories'),
-        'cache' => BLOCK_CACHE_PER_PAGE,
-      ),
-      'project_solr_compability' => array(
-        'info' => t('Project: core compatibility'),
-        'cache' => BLOCK_CACHE_PER_PAGE,
-      ),
-      'project_solr_text' => array(
-        'info' => t('Project: text search'),
-        'cache' => BLOCK_CACHE_PER_PAGE,
-      ),
+  // Instead of a monolithic function, split out this code into separate
+  // functions for each operation (which we're going to need when we port to
+  // D7, anyway).
+  switch ($op) {
+    case 'list':
+      return project_solr_block_info();
+
+    case 'view':
+      return project_solr_block_view($delta);
+
+  }
+}
+
+/**
+ * Declare all the blocks provided by project_solr.
+ *
+ * @see project_solr_block()
+ */
+function project_solr_block_info() {
+  $blocks = array(
+    'project_solr_categories' => array(
+      'info' => t('Project Solr: categories'),
+      'cache' => BLOCK_CACHE_PER_PAGE,
+    ),
+    'project_solr_text' => array(
+      'info' => t('Project Solr: text search'),
+      'cache' => BLOCK_CACHE_PER_PAGE,
+    ),
+  );
+  if (module_exists('project_release')) {
+    $blocks['project_solr_compability'] = array(
+      'info' => t('Project Solr: core compatibility'),
+      'cache' => BLOCK_CACHE_PER_PAGE,
     );
   }
+  return $blocks;
+}
 
-  if ($op == 'view' && apachesolr_has_searched() && ($response = apachesolr_static_response_cache()) && ($query = apachesolr_current_query())) {
-    if ($delta == 'project_solr_categories') {
+/**
+ * Render the content for the requested project_solr block.
+ *
+ * @param $delta
+ *   The block delta for the block to render (the key from the array returned
+ *   by project_solr_block_info()).
+ *
+ * @see project_solr_block()
+ * @see project_solr_block_info()
+ */
+function project_solr_block_view($delta) {
+  // None of these blocks make sense unless there's been a solr search.
+  if (!apachesolr_has_searched()) {
+    return;
+  }
+
+  $response = apachesolr_static_response_cache();
+  $query = apachesolr_current_query();
+
+  switch ($delta) {
+    case 'project_solr_categories':
       // Find the parent term for this query.
       $project_vid = _project_get_vid();
       if (isset($response->responseHeader->params->fq)) {
@@ -500,56 +543,58 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
           'content' => theme('apachesolr_facet_list', $terms, 200),
         );
       }
-      return;
-    }
-    else if (module_exists('project_release') && $delta == 'project_solr_compability') {
-      $facet = 'im_project_release_api_tids';
-      $terms = array();
-      $active_terms = project_release_compatibility_list();
+      break;
 
-      $active_term_counts = array();
-      if (isset($response->facet_counts->facet_fields->$facet)) {
-        foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
-          if (!empty($active_terms[$tid])) {
-            $active_term_counts[$tid] = $count;
+    case 'project_solr_compability':
+      if (module_exists('project_release')) {
+        $facet = 'im_project_release_api_tids';
+        $terms = array();
+        $active_terms = project_release_compatibility_list();
+
+        $active_term_counts = array();
+        if (isset($response->facet_counts->facet_fields->$facet)) {
+          foreach ($response->facet_counts->facet_fields->$facet as $tid => $count) {
+            if (!empty($active_terms[$tid])) {
+              $active_term_counts[$tid] = $count;
+            }
           }
         }
-      }
 
-      foreach ($active_terms as $tid => $term_name) {
-        if (!empty($active_term_counts[$tid])) {
-          $active = $query->has_filter('im_project_release_api_tids', $tid);
-          $new_query = clone $query;
-          $path = $new_query->get_path();
-          $new_query->remove_filter('im_project_release_api_tids', $term->tid);
-          $options = array();
-          if ($active) {
-            $options['query'] = $new_query->get_url_queryvalues();
-            $link = theme('apachesolr_unclick_link', $term_name, $path, $options);
+        foreach ($active_terms as $tid => $term_name) {
+          if (!empty($active_term_counts[$tid])) {
+            $active = $query->has_filter('im_project_release_api_tids', $tid);
+            $new_query = clone $query;
+            $path = $new_query->get_path();
+            $new_query->remove_filter('im_project_release_api_tids', $term->tid);
+            $options = array();
+            if ($active) {
+              $options['query'] = $new_query->get_url_queryvalues();
+              $link = theme('apachesolr_unclick_link', $term_name, $path, $options);
+            }
+            else {
+              $new_query->add_filter('im_project_release_api_tids', $tid);
+              $options['query'] = project_solr_append_api_term($new_query->get_url_queryvalues(), $tid);
+              $link = theme('project_solr_no_count_facet_link', $term_name, $path, $options, $active, $response->response->numFound);
+            }
+            $terms[$term_name] = $link;
           }
-          else {
-            $new_query->add_filter('im_project_release_api_tids', $tid);
-            $options['query'] = project_solr_append_api_term($new_query->get_url_queryvalues(), $tid);
-            $link = theme('project_solr_no_count_facet_link', $term_name, $path, $options, $active, $response->response->numFound);
-          }
-          $terms[$term_name] = $link;
+        }
+
+        if (!empty($terms)) {
+          return array(
+            'subject' => t('Filter by compatibility'),
+            'content' => theme('apachesolr_facet_list', $terms, 200),
+          );
         }
       }
+      break;
 
-      if (!empty($terms)) {
-        return array(
-          'subject' => t('Filter by compatibility'),
-          'content' => theme('apachesolr_facet_list', $terms, 200),
-        );
-      }
-      return;
-    }
-    else if ($delta == 'project_solr_text') {
+    case 'project_solr_text':
       return array(
         'subject' => t('Search @project_type', array('@project_type' => $query->get_query_basic())),
         'content' => drupal_get_form('project_sort_freetext', $query->get_path()),
       );
-    }
+
   }
 }
 
