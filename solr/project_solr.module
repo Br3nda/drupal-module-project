@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.76 2010/08/16 21:28:25 dww Exp $
+// $Id: project_solr.module,v 1.77 2010/08/19 17:19:03 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -222,7 +222,10 @@ function project_solr_apachesolr_prepare_query(&$query, &$params) {
     // Add a human-readable alias for the release filter.
     $query->add_field_aliases(array('im_project_release_api_tids' => variable_get('project_solr_project_release_api_tids_alias', 'api_version')));
   }
-  project_solr_add_sorts($query);
+  // Only add the project-specific sort if the query is filtering on projects.
+  if ($query->has_filter('type', 'project_project')) {
+    project_solr_add_sorts($query);
+  }
 }
 
 //----------------------------------------
@@ -294,13 +297,6 @@ function project_solr_browse_page($term_name) {
     // This is the object that does the communication with the solr server.
     $solr = apachesolr_get_solr();
 
-    // Allow modules to alter the query prior to statically caching it.
-    // This can e.g. be used to add available sorts.
-    foreach (module_implements('apachesolr_prepare_query') as $module) {
-      $function_name = $module . '_apachesolr_prepare_query';
-      $function_name($query, $params, 'project_solr_browse_page');
-    }
-
     // We add add_filter() parameters here to include all the constant
     // filters for the query -- project nodes of the given top-level type that
     // have releases (if project_release is enabled).
@@ -310,6 +306,13 @@ function project_solr_browse_page($term_name) {
     $query->add_filter('im_vid_'. _project_get_vid(), $project_type->tid);
     if (module_exists('project_release')) {
       $query->add_filter('is_project_has_releases', '1');
+    }
+
+    // Allow modules to alter the query prior to statically caching it.
+    // This can e.g. be used to add available sorts.
+    foreach (module_implements('apachesolr_prepare_query') as $module) {
+      $function_name = $module . '_apachesolr_prepare_query';
+      $function_name($query, $params, 'project_solr_browse_page');
     }
 
     // Cache the built query. Since all the built queries go through
@@ -722,7 +725,7 @@ function project_solr_browse_projects_form_submit($form, &$form_state) {
 
   // Add all project-specific sorts so that the sort set in set_solrsort() will
   // work as intended.
-  project_solr_add_sorts($query);
+  project_solr_add_sorts($query, variable_get('project_solr_project_release_api_tids_alias', 'api_version'));
   $query->set_solrsort($solrsort[0], $solrsort[1]);
   $query_values = $query->get_url_queryvalues();
   if (!empty($form_state['values']['text'])) {
@@ -795,19 +798,44 @@ function project_sort_freetext_submit($form, &$form_state) {
  * site-wide search to sort by any project-specific sorting method. This is
  * called by hook_prepare_query() to add the sorts into all queries, but
  * separated out so that a hook_prepare_query() invocation is not necessary
- * if only the project sorts are desired.
+ * if only the project sorts are desired. We filter the list of sorts to only
+ * provide meaningful options for Latest release and Recent activity so that
+ * we don't end up with multiple sorts with the same name. This is particularly
+ * relevant for how the sorts display in the apachesolr generated sort block.
  * 
  * @param object &$query
  *   An existing query object to add sorts into.
+ * @param string $api_filter
+ *   A string representing the name of the filter where our version tids will
+ *   be located. This is necessary since, at times, both the base string name
+ *   im_project_release_api_tids and the alias are passed in.
+ *   
+ * @see apachesolr_block
  */
-function project_solr_add_sorts(&$query) {
+function project_solr_add_sorts(&$query, $api_filter = 'im_project_release_api_tids') {
   if (module_exists('project_release')) {
-    $query->set_available_sort('ds_project_latest_release', array('title' => t('Last release'), 'default' => 'desc'));
-    $query->set_available_sort('ds_project_latest_activity', array('title' => t('Recent activity'), 'default' => 'desc'));
-    $active_terms = project_release_compatibility_list();
-    foreach ($active_terms as $tid => $term_name) {
-      $query->set_available_sort('ds_project_latest_release_' . $tid, array('title' => t('Last release'), 'default' => 'desc'));
-      $query->set_available_sort('ds_project_latest_activity_' . $tid, array('title' => t('Recent activity'), 'default' => 'desc'));
+    // Pull any existing filter on version.
+    $versions = $query->get_filters($api_filter);
+    $tids = array();
+    foreach ($versions as $version) {
+      $tids[] = $version['#value'];
+    }
+    // If we have no version selected, only present the base sorts.
+    if (empty($tids)) {
+      $query->set_available_sort('ds_project_latest_release', array('title' => t('Last release'), 'default' => 'desc'));
+      $query->set_available_sort('ds_project_latest_activity', array('title' => t('Recent activity'), 'default' => 'desc'));
+    }
+    else {
+      // If we have versions selected, only present sorts for our selected
+      // versions. Traditionally, this will only be one version, but this
+      // allows for multiple potential versions to be selected.
+      $active_terms = project_release_compatibility_list();
+      foreach ($tids as $tid) {
+        if (isset($active_terms[$tid])) {
+          $query->set_available_sort('ds_project_latest_release_' . $tid, array('title' => t('Last release'), 'default' => 'desc'));
+          $query->set_available_sort('ds_project_latest_activity_' . $tid, array('title' => t('Recent activity'), 'default' => 'desc'));
+        }
+      }
     }
   }
   if (module_exists('project_usage')) {
