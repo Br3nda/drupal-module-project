@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.362 2010/08/19 16:31:16 dww Exp $
+// $Id: project.module,v 1.363 2010/08/19 18:12:44 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -570,6 +570,26 @@ function project_node_load($arg) {
     return FALSE;
   }
   return $node;
+}
+
+/**
+ * Menu loader callback to load a project type.
+ *
+ * @param $arg
+ *   The menu argument to attempt to load a project type from.
+ *
+ * @return
+ *   The taxonomy term representing the project type, or FALSE.
+ */
+function project_type_load($arg) {
+  // Get all of the top-level terms in the project type vocabulary.
+  $tree = taxonomy_get_tree(_project_get_vid(), 0, -1, 1);
+  foreach ($tree as $project_type_term) {
+    if (strcasecmp($project_type_term->name, $arg) == 0) {
+      return $project_type_term;
+    }
+  }
+  return FALSE;
 }
 
 /**

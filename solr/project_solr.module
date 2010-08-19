@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.77 2010/08/19 17:19:03 dww Exp $
+// $Id: project_solr.module,v 1.78 2010/08/19 18:12:44 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -25,6 +25,13 @@ function project_solr_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_NORMAL_ITEM,
   );
+  $items['project/%project_type/categories'] = array(
+    'title' => 'Categories',
+    'page callback' => 'project_solr_category_page',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_NORMAL_ITEM,
+  );
   return $items;
 }
 
@@ -40,6 +47,18 @@ function project_solr_theme() {
         'options' => '',
         'active' => FALSE,
         'num_found' => NULL,
+      ),
+    ),
+    'project_solr_category_page' => array(
+      'arguments' => array(
+        'project_type' => NULL,
+        'categories' => array(),
+        'version_form' => NULL,
+      ),
+    ),
+    'project_solr_category_list' => array(
+      'arguments' => array(
+        'items' => array(),
       ),
     ),
   );
@@ -535,44 +554,6 @@ function project_solr_block($op = 'list', $delta = 0, $edit = array()) {
 }
 
 /**
- * Return a Form API array for an API version selector field.
- * 
- * @param object $query
- *   An existing query object that we can check for existing filters.
- * @param string $label
- *   Optional form label for the version selector field.
- *
- * @return
- *   Form array for the API version selector field.
- */
-function project_solr_get_api_version_field($query, $label = NULL) {
-  if (module_exists('project_release')) {
-    $current_tid = '';
-    $terms = array();
-    $active_terms = project_release_compatibility_list();
-    foreach ($active_terms as $tid => $term_name) {
-      $active = $query->has_filter('im_project_release_api_tids', $tid);
-      if ($active) {
-        $current_tid = $tid;
-      }
-      $terms[$tid] = $term_name;
-    }
-    if (!empty($terms)) {
-      $terms = array('' => t('- Any -')) + $terms;
-      if (empty($label)) {
-        $label = t('Filter by compatibility');
-      }
-      return array(
-        '#title' => $label,
-        '#type' => 'select',
-        '#options' => $terms,
-        '#default_value' => $current_tid,
-      );
-    }
-  }
-}
-
-/**
  * Build project browsing navigation form.
  */
 function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
@@ -790,6 +771,132 @@ function project_sort_freetext_submit($form, &$form_state) {
   $form_state['redirect'] = array($form_state['values']['path'], $queryvalues);
 }
 
+//----------------------------------------
+// Public helper methods
+//----------------------------------------
+
+/**
+ * Build and execute a Solr query to find project nodes.
+ *
+ * @param string $base_path
+ *   The base path to use for the Solr query.
+ * @param array $filters
+ *   Optional array of Solr filters to add to the query.
+ *
+ * @return
+ *   An ApacheSolr $query object.
+ */
+function project_solr_run_project_query($base_path, $filters = array()) {
+  $filterstring = isset($_GET['filters']) ? $_GET['filters'] : '';
+  $query = apachesolr_drupal_query('', $filterstring, '', $base_path);  
+
+  // Figure out all the fields we need to use as facets.
+  // First handle all the implicit filters we're going to add ourselves.
+  $facet_fields = array(
+    'type',
+    'im_project_release_api_tids',
+  );
+  // Now add any fields used for optional filters from our caller.
+  if (!empty($filters)) {
+    foreach ($filters as $filter) {
+      $facet_fields[] = $filter['key'];
+    }
+  }
+
+  $params = array(
+    // The fields to return.
+    'fl' => 'id,nid,title',
+    'start' => 0,
+    'rows' => 5,  // TODO: make this configurable.
+    'facet.field' => $facet_fields,
+    // Filters are set below via explicit calls to add_filter() rather than 
+    // here in the $params array. This is because any filters passed to 
+    // apachesolr_drupal_query() will override filters set via the $params
+    // array during the prepare_query() invocation.
+    'fq' => array(),
+    'facet' => 'true',
+    'facet.mincount' => 1,
+    'facet.sort' => 'true',
+    'sort' => variable_get('project_solr_default_sort', 'sort_title asc'),
+  );
+
+  apachesolr_search_add_facet_params($params, $query);
+
+  // Allow modules to alter the query prior to statically caching it.
+  // This can e.g. be used to add available sorts.
+  foreach (module_implements('apachesolr_prepare_query') as $module) {
+    $function_name = $module . '_apachesolr_prepare_query';
+    $function_name($query, $params, 'project_solr_run_project_query');
+  }
+
+  // We add our fields after the prepare_query() because prepare_query()
+  // generates a call to parse_filters() which destroys anything that
+  // does not get passed into the query on construction.
+  // We explicitly filter the blocks to only show projects with the right
+  // category. These values are not passed in the url, so we add them here
+  // ourselves to ensure we only get the content we want.
+  $query->add_filter('type', 'project_project');
+
+  if (!empty($filters)) {
+    foreach ($filters as $filter) {
+      $query->add_filter($filter['key'], $filter['value']);
+    }
+  }
+
+  // Cache the built query. Since all the built queries go through
+  // this process, all the hook_invocations will happen later.
+  apachesolr_current_query($query);
+
+  // This hook allows modules to modify the query and params objects.
+  apachesolr_modify_query($query, $params, 'project_solr_run_project_query');
+
+  $solr = apachesolr_get_solr();
+  $response = $solr->search($query->get_query_basic(), $params['start'], $params['rows'], $params);
+
+  apachesolr_static_response_cache($response);
+  apachesolr_has_searched(TRUE);
+
+  return $query;
+}
+
+/**
+ * Return a Form API array for an API version selector field.
+ * 
+ * @param object $query
+ *   An existing query object that we can check for existing filters.
+ * @param string $label
+ *   Optional form label for the version selector field.
+ *
+ * @return
+ *   Form array for the API version selector field.
+ */
+function project_solr_get_api_version_field($query, $label = NULL) {
+  if (module_exists('project_release')) {
+    $current_tid = '';
+    $terms = array();
+    $active_terms = project_release_compatibility_list();
+    foreach ($active_terms as $tid => $term_name) {
+      $active = $query->has_filter('im_project_release_api_tids', $tid);
+      if ($active) {
+        $current_tid = $tid;
+      }
+      $terms[$tid] = $term_name;
+    }
+    if (!empty($terms)) {
+      $terms = array('' => t('- Any -')) + $terms;
+      if (!isset($label)) {
+        $label = t('Filter by compatibility');
+      }
+      return array(
+        '#title' => $label,
+        '#type' => 'select',
+        '#options' => $terms,
+        '#default_value' => $current_tid,
+      );
+    }
+  }
+}
+
 /**
  * Adds project-specific sorts to the query object
  * 
@@ -882,3 +989,195 @@ function theme_project_solr_no_count_facet_link($facet_text, $path, $options = a
   $options['attributes']['class'] = implode(' ', $options['attributes']['class']);
   return apachesolr_l($facet_text,  $path, $options);
 }
+
+//----------------------------------------
+// Version-selector form
+//----------------------------------------
+
+/**
+ * This generates a form containing version selection and a submit button.
+ * 
+ * Generate a form with a version selection to allow filtering page content
+ * based on the API compatibility version. Also includes path to allow the
+ * form to potentially submit to other urls if desired.
+ * 
+ * @param string $path
+ *   The base path to which the version form will redirect.
+ * @param string $label
+ *   An optional label for the form element.
+ */
+function project_solr_version_form(&$form_state, $path, $label = NULL) {
+  $query = apachesolr_current_query();
+
+  $form = array(
+    '#attributes' => array('class' => 'clear-block'),
+  );
+
+  // Add version select field to our form.
+  $version_alias = variable_get('project_solr_project_release_api_tids_alias', 'api_version');
+
+  $form[$version_alias] = project_solr_get_api_version_field($query, $label);
+
+  $form['path'] = array(
+    '#type' => 'value',
+    '#value' => $path,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  return $form;
+}
+
+/**
+ * Create a query with the right version filter and redirect to the right page.
+ * 
+ * Create a new query, add any version filtering if it was selected in the
+ * form, and redirect back to the relevant page with the appropriate filter
+ * string.
+ */
+function project_solr_version_form_submit($form, &$form_state) {
+  // We create a new query with our base path so that we don't need to remove
+  // any existing drupal_core selection, and so that the implict type and 
+  // module tid filters don't end up in the url string.
+  $query = apachesolr_drupal_query('', '', '', $form_state['values']['path']);
+
+  $version_alias = variable_get('project_solr_project_release_api_tids_alias', 'api_version');
+
+  if (!empty($form_state['values'][$version_alias])) {
+    $query->add_filter($version_alias, $form_state['values'][$version_alias]);
+  }
+
+  $form_state['redirect'] = array($query->get_path(), $query->get_url_queryvalues());
+}
+
+//----------------------------------------
+// Category page and related functions
+//----------------------------------------
+
+/**
+ * Page callback for the listing of per-type categories.
+ *
+ * @param $project_type
+ *   Fully-loaded taxonomy term object for the project type.
+ *
+ * @return
+ *   Rendered page output for the project/%project_type/categories pages.
+ */
+function project_solr_category_page($project_type) {
+  $tree = taxonomy_get_tree(_project_get_vid(), $project_type->tid);
+  if (empty($tree)) {
+    return drupal_not_found();
+  }
+
+  drupal_set_title(t('@project_type categories', array('@project_type' => $project_type->name)));
+
+  $categories = array();
+  foreach ($tree as $category_term) {
+    $items = project_solr_fetch_category_items($project_type, $category_term);
+    if (!empty($items)) {
+      $categories[$category_term->tid] = array(
+        'title' => check_plain($category_term->name),
+        'items' => $items,
+      );
+    }
+  }
+
+  $search_path = 'project/' . drupal_strtolower($project_type->name) . '/categories';
+  $version_form = drupal_get_form('project_solr_version_form', $search_path);
+
+  return theme('project_solr_category_page', $project_type, $categories, $version_form);
+}
+
+/**
+ * Render the markup for the per-project type categories landing pages.
+ *
+ * @param $project_type
+ *   Fully-loaded taxonomy term object for the project type.
+ * @param $categories
+ *   Nested array of information about categories and projects. The keys are
+ *   the taxonomy term IDs (tids) of each category for the given project_type
+ *   that has projects associtated with it. The values are arrays with the
+ *   keys 'title' for the human-readable (and sanitized) titles of each
+ *   category, and 'items', which is an array of project links from the
+ *   projects in the category.
+ * @param $version_form
+ *   Optional rendered HTML of a version selector form to restrict results to
+ *   a given API compatibility term.
+ */
+function theme_project_solr_category_page($project_type, $categories, $version_form = '') {
+  $output = '';
+  if (!empty($version_form)) {
+    $output .= $version_form;
+  }
+  // TODO: This could probably use more slickness, a grid with multiple
+  // columns, etc. http://drupal.org/node/888144
+  foreach ($categories as $tid => $category) {
+    $output .= '<h2 class="category">' . $category['title'] . '</h2>';
+    $output .= theme('project_solr_category_list', $category['items']);
+  }
+  return $output;
+}
+
+/**
+ * Gather the items for a given project category.
+ *
+ * @param $project_type
+ *   The fully-loaded taxonomy term for the project type.
+ * @param $category_term
+ *   The fully-loaded taxonomy term for the category.
+ *
+ * @return
+ *   Array of projects from the given category.
+ */
+function project_solr_fetch_category_items($project_type, $category_term) {
+  $filters = array();
+  $filters[] = array(
+    'key' => 'tid',
+    'value' => $category_term->tid,
+  );
+  $base_path = 'project/' . drupal_strtolower($project_type->name);
+  $query = project_solr_run_project_query($base_path, $filters);
+
+  $query_values = $query->get_url_queryvalues();
+
+  $response = apachesolr_static_response_cache();
+
+  $items = array();
+  if ($response->response->numFound > 0) {
+    foreach ($response->response->docs as $doc) {
+      $items[] = l($doc->title, 'node/' . $doc->nid);
+    }
+  }
+
+  if ($items) {
+    // Add the "more" link.
+    $items[] = array(
+      'data' => l(t('More @category', array('@category' => $category_term->name)), $query->get_path(), array('query' => $query_values)),
+      'class' => 'more',
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Render the final markup for a list of projects from a given category.
+ *
+ * @param array $items
+ *   Array of links to projects in a given category.
+ *
+ * @return
+ *   Formatted HTML markup for the list of project in a category.
+ *
+ * @see theme_project_solr_category_page()
+ * @see theme_item_list()
+ */
+function theme_project_solr_category_list($items = array()) {
+  $output = '';
+  if (!empty($items)) {
+    $output .= theme('item_list', $items);
+  }
+  return $output;
+}
+
