@@ -1,5 +1,5 @@
 <?php
-// $Id: project_solr.module,v 1.79 2010/08/19 20:10:20 dww Exp $
+// $Id: project_solr.module,v 1.80 2010/08/21 00:34:06 dww Exp $
 
 //----------------------------------------
 // Core hooks
@@ -673,34 +673,8 @@ function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
     '#size' => 20,
   );
 
-  $sorts = array(
-    'sort_title asc' => t('Title'),
-    'created desc' => t('Creation date'),
-  );
-  if (module_exists('project_release')) {
-    $sorts['ds_project_latest_release desc'] = t('Last release');
-    $sorts['ds_project_latest_activity desc'] = t('Last build');
-  }
-  if (module_exists('project_usage')) {
-    $sorts['sis_project_release_usage desc'] = t('Most installed');
-  }
-  $sorts[''] = ('Relevancy');
-
-  // Determine default value based on current value of solrsort.
-  $solrsort = isset($_GET['solrsort']) ? $_GET['solrsort'] : '';
-  $solrsort = explode(' ', $solrsort);
-  $solrsort[0] = preg_replace('/_[0-9]+$/', '', $solrsort[0]);
-  $solrsort = implode(' ', $solrsort);
-  if (empty($solrsort) && empty($text)) {    
-    $solrsort = variable_get('project_solr_default_sort', 'sort_title asc');
-  }
-
-  $form['solrsort'] = array(
-    '#title' => t('Sort by'),
-    '#type' => 'select',
-    '#default_value' => $solrsort,
-    '#options' => $sorts,
-  );
+  // Add the sort selection field to our form.
+  $form['solrsort'] = project_solr_get_solrsort_field();
 
   $form['path'] = array(
     '#type' => 'value',
@@ -711,6 +685,42 @@ function project_solr_browse_projects_form(&$form_state, $project_type, $path) {
     '#value' => t('Search'),
   );
   return $form;
+}
+
+/**
+ * Return a Form API array for a sort selector field.
+ * 
+ * @param string $label
+ *   Optional form label for the sort selector field.
+ *
+ * @return
+ *   Form array for the sort selector field.
+ */
+function project_solr_get_solrsort_field($label = NULL) {
+  // Pull the current query, so that we can default the sorts
+  // and provide an accurate list of available sorting methods.
+  $query = apachesolr_current_query();
+
+  // Pull the currently selected sort.
+  $solrsort = $query->get_solrsort();
+
+  // Pull all of the available sorts and create an options array.
+  $options = array();
+  $available_sorts = $query->get_available_sorts();
+  foreach ($available_sorts as $name => $field) {
+    $options[$name . ' ' . $field['default']] = $field['title'];
+  }
+
+  if (!isset($label)) {
+    $label = t('Sort by');
+  }
+
+  return array(
+    '#title' => $label,
+    '#type' => 'select',
+    '#default_value' => $solrsort['#name'] . ' ' . $solrsort['#direction'],
+    '#options' => $options,
+  );
 }
 
 function project_solr_browse_projects_form_submit($form, &$form_state) {
@@ -975,7 +985,7 @@ function project_solr_add_sorts(&$query, $api_filter = 'im_project_release_api_t
     // If we have no version selected, only present the base sorts.
     if (empty($tids)) {
       $query->set_available_sort('ds_project_latest_release', array('title' => t('Last release'), 'default' => 'desc'));
-      $query->set_available_sort('ds_project_latest_activity', array('title' => t('Recent activity'), 'default' => 'desc'));
+      $query->set_available_sort('ds_project_latest_activity', array('title' => t('Last build'), 'default' => 'desc'));
     }
     else {
       // If we have versions selected, only present sorts for our selected
@@ -985,13 +995,13 @@ function project_solr_add_sorts(&$query, $api_filter = 'im_project_release_api_t
       foreach ($tids as $tid) {
         if (isset($active_terms[$tid])) {
           $query->set_available_sort('ds_project_latest_release_' . $tid, array('title' => t('Last release'), 'default' => 'desc'));
-          $query->set_available_sort('ds_project_latest_activity_' . $tid, array('title' => t('Recent activity'), 'default' => 'desc'));
+          $query->set_available_sort('ds_project_latest_activity_' . $tid, array('title' => t('Last build'), 'default' => 'desc'));
         }
       }
     }
   }
   if (module_exists('project_usage')) {
-    $query->set_available_sort('sis_project_release_usage', array('title' => t('Usage statistics'), 'default' => 'desc'));
+    $query->set_available_sort('sis_project_release_usage', array('title' => t('Most installed'), 'default' => 'desc'));
   }
 }
 
