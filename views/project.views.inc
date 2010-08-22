@@ -1,5 +1,5 @@
 <?php
-// $Id: project.views.inc,v 1.5 2009/02/16 22:43:15 dww Exp $
+// $Id: project.views.inc,v 1.6 2010/08/22 00:14:51 dww Exp $
 
 
 /**
@@ -358,6 +358,14 @@ function project_views_plugins() {
         'title' => t('Project node'),
         'handler' => 'project_plugin_argument_validate_project_nid',
         'path' => drupal_get_path('module', 'project') .'/views/plugins',
+      ),
+    ),
+    'argument default' => array(
+      'project_plugin_argument_default_project_type' => array(
+        'title' => t('Project type from URL'),
+        'handler' => 'project_plugin_argument_default_project_type',
+        'path' => $project_path . '/views/plugins',
+        'parent' => 'fixed', // so that the parent class is included
       ),
     ),
   );

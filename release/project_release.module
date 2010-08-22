@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.module,v 1.154 2010/08/19 16:31:17 dww Exp $
+// $Id: project_release.module,v 1.155 2010/08/22 00:14:51 dww Exp $
 
 define('PROJECT_RELEASE_DEFAULT_VERSION_FORMAT', '!major%minor%patch#extra');
 define('PROJECT_RELEASE_FILE_EXTENSIONS', 'zip gz tar bz2 rar tgz tar.gz dmg rpm deb');
@@ -2166,5 +2166,14 @@ function project_release_preprocess_views_view_table($variables) {
     }
     $variables['class'] .= " project-release";
   }
+}
+
+/**
+ * Implement hook_views_default_views_alter().
+ */
+function project_release_views_default_views_alter(&$views) {
+  $path = drupal_get_path('module', 'project_release');
+  require_once("$path/views/project_release.views_default.inc");
+  _project_release_views_default_views_alter($views);
 }
 

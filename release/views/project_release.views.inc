@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views.inc,v 1.14 2010/02/09 04:19:29 dww Exp $
+// $Id: project_release.views.inc,v 1.15 2010/08/22 00:14:51 dww Exp $
 
 /**
  * @file
@@ -427,6 +427,17 @@ function project_release_views_data() {
       'base' => 'node',
       'handler' => 'views_handler_relationship',
       'label' => t('Project node'),
+    ),
+  );
+  $data['project_release_supported_versions']['tid'] = array(
+    'title' => t('Supported API Compatibility term'),
+    'help' => t('The term ID of a supported API compatibility version.'),
+    'field' => array(
+      'handler' => 'views_handler_field_taxonomy',
+      'click sortable' => FALSE,
+    ),
+    'filter' => array(
+      'handler' => 'project_release_handler_filter_version_api_tid',
     ),
   );
   $data['project_release_supported_versions']['supported'] = array(

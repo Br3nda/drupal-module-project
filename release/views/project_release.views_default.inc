@@ -1,5 +1,5 @@
 <?php
-// $Id: project_release.views_default.inc,v 1.6 2010/02/18 00:34:26 dww Exp $
+// $Id: project_release.views_default.inc,v 1.7 2010/08/22 00:14:51 dww Exp $
 
 /**
  * @file
@@ -25,3 +25,48 @@ function project_release_views_default_views() {
   return $views;
 }
 
+/**
+ * Implement hook_views_default_views_alter().
+ *
+ * This injects project_release-specific features into views provided
+ * by the project.module.
+ */
+function _project_release_views_default_views_alter(&$views) {
+  if (isset($views['project_index'])) {
+    $views['project_index']->set_display('default');
+    $views['project_index']->display_handler->set_option('relationships', array(
+      'supported_releases_rel' => array(
+        'label' => 'supported versions',
+        'required' => 0,
+        'id' => 'supported_releases_rel',
+        'table' => 'project_projects',
+        'field' => 'supported_releases_rel',
+        'relationship' => 'none',
+      ),
+    ));
+    $filters = $views['project_index']->display_handler->get_option('filters');
+    $filters['tid'] = array(
+      'operator' => 'in',
+      'value' => array(),
+      'group' => '0',
+      'exposed' => TRUE,
+      'expose' => array(
+        'use_operator' => 0,
+        'operator' => 'tid_op',
+        'identifier' => 'api_compatibility',
+        'label' => 'Filter by API compatibility',
+        'optional' => 1,
+        'single' => 1,
+        'remember' => 0,
+        'reduce' => 0,
+      ),
+      'type' => 'select',
+      'id' => 'tid',
+      'table' => 'project_release_supported_versions',
+      'field' => 'tid',
+      'relationship' => 'supported_releases_rel',
+    );
+    $views['project_index']->display_handler->set_option('filters', $filters);
+    $views['project_index']->destroy();
+  }
+}
