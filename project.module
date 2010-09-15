@@ -1,5 +1,5 @@
 <?php
-// $Id: project.module,v 1.363 2010/08/19 18:12:44 dww Exp $
+// $Id: project.module,v 1.364 2010/09/15 01:25:00 dww Exp $
 
 /**
  * Implementation of hook_init().
@@ -84,25 +84,23 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
 
     return $blocks;
   }
-  else if ($op == 'view') {
+  elseif ($op == 'view') {
     switch ($delta) {
       case 'project_navigation_select':
-        $block = array(
+        return array(
           'subject' => t('Project navigation'),
           'content' => drupal_get_form('project_quick_navigate_form'),
         );
-        break;
 
       case 'project_navigation_text':
-        $block = array(
+        return array(
           'subject' => t('Project navigation'),
           'content' => drupal_get_form('project_quick_navigate_title_form'),
         );
-        break;
 
       case 'project_search':
         if (user_access('search content')) {
-          $block = array(
+          return array(
             'subject' => t('Search projects'),
             'content' => drupal_get_form('project_search_block_form', 'project_project'),
           );
@@ -110,18 +108,17 @@ function project_block($op = 'list', $delta = 0, $edit = array()) {
         break;
 
     }
-    if (empty($block) && ($node = project_get_project_from_menu()) && node_access('view', $node)) {
+    if (($node = project_get_project_from_menu()) && node_access('view', $node)) {
       module_load_include('inc', 'project', 'project');
       foreach (project_get_project_link_info($node) as $key => $links) {
         if ($delta == $key && isset($links['type']) && $links['type'] == 'block' && !empty($links['links'])) {
-          $block = array(
+          return array(
             'subject' => $links['name'],
             'content' => theme('item_list', $links['links']),
           );
         }
       }
     }
-    return $block;
   }
   elseif ($op == 'configure' && $delta == 1) {
     $form = array();
